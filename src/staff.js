@@ -110,6 +110,7 @@
     customers: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm7 0a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM2 20c0-3.3 3.1-6 7-6s7 2.7 7 6zm15 0c0-1.9-.7-3.6-1.9-4.9.6-.1 1.2-.1 1.9-.1 2.8 0 5 1.8 5 5z"/></svg>',
     more: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 10a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm7 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm7 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"/></svg>',
     calendar: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M7 2h2v2h6V2h2v2h3v18H4V4h3zM6 10v10h12V10zm0-4v2h12V6zm2 6h3v3H8z"/></svg>',
+    dash: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10h3v10zm6.5 0V4h3v16zM17 20v-7h3v7z"/></svg>',
     settings: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.4 13a7.6 7.6 0 0 0 0-2l2.1-1.6-2-3.4-2.5 1a7.4 7.4 0 0 0-1.7-1L15 3.3h-4l-.4 2.7a7.4 7.4 0 0 0-1.7 1l-2.5-1-2 3.4L6.6 11a7.6 7.6 0 0 0 0 2l-2.1 1.6 2 3.4 2.5-1c.5.4 1.1.7 1.7 1l.4 2.7h4l.4-2.7c.6-.3 1.2-.6 1.7-1l2.5 1 2-3.4zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/></svg>'
   };
   function navTabs() {
@@ -117,6 +118,7 @@
     var tabs = [['today', 'Today'], ['orders', 'Orders'], ['calendar', 'Calendar']];
     if (can('manager', 'front_of_house')) tabs.push(['kitchen', 'Kitchen']);
     if (can('manager', 'front_of_house')) tabs.push(['new', 'New order']);
+    if (can('marketing')) tabs.push(['dash', 'Dashboard']);
     if (can('manager', 'front_of_house', 'finance', 'marketing')) tabs.push(['customers', 'Customers']);
     if (can('manager')) tabs.push(['settings', 'Settings']);
     tabs.push(['more', 'More']);
@@ -127,7 +129,7 @@
     var needs = needsCount();
     // On phones, Customers and Settings move under More so the bottom bar keeps 5 large tabs (U15)
     return navTabs().map(function (t) {
-      var where = t[0] === 'more' ? ' ccs-nav-phone' : (t[0] === 'customers' || t[0] === 'settings' || t[0] === 'kitchen') ? ' ccs-nav-wide' : '';
+      var where = t[0] === 'more' ? ' ccs-nav-phone' : (t[0] === 'customers' || t[0] === 'settings' || t[0] === 'kitchen' || t[0] === 'dash') ? ' ccs-nav-wide' : '';
       return '<button type="button" class="ccs-nav-item' + (t[0] === 'new' ? ' ccs-nav-new' : '') + where + '" data-tab="' + t[0] + '"' + (S.tab === t[0] ? ' aria-current="page"' : '') + '>' + NAV_ICON[t[0]] + '<span>' + t[1] + '</span>' +
         (t[0] === 'orders' && needs ? '<span class="ccs-count">' + needs + '</span>' : '') + '</button>';
     }).join('');
@@ -157,6 +159,7 @@
     else if (S.tab === 'new') m.innerHTML = newView();
     else if (S.tab === 'customers') m.innerHTML = customersView();
     else if (S.tab === 'settings') m.innerHTML = settingsView();
+    else if (S.tab === 'dash') m.innerHTML = dashView();
     else if (S.tab === 'kitchen') m.innerHTML = kitchenView();
     else if (S.tab === 'calendar') m.innerHTML = calendarView();
   }
@@ -421,6 +424,7 @@
     shell();
     if (S.tab === 'customers' && !S.cust.loaded) loadCustomers();
     if (S.tab === 'settings') loadSettings();
+    if (S.tab === 'dash') dashLoad();
     if (S.tab === 'kitchen') loadKitchen();
     if (S.tab === 'orders' || S.tab === 'today') loadOrders(true);
     if (S.tab === 'calendar') calLoad();
@@ -447,6 +451,7 @@
     var links = '';
     if (can('manager', 'front_of_house')) links += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-tab="kitchen">Kitchen</button>';
     if (can('manager', 'front_of_house', 'finance', 'marketing')) links += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-tab="customers">Customers</button>';
+    if (can('marketing')) links += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-tab="dash">Dashboard</button>';
     if (can('manager')) links += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-tab="settings">Settings</button>';
     if (links) h += '<div class="ccs-more-links">' + links + '</div>';
     if (S.sheet.confirmOut && draftHasContent()) h += '<div class="ccs-panel ccs-confirm" role="alert"><b>You have an unfinished order' + (draftWho() ? ' for ' + esc(draftWho()) : '') + '.</b><p class="ccs-hint">Signing out deletes it from this device.</p><div class="ccs-actions-row"><button type="button" class="ccs-btn ccs-danger" data-act="signout" data-sure="1">Sign out anyway</button><button type="button" class="ccs-btn ccs-ghost" data-tab="new">Finish the order</button></div></div>';
@@ -455,7 +460,7 @@
   }
   function renderSheet() {
     var el = document.getElementById('ccs-sheet'); if (!el || !S.sheet) return;
-    var body = S.sheet.type === 'new' ? sheetHead('New order') + '<div class="ccs-sheet-body ccs-newsheet">' + newView() + '</div>' : S.sheet.type === 'cal' ? calSheet() : S.sheet.type === 'order' ? orderSheet() : S.sheet.type === 'customer' ? customerSheet() : S.sheet.type === 'kitchen' ? kitchenSheet() : S.sheet.type === 'more' ? moreSheet() : S.sheet.type === 'pw' ? sheetHead('Change my password') + '<div class="ccs-sheet-body"><form class="ccs-box ccs-pwform" id="ccs-pw">' + pwFields(S.pwErr) + '</form></div>' : '';
+    var body = S.sheet.type === 'new' ? sheetHead('New order') + '<div class="ccs-sheet-body ccs-newsheet">' + newView() + '</div>' : S.sheet.type === 'cal' ? calSheet() : S.sheet.type === 'order' ? orderSheet() : S.sheet.type === 'customer' ? customerSheet() : S.sheet.type === 'kitchen' ? kitchenSheet() : S.sheet.type === 'more' ? moreSheet() : S.sheet.type === 'dash' ? dashSheet() : S.sheet.type === 'pw' ? sheetHead('Change my password') + '<div class="ccs-sheet-body"><form class="ccs-box ccs-pwform" id="ccs-pw">' + pwFields(S.pwErr) + '</form></div>' : '';
     var keep = el.querySelector('.ccs-sheet-body'), top = keep ? keep.scrollTop : 0, focus = captureFocus(el);
     el.innerHTML = body;
     // put back anything staff were typing (the screen refreshes itself every minute) (U2)
@@ -1582,6 +1587,7 @@
     toast(rows.length + ' opted-in customers exported');
   }
 
+/*@DASH@*/
   // ---------- settings ----------
   function loadSettings() {
     S.settings = null; view();
@@ -1784,6 +1790,7 @@
       return;
     }
     var a = b.dataset.act, v = b.dataset.v;
+    if (a.indexOf('dx-') === 0) { try { dashAct(a, b, v); } catch (err) { fail(err); } return; }
     if (BUSY_ACTS[a] && !S.busyBtn) markBusy(b, BUSY_ACTS[a]);
     try {
       switch (a) {
@@ -1940,6 +1947,7 @@
     refreshStep();
   });
   root.addEventListener('change', function (e) {
+    if (e.target.dataset.dx && DX) { dashChange(e.target); return; }
     if (e.target.id === 'ccs-seg') { S.cust.seg = e.target.value; S.cust.q = ''; loadCustomers(); return; }
     if (e.target.id === 'cal-status' || e.target.id === 'cal-type') { S.cal[e.target.id === 'cal-status' ? 'status' : 'type'] = e.target.value; S.cal.pre = null; calRefresh(); return; }
     if (e.target.id === 'am-prod' && S.am) { amendSet('product', e.target.value); return; }

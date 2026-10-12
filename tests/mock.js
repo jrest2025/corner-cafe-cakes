@@ -8,6 +8,29 @@
       { code: 'red-velvet', name: 'Red Velvet', variants: [], lead_days: 2, supports_custom: true, supports_message: true, swatch: 'radial-gradient(circle at 50% 35%, #F7F1E6 0 40%, #9E2B2B 41%)', sizes: [{ inch: 6, price: 38 }, { inch: 8, price: 52 }, { inch: 10, price: 69 }, { inch: 12, price: 94 }] },
       { code: 'chocolate-mudcake-mocha', name: 'Chocolate, Mudcake or Mocha', choice_label: 'Which one?', variants: ['Chocolate', 'Mudcake', 'Mocha'], lead_days: 2, supports_custom: true, supports_message: true, swatch: 'radial-gradient(circle at 50% 35%, #7A4A2F 0 45%, #3A2216 46%)', sizes: [{ inch: 6, price: 42, serves: 'About 8–10 slices' }, { inch: 8, price: 68, serves: 'About 12–16 slices' }, { inch: 10, price: 83 }, { inch: 12, price: 108 }] }
     ] };
+
+  // invented dashboard feed: deterministic pseudo-random orders over 26 months
+  function dashFeed() {
+    if (window.__dashFail) return { ok: false, message: 'Your login does not have access to the dashboard.' };
+    var seed = 7, rnd = function () { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
+    var P = [['Cheesecake', [''], 54], ['Red Velvet', [''], 60], ['Chocolate, Mudcake or Mocha', ['Chocolate', 'Mudcake', 'Mocha'], 58], ['Strawberry', [''], 56], ['Black Forest or White Forest', ['Black Forest', 'White Forest'], 62]];
+    var out = [], n = 0;
+    for (var back = 790; back >= -20; back--) {
+      var day = add(-back), k = rnd() < 0.55 ? 1 : rnd() < 0.5 ? 0 : 2;
+      for (var j = 0; j < k; j++) {
+        n++; var p = P[Math.floor(rnd() * (back > 400 ? 4 : 5))], size = [6, 8, 10][Math.floor(rnd() * 3)], q = rnd() < 0.15 ? 2 : 1, price = p[2] + (size - 6) * 7;
+        var st = back > 0 ? (rnd() < 0.06 ? 'cancelled' : 'completed') : (rnd() < 0.7 ? 'confirmed' : 'awaiting_review');
+        var src = rnd() < 0.55 ? 'online' : rnd() < 0.8 ? 'walk_in' : 'whatsapp', c = 'cust' + Math.floor(rnd() * 160), lead = Math.floor(rnd() * 12);
+        var fin = st === 'completed' && rnd() < 0.08 ? price * q - 10 : null, imp = back > 120;
+        var o = { i: 'd' + n, r: (imp ? 'H-' : 'CC-') + (1000 + n), src: src, st: st, ps: 'unpaid', fm: 'collection', od: add(-back - lead), odok: true, pd: day, pt: '14:00', est: price * q, fin: fin, fee: null, imp: imp, rev: rnd() < 0.05 ? 1 : 0, rush: false, c: c, cn: 'Test Guest ' + c.slice(4), cx: st === 'cancelled' ? (rnd() < 0.5 ? 'Customer changed plans' : null) : null, ca: day, ho: null, ra: null, it: [[p[0], p[1][Math.floor(rnd() * p[1].length)] || null, size, q, price]], pay: null };
+        if (!imp && st !== 'cancelled') { o.pay = [['deposit', 20, add(-back - lead)]]; if (st === 'completed') { o.pay.push(['balance', price * q - 20 - (fin != null ? 10 : 0), day]); o.ho = day + 'T03:00:00Z'; o.ra = day + 'T01:00:00Z'; } }
+        out.push(o);
+      }
+    }
+    out[out.length - 40].pay.push(['refund', 15, add(-30)]);
+    window.__dashLast = out;
+    return { ok: true, generated_at: new Date().toISOString(), last_change: new Date().toISOString(), tests_excluded: 2, products: P.map(function (x) { return { n: x[0], on: true }; }).concat([{ n: 'Vanilla or Piña Colada', on: true }]), orders: out };
+  }
   var cust = [{ id: 'c1', full_name: 'Test Customer A', phone: '912 0001', email: 'a@example.com', preferred_contact: 'whatsapp' }, { id: 'c2', full_name: 'Test Customer B', phone: '912 0002' }];
   var orders = [
     { id: 'o1', reference: 'CC-1001', order_status: 'awaiting_review', payment_status: 'unpaid', order_type: 'standard', source: 'online', created_at: new Date().toISOString(), required_date: add(2), required_time: '14:00:00', estimate_total: 68, final_total: null, deposit_required: null, has_dietary: true, rush_override: false, version: 1, customer_id: 'c1', customers: cust[0], order_items: [{ product_name: 'Chocolate, Mudcake or Mocha', variant: 'Mudcake', size_inch: 8, quantity: 1, finish: 'standard', occasion: 'Birthday', cake_message: 'Happy 30th', dietary: ['Nut allergy'], serves_label: 'About 12–16 slices' }], order_events: [{ at: new Date().toISOString(), kind: 'created', actor_label: 'Guest (online)', detail: { source: 'online' } }], order_attachments: [], payments: [] },
@@ -91,6 +114,7 @@
       }
       return Promise.resolve({ data: { ok: false, message: 'Unknown request.' } }); } },
     rpc: function (fn, args) {
+      if (fn === 'dashboard_data') { calls.push(['rpc', fn, args]); return Promise.resolve({ data: dashFeed() }); }
       calls.push(['rpc', fn, args]);
       if (fn === 'get_order_setup') return Promise.resolve({ data: setup });
       if (fn === 'staff_search_customers') return Promise.resolve({ data: (args.q.indexOf('0001') > -1 || args.q.toLowerCase().indexOf('customer a') > -1) ? [summary[0]] : [] });

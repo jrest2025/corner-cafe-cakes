@@ -2,7 +2,8 @@ import subprocess, json, re, os
 os.chdir('/home/claude/cakes')
 def run(c): subprocess.run(c, shell=True, check=True)
 run('npx -y terser@5.31.0 guest.js -c -m -o dist/guest.min.js')
-run('npx -y terser@5.31.0 staff.js -c -m -o dist/staff.min.js')
+open('dist/staff.full.js','w').write(open('staff.js').read().replace('/*@DASH@*/', open('staff.dash.js').read()))
+run('npx -y terser@5.31.0 dist/staff.full.js -c -m -o dist/staff.min.js')
 run('npx -y csso-cli@4.0.2 guest.css -o dist/guest.min.css')
 run('npx -y csso-cli@4.0.2 staff.css -o dist/staff.min.css')
 def fnv(t):
@@ -30,7 +31,7 @@ css = open('dist/staff.min.css').read().strip()
 run('npx -y csso-cli@4.0.2 staff.cal.css -o dist/staff.cal.min.css')
 calcss = open('dist/staff.cal.min.css').read().strip()
 assert '</style' not in calcss.lower()
-IDS = ['ccs-code-a','ccs-code-b','ccs-code-d','ccs-code-e','ccs-code-c']
+IDS = ['ccs-code-a','ccs-code-b','ccs-code-d','ccs-code-e','ccs-code-f','ccs-code-c']
 head_fixed = len('<meta name="robots" content="noindex, nofollow">\n' + FONT + '<style>' + css + '</style>\n<script type="text/plain" id="ccs-code-c"></script>')
 foot_fixed = len(SB + '<script type="text/plain" id="ccs-code-a"></script>\n' + loader(IDS, 999999, 4294967295, 'cc-staff', 'The staff app did not load properly. Please refresh the page.'))
 emb_fixed = len('<div id="cc-staff"></div>\n<script type="text/plain" id="ccs-code-b"></script>')
@@ -40,13 +41,15 @@ c1 = LIM - foot_fixed; cb = LIM - emb_fixed; c3 = LIM - head_fixed; cd = LIM - e
 a = s[:c1]; b = s[c1:c1+cb]; rest = s[c1+cb:]
 c = rest[-c3:] if len(rest) > c3 else rest
 mid = rest[:len(rest)-len(c)]
-d = mid[:cd]; e = mid[cd:]
-assert len(e) + emb3_fixed <= LIM, ('embed 3 too big', len(e) + emb3_fixed)
-assert a + b + d + e + c == s
+ce = LIM - emb3_fixed; cf = LIM - len('<script type="text/plain" id="ccs-code-f"></script>')
+d = mid[:cd]; e = mid[cd:cd+ce]; f6 = mid[cd+ce:]
+assert len(f6) <= cf, ('embed 4 too big', len(f6))
+assert a + b + d + e + f6 + c == s
 open('dist/staff.head.html','w').write('<meta name="robots" content="noindex, nofollow">\n'+FONT+'<style>'+css+'</style>\n<script type="text/plain" id="ccs-code-c">'+c+'</script>')
 open('dist/staff.footer.html','w').write(SB+'<script type="text/plain" id="ccs-code-a">'+a+'</script>\n'+loader(IDS,jslen(s),fnv(s),'cc-staff','The staff app did not load properly. Please refresh the page.'))
 open('dist/staff.embed.html','w').write('<div id="cc-staff"></div>\n<script type="text/plain" id="ccs-code-b">'+b+'</script>')
 open('dist/staff.embed2.html','w').write('<script type="text/plain" id="ccs-code-d">'+d+'</script>')
+open('dist/staff.embed4.html','w').write('<script type="text/plain" id="ccs-code-f">'+f6+'</script>')
 open('dist/staff.embed3.html','w').write('<style>'+calcss+'</style>\n<script type="text/plain" id="ccs-code-e">'+e+'</script>')
-for f in ['guest.head.html','guest.footer.html','staff.head.html','staff.footer.html','staff.embed.html','staff.embed2.html','staff.embed3.html']:
+for f in ['guest.head.html','guest.footer.html','staff.head.html','staff.footer.html','staff.embed.html','staff.embed2.html','staff.embed3.html','staff.embed4.html']:
     print(f, len(open('dist/'+f).read()))
