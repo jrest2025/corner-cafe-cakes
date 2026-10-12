@@ -505,3 +505,5 @@
 /* U25: larger section headings and labels */
 #cc-staff .ccs-box h3 { font-size: 13px; letter-spacing: .06em; }
 #cc-staff .ccs-day, #cc-staff .ccs-col h2 { font-size: 13.5px; letter-spacing: .05em; }
+.ccs-bksteps { margin: 0 0 12px; padding-left: 20px; display: grid; gap: 6px; }
+.ccs-bkmail { color: var(--ccs-ink); overflow-wrap: anywhere; }

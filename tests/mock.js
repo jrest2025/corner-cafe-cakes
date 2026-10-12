@@ -80,6 +80,15 @@
       if (b.op === 'create' && b.email === 'taken@example.com') return Promise.resolve({ data: { ok: false, field: 'email', message: 'A login with this email already exists. Find it in the team list and give it a role there.' } });
       if (b.op === 'create') { window.__teamRows.push({ user_id: 'u' + (window.__teamRows.length + 1), email: b.email, full_name: b.name, role: b.role, active: true }); return Promise.resolve({ data: { ok: true, user_id: 'uX', email: b.email } }); }
       if (b.op === 'reset') return Promise.resolve({ data: { ok: true } });
+      if (name === 'sheet-backup') {
+        var K = window.__bk = window.__bk || { robot: true, linked: false, err: null };
+        var st = function (extra) { return Object.assign({ ok: true, robot_email: K.robot ? 'cakes-robot@test.iam.gserviceaccount.com' : null, linked: K.linked ? { url: 'https://docs.google.com/spreadsheets/d/ABC/edit', title: 'Cake backup', tab: 'Cake orders', linked_at: '2026-10-12T04:00:00Z' } : null, last_ok_at: K.linked ? '2026-10-12T04:05:00Z' : null, last_error: K.err, orders_copied: K.linked ? 9 : 0 }, extra || {}); };
+        if (b.op === 'status') return Promise.resolve({ data: st() });
+        if (b.op === 'link' && /NOSHARE/.test(b.url)) return Promise.resolve({ data: { ok: false, message: 'The robot cannot edit this sheet. In Google Sheets, press Share and add cakes-robot@test.iam.gserviceaccount.com as an Editor.' } });
+        if (b.op === 'link') { K.linked = true; K.err = null; return Promise.resolve({ data: st({ written: 9 }) }); }
+        if (b.op === 'copy') return Promise.resolve({ data: st({ written: 9 }) });
+        if (b.op === 'unlink') { K.linked = false; return Promise.resolve({ data: st() }); }
+      }
       return Promise.resolve({ data: { ok: false, message: 'Unknown request.' } }); } },
     rpc: function (fn, args) {
       calls.push(['rpc', fn, args]);

@@ -15,7 +15,7 @@ async def newpage(b, vp, errs, role='admin', must=False, same=False):
     return ctx, pg
 
 async def calls(pg, kind):
-    return await pg.evaluate(f"window.__calls.filter(function(c){{return c[0]==='{kind}'}}).map(function(c){{return c[2]}})")
+    return await pg.evaluate(f"window.__calls.filter(function(c){{return c[0]==='{kind}' && (c[0]!=='fn' || c[1]==='staff-admin')}}).map(function(c){{return c[2]}})")
 
 async def open_team(pg, phone=False):
     if phone:

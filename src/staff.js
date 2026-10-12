@@ -1587,7 +1587,7 @@
     S.settings = null; view();
     var reqs = [sb.from('locations').select('*').eq('code', 'corner-cafe').single(), sb.from('closed_dates').select('*').gte('closed_on', today()).order('closed_on'), sb.from('products').select('*, product_sizes(*), product_variants(*)').order('sort'), sb.from('delivery_zones').select('*').order('sort')];
     if (can('admin')) reqs.push(sb.rpc('admin_list_users'));
-    Promise.all(reqs).then(function (rs) { rs.forEach(function (r) { if (r.error) throw r.error; }); S.settings = { loc: rs[0].data, closed: rs[1].data || [], products: rs[2].data || [], zones: rs[3].data || [], team: rs[4] ? rs[4].data || [] : null }; if (S.tab === 'settings') view(); }).catch(fail);
+    Promise.all(reqs).then(function (rs) { rs.forEach(function (r) { if (r.error) throw r.error; }); S.settings = { loc: rs[0].data, closed: rs[1].data || [], products: rs[2].data || [], zones: rs[3].data || [], team: rs[4] ? rs[4].data || [] : null }; if (S.tab === 'settings') view(); if (can('admin')) backupLoad(); }).catch(fail);
   }
   function settingsView() {
     var h = '<div class="ccs-head"><div><h1 class="ccs-title">Settings</h1><p class="ccs-sub">Changes apply to the website order form straight away.</p></div></div>';
@@ -1634,8 +1634,55 @@
           (st.resetFor === u.user_id ? '<div class="ccs-panel"><div class="ccs-row" style="align-items:end">' + sf('tm-rp-' + u.user_id, 'New temporary password', '', 'text') + '<button type="button" class="ccs-btn ccs-ghost" data-act="tm-gen" data-for="tm-rp-' + u.user_id + '">Make one for me</button></div><p class="ccs-hint">They will be asked to choose their own password at their next sign-in.</p>' + (st.resetErr ? '<p class="ccs-err" role="alert">' + esc(st.resetErr) + '</p>' : '') + '<div class="ccs-actions-row"><button type="button" class="ccs-btn" data-act="tm-reset-save" data-id="' + u.user_id + '">Save new password</button><button type="button" class="ccs-btn ccs-ghost" data-act="tm-reset" data-id="">Cancel</button></div></div>' : '') +
           '<div class="ccs-actions-row ccs-more-row"><button type="button" class="ccs-btn ccs-ghost" data-act="save-staff" data-id="' + u.user_id + '">Save</button>' + (mine ? '' : '<button type="button" class="ccs-link" data-act="tm-reset" data-id="' + u.user_id + '">Forgotten password? Set a new one</button>') + '</div></div>';
       }).join('') + '</div></details>';
+      h += backupView(st);
     }
     return h + '</div>';
+  }
+  // ---------- Google Sheet backup (admins) ----------
+  function when(iso) { return iso ? new Date(iso).toLocaleString('en-GB', { timeZone: 'Pacific/Fiji', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) : ''; }
+  function backupView(st) {
+    var k = st.bk, open = st.bkOpen ? ' open' : '', h;
+    if (!k) return '<details' + open + '><summary>Backup to Google Sheet <span>' + (st.bkErr ? 'Could not check' : 'Checking…') + '</span></summary><div class="ccs-set-body">' + (st.bkErr ? '<p class="ccs-err" role="alert">' + esc(st.bkErr) + '</p><button type="button" class="ccs-btn ccs-ghost" data-act="bk-reload">Try again</button>' : '<p class="ccs-loading">Checking…</p>') + '</div></details>';
+    var tag = !k.robot_email ? 'Not set up' : !k.linked ? 'Not linked' : k.last_error ? 'Needs attention' : 'On';
+    h = '<details' + open + '><summary>Backup to Google Sheet <span>' + tag + '</span></summary><div class="ccs-set-body">';
+    if (!k.robot_email) return h + '<p class="ccs-hint">A one-time setup is needed first: a Google robot account, with its key saved in Supabase as GOOGLE_SERVICE_ACCOUNT_JSON. When that is done, a box to paste your sheet link appears here.</p><button type="button" class="ccs-btn ccs-ghost" data-act="bk-reload">Check again</button></div></details>';
+    var err = st.bkErr ? '<p class="ccs-err" role="alert">' + esc(st.bkErr) + '</p>' : '';
+    var linkForm = '<ol class="ccs-hint ccs-bksteps"><li>Make a new Google Sheet.</li><li>Press Share and add this address as an Editor:<br><b class="ccs-bkmail">' + esc(k.robot_email).replace('@', '@<wbr>') + '</b><br><button type="button" class="ccs-link" data-act="bk-mail">Copy address</button></li><li>Copy the sheet link from the address bar and paste it here.</li></ol>' +
+      '<div class="ccs-row" style="align-items:end">' + sf('bk-url', 'Google Sheet link', st.bkUrl || '', 'url') + '</div>' + err +
+      '<div class="ccs-actions-row"><button type="button" class="ccs-btn" data-act="bk-link">Link sheet</button>' + (k.linked ? '<button type="button" class="ccs-btn ccs-ghost" data-act="bk-change" data-v="0">Cancel</button>' : '') + '</div>';
+    if (!k.linked) return h + '<p class="ccs-hint">Every order is copied to the sheet, one row per order, and kept up to date every 5 minutes. Old orders from before this system are not included.</p>' + linkForm + '</div></details>';
+    if (st.bkChange) return h + '<p class="ccs-hint">Link a different sheet. All orders are copied into the new one. The old sheet keeps what it has but stops updating.</p>' + linkForm + '</div></details>';
+    return h + (k.last_error ? '<p class="ccs-err" role="alert">' + esc(k.last_error) + '</p>' : '') + err +
+      '<div class="ccs-history"><div><span>Sheet</span><span><a class="ccs-link" href="' + esc(k.linked.url) + '" target="_blank" rel="noopener">' + esc(k.linked.title || 'Open sheet') + '</a></span></div>' +
+      '<div><span>Tab</span><span>' + esc(k.linked.tab) + '</span></div>' +
+      '<div><span>Last copied</span><span>' + (k.last_ok_at ? esc(when(k.last_ok_at)) : 'Not yet') + '</span></div>' +
+      '<div><span>Orders copied</span><span>' + k.orders_copied + '</span></div></div>' +
+      '<p class="ccs-hint">New and changed orders are copied every 5 minutes. Editing the sheet does not change orders here.</p>' +
+      '<div class="ccs-actions-row ccs-more-row"><button type="button" class="ccs-btn ccs-ghost" data-act="bk-copy">Copy now</button><button type="button" class="ccs-link" data-act="bk-change" data-v="1">Link a different sheet</button><button type="button" class="ccs-link ccs-red" data-act="bk-unlink">Stop backup</button></div></div></details>';
+  }
+  function sheetBackup(body) {
+    return sb.functions.invoke('sheet-backup', { body: body }).then(function (r) {
+      if (r.error) { var c = r.error.context && r.error.context.status; if (c === 401) return sessionExpired(); throw r.error; }
+      return r.data || {};
+    });
+  }
+  function backupDone(st, r, okMsg) {
+    if (!r) return;
+    if (S.settings !== st) return;
+    if (r.robot_email !== undefined) st.bk = r;
+    st.bkOpen = true;
+    if (r.ok === false) { st.bkErr = r.message || 'That did not work. Try again.'; clearBusy(); return view(); }
+    st.bkErr = null; st.bkChange = false; st.bkUrl = ''; view(); if (okMsg) toast(okMsg(r));
+  }
+  function backupLoad() {
+    var st = S.settings; st.bkErr = null;
+    sheetBackup({ op: 'status' }).then(function (r) { if (!r || S.settings !== st) return; if (r.ok === false) { st.bkErr = r.message || 'Could not check the backup.'; } else st.bk = r; if (S.tab === 'settings') view(); })
+      .catch(function () { if (S.settings !== st) return; st.bkErr = 'Could not check the backup. Check the internet connection.'; if (S.tab === 'settings') view(); });
+  }
+  function backupLink() {
+    var st = S.settings, url = val('bk-url').trim(); st.bkUrl = url; st.bkOpen = true;
+    if (!/docs\.google\.com\/spreadsheets\/d\//.test(url)) { st.bkErr = 'Paste the full Google Sheet link. It starts with https://docs.google.com/spreadsheets/'; clearBusy(); return view(); }
+    sheetBackup({ op: 'link', url: url }).then(function (r) { backupDone(st, r, function (x) { return 'Sheet linked. ' + (x.written || 0) + ' orders copied.'; }); }).catch(fail);
   }
   function makePassword() {
     var abc = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789', a = new Uint32Array(12), out = '';
@@ -1727,7 +1774,7 @@
   });
   var BUSY_ACTS = { 'do-confirm': 'Saving…', 'do-decline': 'Saving…', 'do-cancel': 'Saving…', 'do-note': 'Saving…', 'do-waive': 'Saving…', 'do-collected': 'Saving…', 'do-fulfil': 'Saving…',
     'do-brief': 'Preparing…', 'do-pay': 'Saving…', 'k-stage': 'Saving…', 'k-next': 'Saving…', 'k-ready': 'Saving…', 'k-assign': 'Saving…', 'save-zones': 'Saving…', 'add-zone': 'Saving…', 'cust-save': 'Saving…',
-    'consent': 'Saving…', 'save-loc': 'Saving…', 'add-closed': 'Saving…', 'save-prod': 'Saving…', 'save-staff': 'Saving…', 'tm-add': 'Adding…', 'tm-reset-save': 'Saving…' };
+    'consent': 'Saving…', 'save-loc': 'Saving…', 'add-closed': 'Saving…', 'save-prod': 'Saving…', 'save-staff': 'Saving…', 'tm-add': 'Adding…', 'tm-reset-save': 'Saving…', 'bk-link': 'Linking…', 'bk-copy': 'Copying…' };
   root.addEventListener('click', function (e) {
     if (e.target.id === 'ccs-shade') { if (hasTyping()) { toast('Your typing is kept. Finish, tap Back, or tap the cross to close.'); return; } sheetClose(); return; }
     var b = e.target.closest('[data-act],[data-tab]'); if (!b || b.disabled) return;
@@ -1860,6 +1907,14 @@
         case 'tm-gen': var gid = b.dataset.for || 'tm-new-p', gi = document.getElementById(gid); if (gi) { gi.value = makePassword(); gi.focus(); } break;
         case 'tm-reset': S.settings.resetFor = b.dataset.id || null; S.settings.resetErr = null; S.settings.tmOpen = true; view(); break;
         case 'tm-add': teamAdd(); break;
+        case 'bk-reload': S.settings.bk = null; S.settings.bkOpen = true; view(); backupLoad(); break;
+        case 'bk-mail': (navigator.clipboard ? navigator.clipboard.writeText(S.settings.bk.robot_email) : Promise.reject()).then(function () { toast('Address copied'); }, function () { toast('Select the address and copy it.', true); }); break;
+        case 'bk-link': backupLink(); break;
+        case 'bk-change': S.settings.bkChange = v === '1'; S.settings.bkErr = null; S.settings.bkOpen = true; view(); break;
+        case 'bk-copy': var bst = S.settings; sheetBackup({ op: 'copy' }).then(function (r) { backupDone(bst, r, function (x) { return (x.written || 0) + ' orders copied'; }); }).catch(fail); break;
+        case 'bk-unlink':
+          if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = 'Tap again to stop the backup'; setTimeout(function () { if (b.isConnected) { b.dataset.armed = ''; b.textContent = 'Stop backup'; } }, 4000); break; }
+          markBusy(b, 'Stopping…'); var ust = S.settings; sheetBackup({ op: 'unlink' }).then(function (r) { backupDone(ust, r, function () { return 'Backup stopped. The sheet keeps what it has.'; }); }).catch(fail); break;
         case 'tm-reset-save': teamReset(b.dataset.id); break;
         case 'save-staff': var uid = b.dataset.id; sb.rpc('admin_set_staff', { p_user: uid, p_name: val('tm-n-' + uid), p_role: val('tm-r-' + uid), p_active: document.getElementById('tm-a-' + uid).checked }).then(function (r) { if (r.error) throw r.error; if (!r.data.ok) throw new Error(r.data.message); toast('Team updated'); loadSettings(); }).catch(fail); break;
       }
