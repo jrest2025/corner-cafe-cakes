@@ -71,10 +71,16 @@
     };
     return b;
   }
+  window.__teamRows = [{ user_id: 'u1', email: 'admin@example.com', full_name: 'Test Manager', role: 'admin', active: true }, { user_id: 'u2', email: 'fresh@example.com', full_name: null, role: null, active: null }];
   window.__ccsMock = {
-    auth: { getSession: function () { return Promise.resolve({ data: { session: { user: { id: 'u1' } } } }); }, signOut: function () { return Promise.resolve({}); }, signInWithPassword: function () { return Promise.resolve({}); } },
+    auth: { getSession: function () { return Promise.resolve({ data: { session: { user: { id: 'u1', user_metadata: { must_change_password: !!window.__mustChange } } } } }); }, updateUser: function (a) { calls.push(['auth', 'updateUser', a]); if (window.__pwSame) return Promise.resolve({ error: { message: 'New password should be different from the old password.' } }); window.__mustChange = false; return Promise.resolve({ data: { user: { id: 'u1' } } }); }, signOut: function () { return Promise.resolve({}); }, signInWithPassword: function () { return Promise.resolve({}); } },
     from: builder,
     storage: { from: function () { return { createSignedUrls: function () { return Promise.resolve({ data: [] }); } }; } },
+    functions: { invoke: function (name, opt) { calls.push(['fn', name, opt.body]); var b = opt.body;
+      if (b.op === 'create' && b.email === 'taken@example.com') return Promise.resolve({ data: { ok: false, field: 'email', message: 'A login with this email already exists. Find it in the team list and give it a role there.' } });
+      if (b.op === 'create') { window.__teamRows.push({ user_id: 'u' + (window.__teamRows.length + 1), email: b.email, full_name: b.name, role: b.role, active: true }); return Promise.resolve({ data: { ok: true, user_id: 'uX', email: b.email } }); }
+      if (b.op === 'reset') return Promise.resolve({ data: { ok: true } });
+      return Promise.resolve({ data: { ok: false, message: 'Unknown request.' } }); } },
     rpc: function (fn, args) {
       calls.push(['rpc', fn, args]);
       if (fn === 'get_order_setup') return Promise.resolve({ data: setup });
@@ -84,7 +90,7 @@
       if (fn === 'staff_create_order' && args.p.rush && !(args.p.rush.approved_by || '').trim()) return Promise.resolve({ data: { ok: false, error: 'date', field: 'date', message: 'Enter who approved the short notice.' } });
       if (fn === 'staff_create_order') { var seen = calls.filter(function (c) { return c[1] === 'staff_create_order' && c[2].p.idempotency_key === args.p.idempotency_key; }).length; if (seen === 1) orders.push({ id: 'o9', reference: 'CC-1009', order_status: args.p.confirm_now ? 'confirmed' : 'awaiting_review', production_status: 'not_started', payment_status: 'unpaid', fulfilment_method: 'collection', order_type: 'standard', source: args.p.source, created_at: new Date().toISOString(), required_date: args.p.date, required_time: args.p.time + ':00', estimate_total: 54 * args.p.quantity, has_dietary: false, version: 1, customers: { full_name: 'New Calendar Guest', phone: '912 0099' }, order_items: [{ product_name: 'Cheesecake', size_inch: args.p.size_inch, quantity: args.p.quantity, finish: 'standard' }], order_events: [], order_attachments: [], payments: [] }); }
       if (fn === 'staff_create_order') return Promise.resolve({ data: { ok: true, order_id: 'o9', reference: 'CC-1009', status: args.p.confirm_now ? (args.p.deposit_required ? 'awaiting_deposit' : 'confirmed') : 'awaiting_review' } });
-      if (fn === 'admin_list_users') return Promise.resolve({ data: [] });
+      if (fn === 'admin_list_users') return Promise.resolve({ data: window.__teamRows.slice() });
       if (fn === 'kitchen_board') return Promise.resolve({ data: { ok: true, today: T, orders: kitchenRows } });
       if (fn === 'staff_print_brief') { var o = orders.filter(function (x) { return x.id === args.p_order; })[0]; return Promise.resolve({ data: { ok: true, version: 2, new_version: true, changes: ['message', 'design'], snapshot: snap(o) } }); }
       if (fn === 'kitchen_set_stage' && args.p_stage === 'ready' && !args.p_name) return Promise.resolve({ data: { ok: false, error: 'qc', message: 'Enter the name of the person who checked the cake.' } });

@@ -169,6 +169,32 @@
       '<button class="ccs-btn ccs-wide" type="submit">Sign in</button><p class="ccs-hint">Forgotten your password? Ask your manager to reset it.</p></form>';
     netBanner();
   }
+  // ---------- own password ----------
+  function pwFields(err) {
+    return '<div class="ccs-field"><label class="ccs-label" for="ccs-pw1">New password</label><input class="ccs-input" id="ccs-pw1" type="password" autocomplete="new-password" required></div>' +
+      '<div class="ccs-field"><label class="ccs-label" for="ccs-pw2">Type it again</label><input class="ccs-input" id="ccs-pw2" type="password" autocomplete="new-password" required></div>' +
+      '<p class="ccs-hint">At least 10 characters. Only you will know it.</p>' + (err ? '<p class="ccs-err" role="alert">' + esc(err) + '</p>' : '') +
+      '<button class="ccs-btn ccs-wide" type="submit">Save my password</button>';
+  }
+  function passwordView(first, err) {
+    S.pwFirst = !!first;
+    root.innerHTML = '<form class="ccs-login" id="ccs-pw"><div class="ccs-brand" style="color:var(--ccs-esp)">Corner Café Cakes</div>' +
+      '<h1 class="ccs-title">Choose your password</h1><p class="ccs-hint">Welcome' + (S.me && S.me.full_name ? ', ' + esc(S.me.full_name.split(' ')[0]) : '') + '. You signed in with a temporary password. Choose your own to carry on.</p>' + pwFields(err) + '</form>';
+    var f = document.getElementById('ccs-pw1'); if (f) f.focus();
+  }
+  function savePassword(form) {
+    var p1 = val('ccs-pw1'), p2 = val('ccs-pw2');
+    var bad = p1.length < 10 ? 'Use at least 10 characters.' : p1 !== p2 ? 'The two passwords do not match.' : null;
+    var inSheet = !!(S.sheet && S.sheet.type === 'pw');
+    var show = function (m) { if (inSheet) { S.pwErr = m; S.dirty = {}; renderSheet(); } else passwordView(true, m); };
+    if (bad) return show(bad);
+    var btn = form.querySelector('button[type="submit"]'); if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+    sb.auth.updateUser({ password: p1, data: { must_change_password: false } }).then(function (r) {
+      if (r.error) return show(/different/i.test(r.error.message) ? 'Choose a password different from the temporary one.' : r.error.message);
+      if (inSheet) { S.dirty = {}; sheetClose(); toast('Password changed'); } else { toast('Password saved'); boot(); }
+    }).catch(function (e) { if (errKind(e) === 'expired') return sessionExpired(); show('Could not connect. Nothing was changed. Try again.'); });
+  }
+
   function boot() {
     root.innerHTML = '<p class="ccs-loading" style="padding:40px">Loading…</p>';
     sb.auth.getSession().then(function (r) {
@@ -178,6 +204,7 @@
         if (p.error) throw p.error;
         if (!p.data || !p.data.active) { sb.auth.signOut(); return loginView('This login has not been given access yet. Ask an admin to add you to the team.'); }
         S.me = p.data;
+        if (sess.user.user_metadata && sess.user.user_metadata.must_change_password) return passwordView(true);
         return sb.rpc('get_order_setup', { p_location: 'corner-cafe' }).then(function (s) {
           if (s.error) throw s.error; S.setup = s.data;
           loadDraft();
@@ -423,12 +450,12 @@
     if (can('manager')) links += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-tab="settings">Settings</button>';
     if (links) h += '<div class="ccs-more-links">' + links + '</div>';
     if (S.sheet.confirmOut && draftHasContent()) h += '<div class="ccs-panel ccs-confirm" role="alert"><b>You have an unfinished order' + (draftWho() ? ' for ' + esc(draftWho()) : '') + '.</b><p class="ccs-hint">Signing out deletes it from this device.</p><div class="ccs-actions-row"><button type="button" class="ccs-btn ccs-danger" data-act="signout" data-sure="1">Sign out anyway</button><button type="button" class="ccs-btn ccs-ghost" data-tab="new">Finish the order</button></div></div>';
-    else h += '<button type="button" class="ccs-btn ccs-danger ccs-wide" data-act="signout">Sign out</button>';
+    else h += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-act="my-password">Change my password</button><button type="button" class="ccs-btn ccs-danger ccs-wide" data-act="signout">Sign out</button>';
     return h + '</div>';
   }
   function renderSheet() {
     var el = document.getElementById('ccs-sheet'); if (!el || !S.sheet) return;
-    var body = S.sheet.type === 'new' ? sheetHead('New order') + '<div class="ccs-sheet-body ccs-newsheet">' + newView() + '</div>' : S.sheet.type === 'cal' ? calSheet() : S.sheet.type === 'order' ? orderSheet() : S.sheet.type === 'customer' ? customerSheet() : S.sheet.type === 'kitchen' ? kitchenSheet() : S.sheet.type === 'more' ? moreSheet() : '';
+    var body = S.sheet.type === 'new' ? sheetHead('New order') + '<div class="ccs-sheet-body ccs-newsheet">' + newView() + '</div>' : S.sheet.type === 'cal' ? calSheet() : S.sheet.type === 'order' ? orderSheet() : S.sheet.type === 'customer' ? customerSheet() : S.sheet.type === 'kitchen' ? kitchenSheet() : S.sheet.type === 'more' ? moreSheet() : S.sheet.type === 'pw' ? sheetHead('Change my password') + '<div class="ccs-sheet-body"><form class="ccs-box ccs-pwform" id="ccs-pw">' + pwFields(S.pwErr) + '</form></div>' : '';
     var keep = el.querySelector('.ccs-sheet-body'), top = keep ? keep.scrollTop : 0, focus = captureFocus(el);
     el.innerHTML = body;
     // put back anything staff were typing (the screen refreshes itself every minute) (U2)
@@ -1567,14 +1594,14 @@
     var st = S.settings; if (!st) return h + '<p class="ccs-loading">Loading settings…</p>';
     var L = st.loc;
     h += '<div class="ccs-set">';
-    if (!L.defaults_confirmed) h += '<p class="ccs-note">The notice periods and collection hours are starting defaults. Check them with the kitchen, then tap “These are correct”.</p>';
+    if (!L.defaults_confirmed) h += '<p class="ccs-note">The notice periods and collection hours are starting defaults. Check them, then tick “These are correct” and save.</p>';
     h += '<details open><summary>Online orders <span>' + (L.accepts_online ? 'Taking orders' : 'Paused') + '</span></summary><div class="ccs-set-body"><label class="ccs-check"><input type="checkbox" id="st-online"' + (L.accepts_online ? ' checked' : '') + '> Take cake orders on the website</label><p class="ccs-hint">When paused, the website asks guests to call the café.</p></div></details>';
     h += '<details' + (!L.defaults_confirmed ? ' open' : '') + '><summary>Notice and collection hours <span>' + L.lead_days_standard + ' days standard · ' + L.lead_days_custom + ' days custom</span></summary><div class="ccs-set-body"><div class="ccs-row">' +
       sf('st-lead-s', 'Notice for standard cakes (days)', L.lead_days_standard) + sf('st-lead-c', 'Notice for custom cakes (days)', L.lead_days_custom) + sf('st-ahead', 'Furthest ahead (days)', L.max_days_ahead) + '</div><div class="ccs-row">' +
       sf('st-open', 'First collection', L.collection_open.slice(0, 5), 'time') + sf('st-close', 'Last collection', L.collection_close.slice(0, 5), 'time') +
       '<div class="ccs-field"><label class="ccs-label" for="st-slot">Time slots</label><select class="ccs-input" id="st-slot">' + [15, 30, 60].map(function (m) { return '<option value="' + m + '"' + (L.slot_minutes === m ? ' selected' : '') + '>Every ' + m + ' minutes</option>'; }).join('') + '</select></div>' +
       sf('st-cap', 'Most cakes per day (blank for no limit)', L.daily_capacity == null ? '' : L.daily_capacity) + '</div>' +
-      '<label class="ccs-check"><input type="checkbox" id="st-confirmed"' + (L.defaults_confirmed ? ' checked' : '') + '> These are correct (checked with the kitchen)</label>' +
+      '<label class="ccs-check"><input type="checkbox" id="st-confirmed"' + (L.defaults_confirmed ? ' checked' : '') + '> These are correct</label>' +
       '<button type="button" class="ccs-btn" data-act="save-loc">Save</button></div></details>';
     h += '<details><summary>Closed days <span>' + (st.closed.length ? st.closed.length + ' coming up' : 'None') + '</span></summary><div class="ccs-set-body">' +
       (st.closed.length ? '<div class="ccs-history">' + st.closed.map(function (c) { return '<div><span>' + esc(nice(c.closed_on)) + '</span><span>' + esc(c.reason || 'Closed') + ' <button type="button" class="ccs-link ccs-red" data-act="del-closed" data-id="' + c.id + '">Remove</button></span></div>'; }).join('') + '</div>' : '<p class="ccs-hint">No closed days set.</p>') +
@@ -1589,14 +1616,62 @@
       st.zones.map(function (z) { return '<div class="ccs-row" style="align-items:end">' + sf('dz-n-' + z.id, 'Area', z.name, 'text') + sf('dz-f-' + z.id, 'Fee (FJD)', z.fee == null ? '' : Number(z.fee)) + '<label class="ccs-check" style="padding-bottom:14px"><input type="checkbox" id="dz-a-' + z.id + '"' + (z.active ? ' checked' : '') + '> Offered</label></div>'; }).join('') +
       '<button type="button" class="ccs-btn ccs-ghost" data-act="save-zones">Save delivery areas</button><div class="ccs-row" style="align-items:end">' + sf('dz-new-n', 'New area', '', 'text') + sf('dz-new-f', 'Fee (FJD)', '') + '<button type="button" class="ccs-btn ccs-ghost" data-act="add-zone">Add area</button></div></div></details>';
     if (st.team) {
-      h += '<details><summary>Team and access <span>' + st.team.filter(function (u) { return u.active; }).length + ' with access</span></summary><div class="ccs-set-body"><p class="ccs-hint">To add someone: create their login in Supabase (Authentication, Add user), then give them a role here. Kitchen logins cannot see customer details or payments.</p>' +
-        st.team.map(function (u) {
-          return '<div class="ccs-box"><b style="color:var(--ccs-ink)">' + esc(u.email) + '</b><div class="ccs-row">' + sf('tm-n-' + u.user_id, 'Name', u.full_name || '') +
-            '<div class="ccs-field"><label class="ccs-label" for="tm-r-' + u.user_id + '">Role</label><select class="ccs-input" id="tm-r-' + u.user_id + '">' + ROLES.map(function (r) { return '<option value="' + r[0] + '"' + (u.role === r[0] ? ' selected' : '') + '>' + r[1] + '</option>'; }).join('') + '</select></div></div>' +
-            '<label class="ccs-check"><input type="checkbox" id="tm-a-' + u.user_id + '"' + (u.active ? ' checked' : '') + '> Has access</label><button type="button" class="ccs-btn ccs-ghost" data-act="save-staff" data-id="' + u.user_id + '">Save</button></div>';
-        }).join('') + '</div></details>';
+      var tm = st.tmDraft || {};
+      h += '<details' + (st.tmOpen ? ' open' : '') + '><summary>Team and access <span>' + st.team.filter(function (u) { return u.active; }).length + ' with access</span></summary><div class="ccs-set-body">';
+      if (st.tmDone) h += '<div class="ccs-note" role="status"><b>' + esc(st.tmDone.name) + ' can now sign in.</b> Give them the staff page link, their email (' + esc(st.tmDone.email) + ') and the temporary password you set. They choose their own password when they first sign in.</div>';
+      h += '<div class="ccs-box ccs-tmadd"><b style="color:var(--ccs-ink);font-size:17px">Add a staff member</b><div class="ccs-row">' +
+        sf('tm-new-n', 'Name', tm.name || '', 'text') + sf('tm-new-e', 'Email', tm.email || '', 'email') +
+        '<div class="ccs-field"><label class="ccs-label" for="tm-new-r">Role</label><select class="ccs-input" id="tm-new-r">' + ROLES.map(function (r) { return '<option value="' + r[0] + '"' + ((tm.role || 'front_of_house') === r[0] ? ' selected' : '') + '>' + r[1] + '</option>'; }).join('') + '</select></div></div>' +
+        '<div class="ccs-row" style="align-items:end">' + sf('tm-new-p', 'Temporary password', tm.password || '', 'text') + '<button type="button" class="ccs-btn ccs-ghost" data-act="tm-gen">Make one for me</button></div>' +
+        '<p class="ccs-hint">Front of house and managers run orders. Kitchen logins see only the kitchen board, with no prices or customer details. Only admins see this team list.</p>' +
+        (st.tmErr ? '<p class="ccs-err" role="alert">' + esc(st.tmErr) + '</p>' : '') +
+        '<button type="button" class="ccs-btn" data-act="tm-add">Add staff member</button></div>';
+      h += st.team.map(function (u) {
+        var mine = S.me && u.user_id === S.me.user_id;
+        return '<div class="ccs-box"><b style="color:var(--ccs-ink)">' + esc(u.email) + '</b>' + (u.full_name ? '' : '<p class="ccs-hint">No role yet. Give this login a name and role, then save.</p>') + '<div class="ccs-row">' + sf('tm-n-' + u.user_id, 'Name', u.full_name || '', 'text') +
+          '<div class="ccs-field"><label class="ccs-label" for="tm-r-' + u.user_id + '">Role</label><select class="ccs-input" id="tm-r-' + u.user_id + '">' + ROLES.map(function (r) { return '<option value="' + r[0] + '"' + ((u.role || 'front_of_house') === r[0] ? ' selected' : '') + '>' + r[1] + '</option>'; }).join('') + '</select></div></div>' +
+          '<label class="ccs-check"><input type="checkbox" id="tm-a-' + u.user_id + '"' + (u.active ? ' checked' : '') + '> Has access</label>' +
+          (st.resetFor === u.user_id ? '<div class="ccs-panel"><div class="ccs-row" style="align-items:end">' + sf('tm-rp-' + u.user_id, 'New temporary password', '', 'text') + '<button type="button" class="ccs-btn ccs-ghost" data-act="tm-gen" data-for="tm-rp-' + u.user_id + '">Make one for me</button></div><p class="ccs-hint">They will be asked to choose their own password at their next sign-in.</p>' + (st.resetErr ? '<p class="ccs-err" role="alert">' + esc(st.resetErr) + '</p>' : '') + '<div class="ccs-actions-row"><button type="button" class="ccs-btn" data-act="tm-reset-save" data-id="' + u.user_id + '">Save new password</button><button type="button" class="ccs-btn ccs-ghost" data-act="tm-reset" data-id="">Cancel</button></div></div>' : '') +
+          '<div class="ccs-actions-row ccs-more-row"><button type="button" class="ccs-btn ccs-ghost" data-act="save-staff" data-id="' + u.user_id + '">Save</button>' + (mine ? '' : '<button type="button" class="ccs-link" data-act="tm-reset" data-id="' + u.user_id + '">Forgotten password? Set a new one</button>') + '</div></div>';
+      }).join('') + '</div></details>';
     }
     return h + '</div>';
+  }
+  function makePassword() {
+    var abc = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789', a = new Uint32Array(12), out = '';
+    crypto.getRandomValues(a); for (var i = 0; i < 12; i++) out += abc.charAt(a[i] % abc.length);
+    return out.slice(0, 4) + '-' + out.slice(4, 8) + '-' + out.slice(8);
+  }
+  function staffAdmin(body) {
+    return sb.functions.invoke('staff-admin', { body: body }).then(function (r) {
+      if (r.error) { var st = r.error.context && r.error.context.status; if (st === 401) return sessionExpired(); throw r.error; }
+      return r.data || {};
+    });
+  }
+  function teamAdd() {
+    var st = S.settings, d = { name: val('tm-new-n').trim(), email: val('tm-new-e').trim(), role: val('tm-new-r'), password: val('tm-new-p') };
+    st.tmDraft = d; st.tmOpen = true; st.tmDone = null;
+    st.tmErr = d.name.length < 2 ? 'Enter the staff member\'s name.' : !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.email) ? 'Check the email address.' : d.password.length < 10 ? 'Use at least 10 characters for the temporary password, or tap Make one for me.' : null;
+    if (st.tmErr) { clearBusy(); return view(); }
+    staffAdmin({ op: 'create', name: d.name, email: d.email, role: d.role, password: d.password }).then(function (r) {
+      if (!r) return;
+      if (!r.ok) { st.tmErr = r.message || 'The login could not be created.'; return view(); }
+      st.tmErr = null; st.tmDraft = null; st.tmDone = { name: d.name, email: r.email || d.email };
+      toast(d.name + ' added'); var keep = st.tmDone; loadSettingsKeep(keep);
+    }).catch(fail);
+  }
+  function teamReset(uid) {
+    var st = S.settings, pw = val('tm-rp-' + uid);
+    if (pw.length < 10) { st.resetErr = 'Use at least 10 characters, or tap Make one for me.'; clearBusy(); return view(); }
+    staffAdmin({ op: 'reset', user_id: uid, password: pw }).then(function (r) {
+      if (!r) return;
+      if (!r.ok) { st.resetErr = r.message || 'The password could not be changed.'; return view(); }
+      st.resetFor = null; st.resetErr = null; view(); toast('New temporary password saved. Give it to them in person.');
+    }).catch(fail);
+  }
+  function loadSettingsKeep(done) {
+    var prev = S.settings;
+    sb.rpc('admin_list_users').then(function (r) { if (r.error) throw r.error; if (S.settings === prev) { prev.team = r.data || []; prev.tmDone = done; prev.tmOpen = true; if (S.tab === 'settings') view(); } }).catch(fail);
   }
   function sf(id, label, v, type) { return '<div class="ccs-field"><label class="ccs-label" for="' + id + '">' + label + '</label><input class="ccs-input" id="' + id + '" type="' + (type || 'text') + '" value="' + esc(v) + '"' + (type ? '' : ' inputmode="numeric"') + '></div>'; }
   function refreshSetup() { return sb.rpc('get_order_setup', { p_location: 'corner-cafe' }).then(function (s) { if (!s.error) S.setup = s.data; }); }
@@ -1642,6 +1717,7 @@
 
   // ---------- events ----------
   root.addEventListener('submit', function (e) {
+    if (e.target.id === 'ccs-pw') { e.preventDefault(); savePassword(e.target); return; }
     if (e.target.id !== 'ccs-login') return; e.preventDefault();
     var btn = e.target.querySelector('button'); btn.disabled = true; btn.textContent = 'Signing in…';
     sb.auth.signInWithPassword({ email: val('ccs-email').trim(), password: val('ccs-pass') }).then(function (r) {
@@ -1651,7 +1727,7 @@
   });
   var BUSY_ACTS = { 'do-confirm': 'Saving…', 'do-decline': 'Saving…', 'do-cancel': 'Saving…', 'do-note': 'Saving…', 'do-waive': 'Saving…', 'do-collected': 'Saving…', 'do-fulfil': 'Saving…',
     'do-brief': 'Preparing…', 'do-pay': 'Saving…', 'k-stage': 'Saving…', 'k-next': 'Saving…', 'k-ready': 'Saving…', 'k-assign': 'Saving…', 'save-zones': 'Saving…', 'add-zone': 'Saving…', 'cust-save': 'Saving…',
-    'consent': 'Saving…', 'save-loc': 'Saving…', 'add-closed': 'Saving…', 'save-prod': 'Saving…', 'save-staff': 'Saving…' };
+    'consent': 'Saving…', 'save-loc': 'Saving…', 'add-closed': 'Saving…', 'save-prod': 'Saving…', 'save-staff': 'Saving…', 'tm-add': 'Adding…', 'tm-reset-save': 'Saving…' };
   root.addEventListener('click', function (e) {
     if (e.target.id === 'ccs-shade') { if (hasTyping()) { toast('Your typing is kept. Finish, tap Back, or tap the cross to close.'); return; } sheetClose(); return; }
     var b = e.target.closest('[data-act],[data-tab]'); if (!b || b.disabled) return;
@@ -1780,6 +1856,11 @@
           if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = 'Tap again to remove'; setTimeout(function () { if (b.isConnected) { b.dataset.armed = ''; b.textContent = 'Remove'; } }, 4000); break; }
           markBusy(b, 'Removing…'); sb.from('closed_dates').delete().eq('id', b.dataset.id).then(function (r) { if (r.error) throw r.error; toast('Removed'); refreshSetup(); loadSettings(); }).catch(fail); break;
         case 'save-prod': saveProduct(b.dataset.id); break;
+        case 'my-password': S.sheet = { type: 'pw' }; S.pwErr = null; S.dirty = {}; renderSheet(); var pf = document.getElementById('ccs-pw1'); if (pf) pf.focus(); break;
+        case 'tm-gen': var gid = b.dataset.for || 'tm-new-p', gi = document.getElementById(gid); if (gi) { gi.value = makePassword(); gi.focus(); } break;
+        case 'tm-reset': S.settings.resetFor = b.dataset.id || null; S.settings.resetErr = null; S.settings.tmOpen = true; view(); break;
+        case 'tm-add': teamAdd(); break;
+        case 'tm-reset-save': teamReset(b.dataset.id); break;
         case 'save-staff': var uid = b.dataset.id; sb.rpc('admin_set_staff', { p_user: uid, p_name: val('tm-n-' + uid), p_role: val('tm-r-' + uid), p_active: document.getElementById('tm-a-' + uid).checked }).then(function (r) { if (r.error) throw r.error; if (!r.data.ok) throw new Error(r.data.message); toast('Team updated'); loadSettings(); }).catch(fail); break;
       }
     } catch (err) { fail(err); }
