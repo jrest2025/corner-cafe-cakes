@@ -78,31 +78,48 @@ function staffNewOrder(d: any): { subject: string; html: string } {
   const subject = `New ${custom ? "custom cake request" : "cake order"} ${o.reference} · ${new Date(o.required_date + "T00:00:00Z").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" })}` +
     (diet ? " · ALLERGY OR DIETARY" : "") + (o.rush_override ? " · SHORT NOTICE" : "");
 
-  let b = `<div style="font-size:13px;letter-spacing:1px;text-transform:uppercase;color:${MUTED};margin:0 0 6px">${custom ? "New custom cake request" : "New cake order"} · ${esc(SOURCES[o.source] ?? o.source)}</div>`;
-  b += `<h1 style="margin:0 0 18px;font-size:26px;line-height:1.2;color:${INK}">${esc(o.reference)} ${custom ? "needs a quote" : "needs review"}</h1>`;
-  if (diet) b += `<div style="background:#F8E3DD;border-left:5px solid ${RED};border-radius:8px;padding:14px 16px;margin:0 0 18px;color:${RED}"><div style="font-size:12px;letter-spacing:1px;text-transform:uppercase;font-weight:bold">Allergy or dietary need</div><div style="font-size:18px;font-weight:bold;margin-top:4px">${esc(diet)}</div></div>`;
-  if (o.rush_override) b += `<div style="background:#FBEFD9;border-radius:8px;padding:12px 16px;margin:0 0 18px;color:#7A4A0C;font-weight:bold">Short notice${o.rush_reason ? `: ${esc(o.rush_reason)}` : ""}</div>`;
+  const kv = (k: string, v: string) => v ? `<tr><td style="padding:7px 0;width:118px;vertical-align:top;font-size:13px;color:${MUTED}">${esc(k)}</td><td style="padding:7px 0;font-size:15px;font-weight:bold;color:${INK};line-height:1.4;word-break:break-word">${v}</td></tr>` : "";
+  const section = (n: string, title: string, inner: string) =>
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 14px;border:1px solid ${LINE};border-radius:10px">` +
+    `<tr><td style="padding:10px 16px;border-bottom:1px solid ${LINE};font-size:12px;font-weight:bold;letter-spacing:1.5px;text-transform:uppercase;color:${GREEN}">${n}&nbsp;&nbsp;${esc(title)}</td></tr>` +
+    `<tr><td style="padding:8px 16px 10px">${inner}</td></tr></table>`;
+  const grid = (rows: string) => `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="table-layout:fixed">${rows}</table>`;
+  const status = custom ? "Needs a quote" : "Needs review";
 
-  b += `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid ${LINE};margin:0 0 20px">`;
-  b += fact(delivery ? "Delivery" : "Collection", esc(when), esc(daysAway(o.required_date)) + (delivery && o.delivery_zone ? ` · ${esc(o.delivery_zone)}` : delivery ? "" : " · from the café counter"));
-  b += fact("Cake", esc(cakeLine(i)), [i.finish === "custom" ? "Custom design" : "Standard finish", i.occasion, i.serves_label].filter(Boolean).map(esc).join(" · "));
-  if (i.design_description) b += fact("Design", esc(i.design_description), d.attachments > 0 ? `${d.attachments} reference photo${d.attachments > 1 ? "s" : ""} in the staff app` : "");
-  if (i.cake_message) b += fact("Message on the cake", `“${esc(i.cake_message)}”`, "Copy exactly");
-  if (o.customer_notes) b += fact("Customer notes", esc(o.customer_notes));
-  b += fact("Customer", esc(name) + ` <span style="font-weight:normal;color:${MUTED};font-size:15px">${c.past_orders > 0 ? `returning, ${c.past_orders} earlier order${c.past_orders > 1 ? "s" : ""}` : "new customer"}</span>`,
-    [phone ? esc(phoneShow(phone)) + (c.preferred_contact === "whatsapp" ? " (WhatsApp)" : "") : "", email ? `<a href="mailto:${esc(email)}" style="color:${GREEN}">${esc(email)}</a>` : ""].filter(Boolean).join(" · "));
-  b += fact(custom ? "Estimate before design" : "Price", esc(money(total)), paid > 0 ? `${esc(money(paid))} paid` : "Nothing paid yet");
-  b += `</table>`;
+  // Title block: reference on the left, what to do on the right
+  let b = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px"><tr>` +
+    `<td style="vertical-align:bottom"><div style="font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:${MUTED}">${custom ? "Custom cake request" : "Cake order brief"} · ${esc(SOURCES[o.source] ?? o.source)}</div>` +
+    `<div style="font-size:32px;font-weight:bold;color:${INK};line-height:1.1;margin-top:4px">${esc(o.reference)}</div></td>` +
+    `<td style="vertical-align:bottom;text-align:right"><span style="display:inline-block;padding:6px 12px;border-radius:999px;background:#FBEFD9;color:#7A4A0C;font-size:13px;font-weight:bold;white-space:nowrap">${status}</span></td></tr></table>`;
+  if (diet) b += `<div style="background:#F8E3DD;border-left:5px solid ${RED};border-radius:8px;padding:12px 16px;margin:0 0 14px;color:${RED}"><div style="font-size:12px;letter-spacing:1.5px;text-transform:uppercase;font-weight:bold">Allergy or dietary need</div><div style="font-size:18px;font-weight:bold;margin-top:3px">${esc(diet)}</div></div>`;
+  if (o.rush_override) b += `<div style="background:#FBEFD9;border-radius:8px;padding:12px 16px;margin:0 0 14px;color:#7A4A0C;font-weight:bold">Short notice${o.rush_reason ? `: ${esc(o.rush_reason)}` : ""}</div>`;
 
-  b += (cfg.staff_app_url ? smallBtn(cfg.staff_app_url, custom ? "Quote it in the staff app" : "Review in the staff app", true) : "") +
-    (phone ? smallBtn(waLink(phone), "WhatsApp") + smallBtn(telLink(phone), "Call") : "");
-  if (manual) b += `<p style="margin:12px 0 0;font-size:14px;line-height:1.5;color:${MUTED}">Guest emails are off. Contact the customer yourself once you ${custom ? "have the price" : "confirm or decline"}.</p>`;
+  b += section("01", delivery ? "Delivery" : "Collection", grid(
+    kv("Date", esc(longDate(o.required_date))) + kv("Time", esc(t12(o.required_time))) +
+    kv("How soon", esc(daysAway(o.required_date))) +
+    kv(delivery ? "Area" : "Where", delivery ? esc(o.delivery_zone || "See the order") : "Café counter")));
+  b += section("02", "The cake", grid(
+    kv("Cake", esc(cakeLine(i))) + kv("Finish", i.finish === "custom" ? "Custom design" : "Standard finish") +
+    kv("Design", esc(i.design_description || "")) + kv("Occasion", esc(i.occasion || "")) + kv("Serves", esc(i.serves_label || "")) +
+    kv("Photos", d.attachments > 0 ? `${d.attachments} in the staff app` : "") + kv("Notes", esc(o.customer_notes || ""))) +
+    (i.cake_message ? `<div style="margin:8px 0 4px;border:1.5px dashed ${INK};border-radius:8px;padding:12px;text-align:center"><div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:${MUTED}">Written on the cake · copy exactly</div><div style="font-size:20px;font-weight:bold;color:${INK};margin-top:4px">“${esc(i.cake_message)}”</div></div>` : ""));
+  b += section("03", "Customer", grid(
+    kv("Name", esc(name)) + kv("History", c.past_orders > 0 ? `Returning, ${c.past_orders} earlier order${c.past_orders > 1 ? "s" : ""}` : "New customer") +
+    kv("Mobile", phone ? esc(phoneShow(phone)) + (c.preferred_contact === "whatsapp" ? ` <span style="font-weight:normal;color:${MUTED}">(WhatsApp)</span>` : "") : "") +
+    kv("Email", email ? `<a href="mailto:${esc(email)}" style="color:${GREEN}">${esc(email)}</a>` : "")));
+  b += section("04", "Money", grid(
+    kv(custom ? "Estimate" : "Price", esc(money(total))) + kv("Paid", paid > 0 ? esc(money(paid)) : "Nothing yet") +
+    kv("To pay", esc(money(Math.max(total - paid, 0))))));
+
+  b += `<div style="margin:18px 0 0">` + (cfg.staff_app_url ? smallBtn(cfg.staff_app_url, custom ? "Quote it in the staff app" : "Review in the staff app", true) : "") +
+    (phone ? smallBtn(waLink(phone), "WhatsApp") + smallBtn(telLink(phone), "Call") : "") + `</div>`;
+  if (manual) b += `<p style="margin:8px 0 0;font-size:14px;line-height:1.5;color:${MUTED}">Guest emails are off. Contact the customer yourself once you ${custom ? "have the price" : "confirm or decline"}.</p>`;
 
   const html = `<!doctype html><html><body style="margin:0;background:#ffffff;font-family:Arial,Helvetica,sans-serif;color:${INK}">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;padding:20px 12px"><tr><td align="center">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff">
 <tr><td style="padding:0 4px 16px;border-bottom:1px solid ${LINE};font-size:15px;font-weight:bold;color:${INK}">${esc(loc.name)} <span style="font-weight:normal;font-size:12px;letter-spacing:2px;text-transform:uppercase;color:${GREEN}">&nbsp;Cakes</span></td></tr>
-<tr><td style="padding:22px 4px 8px">${b}</td></tr>
+<tr><td style="padding:20px 4px 12px">${b}</td></tr>
 <tr><td style="padding:16px 4px 0;border-top:1px solid ${LINE};font-size:12px;color:${MUTED}">${esc(loc.name)} · ${esc(loc.address)} · ${esc(loc.phone)}<br>Staff alert. Do not forward to the customer.</td></tr>
 </table></td></tr></table></body></html>`;
   return { subject, html };
