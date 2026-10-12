@@ -21,14 +21,14 @@
       if (S.tab === 'dash') view();
     }).catch(function (e) { console.error(e); d.loading = false; if (errKind(e) === 'expired') return sessionExpired(); d.err = 'The dashboard could not load. Check the connection and try again.'; if (S.tab === 'dash') view(); });
   }
-  function num(v) { v = Number(v); return isFinite(v) ? v : 0; }
+  function dnum(v) { v = Number(v); return isFinite(v) ? v : 0; }
   function dxPrep() {
     var d = DX.data, first = {};
     d.orders.forEach(function (o) {
       o.live = o.paid != null;
-      o.fin = o.cv; o.est = o.lv; o.tot = num(o.cv != null ? o.cv : o.lv);
-      o.paid = num(o.paid); o.refund = num(o.ref); o.net = o.tot - o.refund; o.cakes = 0;
-      (o.it || []).forEach(function (i) { o.cakes += num(i[3]) || 1; });
+      o.fin = o.cv; o.est = o.lv; o.tot = dnum(o.cv != null ? o.cv : o.lv);
+      o.paid = dnum(o.paid); o.refund = dnum(o.ref); o.net = o.tot - o.refund; o.cakes = 0;
+      (o.it || []).forEach(function (i) { o.cakes += dnum(i[3]) || 1; });
       o.sale = o.cp === 'recorded' || o.cp === 'assumed';
       o.imp = !o.live;
       o.off = o.st === 'cancelled';
@@ -45,14 +45,14 @@
   function regLabel(o) { return o.cp === 'assumed' ? 'Past, assumed collected' : o.cp === 'not_recorded' ? 'Past, not marked collected' : REG_ST[o.st] || o.st; }
   function regPill(o) { var t = o.st === 'cancelled' ? ' s-off' : o.cp === 'recorded' ? ' s-done' : o.cp === 'assumed' ? '' : o.cp === 'not_recorded' ? ' s-action' : o.st === 'confirmed' ? ' s-good' : ' s-action'; return '<span class="ccs-pill' + t + '">' + esc(regLabel(o)) + '</span>'; }
   // ----- periods -----
-  function monthStart(iso) { return iso.slice(0, 8) + '01'; }
-  function monthEnd(iso) { var y = +iso.slice(0, 4), m = +iso.slice(5, 7); return new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10); }
-  function addMonths(iso, n) { var y = +iso.slice(0, 4), m = +iso.slice(5, 7) - 1 + n; y += Math.floor(m / 12); m = ((m % 12) + 12) % 12; var last = new Date(Date.UTC(y, m + 1, 0)).getUTCDate(); return y + '-' + String(m + 1).padStart(2, '0') + '-' + String(Math.min(+iso.slice(8, 10), last)).padStart(2, '0'); }
+  function dxMonthStart(iso) { return iso.slice(0, 8) + '01'; }
+  function dxMonthEnd(iso) { var y = +iso.slice(0, 4), m = +iso.slice(5, 7); return new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10); }
+  function dxAddMonths(iso, n) { var y = +iso.slice(0, 4), m = +iso.slice(5, 7) - 1 + n; y += Math.floor(m / 12); m = ((m % 12) + 12) % 12; var last = new Date(Date.UTC(y, m + 1, 0)).getUTCDate(); return y + '-' + String(m + 1).padStart(2, '0') + '-' + String(Math.min(+iso.slice(8, 10), last)).padStart(2, '0'); }
   function daysBetween(a, b) { return Math.round((Date.parse(b + 'T12:00:00Z') - Date.parse(a + 'T12:00:00Z')) / 864e5); }
   function dxRange() {
     var f = DX.f, t = today(), r;
-    if (f.p === 'm') r = { from: monthStart(t), to: t, pf: monthStart(addMonths(t, -1)), pt: addMonths(t, -1), cmp: 'same days last month' };
-    else if (f.p === 'lm') { var s = monthStart(addMonths(t, -1)); r = { from: s, to: monthEnd(s), pf: monthStart(addMonths(s, -1)), pt: monthEnd(addMonths(s, -1)), cmp: 'the month before' }; }
+    if (f.p === 'm') r = { from: dxMonthStart(t), to: t, pf: dxMonthStart(dxAddMonths(t, -1)), pt: dxAddMonths(t, -1), cmp: 'same days last month' };
+    else if (f.p === 'lm') { var s = dxMonthStart(dxAddMonths(t, -1)); r = { from: s, to: dxMonthEnd(s), pf: dxMonthStart(dxAddMonths(s, -1)), pt: dxMonthEnd(dxAddMonths(s, -1)), cmp: 'the month before' }; }
     else if (f.p === '3m') r = { from: addDays(t, -89), to: t };
     else if (f.p === 'y') r = { from: t.slice(0, 4) + '-01-01', to: t, pf: (+t.slice(0, 4) - 1) + '-01-01', pt: (+t.slice(0, 4) - 1) + t.slice(4), cmp: 'the same dates last year' };
     else if (f.p === '12') r = { from: addDays(t, -364), to: t };
@@ -64,8 +64,8 @@
   function inRange(iso, a, b) { return iso && iso >= a && iso <= b; }
   function dxMatch(o) { var f = DX.f; if (f.ch !== 'all' && o.src !== f.ch) return false; if (f.prod !== 'all' && !(o.it || []).some(function (i) { return i[0] === f.prod; })) return false; return true; }
   function dxItems(o) { var f = DX.f; return (o.it || []).filter(function (i) { return f.prod === 'all' || i[0] === f.prod; }); }
-  function dxCakes(o) { return dxItems(o).reduce(function (s, i) { return s + (num(i[3]) || 1); }, 0); }
-  function dxValue(o) { return DX.f.prod === 'all' ? o.net : dxItems(o).reduce(function (s, i) { return s + num(i[4]) * (num(i[3]) || 1); }, 0); }
+  function dxCakes(o) { return dxItems(o).reduce(function (s, i) { return s + (dnum(i[3]) || 1); }, 0); }
+  function dxValue(o) { return DX.f.prod === 'all' ? o.net : dxItems(o).reduce(function (s, i) { return s + dnum(i[4]) * (dnum(i[3]) || 1); }, 0); }
   function dxSales(a, b) { return DX.data.orders.filter(function (o) { return o.sale && inRange(dxD(o), a, b) && dxMatch(o); }); }
   function dxIn(a, b, fn) { return DX.data.orders.filter(function (o) { return inRange(dxD(o), a, b) && dxMatch(o) && (!fn || fn(o)); }); }
   function dxSum(list) { var n = list.length, c = 0, v = 0; list.forEach(function (o) { c += dxCakes(o); v += dxValue(o); }); return { n: n, c: c, v: v, aov: n ? v / n : 0 }; }
@@ -125,8 +125,8 @@
     var got = dxIn(r.from, r.to), pgot = r.pf ? dxIn(r.pf, r.pt) : null, cx = got.filter(function (o) { return o.off; });
     var t = today(), up = data.orders.filter(function (o) { return o.open && o.pd >= t && dxMatch(o); }), upv = up.reduce(function (s, o) { return s + dxValue(o); }, 0), upc = up.filter(function (o) { return o.st === 'confirmed'; }).length;
     var cash = 0, cashList = [], refunds = 0, refList = [];
-    data.orders.forEach(function (o) { if (!dxMatch(o)) return; var g = 0, rf = 0; (o.pay || []).forEach(function (p) { if (!inRange(p[2], r.from, r.to)) return; if (p[0] === 'refund') rf += num(p[1]); else if (p[0] !== 'adjustment') g += num(p[1]); }); if (g) { cash += g; cashList.push(o); } if (rf) { refunds += rf; refList.push(o); } });
-    var owing = data.orders.filter(function (o) { return o.live && dxMatch(o) && (o.st === 'confirmed' || o.st === 'completed') && num(o.bal) > 0.005; }), owed = owing.reduce(function (s, o) { return s + num(o.bal); }, 0);
+    data.orders.forEach(function (o) { if (!dxMatch(o)) return; var g = 0, rf = 0; (o.pay || []).forEach(function (p) { if (!inRange(p[2], r.from, r.to)) return; if (p[0] === 'refund') rf += dnum(p[1]); else if (p[0] !== 'adjustment') g += dnum(p[1]); }); if (g) { cash += g; cashList.push(o); } if (rf) { refunds += rf; refList.push(o); } });
+    var owing = data.orders.filter(function (o) { return o.live && dxMatch(o) && (o.st === 'confirmed' || o.st === 'completed') && dnum(o.bal) > 0.005; }), owed = owing.reduce(function (s, o) { return s + dnum(o.bal); }, 0);
     var basisWord = byOrder ? 'order date' : 'pickup date';
     h += '<p class="dx-period">' + (r.all ? 'All recorded history' : esc(nice(r.from) + ' to ' + nice(r.to))) + ', by ' + basisWord + (ps ? '. Compared with ' + esc(r.cmp) + '.' : '.') + (f.prod !== 'all' ? ' Showing ' + esc(f.prod) + ' only.' : '') + '</p>';
     h += '<div class="ccs-kpis dx-kpis dx-kpis8">' +
@@ -161,16 +161,16 @@
   function dxMonthly(r) {
     var t = today(), end = r.all ? t : (r.to > t ? t : r.to), rows = [], tbl = '';
     for (var i = 12; i >= 0; i--) {
-      var ms = monthStart(addMonths(end, -i)), me = monthEnd(ms), list = dxSales(ms, me), s = dxSum(list);
-      var ly = dxSales(monthStart(addMonths(ms, -12)), monthEnd(addMonths(ms, -12))), lys = ly.length ? dxSum(ly) : null;
-      rows.push({ l: MON[+ms.slice(5, 7) - 1] + (ms.slice(5, 7) === '01' || i === 12 ? ' ' + ms.slice(2, 4) : ''), ms: ms, s: s, ly: lys, list: list, t: MON[+ms.slice(5, 7) - 1] + ' ' + ms.slice(0, 4) + ' sales', dim: ms === monthStart(t) });
+      var ms = dxMonthStart(dxAddMonths(end, -i)), me = dxMonthEnd(ms), list = dxSales(ms, me), s = dxSum(list);
+      var ly = dxSales(dxMonthStart(dxAddMonths(ms, -12)), dxMonthEnd(dxAddMonths(ms, -12))), lys = ly.length ? dxSum(ly) : null;
+      rows.push({ l: MON[+ms.slice(5, 7) - 1] + (ms.slice(5, 7) === '01' || i === 12 ? ' ' + ms.slice(2, 4) : ''), ms: ms, s: s, ly: lys, list: list, t: MON[+ms.slice(5, 7) - 1] + ' ' + ms.slice(0, 4) + ' sales', dim: ms === dxMonthStart(t) });
     }
     rows.forEach(function (x, k) {
       var p = k ? rows[k - 1].s : null;
       tbl += '<tr><td>' + esc(MON[+x.ms.slice(5, 7) - 1] + ' ' + x.ms.slice(0, 4)) + (x.dim ? ' (to date)' : '') + '</td><td class="ccs-num">' + int(x.s.c) + '</td><td class="ccs-num">' + (p ? (x.s.c - p.c >= 0 ? '+' : '') + int(x.s.c - p.c) + ' (' + change(x.s.c, p.c) + ')' : '') + '</td><td class="ccs-num">' + m0(x.s.v) + '</td><td class="ccs-num">' + (p ? (x.s.v - p.v >= 0 ? '+' : '-') + m0(Math.abs(x.s.v - p.v)) + ' (' + change(x.s.v, p.v) + ')' : '') + '</td><td class="ccs-num">' + (x.ly ? change(x.s.v, x.ly.v) : '<span class="ccs-hint">No data</span>') + '</td></tr>';
     });
-    var ms0 = monthStart(t), dayN = +t.slice(8), lmS = monthStart(addMonths(t, -1)), lmE = addMonths(t, -1);
-    var mtd = dxSum(dxSales(ms0, t)), lmtd = dxSum(dxSales(lmS, lmE)), lyl = dxSales(addMonths(ms0, -12), addMonths(t, -12)), lyt = lyl.length ? dxSum(lyl) : null;
+    var ms0 = dxMonthStart(t), dayN = +t.slice(8), lmS = dxMonthStart(dxAddMonths(t, -1)), lmE = dxAddMonths(t, -1);
+    var mtd = dxSum(dxSales(ms0, t)), lmtd = dxSum(dxSales(lmS, lmE)), lyl = dxSales(dxAddMonths(ms0, -12), dxAddMonths(t, -12)), lyt = lyl.length ? dxSum(lyl) : null;
     var body = '<div class="dx-mtd"><b>This month, 1 to ' + dayN + ' ' + MON[+t.slice(5, 7) - 1] + '</b><span>' + int(mtd.c) + ' cakes, ' + m0(mtd.v) + '</span><span>Same days last month: ' + int(lmtd.c) + ' cakes, ' + m0(lmtd.v) + ' (' + change(mtd.v, lmtd.v) + ' sales)</span>' + (lyt ? '<span>Same days last year: ' + int(lyt.c) + ' cakes, ' + m0(lyt.v) + ' (' + change(mtd.v, lyt.v) + ' sales)</span>' : '<span class="ccs-hint">No sales recorded for these dates last year.</span>') + '</div>' +
       '<p class="dx-ch">Sales value by month</p>' + dxCols(rows.map(function (x) { return { l: x.l, v: x.s.v, list: x.list, t: x.t, dim: x.dim }; }), true) +
       '<p class="dx-ch">Cakes in completed sales by month</p>' + dxCols(rows.map(function (x) { return { l: x.l, v: x.s.c, list: x.list, t: x.t, dim: x.dim }; })) +
@@ -179,7 +179,7 @@
     return dxSec('mo', 'Month by month', '13 months to ' + esc(MON[+end.slice(5, 7) - 1] + ' ' + end.slice(0, 4)), body, true);
   }
   function dxProducts(cur) {
-    var by = function (fn) { return dxGroup(cur, function (o) { return dxItems(o).map(function (i) { var q = num(i[3]) || 1; return [fn(i), q, num(i[4]) * q]; }); }); };
+    var by = function (fn) { return dxGroup(cur, function (o) { return dxItems(o).map(function (i) { var q = dnum(i[3]) || 1; return [fn(i), q, dnum(i[4]) * q]; }); }); };
     var sortK = DX.psort, srt = function (a) { return a.sort(function (x, y) { return sortK === 'v' ? y.v - x.v : y.q - x.q; }); };
     var fmt = function (x) { return int(x.q) + ' · ' + m0(x.v); };
     var cakes = srt(by(function (i) { return i[0]; })), fl = srt(by(function (i) { return i[1] || i[0]; })).slice(0, 10), sz = srt(by(function (i) { return i[2] + ' inch'; }));
@@ -224,9 +224,9 @@
   }
   function dxPayments(r) {
     var k = { deposit: 0, balance: 0, full: 0, refund: 0 }, lists = { deposit: [], balance: [], full: [], refund: [] }, t = today();
-    DX.data.orders.forEach(function (o) { if (!dxMatch(o)) return; (o.pay || []).forEach(function (p) { if (k[p[0]] != null && inRange(p[2], r.from, r.to)) { k[p[0]] += num(p[1]); if (lists[p[0]].indexOf(o) < 0) lists[p[0]].push(o); } }); });
-    var owing = DX.data.orders.filter(function (o) { return o.live && dxMatch(o) && (o.st === 'confirmed' || o.st === 'completed') && num(o.bal) > 0.005; });
-    var bal = function (o) { return num(o.bal); }, over = owing.filter(function (o) { return o.pd < t; });
+    DX.data.orders.forEach(function (o) { if (!dxMatch(o)) return; (o.pay || []).forEach(function (p) { if (k[p[0]] != null && inRange(p[2], r.from, r.to)) { k[p[0]] += dnum(p[1]); if (lists[p[0]].indexOf(o) < 0) lists[p[0]].push(o); } }); });
+    var owing = DX.data.orders.filter(function (o) { return o.live && dxMatch(o) && (o.st === 'confirmed' || o.st === 'completed') && dnum(o.bal) > 0.005; });
+    var bal = function (o) { return dnum(o.bal); }, over = owing.filter(function (o) { return o.pd < t; });
     var sum = function (l) { return l.reduce(function (s, o) { return s + bal(o); }, 0); };
     var body = (DX.data.anyPay ? '' : dxFlag('No payments have been recorded in the app yet. These figures fill in once staff use Record payment.')) +
       '<div class="ccs-kpis dx-kpis dx-kpis-s">' + dxKpi('Deposits received', m0(k.deposit), 'By payment date', lists.deposit, 'Deposits received') + dxKpi('Balances and full payments', m0(k.balance + k.full), 'By payment date', lists.balance.concat(lists.full), 'Balance and full payments') +
@@ -266,7 +266,7 @@
     return dxSec('op', 'Operations', off.length + ' cancelled', body);
   }
   function dxDiscounts(cur) {
-    var cut = cur.filter(function (o) { return o.fin != null && num(o.fin) < num(o.est) - 0.005; }), less = cut.reduce(function (s, o) { return s + num(o.est) - num(o.fin); }, 0), list = cur.reduce(function (s, o) { return s + num(o.est); }, 0);
+    var cut = cur.filter(function (o) { return o.fin != null && dnum(o.fin) < dnum(o.est) - 0.005; }), less = cut.reduce(function (s, o) { return s + dnum(o.est) - dnum(o.fin); }, 0), list = cur.reduce(function (s, o) { return s + dnum(o.est); }, 0);
     var body = '<div class="ccs-kpis dx-kpis dx-kpis-s">' + dxKpi('Orders below list price', int(cut.length), cur.length ? Math.round(cut.length / cur.length * 100) + '% of completed sales' : '', cut, 'Orders priced below the list price') +
       dxKpi('Amount below list price', m0(less), list ? Math.round(less / list * 100) + '% of list value' : '', cut, 'Orders priced below the list price') + '</div>' +
       dxFlag('Discounts are not recorded separately. These figures only show where staff agreed a price below the price list.') +
@@ -293,7 +293,7 @@
     var y = DX.year, years = DX.data.years.slice(); if (years.indexOf(y) < 0) years.push(y); years.sort();
     var tot = { n: 0, c: 0, v: 0 }, rows = '';
     for (var m = 1; m <= 12; m++) {
-      var ms = y + '-' + String(m).padStart(2, '0') + '-01', l = dxSales(ms, monthEnd(ms)), s = dxSum(l); tot.n += s.n; tot.c += s.c; tot.v += s.v;
+      var ms = y + '-' + String(m).padStart(2, '0') + '-01', l = dxSales(ms, dxMonthEnd(ms)), s = dxSum(l); tot.n += s.n; tot.c += s.c; tot.v += s.v;
       rows += '<tr' + (l.length ? ' class="ccs-click" data-act="dx-drill" data-v="' + dxKey({ t: MON[m - 1] + ' ' + y + ' sales', l: l }) + '"' : '') + '><td>' + MON[m - 1] + '</td><td class="ccs-num">' + int(s.n) + '</td><td class="ccs-num">' + int(s.c) + '</td><td class="ccs-num">' + m0(s.v) + '</td><td class="ccs-num">' + (s.n ? m0(s.aov) : '') + '</td></tr>';
     }
     var body = '<div class="ccs-tabs" role="group" aria-label="Year">' + years.map(function (x) { return '<button type="button" class="ccs-tab" data-act="dx-year" data-v="' + x + '" aria-pressed="' + (x === y) + '">' + x + '</button>'; }).join('') + '</div>' +
@@ -355,7 +355,7 @@
   function dxKeep() { root.querySelectorAll('[data-dxsec]').forEach(function (el) { DX['o' + el.dataset.dxsec] = el.open; }); }
   function dashChange(t) {
     var f = DX.f, k = t.dataset.dx; dxKeep();
-    if (k === 'dx-p') { f.p = t.value; if (f.p === 'c' && !f.from) { f.to = today(); f.from = monthStart(f.to); } }
+    if (k === 'dx-p') { f.p = t.value; if (f.p === 'c' && !f.from) { f.to = today(); f.from = dxMonthStart(f.to); } }
     else if (k === 'dx-from') f.from = t.value; else if (k === 'dx-to') f.to = t.value;
     else if (k === 'dx-b') f.b = t.value; else if (k === 'dx-prod') f.prod = t.value; else if (k === 'dx-ch') f.ch = t.value; else if (k === 'dx-st') { f.st = t.value; }
     view();
