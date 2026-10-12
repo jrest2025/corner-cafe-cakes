@@ -49,6 +49,65 @@ function table(rows: [string, string][], alert: string[] = []) {
     rows.filter(([, v]) => v).map(([k, v]) => `<tr><td style="padding:8px 12px;font-size:13px;color:#7A6F66;width:120px;vertical-align:top">${esc(k)}</td><td style="padding:8px 12px;font-size:15px;${alert.includes(k) ? `color:${RED};font-weight:bold` : ""}">${esc(v)}</td></tr>`).join("") + `</table>`;
 }
 
+// ---------- staff alert: white, scannable, the allergy and the date first ----------
+const INK = "#2B2622", MUTED = "#6B6560", LINE = "#E7E3DE", GREEN = "#5F7A4A";
+function fijiToday() { return new Intl.DateTimeFormat("en-CA", { timeZone: "Pacific/Fiji" }).format(new Date()); }
+function daysAway(d: string) {
+  const n = Math.round((Date.parse(d + "T12:00:00Z") - Date.parse(fijiToday() + "T12:00:00Z")) / 864e5);
+  return n < 0 ? "date has passed" : n === 0 ? "today" : n === 1 ? "tomorrow" : `in ${n} days`;
+}
+function phoneShow(p: string) { const d = String(p || "").replace(/\D/g, ""); return d.length === 7 ? `${d.slice(0, 3)} ${d.slice(3)}` : d.length === 10 && d.startsWith("679") ? `${d.slice(3, 6)} ${d.slice(6)}` : String(p || ""); }
+function telLink(p: string) { let d = String(p || "").replace(/\D/g, ""); if (d.length === 7) d = "679" + d; return "tel:+" + d; }
+const fact = (label: string, value: string, sub = "") =>
+  `<tr><td style="padding:12px 0;border-bottom:1px solid ${LINE}"><div style="font-size:12px;letter-spacing:1px;text-transform:uppercase;color:${MUTED};margin-bottom:3px">${esc(label)}</div>` +
+  `<div style="font-size:17px;font-weight:bold;color:${INK};line-height:1.35">${value}</div>${sub ? `<div style="font-size:14px;color:${MUTED};margin-top:2px">${sub}</div>` : ""}</td></tr>`;
+const smallBtn = (href: string, label: string, primary = false) =>
+  `<a href="${esc(href)}" style="display:inline-block;padding:${primary ? "14px 26px" : "12px 20px"};margin:0 8px 10px 0;background:${primary ? GREEN : "#ffffff"};color:${primary ? "#ffffff" : GREEN};border:2px solid ${GREEN};border-radius:10px;text-decoration:none;font-weight:bold;font-size:15px">${esc(label)}</a>`;
+
+function staffNewOrder(d: any): { subject: string; html: string } {
+  const o = d.order, i = d.item ?? {}, c = d.customer ?? {}, loc = d.location, cfg = d.config ?? {};
+  const custom = o.order_type === "custom";
+  const manual = cfg.guest_emails !== "true";
+  const name = o.contact_name || c.full_name || "Customer";
+  const phone = o.contact_phone || c.phone || "";
+  const email = o.contact_email || c.email || "";
+  const diet = o.has_dietary ? [...(i.dietary ?? []), i.dietary_note].filter(Boolean).join(", ") || "See the order" : "";
+  const delivery = o.fulfilment_method === "delivery";
+  const when = `${longDate(o.required_date)}, ${t12(o.required_time)}`;
+  const paid = Number(d.paid_total ?? 0), total = Number(o.final_total ?? o.estimate_total ?? 0);
+  const subject = `New ${custom ? "custom cake request" : "cake order"} ${o.reference} · ${new Date(o.required_date + "T00:00:00Z").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" })}` +
+    (diet ? " · ALLERGY OR DIETARY" : "") + (o.rush_override ? " · SHORT NOTICE" : "");
+
+  let b = `<div style="font-size:13px;letter-spacing:1px;text-transform:uppercase;color:${MUTED};margin:0 0 6px">${custom ? "New custom cake request" : "New cake order"} · ${esc(SOURCES[o.source] ?? o.source)}</div>`;
+  b += `<h1 style="margin:0 0 18px;font-size:26px;line-height:1.2;color:${INK}">${esc(o.reference)} ${custom ? "needs a quote" : "needs review"}</h1>`;
+  if (diet) b += `<div style="background:#F8E3DD;border-left:5px solid ${RED};border-radius:8px;padding:14px 16px;margin:0 0 18px;color:${RED}"><div style="font-size:12px;letter-spacing:1px;text-transform:uppercase;font-weight:bold">Allergy or dietary need</div><div style="font-size:18px;font-weight:bold;margin-top:4px">${esc(diet)}</div></div>`;
+  if (o.rush_override) b += `<div style="background:#FBEFD9;border-radius:8px;padding:12px 16px;margin:0 0 18px;color:#7A4A0C;font-weight:bold">Short notice${o.rush_reason ? `: ${esc(o.rush_reason)}` : ""}</div>`;
+
+  b += `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid ${LINE};margin:0 0 20px">`;
+  b += fact(delivery ? "Delivery" : "Collection", esc(when), esc(daysAway(o.required_date)) + (delivery && o.delivery_zone ? ` · ${esc(o.delivery_zone)}` : delivery ? "" : " · from the café counter"));
+  b += fact("Cake", esc(cakeLine(i)), [i.finish === "custom" ? "Custom design" : "Standard finish", i.occasion, i.serves_label].filter(Boolean).map(esc).join(" · "));
+  if (i.design_description) b += fact("Design", esc(i.design_description), d.attachments > 0 ? `${d.attachments} reference photo${d.attachments > 1 ? "s" : ""} in the staff app` : "");
+  if (i.cake_message) b += fact("Message on the cake", `“${esc(i.cake_message)}”`, "Copy exactly");
+  if (o.customer_notes) b += fact("Customer notes", esc(o.customer_notes));
+  b += fact("Customer", esc(name) + ` <span style="font-weight:normal;color:${MUTED};font-size:15px">${c.past_orders > 0 ? `returning, ${c.past_orders} earlier order${c.past_orders > 1 ? "s" : ""}` : "new customer"}</span>`,
+    [phone ? esc(phoneShow(phone)) + (c.preferred_contact === "whatsapp" ? " (WhatsApp)" : "") : "", email ? `<a href="mailto:${esc(email)}" style="color:${GREEN}">${esc(email)}</a>` : ""].filter(Boolean).join(" · "));
+  b += fact(custom ? "Estimate before design" : "Price", esc(money(total)), paid > 0 ? `${esc(money(paid))} paid` : "Nothing paid yet");
+  b += `</table>`;
+
+  b += (cfg.staff_app_url ? smallBtn(cfg.staff_app_url, custom ? "Quote it in the staff app" : "Review in the staff app", true) : "") +
+    (phone ? smallBtn(waLink(phone), "WhatsApp") + smallBtn(telLink(phone), "Call") : "");
+  if (manual) b += `<p style="margin:12px 0 0;font-size:14px;line-height:1.5;color:${MUTED}">Guest emails are off. Contact the customer yourself once you ${custom ? "have the price" : "confirm or decline"}.</p>`;
+
+  const html = `<!doctype html><html><body style="margin:0;background:#ffffff;font-family:Arial,Helvetica,sans-serif;color:${INK}">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;padding:20px 12px"><tr><td align="center">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff">
+<tr><td style="padding:0 4px 16px;border-bottom:1px solid ${LINE};font-size:15px;font-weight:bold;color:${INK}">${esc(loc.name)} <span style="font-weight:normal;font-size:12px;letter-spacing:2px;text-transform:uppercase;color:${GREEN}">&nbsp;Cakes</span></td></tr>
+<tr><td style="padding:22px 4px 8px">${b}</td></tr>
+<tr><td style="padding:16px 4px 0;border-top:1px solid ${LINE};font-size:12px;color:${MUTED}">${esc(loc.name)} · ${esc(loc.address)} · ${esc(loc.phone)}<br>Staff alert. Do not forward to the customer.</td></tr>
+</table></td></tr></table></body></html>`;
+  return { subject, html };
+}
+
 function cakeLine(i: any) { return `${i.variant || i.product_name}, ${i.size_inch} inch${i.quantity > 1 ? ` × ${i.quantity}` : ""}`; }
 function cakeRows(d: any, staff: boolean): [string, string][] {
   const o = d.order, i = d.item ?? {}, c = d.customer;
@@ -78,26 +137,7 @@ function build(kind: string, d: any): { subject: string; html: string } {
   const total = o.final_total ?? o.estimate_total;
   const balance = Math.max(Number(total) - Number(d.paid_total ?? 0), 0);
   switch (kind) {
-    case "staff_new_order": {
-      const custom = o.order_type === "custom";
-      const manual = cfg.guest_emails !== "true";
-      const intro = manual
-        ? (custom
-          ? `This one needs a quote. Check the design, then quote and confirm it in the staff app. <strong>Guest emails are off, so contact the customer yourself</strong> with the price.`
-          : `Check the details, then confirm or decline it in the staff app. <strong>Guest emails are off, so contact the customer yourself</strong> to let them know.`)
-        : (custom
-          ? `This one needs a quote. Check the design, then confirm it with the price in the staff app.`
-          : `Check the details, then confirm or decline it in the staff app. The customer is told once you do.`);
-      return {
-        subject: `New ${custom ? "custom cake request" : "cake order"}: ${c.full_name}, ${cakeLine(i)}, ${longDate(o.required_date)}`,
-        html: layout(loc, custom ? "New custom cake request" : "New cake order",
-          p(intro) +
-          table(cakeRows(d, true), ["Dietary"]) +
-          p(`<strong>${custom ? "Estimate before design" : "Price"}: ${money(o.estimate_total)}</strong>`) +
-          (cfg.staff_app_url ? btn(cfg.staff_app_url, "Open the staff app") : "") +
-          (manual && c.phone ? btn(waLink(c.phone), "WhatsApp the customer", true) : "")),
-      };
-    }
+    case "staff_new_order": return staffNewOrder(d);
     case "guest_received": {
       const custom = o.order_type === "custom";
       return {
