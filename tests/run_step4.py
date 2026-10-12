@@ -145,7 +145,7 @@ async def main():
         check('marketing can export and save groups but not review duplicates', 'Export' in t and 'Possible duplicates' not in t, t[:400])
         await ctx.close()
         ctx, pg = await newpage(b, DESK, errs, 'front_of_house'); await customers(pg); t = await main_text(pg)
-        check('front of house can filter but not export or save groups', 'Filters' in t and 'Export' not in t and 'Save as group' not in t and 'Possible duplicates' not in t, t[:400])
+        check('front of house can filter but not export or save groups', 'Filters' in t and await pg.locator('[data-act="ws-cm-panel"][data-v="export"]').count() == 0 and 'Save as group' not in t and 'Possible duplicates' not in t, t[:400])
         await pg.click('[data-act="ws-cm-panel"][data-v="filter"]'); await pg.wait_for_timeout(250)
         await pg.fill('#cm-spend-min', '100'); await pg.click('[data-act="ws-cm-apply"]'); await pg.wait_for_timeout(400)
         check('front of house sees no Save as group even with a filter', 'Save as group' not in await main_text(pg))

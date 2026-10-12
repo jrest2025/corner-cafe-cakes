@@ -58,5 +58,12 @@ Phase 1 checked on 12 October 2026: database checks run against the live data in
 | Export | The old unrecorded Copy WhatsApp numbers and Export buttons replaced by the recorded export | Implemented and verified (step 4) |
 | Security | Duplicates and merge: managers only. Filters: manager, front of house, finance, marketing. Groups and export: manager and marketing. Kitchen: none | Implemented and verified (database test with a temporary login in each role) |
 | Known limits | Spend and order counts leave out old sheet orders; orders removed by an admin stay on the merged profile | Open |
-| Later | Edge cases, restore drill, staff guide | Planned (phase 5) |
+| Report | Customer report: staff choose the parts (contact and summary, orders, old sheet orders, notes and follow-ups, marketing permission); recorded with name and parts before it prints; privacy line on the page | Implemented and verified (step 5) |
+| Report | Parts follow the role: finance gets no marketing permission part; kitchen has no customers | Implemented and verified (step 5) |
+| Export | Export log screen: every contact list export and printed report, with who, when, channel, group, filters and counts; managers see everyone's, others their own; records cannot be changed | Implemented and verified (step 5) |
+| Security | Role table in Settings worked out from the live database checks (function role checks and table rules), so it cannot drift from what people can do | Implemented and verified (step 5) |
+| Backup | Backup check in Settings: Google Sheet copy state, copies inside the database, host backups, restore tests | Implemented and verified (step 5) |
+| Backup | Full copy of all 46 tables (backup_20261013); restore test on scratch copies passed; restore guide in docs/restore-guide.md | Implemented and verified (step 5) |
+| Backup | Google Sheet copy of orders linked | Blocked: needs an admin to link a sheet (robot account key set by the owner) |
+| Later | Edge cases, staff guide | Planned |
 | Never | Sending real campaigns | Not built, by design |

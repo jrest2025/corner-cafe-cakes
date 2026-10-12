@@ -441,6 +441,7 @@
       (mayGroup && (nf || CM_SEGMAP[c.seg]) ? '<button type="button" class="ccs-btn ccs-ghost ccs-small" data-act="ws-cm-panel" data-v="save">' + (g ? 'Update group' : 'Save as group') + '</button>' : '') +
       (mayExport && c.loaded && c.count ? '<button type="button" class="ccs-btn ccs-ghost ccs-small" data-act="ws-cm-panel" data-v="export">Export</button>' : '') +
       (can('manager') ? '<button type="button" class="ccs-btn ccs-ghost ccs-small" data-act="ws-cm-dups">Possible duplicates</button>' : '') +
+      '<button type="button" class="ccs-btn ccs-ghost ccs-small" data-act="ws-cm-s5-log">Export log</button>' +
       '</span></div>';
     if (g) h += '<p class="ccs-hint cm-gline">Saved group <b>' + esc(g.name) + '</b>, made by ' + esc(g.by) + (g.updated_by ? ', last changed by ' + esc(g.updated_by) : '') + '. The list is worked out fresh each time, so new customers who match join it.</p>';
     h += clChips();
@@ -634,6 +635,7 @@
   }
 
   function clAct(a, b, v) {
+    if (a.indexOf('ws-cm-s5-') === 0) return s5Act(a, b, v);
     var c = clState(), id = b.dataset.id;
     if (a === 'ws-cm-panel') { c.panel = v || null; c.gErr = null; if (v === 'export') c.exp = null; if (v === 'filter') clOptsLoad(); view(); return; }
     if (a === 'ws-cm-apply') { var rp = clReadPanel(); if (rp.err) { c.err = rp.err; return view(); } c.flt = rp.f; c.panel = null; c.exp = null; loadCustomers(); return; }
@@ -711,3 +713,192 @@
       return;
     }
   }
+
+  // ---------- CRM step 5: customer report, export log, role permissions, backup check ----------
+  var S5_SECTIONS = [['contact', 'Contact details and summary'], ['orders', 'Orders'], ['sheet', 'Orders from the old sheets'], ['notes', 'Notes and follow-ups'], ['consent', 'Marketing permission']];
+  var S5_ROLE_NAME = { admin: 'Admin', manager: 'Manager', front_of_house: 'Front of house', kitchen: 'Kitchen', finance: 'Finance', marketing: 'Marketing' };
+  function s5MaySection(k) {
+    if (k === 'notes') return wsCanRead();
+    if (k === 'consent') return can('manager', 'front_of_house', 'marketing');
+    return true;
+  }
+  function s5ReportPanel() {
+    var s = S.sheet, rp = s.rep; if (!rp) return '';
+    var d = s.data;
+    var opts = S5_SECTIONS.filter(function (x) { return s5MaySection(x[0]) && (x[0] !== 'sheet' || d.sheet.length); });
+    return '<section class="ccs-panel s5-rep" aria-label="Customer report"><b>Print a customer report</b>' +
+      '<p class="ccs-hint">Choose what goes on it. The report holds personal details: keep it inside the café and shred it when finished. It is recorded with your name.</p>' +
+      '<div class="s5-checks">' + opts.map(function (x) { return '<label class="ccs-check"><input type="checkbox" data-s5sec="' + x[0] + '"' + (rp.off[x[0]] ? '' : ' checked') + '> ' + x[1] + '</label>'; }).join('') + '</div>' +
+      (rp.err ? '<p class="ccs-err" role="alert">' + esc(rp.err) + '</p>' : '') +
+      '<div class="ccs-actions-row"><button type="button" class="ccs-btn" data-act="ws-cm-s5-print">Print report</button><button type="button" class="ccs-btn ccs-ghost" data-act="ws-cm-s5-rep">Cancel</button></div></section>';
+  }
+  function s5Picked() {
+    var out = [];
+    Array.prototype.forEach.call(document.querySelectorAll('[data-s5sec]'), function (cb) { if (cb.checked) out.push(cb.dataset.s5sec); });
+    return out;
+  }
+  function s5Print(btn) {
+    var s = S.sheet, rp = s.rep; if (!rp) return;
+    var picked = s5Picked();
+    S5_SECTIONS.forEach(function (x) { rp.off[x[0]] = picked.indexOf(x[0]) < 0; });
+    if (!picked.length) { rp.err = 'Tick at least one part.'; return renderSheet(); }
+    if (picked.indexOf('notes') > -1 && !s.ws) { rp.err = 'Notes and follow-ups are still loading. Try again in a moment.'; wsLoad(s.id); return renderSheet(); }
+    rp.err = null; markBusy(btn, 'Recording…');
+    sb.rpc('customer_report_logged', { p_customer: s.id, p_sections: picked }).then(function (r) {
+      if (r.error) throw r.error; clearBusy();
+      if (!r.data.ok) { rp.err = r.data.message; return renderSheet(); }
+      var el = document.getElementById('ccs-print'); if (!el) { el = document.createElement('div'); el.id = 'ccs-print'; document.body.appendChild(el); }
+      el.innerHTML = s5ReportHtml(s, picked, r.data.by);
+      var ps = document.getElementById('ccs-page'); if (!ps) { ps = document.createElement('style'); ps.id = 'ccs-page'; document.head.appendChild(ps); }
+      ps.textContent = '@page{size:A4 portrait;margin:12mm}';
+      s.rep = null; renderSheet(); toast('Report recorded and sent to the printer');
+      document.body.classList.add('ccs-printing'); setTimeout(function () { window.print(); }, 50);
+    }).catch(function (e) { clearBusy(); fail(e); });
+  }
+  function s5ReportHtml(s, picked, by) {
+    var d = s.data, c = d.c, sm = d.sum, has = function (k) { return picked.indexOf(k) > -1; };
+    var row = function (k, v) { return v || v === 0 ? '<tr><th>' + esc(k) + '</th><td>' + esc(v) + '</td></tr>' : ''; };
+    var h = '<div class="s5-report"><div class="s5-r-top"><div><div class="s5-r-kicker">Corner Café customer report</div><div class="s5-r-name">' + esc(c.full_name) + '</div><div class="s5-r-sub">' + esc(custNo(c.customer_no)) + (c.archived_at ? ' · Archived' : '') + '</div></div>' +
+      '<div class="s5-r-meta">Printed ' + esc(stamp(new Date().toISOString())) + '<br>by ' + esc(by || '') + '</div></div>' +
+      '<p class="s5-r-warn">Contains personal details. Keep inside the café. Shred when finished.</p>';
+    if (has('contact')) {
+      h += '<h2>Contact details</h2><table class="s5-r-kv">' + row('Mobile', c.phone) + row('Other number', c.alt_phone) + row('Email', c.email) +
+        row('Best way to reach', { whatsapp: 'WhatsApp', phone: 'Phone call', email: 'Email' }[c.preferred_contact]) + row('Company', c.company) + row('Corporate', c.is_corporate ? 'Yes' : '') +
+        row('Delivery address', c.delivery_address) + row('Birthday', birthday(c.birth_day, c.birth_month)) + row('Preferences', c.preferences) + row('Service notes', c.notes) + '</table>' +
+        '<h2>Summary</h2><table class="s5-r-kv">' + row('Orders', sm.orders_count) + row('Spend (collected orders)', money(sm.completed_spend)) + row('Average order', sm.average_spend != null ? money(sm.average_spend) : '') +
+        row('Cancelled', sm.cancelled_count) + row('Usually orders', sm.favourite_cake) + row('Occasions', (sm.occasions || []).join(', ')) +
+        row('Merged into this profile', (d.mergedFrom || []).map(function (x) { return custNo(x.customer_no) + ' ' + x.full_name; }).join(', ')) + '</table>' +
+        '<p class="s5-r-note">Spend and order counts do not include orders from the old Google Sheets.</p>';
+    }
+    if (has('orders')) {
+      h += '<h2>Orders (' + d.orders.length + ')</h2>' + (d.orders.length ? '<table class="s5-r-tab"><thead><tr><th>Pickup</th><th>Order</th><th>Cake</th><th>Status</th><th>Payment</th><th class="s5-num">Total</th></tr></thead><tbody>' +
+        d.orders.map(function (o) { var i = (o.order_items || [])[0]; return '<tr><td>' + esc(nice(o.required_date) + ' ' + String(o.required_date).slice(0, 4)) + '</td><td>' + esc(o.reference) + '</td><td>' + esc(cakeLine(i)) + (i && i.occasion ? ', ' + esc(i.occasion) : '') + '</td><td>' + esc(statusLabel(o.order_status, o.fulfilment_method)) + '</td><td>' + esc(PAY[o.payment_status] || '') + '</td><td class="s5-num">' + money(o.final_total != null ? o.final_total : o.estimate_total) + '</td></tr>'; }).join('') +
+        '</tbody></table>' + (d.orders.length >= 100 ? '<p class="s5-r-note">Shows the latest 100 orders.</p>' : '') : '<p>No orders.</p>');
+    }
+    if (has('sheet') && d.sheet.length) {
+      h += '<h2>Orders from the old sheets (' + d.sheet.length + ')</h2><table class="s5-r-tab"><thead><tr><th>Pickup</th><th>Cake</th><th>Recorded in</th><th class="s5-num">Value</th></tr></thead><tbody>' +
+        d.sheet.map(function (o) { return '<tr><td>' + esc(o.fulfil_date ? nice(o.fulfil_date) + ' ' + o.fulfil_date.slice(0, 4) : 'No date') + '</td><td>' + esc([o.cake, o.size_inch ? o.size_inch + ' inch' : ''].filter(Boolean).join(' ') || 'Not stated') + '</td><td>' + esc((o.source || '') + (o.reference ? ' ' + o.reference : '')) + '</td><td class="s5-num">' + (o.value != null ? money(o.value) : '') + '</td></tr>'; }).join('') + '</tbody></table>';
+    }
+    if (has('notes') && s.ws) {
+      var notes = s.ws.notes.filter(function (n) { return !n.hidden; });
+      h += '<h2>Notes, enquiries and feedback (' + notes.length + ')</h2>' + (notes.length ? '<table class="s5-r-tab"><thead><tr><th>Date</th><th>Type</th><th>Written by</th><th>Note</th></tr></thead><tbody>' +
+        notes.map(function (n) { return '<tr><td>' + esc(stamp(n.at)) + '</td><td>' + esc(WS_KIND[n.kind] + (n.tone ? ', ' + WS_TONE[n.tone] : '')) + '</td><td>' + esc(n.by) + '</td><td class="s5-wrap">' + esc(n.body) + (n.order_ref ? ' (' + esc(n.order_ref) + ')' : '') + '</td></tr>'; }).join('') + '</tbody></table>' : '<p>None.</p>');
+      h += '<h2>Follow-ups (' + s.ws.tasks.length + ')</h2>' + (s.ws.tasks.length ? '<table class="s5-r-tab"><thead><tr><th>Due</th><th>What</th><th>For</th><th>Status</th><th>Outcome</th></tr></thead><tbody>' +
+        s.ws.tasks.map(function (t) { return '<tr><td>' + esc(nice(t.due_on)) + '</td><td class="s5-wrap">' + esc(t.title) + '</td><td>' + esc(t.assigned_to ? (t.assignee || 'Staff') : 'Anyone') + '</td><td>' + esc(WS_TASK[t.status] || t.status) + '</td><td class="s5-wrap">' + esc(t.outcome || '') + '</td></tr>'; }).join('') + '</tbody></table>' : '<p>None.</p>');
+    }
+    if (has('consent')) {
+      h += '<h2>Marketing permission: Corner Café</h2><table class="s5-r-kv">' + CHANNELS.map(function (ch) { return row(ch[1], consentLine(d, ch[0]).text); }).join('') + '</table>' +
+        (d.log.length ? '<h3>Permission record (latest ' + d.log.length + ')</h3><table class="s5-r-tab"><thead><tr><th>Date</th><th>Channel</th><th>Answer</th><th>Number or email</th><th>Source</th></tr></thead><tbody>' +
+          d.log.map(function (l) { return '<tr><td>' + esc(stamp(l.recorded_at)) + '</td><td>' + esc((CHANNELS.filter(function (x) { return x[0] === l.channel; })[0] || [0, l.channel])[1]) + '</td><td>' + (l.granted ? 'Yes' : 'No') + (l.needs_reconfirm ? ', needs reconfirming' : '') + '</td><td>' + esc(l.destination) + '</td><td>' + esc(l.source) + '</td></tr>'; }).join('') + '</tbody></table>' : '');
+    }
+    return h + '<p class="s5-r-foot">Corner Café cakes staff app. Report recorded in the export log.</p></div>';
+  }
+
+  // Export log: contact list exports and printed customer reports
+  function s5FilterText(f) {
+    if (!f) return '';
+    var parts = [];
+    if (f.segment) parts.push((SEGS.filter(function (x) { return x[0] === f.segment; })[0] || [0, f.segment])[1]);
+    Object.keys(f).forEach(function (k) { if (k !== 'segment' && CM_LABEL[k]) parts.push(CM_LABEL[k](f[k])); });
+    return parts.length ? parts.join(', ') : 'All customers';
+  }
+  function s5LogLoad() {
+    var c = clState(); c.log = null; c.logErr = null; view();
+    sb.rpc('customer_exports_list', { p_limit: 300 }).then(function (r) {
+      if (r.error) throw r.error;
+      if (!r.data.ok) c.logErr = r.data.message; else c.log = r.data;
+      if (S.tab === 'customers') view();
+    }).catch(fail);
+  }
+  function s5LogView() {
+    var c = clState(), L = c.log;
+    var h = '<div class="ccs-head"><div><h1 class="ccs-title">Export log</h1><p class="ccs-sub">' + (can('manager') ? 'Every contact list export and printed customer report, by everyone.' : 'Your own exports and printed reports. Managers see everyone\'s.') + '</p></div>' +
+      '<div class="ccs-headacts"><button type="button" class="ccs-btn ccs-ghost" data-act="ws-cm-list">Back to customers</button></div></div>';
+    if (c.logErr) return h + '<div class="ccs-empty"><b>' + esc(c.logErr) + '</b></div>';
+    if (!L) return h + '<p class="ccs-loading">Loading the export log…</p>';
+    if (!L.rows.length) return h + '<div class="ccs-empty"><b>Nothing exported or printed yet.</b><span>Contact list exports and customer reports show here with who, when and what.</span></div>';
+    var ex = L.rows.filter(function (x) { return x.kind === 'export'; }), rep = L.rows.filter(function (x) { return x.kind === 'report'; });
+    h += '<p class="ccs-hint">' + clN(ex.length, 'contact list export') + ', ' + clN(rep.length, 'customer report') + ' printed. Records cannot be changed or removed.</p>';
+    h += '<div class="s5-log">' + L.rows.map(function (x) {
+      var what, detail;
+      if (x.kind === 'export') {
+        what = 'Contact list for ' + ((CM_CHANNEL.filter(function (q) { return q[0] === x.channel; })[0] || [0, x.channel])[1]) + ': ' + clN(x.count, 'person', 'people');
+        detail = (x.group ? 'Group ' + x.group + '. ' : '') + 'Filters: ' + s5FilterText(x.filter) + '. Left out: ' + x.left_no + ' without permission' + (x.left_re ? ', ' + x.left_re + ' needing reconfirming' : '') + '.' + (x.reconfirm ? ' Included people needing reconfirming.' : '');
+      } else {
+        what = 'Customer report: ' + custNo(x.customer_no) + ' ' + (x.customer || '');
+        detail = 'Parts: ' + (x.sections || []).map(function (k) { return ((S5_SECTIONS.filter(function (q) { return q[0] === k; })[0] || [0, k])[1]).toLowerCase(); }).join(', ') + '.';
+      }
+      return '<div class="s5-log-row"><span class="s5-log-when">' + esc(stamp(x.at)) + '</span><div><b>' + esc(what) + '</b><p class="ccs-hint">' + esc(detail) + ' By ' + esc(x.by) + '.' +
+        (x.kind === 'report' ? ' <button type="button" class="ccs-link" data-act="open-customer" data-id="' + esc(x.customer_id) + '">Open profile</button>' : '') + '</p></div></div>';
+    }).join('') + '</div>';
+    return h;
+  }
+
+  // Settings: role permissions and backup check (managers)
+  function s5SettingsLoad() {
+    var st = S.settings; if (!st || !can('manager')) return;
+    st.perm = null; st.permErr = null; st.bc = null; st.bcErr = null;
+    sb.rpc('role_permissions').then(function (r) { if (r.error) throw r.error; if (S.settings !== st) return; if (!r.data.ok) st.permErr = r.data.message; else st.perm = r.data; if (S.tab === 'settings') view(); })
+      .catch(function (e) { console.error(e); if (S.settings === st) { st.permErr = 'Could not load the role table. Check the connection and try again.'; if (S.tab === 'settings') view(); } });
+    sb.rpc('backup_check').then(function (r) { if (r.error) throw r.error; if (S.settings !== st) return; if (!r.data.ok) st.bcErr = r.data.message; else st.bc = r.data; if (S.tab === 'settings') view(); })
+      .catch(function (e) { console.error(e); if (S.settings === st) { st.bcErr = 'Could not check the backups. Check the connection and try again.'; if (S.tab === 'settings') view(); } });
+  }
+  function s5PermView(st) {
+    if (!can('manager')) return '';
+    var P = st.perm, open = st.s5PermOpen ? ' open' : '';
+    var h = '<details' + open + ' data-s5open="perm"><summary>What each role can do <span>Read from the database rules</span></summary><div class="ccs-set-body">';
+    if (st.permErr) return h + '<p class="ccs-err" role="alert">' + esc(st.permErr) + '</p><button type="button" class="ccs-btn ccs-ghost" data-act="ws-cm-s5-settings" data-v="perm">Try again</button></div></details>';
+    if (!P) return h + '<p class="ccs-loading">Loading…</p></div></details>';
+    var roles = P.roles.filter(function (r) { return r !== 'admin'; }).concat(['admin']);
+    var area = '', cell = function (v) { return v === 'yes' ? '<td class="s5-yes">Yes</td>' : v === 'partly' ? '<td class="s5-part">Partly</td>' : '<td class="s5-no">No</td>'; };
+    h += '<p class="ccs-hint">Worked out from the checks the database actually runs, so it cannot drift from what people can really do. Checked ' + esc(stamp(P.checked_at)) + '.</p>' +
+      '<div class="s5-perm-wrap"><table class="s5-perm"><thead><tr><th scope="col">Can</th>' + roles.map(function (r) { return '<th scope="col">' + esc(S5_ROLE_NAME[r] || r) + '</th>'; }).join('') + '</tr></thead><tbody>';
+    P.rows.forEach(function (x) {
+      if (x.area !== area) { area = x.area; h += '<tr class="s5-area"><th colspan="' + (roles.length + 1) + '" scope="rowgroup">' + esc(area) + '</th></tr>'; }
+      h += '<tr><th scope="row">' + esc(x.label) + (x.found ? '' : ' <span class="ccs-hint">(rule not found)</span>') + '</th>' + roles.map(function (r) { return cell(x.cells[r]); }).join('') + '</tr>';
+    });
+    h += '</tbody></table></div><ul class="ccs-plain">' + P.notes.map(function (n) { return '<li>' + esc(n) + '</li>'; }).join('') + '</ul>' +
+      '<p class="ccs-hint">To change what a role can do, ask for the rule to be changed. Changing someone\'s role is in Team and access (admins).</p></div></details>';
+    return h;
+  }
+  function s5BackupCheckView(st) {
+    if (!can('manager')) return '';
+    var B = st.bc, open = st.s5BcOpen ? ' open' : '';
+    if (st.bcErr) return '<details' + open + ' data-s5open="bc"><summary>Backup check <span>Could not check</span></summary><div class="ccs-set-body"><p class="ccs-err" role="alert">' + esc(st.bcErr) + '</p><button type="button" class="ccs-btn ccs-ghost" data-act="ws-cm-s5-settings" data-v="bc">Try again</button></div></details>';
+    if (!B) return '<details' + open + ' data-s5open="bc"><summary>Backup check <span>Checking…</span></summary><div class="ccs-set-body"><p class="ccs-loading">Checking…</p></div></details>';
+    var sh = B.sheet, stale = sh.linked && (!sh.last_ok_at || Date.now() - Date.parse(sh.last_ok_at) > 20 * 60000);
+    var problems = [];
+    if (!sh.linked) problems.push('The Google Sheet copy is not linked. ' + clN(B.orders, 'order') + ' exist only inside the database and its host\'s backups.');
+    else if (sh.last_error) problems.push('The last copy to the Google Sheet failed: ' + sh.last_error);
+    else if (stale) problems.push('The Google Sheet has not been updated for over 20 minutes.');
+    var lastDrill = B.drills[0];
+    if (!lastDrill) problems.push('No restore test has been recorded.');
+    else if (!lastDrill.passed) problems.push('The last restore test failed.');
+    var h = '<details' + open + ' data-s5open="bc"><summary>Backup check <span>' + (problems.length ? 'Needs attention' : 'All good') + '</span></summary><div class="ccs-set-body">';
+    if (problems.length) h += '<div class="ccs-note" role="status"><b>Needs attention</b><ul class="s5-list">' + problems.map(function (p) { return '<li>' + esc(p) + '</li>'; }).join('') + '</ul></div>';
+    h += '<h4 class="s5-h">Google Sheet copy of orders</h4><dl class="ccs-kv">' +
+      '<dt>State</dt><dd>' + (sh.linked ? esc('Linked to ' + (sh.title || 'a sheet') + ', tab ' + sh.tab) : 'Not linked') + '</dd>' +
+      (sh.linked ? '<dt>Last copied</dt><dd>' + (sh.last_ok_at ? esc(when(sh.last_ok_at)) : 'Not yet') + '</dd><dt>Orders copied</dt><dd>' + B.synced + ' of ' + B.orders + (B.pending ? ', ' + B.pending + ' new or changed waiting for the next copy' : '') + '</dd>' : '') + '</dl>' +
+      (sh.linked ? '' : '<p class="ccs-hint">An admin links a sheet in Backup to Google Sheet, below. It then copies new and changed orders every 5 minutes.</p>');
+    h += '<h4 class="s5-h">Full copies inside the database</h4>' + (B.snapshots.length ? '<ul class="s5-list">' + B.snapshots.map(function (x) {
+      return '<li><b>' + esc(x.name) + '</b>: ' + (x.tables ? x.tables + ' tables, ' + Number(x.rows || 0).toLocaleString('en-US') + ' rows' : 'older copy') + (x.at ? ', taken ' + esc(when(x.at)) : '') + '. ' +
+        (x.covers_crm ? 'Includes notes, follow-ups and marketing permission.' : 'Does not include notes, follow-ups or marketing permission.') + '</li>';
+    }).join('') + '</ul>' : '<p class="ccs-hint">None.</p>') +
+      '<p class="ccs-hint">These copies sit in the same database, so they protect against a wrong change, not against losing the database. They cannot be reached from this app or the website.</p>';
+    h += '<h4 class="s5-h">Host backups</h4><p class="ccs-hint">The database host (Supabase, Pro plan) keeps daily backups. Restoring one replaces the whole database and loses everything since, so it is the last resort. It is done by the account owner from the Supabase dashboard. Check how many days are kept there.</p>';
+    h += '<h4 class="s5-h">Restore tests</h4>' + (B.drills.length ? '<ul class="s5-list">' + B.drills.map(function (x) {
+      return '<li><b>' + esc(when(x.at)) + ', ' + (x.passed ? 'passed' : 'failed') + '</b> (' + esc(x.snapshot) + '). ' + esc(x.result) + '</li>';
+    }).join('') + '</ul>' : '<p class="ccs-hint">None recorded.</p>');
+    return h + '<p class="ccs-hint">Checked ' + esc(stamp(B.checked_at)) + '.</p><button type="button" class="ccs-btn ccs-ghost" data-act="ws-cm-s5-settings" data-v="bc">Check again</button></div></details>';
+  }
+  function s5Act(a, b, v) {
+    var s = S.sheet;
+    if (a === 'ws-cm-s5-rep') { if (!s || s.type !== 'customer') return; s.rep = s.rep ? null : { off: {}, err: null }; if (s.rep && wsCanRead() && !s.ws) wsLoad(s.id); renderSheet(); return; }
+    if (a === 'ws-cm-s5-print') { s5Print(b); return; }
+    if (a === 'ws-cm-s5-log') { var c = clState(); c.mode = 'log'; c.merge = null; if (S.tab !== 'customers') goTab('customers'); window.scrollTo(0, 0); s5LogLoad(); return; }
+    if (a === 'ws-cm-s5-settings') { if (S.settings) { if (v === 'perm') S.settings.s5PermOpen = true; else S.settings.s5BcOpen = true; s5SettingsLoad(); } return; }
+  }
+  document.addEventListener('toggle', function (e) {
+    var d = e.target; if (!d || !d.dataset || !d.dataset.s5open || !S.settings) return;
+    S.settings[d.dataset.s5open === 'perm' ? 's5PermOpen' : 's5BcOpen'] = d.open;
+  }, true);

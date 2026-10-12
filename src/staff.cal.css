@@ -403,3 +403,41 @@
 #cc-staff .cm-who{margin:0;font-size:16px;color:var(--ds-text)}
 #cc-staff .cm-merge{margin-top:4px}
 @media (max-width:640px){#cc-staff .cm-sides{grid-template-columns:minmax(0,1fr)}}
+/* CRM step 5: report panel, export log, role table, backup check, printed report */
+#cc-staff .s5-checks { display: grid; gap: 2px; }
+#cc-staff .s5-log { display: grid; gap: 8px; }
+#cc-staff .s5-log-row { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 12px; background: #fff; border: 1px solid var(--ds-divider); border-radius: 12px; padding: 12px 14px; }
+#cc-staff .s5-log-row b { color: var(--ds-text); }
+#cc-staff .s5-log-row p { margin: 4px 0 0; }
+#cc-staff .s5-log-when { font-size: 14px; color: var(--ds-muted); font-variant-numeric: tabular-nums; }
+@media (max-width: 640px) { #cc-staff .s5-log-row { grid-template-columns: minmax(0, 1fr); gap: 2px; } }
+#cc-staff .s5-perm-wrap { overflow-x: auto; border: 1px solid var(--ds-divider); border-radius: 12px; background: #fff; }
+#cc-staff .s5-perm { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 14px; }
+#cc-staff .s5-perm th, #cc-staff .s5-perm td { padding: 8px 10px; border-bottom: 1px solid #e6ebf1; text-align: center; white-space: nowrap; }
+#cc-staff .s5-perm thead th { background: #f7f9fb; font-size: 12.5px; color: var(--ds-muted); font-weight: 700; position: sticky; top: 0; }
+#cc-staff .s5-perm tbody th[scope=row] { text-align: left; font-weight: 500; color: var(--ds-text); white-space: normal; min-width: 200px; }
+#cc-staff .s5-perm thead th:first-child { text-align: left; }
+#cc-staff .s5-perm .s5-area th { text-align: left; background: var(--ds-surface-2); font-size: 12.5px; letter-spacing: .05em; text-transform: uppercase; color: var(--ds-muted); }
+#cc-staff .s5-yes { color: #166534; font-weight: 700; }
+#cc-staff .s5-part { color: #92400e; font-weight: 600; }
+#cc-staff .s5-no { color: #8a96a6; }
+#cc-staff .s5-h { margin: 6px 0 0; font-size: 14px; color: var(--ds-text); }
+#cc-staff .s5-list { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 6px; font-size: 14px; color: var(--ds-text-2); }
+.s5-report { font-family: Arial, Helvetica, sans-serif; color: #000; font-size: 10pt; line-height: 1.35; }
+.s5-report h2 { font-size: 12pt; margin: 12pt 0 4pt; border-bottom: 1.5px solid #000; padding-bottom: 2pt; }
+.s5-report h3 { font-size: 10.5pt; margin: 8pt 0 3pt; }
+.s5-r-top { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 3px solid #000; padding-bottom: 6pt; }
+.s5-r-kicker { font-size: 9pt; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.s5-r-name { font-size: 22pt; font-weight: 800; line-height: 1.1; }
+.s5-r-sub, .s5-r-meta { font-size: 9.5pt; }
+.s5-r-meta { text-align: right; }
+.s5-r-warn { border: 1.5px solid #000; padding: 4pt 6pt; font-weight: 700; margin: 6pt 0; font-size: 9pt; }
+.s5-r-kv, .s5-r-tab { width: 100%; border-collapse: collapse; }
+.s5-r-kv th { text-align: left; width: 30%; font-weight: 600; vertical-align: top; }
+.s5-r-kv th, .s5-r-kv td, .s5-r-tab th, .s5-r-tab td { padding: 2.5pt 4pt; border-bottom: 1px solid #bbb; vertical-align: top; }
+.s5-r-tab thead th { text-align: left; font-size: 8.5pt; text-transform: uppercase; letter-spacing: .04em; border-bottom: 1.5px solid #000; }
+.s5-r-tab tr { break-inside: avoid; }
+.s5-num { text-align: right !important; white-space: nowrap; }
+.s5-wrap { white-space: pre-wrap; overflow-wrap: anywhere; }
+.s5-r-note, .s5-r-foot { font-size: 8.5pt; color: #333; margin: 3pt 0 0; }
+.s5-r-foot { margin-top: 12pt; }

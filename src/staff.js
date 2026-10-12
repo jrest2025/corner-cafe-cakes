@@ -1571,6 +1571,7 @@
   function customersView() {
     var c = clState();
     if (c.mode === 'dups' && can('manager')) return clDupsView();
+    if (c.mode === 'log') return s5LogView();
     var h = '<div class="ccs-head"><div><h1 class="ccs-title">Customers</h1><p class="ccs-sub">Built from every online and counter order. Spend counts collected orders only.</p></div>' +
       '<div class="ccs-headacts"><input class="ccs-input ccs-search" id="ccs-cq" type="search" placeholder="Search name, mobile, email, company, C-number or order number" value="' + esc(c.q) + '">' +
       (can('manager', 'front_of_house') ? '<button type="button" class="ccs-btn" data-act="cust-new">Add customer</button>' : '') + '</div></div>';
@@ -1663,7 +1664,9 @@
           kv('Came from', CUSTOMER_SOURCE[c.customer_source] || SOURCE_LABEL[s.first_source]) + kv('Usually orders', s.favourite_cake) + kv('Occasions', (s.occasions || []).join(', ')) + '</dl>' +
           '<div class="ccs-actions-row">' + (c.phone ? '<a class="ccs-btn ccs-ghost" href="' + esc(waLink(c.phone)) + '" target="_blank" rel="noopener">WhatsApp</a><a class="ccs-btn ccs-ghost" href="tel:' + esc(digits(c.phone)) + '">Call</a>' : '') +
           (editor ? '<button type="button" class="ccs-btn ccs-ghost" data-act="cust-edit">Edit Customer</button>' : '') +
-          (can('manager') ? '<button type="button" class="ccs-btn ccs-ghost" data-act="cust-history">' + (S.sheet.hist ? 'Hide change history' : 'Change history') + '</button>' : '') + '</div></section>';
+          (can('manager') ? '<button type="button" class="ccs-btn ccs-ghost" data-act="cust-history">' + (S.sheet.hist ? 'Hide change history' : 'Change history') + '</button>' : '') +
+          '<button type="button" class="ccs-btn ccs-ghost" data-act="ws-cm-s5-rep" aria-expanded="' + !!S.sheet.rep + '">Customer report</button>' + '</div></section>';
+        h += s5ReportPanel();
         if (S.sheet.hist) h += customerHistory();
       }
       if (!S.sheet.edit) h += wsOverview(d);
@@ -1828,7 +1831,7 @@
     S.settings = null; view();
     var reqs = [sb.from('locations').select('*').eq('code', 'corner-cafe').single(), sb.from('closed_dates').select('*').gte('closed_on', today()).order('closed_on'), sb.from('products').select('*, product_sizes(*), product_variants(*)').order('sort'), sb.from('delivery_zones').select('*').order('sort')];
     if (can('admin')) { reqs.push(sb.rpc('admin_list_users')); reqs.push(sb.rpc('admin_deleted_orders')); }
-    Promise.all(reqs).then(function (rs) { rs.forEach(function (r) { if (r.error) throw r.error; }); S.settings = { loc: rs[0].data, closed: rs[1].data || [], products: rs[2].data || [], zones: rs[3].data || [], team: rs[4] ? rs[4].data || [] : null, deleted: rs[5] && rs[5].data && rs[5].data.ok ? rs[5].data.orders : null }; if (S.tab === 'settings') view(); if (can('admin')) backupLoad(); }).catch(fail);
+    Promise.all(reqs).then(function (rs) { rs.forEach(function (r) { if (r.error) throw r.error; }); S.settings = { loc: rs[0].data, closed: rs[1].data || [], products: rs[2].data || [], zones: rs[3].data || [], team: rs[4] ? rs[4].data || [] : null, deleted: rs[5] && rs[5].data && rs[5].data.ok ? rs[5].data.orders : null }; if (S.tab === 'settings') view(); if (can('admin')) backupLoad(); s5SettingsLoad(); }).catch(fail);
   }
   function settingsView() {
     var h = '<div class="ccs-head"><div><h1 class="ccs-title">Settings</h1><p class="ccs-sub">Changes apply to the website order form straight away.</p></div></div>';
@@ -1856,6 +1859,7 @@
     h += '<details><summary>Delivery areas <span>' + st.zones.filter(function (z) { return z.active; }).length + ' areas</span></summary><div class="ccs-set-body"><p class="ccs-hint">Leave the fee blank where staff set the fee for each order. Website guests cannot choose delivery yet.</p>' +
       st.zones.map(function (z) { return '<div class="ccs-row" style="align-items:end">' + sf('dz-n-' + z.id, 'Area', z.name, 'text') + sf('dz-f-' + z.id, 'Fee (FJD)', z.fee == null ? '' : Number(z.fee)) + '<label class="ccs-check" style="padding-bottom:14px"><input type="checkbox" id="dz-a-' + z.id + '"' + (z.active ? ' checked' : '') + '> Offered</label></div>'; }).join('') +
       '<button type="button" class="ccs-btn ccs-ghost" data-act="save-zones">Save delivery areas</button><div class="ccs-row" style="align-items:end">' + sf('dz-new-n', 'New area', '', 'text') + sf('dz-new-f', 'Fee (FJD)', '') + '<button type="button" class="ccs-btn ccs-ghost" data-act="add-zone">Add area</button></div></div></details>';
+    h += s5PermView(st) + s5BackupCheckView(st);
     if (st.team) {
       var tm = st.tmDraft || {};
       h += '<details' + (st.tmOpen ? ' open' : '') + '><summary>Team and access <span>' + st.team.filter(function (u) { return u.active; }).length + ' with access</span></summary><div class="ccs-set-body">';
