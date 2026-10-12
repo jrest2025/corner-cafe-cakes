@@ -1,0 +1,19 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="../guest.css"><style>body{margin:0;background:#F7F6F1;padding:30px 16px 120px}</style></head>
+<body><div id="cc-cake-order"></div>
+<script src="mock.js"></script>
+<script>
+window.__sent = [];
+window.__ccoMock = {
+  rpc: function (fn, a) {
+    if (fn === 'get_order_setup') return window.__ccsMock.rpc(fn, a);
+    window.__sent.push(a.p);
+    if (window.__sent.length === 1) return Promise.resolve({ data: { ok: false, error: 'date', field: 'date', message: 'This cake needs 2 days’ notice. The earliest date is Monday 12 October.' } });
+    return Promise.resolve({ data: { ok: true, reference: 'CC-1010', status: 'awaiting_review' } });
+  },
+  storage: { from: function () { return { upload: function () { return Promise.resolve({ data: {} }); } }; } }
+};
+</script>
+<script src="../guest.js"></script>
+</body></html>

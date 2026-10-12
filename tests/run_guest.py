@@ -1,0 +1,68 @@
+import asyncio, pathlib, json, sys
+from playwright.async_api import async_playwright
+HERE = pathlib.Path(__file__).parent; OUT = HERE / "shots"; OUT.mkdir(exist_ok=True)
+
+async def flow(b, name, vp):
+    pg = await b.new_page(viewport=vp)
+    errs = []
+    pg.on("pageerror", lambda e: errs.append(str(e)))
+    await pg.goto((HERE / "guest-test.html").as_uri()); await pg.wait_for_timeout(400)
+    await pg.screenshot(path=str(OUT / f"{name}-1-start.png"))
+    await pg.click('[data-act="flavour"][data-v="chocolate-mudcake-mocha"]'); await pg.wait_for_timeout(250)
+    await pg.screenshot(path=str(OUT / f"{name}-1b-variant.png"))
+    await pg.click('[data-act="variant"][data-v="Mudcake"]'); await pg.wait_for_timeout(300)
+    await pg.screenshot(path=str(OUT / f"{name}-2-size.png"))
+    await pg.click('[data-act="size"][data-v="8"]')
+    await pg.click('[data-act="finish"][data-v="custom"]')
+    await pg.click('[data-act="next2"]')  # empty design + diet -> errors
+    e1 = await pg.eval_on_selector_all('.cco-err', 'els => els.map(e => e.textContent)')
+    await pg.fill('#cco-design', 'Gold drip, number 30')
+    await pg.set_input_files('#cco-photos', [str(HERE / "ref.jpg")]); await pg.wait_for_timeout(300)
+    await pg.click('[data-act="msgOpen"]'); await pg.fill('#cco-message', 'Happy 30th')
+    await pg.click('[data-act="occOpen"]'); await pg.click('[data-act="occasion"][data-v="Birthday"]')
+    await pg.click('[data-act="diet"][data-v="yes"]'); await pg.click('[data-act="diets"][data-v="Nut allergy"]')
+    await pg.wait_for_timeout(300)
+    await pg.screenshot(path=str(OUT / f"{name}-3-finish.png"), full_page=True)
+    await pg.click('[data-act="next2"]')
+    await pg.click('[data-act="cal"]'); await pg.wait_for_timeout(400)
+    await pg.screenshot(path=str(OUT / f"{name}-4-cal.png"))
+    enabled = await pg.eval_on_selector_all('.cco-day[data-day]:not(:disabled)', 'els => els.map(e => e.dataset.day)')
+    await pg.click(f'.cco-day[data-day="{enabled[0]}"]'); await pg.wait_for_timeout(300)
+    await pg.click('[data-act="time"][data-v="14:00"]')
+    await pg.click('[data-act="toReview"]')  # empty -> errors
+    await pg.wait_for_timeout(150)  # let the form move focus to the first error before typing, as a person would
+    e2 = await pg.eval_on_selector_all('.cco-err', 'els => els.map(e => e.textContent)')
+    await pg.fill('#cco-name', 'Test Guest'); await pg.fill('#cco-phone', '912 3456')
+    await pg.click('[data-act="emailOpen"]'); await pg.fill('#cco-email', 'guest@example.com')
+    await pg.screenshot(path=str(OUT / f"{name}-5-details.png"), full_page=True)
+    await pg.click('[data-act="toReview"]'); await pg.wait_for_timeout(400)
+    (await pg.query_selector('[data-act="know"]')) and await pg.click('[data-act="know"]'); await pg.wait_for_timeout(250)
+    await pg.screenshot(path=str(OUT / f"{name}-6-review.png"), full_page=True)
+    await pg.click('[data-act="send"]'); await pg.wait_for_timeout(500)
+    opened = await pg.eval_on_selector('.cco-step.cco-open', 'e => e.id')
+    await pg.screenshot(path=str(OUT / f"{name}-7-server-error.png"), full_page=True)
+    await pg.click('[data-act="cal"]'); await pg.wait_for_timeout(300)
+    await pg.click(f'.cco-day[data-day="{enabled[1]}"]'); await pg.wait_for_timeout(200)
+    await pg.click('[data-act="time"][data-v="14:00"]'); await pg.wait_for_timeout(300)
+    back = await pg.eval_on_selector('.cco-step.cco-open', 'e => e.id')
+    # edit from review: change size, should come back to review
+    await pg.click('.cco-rv-edit[data-v="0"]'); await pg.wait_for_timeout(200)
+    await pg.click('[data-act="variant"][data-v="Mocha"]'); await pg.wait_for_timeout(200)
+    after_edit = await pg.eval_on_selector('.cco-step.cco-open', 'e => e.id')
+    await pg.click('[data-act="send"]'); await pg.wait_for_timeout(500)
+    await pg.screenshot(path=str(OUT / f"{name}-8-done.png"), full_page=True)
+    print(name, "bar after done:", await pg.evaluate("document.getElementById('cco-bar').className"))
+    s = await pg.evaluate("window.__sent")
+    print(name, "| finish errors:", e1, "| detail errors:", e2)
+    print(name, "| after server error open:", opened, "| after fixing:", back, "| after edit:", after_edit)
+    print(name, "| sends:", len(s), "same key:", s[0]["idempotency_key"] == s[-1]["idempotency_key"], "variant:", s[-1]["variant"], "attachments:", len(s[-1]["attachments"]), "email:", s[-1]["customer"]["email"])
+    print(name, "| scrollWidth", await pg.evaluate("document.documentElement.scrollWidth"), "viewport", vp["width"], "| ERRORS:", errs)
+    await pg.close()
+
+async def main():
+    async with async_playwright() as p:
+        b = await p.chromium.launch()
+        await flow(b, "phone", {"width": 375, "height": 812})
+        await flow(b, "tablet", {"width": 820, "height": 1180})
+        await b.close()
+asyncio.run(main())

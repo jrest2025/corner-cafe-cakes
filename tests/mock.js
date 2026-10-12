@@ -1,0 +1,109 @@
+// Fake Supabase client for local screen tests. Data is invented test data.
+(function () {
+  var T = new Intl.DateTimeFormat('en-CA', { timeZone: 'Pacific/Fiji' }).format(new Date());
+  function add(n) { var d = new Date(T + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); }
+  var setup = { ok: true, location: { code: 'corner-cafe', name: 'Corner Café', phone: '+679 892 2760', address: 'Test Street, Suva', accepts_online: true, today: T, collection_open: '09:00', collection_close: '20:00', slot_minutes: 60, lead_days_standard: 2, lead_days_custom: 5, max_days_ahead: 90 }, closed_dates: [], full_dates: [], delivery_zones: [{ name: 'Nadi town', fee: 10 }, { name: 'Denarau', fee: 15 }, { name: 'Other area', fee: null }],
+    products: [
+      { code: 'cheesecake', name: 'Cheesecake', variants: [], lead_days: 2, supports_custom: true, supports_message: true, swatch: 'radial-gradient(circle at 50% 35%, #F3E3B8 0 55%, #C99A5B 56%)', sizes: [{ inch: 6, price: 54, serves: 'About 8–10 slices' }, { inch: 8, price: 95, serves: 'About 12–16 slices' }, { inch: 10, price: 130 }, { inch: 12, price: 155 }] },
+      { code: 'red-velvet', name: 'Red Velvet', variants: [], lead_days: 2, supports_custom: true, supports_message: true, swatch: 'radial-gradient(circle at 50% 35%, #F7F1E6 0 40%, #9E2B2B 41%)', sizes: [{ inch: 6, price: 38 }, { inch: 8, price: 52 }, { inch: 10, price: 69 }, { inch: 12, price: 94 }] },
+      { code: 'chocolate-mudcake-mocha', name: 'Chocolate, Mudcake or Mocha', choice_label: 'Which one?', variants: ['Chocolate', 'Mudcake', 'Mocha'], lead_days: 2, supports_custom: true, supports_message: true, swatch: 'radial-gradient(circle at 50% 35%, #7A4A2F 0 45%, #3A2216 46%)', sizes: [{ inch: 6, price: 42, serves: 'About 8–10 slices' }, { inch: 8, price: 68, serves: 'About 12–16 slices' }, { inch: 10, price: 83 }, { inch: 12, price: 108 }] }
+    ] };
+  var cust = [{ id: 'c1', full_name: 'Test Customer A', phone: '912 0001', email: 'a@example.com', preferred_contact: 'whatsapp' }, { id: 'c2', full_name: 'Test Customer B', phone: '912 0002' }];
+  var orders = [
+    { id: 'o1', reference: 'CC-1001', order_status: 'awaiting_review', payment_status: 'unpaid', order_type: 'standard', source: 'online', created_at: new Date().toISOString(), required_date: add(2), required_time: '14:00:00', estimate_total: 68, final_total: null, deposit_required: null, has_dietary: true, rush_override: false, version: 1, customer_id: 'c1', customers: cust[0], order_items: [{ product_name: 'Chocolate, Mudcake or Mocha', variant: 'Mudcake', size_inch: 8, quantity: 1, finish: 'standard', occasion: 'Birthday', cake_message: 'Happy 30th', dietary: ['Nut allergy'], serves_label: 'About 12–16 slices' }], order_events: [{ at: new Date().toISOString(), kind: 'created', actor_label: 'Guest (online)', detail: { source: 'online' } }], order_attachments: [], payments: [] },
+    { id: 'o2', reference: 'CC-1002', order_status: 'awaiting_quote', payment_status: 'unpaid', order_type: 'custom', source: 'online', created_at: new Date().toISOString(), required_date: add(6), required_time: '11:00:00', estimate_total: 95, final_total: null, has_dietary: false, version: 1, customer_id: 'c2', customers: cust[1], order_items: [{ product_name: 'Cheesecake', size_inch: 8, quantity: 1, finish: 'custom', design_description: 'Gold and white, number 50 topper' }], order_events: [], order_attachments: [], payments: [] },
+    { id: 'o3', reference: 'CC-1003', order_status: 'confirmed', production_status: 'quality_check', fulfilment_method: 'delivery', delivery_zone: 'Denarau', delivery_address: 'Test Resort, Denarau', delivery_fee: 15, delivery_contact: 'Front desk', brief_version: 1, kitchen_assignee: 'Baker One', payment_status: 'deposit_paid', order_type: 'standard', source: 'walk_in', created_at: new Date().toISOString(), required_date: T, required_time: '17:00:00', estimate_total: 52, final_total: 52, deposit_required: 26, has_dietary: false, version: 3, customer_id: 'c1', customers: cust[0], order_items: [{ product_name: 'Red Velvet', size_inch: 8, quantity: 1, finish: 'standard', cake_message: 'Happy Birthday Test' }], order_events: [{ at: new Date().toISOString(), kind: 'stage', actor_label: 'Baker One', detail: { from: 'decorating', to: 'quality_check' } }, { at: new Date().toISOString(), kind: 'brief_printed', actor_label: 'Test Manager', detail: { version: 1, new_version: true, changes: [] } }], order_attachments: [], payments: [{ amount: 26, kind: 'deposit', method: 'cash', recorded_at: new Date().toISOString() }] },
+    { id: 'o4', reference: 'CC-1004', order_status: 'confirmed', production_status: 'ready', qc_by: 'Baker Two', qc_at: new Date().toISOString(), fulfilment_method: 'collection', brief_version: 2, payment_status: 'paid', order_type: 'custom', source: 'phone', created_at: new Date().toISOString(), required_date: T, required_time: '15:00:00', estimate_total: 95, final_total: 120, has_dietary: false, version: 5, customer_id: 'c2', customers: cust[1], order_items: [{ product_name: 'Cheesecake', size_inch: 8, quantity: 1, finish: 'custom', design_description: 'White with gold drip and a number 40 topper' }], order_events: [], order_attachments: [], payments: [{ amount: 120, kind: 'full', method: 'eftpos', recorded_at: new Date().toISOString() }] }
+  ];
+  orders.push(
+    { id: 'o7', reference: 'CC-1007', order_status: 'confirmed', production_status: 'not_started', payment_status: 'paid', fulfilment_method: 'collection', order_type: 'standard', source: 'phone', created_at: new Date().toISOString(), required_date: add(2), required_time: '14:00:00', estimate_total: 162, final_total: 162, has_dietary: false, version: 1, customer_id: 'c2', customers: cust[1], order_items: [{ product_name: 'Cheesecake', size_inch: 6, quantity: 3, finish: 'standard', occasion: 'Office' }], order_amendments: [{ kitchen_ack_required: true, kitchen_ack_at: null }], order_events: [], order_attachments: [], payments: [] },
+    { id: 'o8', reference: 'CC-1008', order_status: 'cancelled', payment_status: 'unpaid', fulfilment_method: 'collection', order_type: 'standard', source: 'walk_in', created_at: new Date().toISOString(), required_date: add(2), required_time: '10:00:00', estimate_total: 76, has_dietary: false, version: 1, customer_id: 'c1', customers: cust[0], order_items: [{ product_name: 'Red Velvet', size_inch: 6, quantity: 2, finish: 'standard' }], order_events: [], order_attachments: [], payments: [] },
+    { id: 'o10', reference: 'CC-1013', order_status: 'confirmed', production_status: 'not_started', payment_status: 'unpaid', fulfilment_method: 'collection', order_type: 'standard', source: 'whatsapp', created_at: new Date().toISOString(), required_date: add(2), required_time: '14:15:00', estimate_total: 42, final_total: 42, has_dietary: false, version: 1, customer_id: 'c1', customers: { full_name: 'Test Customer C', phone: '912 0003' }, order_items: [{ product_name: 'Chocolate, Mudcake or Mocha', variant: 'Mocha', size_inch: 6, quantity: 1, finish: 'standard' }], order_events: [], order_attachments: [], payments: [] }
+  );
+  window.__orders = orders;
+  var older = { id: 'o6', reference: 'CC-0500', order_status: 'completed', payment_status: 'paid', production_status: 'ready', fulfilment_method: 'delivery', delivery_zone: 'Denarau', order_type: 'standard', source: 'phone', created_at: '2025-03-01T00:00:00Z', required_date: '2025-03-08', required_time: '15:00:00', estimate_total: 70, final_total: 70, customers: { full_name: 'Test Customer A', phone: '912 0001' }, order_items: [{ product_name: 'Red Velvet', variant: null, size_inch: 8, quantity: 1, finish: 'standard', occasion: 'Birthday' }] };
+  function snap(o) { var i = o.order_items[0]; return { reference: o.reference, date: o.required_date, time: o.required_time.slice(0, 5), method: o.fulfilment_method || 'collection', area: o.delivery_zone || null, customer: (o.customers.full_name.split(' ')[0] + ' ' + o.customers.full_name.split(' ').slice(-1)[0].charAt(0) + '.'), cake: i.product_name, variant: i.variant || null, size: i.size_inch, quantity: i.quantity, serves: i.serves_label || null, finish: i.finish, design: i.design_description || null, message: i.cake_message || null, occasion: i.occasion || null, has_dietary: o.has_dietary, dietary: i.dietary || [], dietary_note: null, kitchen_notes: null, order_notes: o.customer_notes || null, rush: !!o.rush_override, photos: [] }; }
+  var kitchenRows = [
+    Object.assign(snap(orders[2]), { id: 'o3', status: 'confirmed', stage: 'quality_check', assignee: 'Baker One', brief_version: 1, brief_changed: true, late: false }),
+    Object.assign(snap(orders[3]), { id: 'o4', status: 'confirmed', stage: 'ready', qc_by: 'Baker Two', ready_at: new Date().toISOString(), brief_version: 2, brief_changed: false, late: false }),
+    Object.assign(snap(orders[0]), { id: 'o1', reference: 'CC-1010', date: add(-1), status: 'confirmed', stage: 'baking', brief_version: 1, late: true, amend_pending: [{ revision: 2, by: 'Test Manager', changes: [{ label: 'Cake message', from: '“Happy 30th”', to: '“Happy 40th Sam”' }, { label: 'Cake size', from: '8-inch', to: '10-inch' }] }] }),
+    Object.assign(snap(orders[1]), { id: 'o2', reference: 'CC-1011', date: add(1), status: 'confirmed', stage: 'not_started', brief_version: 0, late: false }),
+    Object.assign(snap(orders[1]), { id: 'o5', reference: 'CC-1012', date: T, status: 'completed', stage: 'ready', brief_version: 1, handed_over_at: new Date().toISOString(), late: false })
+  ];
+  var summary = [
+    { id: 'c1', full_name: 'Test Customer A', phone: '912 0001', email: 'a@example.com', orders_count: 4, completed_count: 3, completed_spend: 214, average_spend: 71.33, cancelled_count: 0, last_order_at: new Date().toISOString(), favourite_cake: 'Mudcake', occasions: ['Birthday'], marketing_opt_in: true, seg_repeat: true, seg_birthday_buyer: true, seg_upcoming_occasion: true, next_occasion_date: add(12), first_source: 'online' },
+    { id: 'c2', full_name: 'Test Customer B', phone: '912 0002', orders_count: 1, completed_count: 0, completed_spend: 0, cancelled_count: 0, last_order_at: new Date().toISOString(), favourite_cake: null, occasions: [], marketing_opt_in: false, first_source: 'online' }
+  ];
+  var calls = window.__calls = [];
+  function result(table, st) {
+    if (table === 'staff_profiles') return { data: { user_id: 'u1', full_name: 'Test Manager', role: window.__role || 'manager', active: true } };
+    if (table === 'orders') {
+      var lk = st.filters.filter(function (f) { return f[0] === 'ilike:reference'; })[0], ink = st.filters.filter(function (f) { return f[0] === 'in:customer_id'; })[0];
+      if (lk) return { data: lk[1].toUpperCase().indexOf('0500') > -1 ? [older] : [] };
+      if (ink) return { data: ink[1].indexOf('c1') > -1 ? [older, orders[0]] : [] };
+      var idf = st.filters.filter(function (f) { return f[0] === 'id'; })[0];
+      if (idf) return { data: orders.filter(function (o) { return o.id === idf[1]; })[0] };
+      if (st.head) return { count: 4 };
+      var g = st.filters.filter(function (f) { return f[0] === 'gte:required_date'; })[0], l = st.filters.filter(function (f) { return f[0] === 'lte:required_date'; })[0], rd = st.filters.filter(function (f) { return f[0] === 'required_date'; })[0];
+      if (window.__calFail && (g || rd)) return { error: { message: 'Failed to fetch' } };
+      if (g || rd) return { data: orders.filter(function (o) { return rd ? o.required_date === rd[1] : (o.required_date >= g[1] && o.required_date <= l[1]); }) };
+      var cf = st.filters.filter(function (f) { return f[0] === 'customer_id'; })[0];
+      if (cf) return { data: orders.filter(function (o) { return o.customer_id === cf[1]; }) };
+      return { data: orders };
+    }
+    if (table === 'customer_summary') { var i = st.filters.filter(function (f) { return f[0] === 'id'; })[0]; return { data: i ? summary.filter(function (s) { return s.id === i[1]; })[0] : summary }; }
+    if (table === 'customers') return { data: Object.assign({}, cust[0], { notes: 'Prefers less sweet icing' }) };
+    if (table === 'customer_consents') return { data: [{ granted: true, source: 'Online cake order form', recorded_at: new Date().toISOString() }] };
+    if (table === 'locations') return { data: { id: 'l1', accepts_online: true, lead_days_standard: 2, lead_days_custom: 5, max_days_ahead: 90, collection_open: '09:00:00', collection_close: '20:00:00', slot_minutes: 60, daily_capacity: null, defaults_confirmed: false } };
+    if (table === 'closed_dates') return { data: [] };
+    if (table === 'delivery_zones') return { data: [{ id: 'z1', name: 'Nadi town', fee: 10, active: true, sort: 1 }, { id: 'z2', name: 'Denarau', fee: 15, active: true, sort: 2 }, { id: 'z3', name: 'Other area', fee: null, active: true, sort: 9 }] };
+    if (table === 'products') return { data: [{ id: 'p1', name: 'Cheesecake', status: 'active', product_sizes: [{ id: 's1', size_inch: 6, price: 54, active: true }, { id: 's2', size_inch: 8, price: 95, active: true }, { id: 's3', size_inch: 10, price: 130, active: true }, { id: 's4', size_inch: 12, price: 155, active: true }] }] };
+    return { data: [] };
+  }
+  function builder(table) {
+    var st = { filters: [], head: false };
+    var b = {
+      select: function (_, o) { if (o && o.head) st.head = true; return b; },
+      eq: function (k, v) { st.filters.push([k, v]); return b; }, ilike: function (k, v) { st.filters.push(['ilike:' + k, v]); return b; }, in: function (k, v) { st.filters.push(['in:' + k, v]); return b; }, or: function () { return b; }, gte: function (k, v) { st.filters.push(['gte:' + k, v]); return b; }, lte: function (k, v) { st.filters.push(['lte:' + k, v]); return b; }, not: function () { return b; },
+      order: function () { return b; }, limit: function () { return b; }, update: function (u) { calls.push(['update', table, u]); return b; }, insert: function (u) { calls.push(['insert', table, u]); return b; }, delete: function () { calls.push(['delete', table]); return b; },
+      single: function () { return b; }, maybeSingle: function () { return b; },
+      then: function (ok, bad) { return Promise.resolve(result(table, st)).then(ok, bad); }
+    };
+    return b;
+  }
+  window.__ccsMock = {
+    auth: { getSession: function () { return Promise.resolve({ data: { session: { user: { id: 'u1' } } } }); }, signOut: function () { return Promise.resolve({}); }, signInWithPassword: function () { return Promise.resolve({}); } },
+    from: builder,
+    storage: { from: function () { return { createSignedUrls: function () { return Promise.resolve({ data: [] }); } }; } },
+    rpc: function (fn, args) {
+      calls.push(['rpc', fn, args]);
+      if (fn === 'get_order_setup') return Promise.resolve({ data: setup });
+      if (fn === 'staff_search_customers') return Promise.resolve({ data: (args.q.indexOf('0001') > -1 || args.q.toLowerCase().indexOf('customer a') > -1) ? [summary[0]] : [] });
+      if (fn === 'calendar_counts') { var m = {}; orders.forEach(function (o) { if (o.order_status === 'cancelled' || o.order_status === 'declined' || o.required_date < args.p_from || o.required_date > args.p_to) return; var r = m[o.required_date] = m[o.required_date] || { day: o.required_date, orders: 0, cakes: 0, deliveries: 0, attention: 0, done: 0 }; r.orders++; r.cakes += o.order_items.reduce(function (s, i) { return s + (i.quantity || 1); }, 0); if (['awaiting_review', 'awaiting_quote', 'awaiting_deposit'].indexOf(o.order_status) > -1) r.attention++; }); return Promise.resolve({ data: Object.keys(m).map(function (k) { return m[k]; }) }); }
+      if (fn === 'staff_create_order' && window.__createFail) return Promise.reject(new Error('Failed to fetch'));
+      if (fn === 'staff_create_order' && args.p.rush && !(args.p.rush.approved_by || '').trim()) return Promise.resolve({ data: { ok: false, error: 'date', field: 'date', message: 'Enter who approved the short notice.' } });
+      if (fn === 'staff_create_order') { var seen = calls.filter(function (c) { return c[1] === 'staff_create_order' && c[2].p.idempotency_key === args.p.idempotency_key; }).length; if (seen === 1) orders.push({ id: 'o9', reference: 'CC-1009', order_status: args.p.confirm_now ? 'confirmed' : 'awaiting_review', production_status: 'not_started', payment_status: 'unpaid', fulfilment_method: 'collection', order_type: 'standard', source: args.p.source, created_at: new Date().toISOString(), required_date: args.p.date, required_time: args.p.time + ':00', estimate_total: 54 * args.p.quantity, has_dietary: false, version: 1, customers: { full_name: 'New Calendar Guest', phone: '912 0099' }, order_items: [{ product_name: 'Cheesecake', size_inch: args.p.size_inch, quantity: args.p.quantity, finish: 'standard' }], order_events: [], order_attachments: [], payments: [] }); }
+      if (fn === 'staff_create_order') return Promise.resolve({ data: { ok: true, order_id: 'o9', reference: 'CC-1009', status: args.p.confirm_now ? (args.p.deposit_required ? 'awaiting_deposit' : 'confirmed') : 'awaiting_review' } });
+      if (fn === 'admin_list_users') return Promise.resolve({ data: [] });
+      if (fn === 'kitchen_board') return Promise.resolve({ data: { ok: true, today: T, orders: kitchenRows } });
+      if (fn === 'staff_print_brief') { var o = orders.filter(function (x) { return x.id === args.p_order; })[0]; return Promise.resolve({ data: { ok: true, version: 2, new_version: true, changes: ['message', 'design'], snapshot: snap(o) } }); }
+      if (fn === 'kitchen_set_stage' && args.p_stage === 'ready' && !args.p_name) return Promise.resolve({ data: { ok: false, error: 'qc', message: 'Enter the name of the person who checked the cake.' } });
+      if (fn === 'staff_set_fulfilment') return Promise.resolve({ data: { ok: true, total: 62 } });
+      if (fn === 'staff_amend_order') {
+        var ch = args.p_changes || {}, list = [];
+        if (ch.time) list.push({ field: 'time', label: 'Collection time', from: '2:00pm', to: ch.time === '16:00' ? '4:00pm' : ch.time, kitchen: true });
+        if (ch.size_inch) list.push({ field: 'size', label: 'Cake size', from: '8-inch', to: ch.size_inch + '-inch', kitchen: true });
+        if (ch.message != null) list.push({ field: 'message', label: 'Cake message', from: 'None', to: '“' + ch.message + '”', kitchen: true });
+        var after = ch.size_inch === 10 ? 83 : 68; if (after !== 68) list.push({ field: 'price', label: 'Order total', from: 'FJD 68.00', to: 'FJD ' + after + '.00', kitchen: false });
+        if (!list.length) return Promise.resolve({ data: { ok: false, error: 'nothing', message: 'Nothing has changed yet.' } });
+        if (window.__amendStale) return Promise.resolve({ data: { ok: false, error: 'changed', message: 'Someone else updated this order while you had it open. Check the latest details, then make your change again.' } });
+        if (!args.p_commit) return Promise.resolve({ data: { ok: true, preview: true, changes: list, warnings: [], price_before: 68, price_after: after, paid: 0, balance_before: 68, balance_after: after, excess_paid: 0, kitchen_ack_required: false, needs_reprint: false, time_change_cause: ch.time ? (args.p_requested_by === 'guest' ? 'guest_request' : 'business_delay') : null, customer_record: false } });
+        orders[0].revision = 1; orders[0].version = (orders[0].version || 1) + 1;
+        orders[0].order_amendments = [{ revision: 1, amended_at: new Date().toISOString(), staff_label: 'Test Manager', requested_by: args.p_requested_by, reason: args.p_reason, time_change_cause: ch.time ? 'guest_request' : null, changes: list, excess_paid: 0, kitchen_ack_required: false, notification_status: 'Not sent: guest emails are off. Tell the customer by WhatsApp or phone.' }];
+        return Promise.resolve({ data: { ok: true, revision: 1, reference: 'CC-1001', kitchen_ack_required: false, needs_reprint: false, balance_after: after, excess_paid: 0 } });
+      }
+      if (fn === 'kitchen_ack_amendment') { if (!args.p_name || args.p_name.length < 2) return Promise.resolve({ data: { ok: false, error: 'name', message: 'Enter your name.' } }); kitchenRows[2].amend_pending = null; return Promise.resolve({ data: { ok: true, count: 1 } }); }
+      return Promise.resolve({ data: { ok: true, status: 'confirmed', version: 2 } });
+    }
+  };
+})();
