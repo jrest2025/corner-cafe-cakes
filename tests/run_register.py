@@ -29,25 +29,25 @@ async def main():
         await pg.click('.ccs-nav [data-tab="register"]'); await pg.wait_for_timeout(600)
         t = await pg.inner_text('#ccs-main')
         check('register heading and sync line', 'Cake register' in t and 'Last read: Online sheet' in t, t[:300])
-        check('three records waiting', await pg.locator('.rg-card').count() == 3)
+        check('three records waiting', await pg.locator('.rg-card:not(.cm-card)').count() == 3)
         check('flags in plain words', 'Same phone, pickup date, cake and size as another order' in t and 'No pickup date in the sheet' in t and 'Looks like a test entry' in t)
         check('possible match shown beside the record', 'Possible match' in t and 'H-0301' in t)
         await pg.screenshot(path=str(OUT / 'desk.png'), full_page=True)
         # sheet row toggle
-        await pg.click('.rg-card >> nth=0 >> [data-act="rg-raw"]'); await pg.wait_for_timeout(200)
-        check('sheet row shown with column letters', 'Column A' in await pg.inner_text('.rg-card >> nth=0'))
+        await pg.click('.rg-card:not(.cm-card) >> nth=0 >> [data-act="rg-raw"]'); await pg.wait_for_timeout(200)
+        check('sheet row shown with column letters', 'Column A' in await pg.inner_text('.rg-card:not(.cm-card) >> nth=0'))
         # leave out needs a reason
-        await pg.click('.rg-card >> nth=0 >> [data-act="rg-ask"][data-v="duplicate"]'); await pg.wait_for_timeout(200)
-        await pg.click('.rg-card >> nth=0 >> [data-act="rg-do"]'); await pg.wait_for_timeout(300)
-        check('merge refused without a reason', 'Add a short reason' in await pg.inner_text('.rg-card >> nth=0') and not await calls(pg, 'register_decide'))
-        await pg.fill('#rg-note', 'Same customer and cake, typed in both sheets'); await pg.click('.rg-card >> nth=0 >> [data-act="rg-do"]'); await pg.wait_for_timeout(600)
+        await pg.click('.rg-card:not(.cm-card) >> nth=0 >> [data-act="rg-ask"][data-v="duplicate"]'); await pg.wait_for_timeout(200)
+        await pg.click('.rg-card:not(.cm-card) >> nth=0 >> [data-act="rg-do"]'); await pg.wait_for_timeout(300)
+        check('merge refused without a reason', 'Add a short reason' in await pg.inner_text('.rg-card:not(.cm-card) >> nth=0') and not await calls(pg, 'register_decide'))
+        await pg.fill('#rg-note', 'Same customer and cake, typed in both sheets'); await pg.click('.rg-card:not(.cm-card) >> nth=0 >> [data-act="rg-do"]'); await pg.wait_for_timeout(600)
         c = await calls(pg, 'register_decide')
         check('merge sent with the reason', c and c[-1]['p_decision'] == 'duplicate' and 'both sheets' in c[-1]['p_note'], c)
-        check('card removed and decision listed', await pg.locator('.rg-card').count() == 2 and 'Same order, left out' in await pg.inner_text('#ccs-main'))
+        check('card removed and decision listed', await pg.locator('.rg-card:not(.cm-card)').count() == 2 and 'Same order, left out' in await pg.inner_text('#ccs-main'))
         # accept without a reason
-        await pg.click('.rg-card >> nth=0 >> [data-act="rg-do"][data-v="accept"]'); await pg.wait_for_timeout(600)
+        await pg.click('.rg-card:not(.cm-card) >> nth=0 >> [data-act="rg-do"][data-v="accept"]'); await pg.wait_for_timeout(600)
         c = await calls(pg, 'register_decide')
-        check('details accepted in one tap', c[-1]['p_decision'] == 'accept' and await pg.locator('.rg-card').count() == 1, c[-1])
+        check('details accepted in one tap', c[-1]['p_decision'] == 'accept' and await pg.locator('.rg-card:not(.cm-card)').count() == 1, c[-1])
         # undo needs a second tap
         u = pg.locator('[data-act="rg-undo"]').first
         await u.click(); await pg.wait_for_timeout(150)
@@ -55,7 +55,7 @@ async def main():
         await u.click(); await pg.wait_for_timeout(600)
         check('undo sent', (await calls(pg, 'register_decide'))[-1]['p_decision'] == 'undo')
         # full record
-        await pg.click('.rg-card >> nth=0 >> text=Full record'); await pg.wait_for_timeout(400)
+        await pg.click('.rg-card:not(.cm-card) >> nth=0 >> text=Full record'); await pg.wait_for_timeout(400)
         sh = await pg.inner_text('#ccs-sheet')
         check('full record shows history and edits', 'Added to the register' in sh and 'size inch: 6 to 8' in sh, sh[-400:])
         await pg.click('#ccs-sheet [data-act="close"]'); await pg.wait_for_timeout(200)
@@ -71,7 +71,7 @@ async def main():
         await pg.click('.ccs-nav [data-tab="more"]'); await pg.wait_for_timeout(300)
         await pg.click('#ccs-sheet [data-tab="register"]'); await pg.wait_for_timeout(600)
         sw = await pg.evaluate("document.documentElement.scrollWidth")
-        check('phone: register reachable from More, no sideways scroll', await pg.locator('.rg-card').count() > 0 and sw <= 390, sw)
+        check('phone: register reachable from More, no sideways scroll', await pg.locator('.rg-card:not(.cm-card)').count() > 0 and sw <= 390, sw)
         await pg.screenshot(path=str(OUT / 'phone.png'), full_page=True)
         await ctx.close()
 

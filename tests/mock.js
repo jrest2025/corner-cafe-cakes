@@ -51,6 +51,11 @@
     return { ok: true, generated_at: new Date().toISOString(), tests_excluded: 2, products: f.products, orders: out, left_out: { needs_review: 3, excluded: 2 },
       sync: { online: { ok_at: ago(window.__syncStale ? 300 : 3), fail_at: null, fail_msg: null }, walkin: { ok_at: ago(4), fail_at: window.__syncFail ? ago(1) : null, fail_msg: window.__syncFail ? 'The sheet could not be opened' : null }, stale_minutes: 20, records: 580, needs_review: 3, excluded: 2 } };
   }
+  var cmDone = {};
+  var cmPending = [
+    { rec_key: 'sheet:walkin|2026-06-18T08:19:37Z', reference: 'W-0517', source: 'Walk-in sheet', sheet_row: 517, customer: 'TEST CUSTMER A', phone: '912 0001', phone_key: '6799120001', phone_ok: true, email: null, staff_email: false, cake: 'Red Velvet', size_inch: 8, fulfil_date: '2026-06-09', order_date: '2026-06-05', candidates: [{ id: 'c1', customer_no: 101, full_name: 'Test Customer A', phone: '912 0001', email: 'a@example.com', why: 'same mobile number' }] },
+    { rec_key: 'sheet:walkin|2026-08-01T22:08:20Z', reference: 'W-0602', source: 'Walk-in sheet', sheet_row: 602, customer: 'Test Short Number', phone: '+77234444', phone_key: '77234444', phone_ok: false, email: null, staff_email: true, cake: 'Mudcake', size_inch: 6, fulfil_date: '2026-07-24', order_date: null, candidates: [] }
+  ];
   var regCards = [
     { rec_key: 'sheet:walkin|2026-05-02T01:00:00Z', reference: 'H-0310', source: 'Walk-in sheet', channel: 'Walk-in', sheet_row: 120, order_date: '2026-05-01', order_date_basis: 'Date taken by staff', fulfil_date: '2026-05-04', fulfil_time: '14:00', method: 'collection', customer: 'Test Guest One', phone_key: '6799120001', cake: 'Cheesecake', size_inch: 8, list_value: 95, confirmed_value: null, status: 'received', review: 'needs_review', flags: ['possible_duplicate'], warnings: [], duplicate_of: 'sheet:online|2026-04-30T22:00:00Z', staff_member: 'Staff A', raw: ['Staff A', 'Test', 'Guest One', '', '9120001', '', '', 'Cheesecake'],
       other: { rec_key: 'sheet:online|2026-04-30T22:00:00Z', reference: 'H-0301', source: 'Online sheet', sheet_row: 88, customer: 'Test Guest One', cake: 'Cheesecake', size_inch: 8, fulfil_date: '2026-05-04', order_date: '2026-04-30', status: 'received' } },
@@ -193,6 +198,23 @@
         (cp.consent_channels || []).forEach(function (ch) { consentLog.push({ customer_id: nid, channel: ch, destination: ch === 'email' ? cp.email : ck, granted: true, needs_reconfirm: false, source: 'Staff: Test Manager recorded a yes when adding the customer', recorded_at: new Date().toISOString() }); });
         return Promise.resolve({ data: { ok: true, id: nid, customer_no: 389, shared_with: same.length } });
       }
+      if (fn === 'register_customer_review') {
+        var rl3 = window.__role || 'manager'; if (rl3 !== 'manager' && rl3 !== 'admin') return Promise.resolve({ data: { ok: false, error: 'forbidden', message: 'Only managers can match customers.' } });
+        return Promise.resolve({ data: { ok: true, pending: cmPending.filter(function (x) { return !cmDone[x.rec_key]; }), no_phone: 53, recent: Object.keys(cmDone).map(function (k) { return cmDone[k]; }) } });
+      }
+      if (fn === 'register_customer_decide') {
+        var cr = cmPending.filter(function (x) { return x.rec_key === args.p_rec_key; })[0];
+        if (args.p_action === 'undo') { delete cmDone[args.p_rec_key]; return Promise.resolve({ data: { ok: true, reference: cr.reference } }); }
+        if (args.p_action === 'new') {
+          var nk = pkey(args.p_phone || (cr.phone_ok ? cr.phone : ''));
+          if (!nk && !cr.email) return Promise.resolve({ data: { ok: false, error: 'phone', message: 'The number on the sheet is not a full mobile number. Enter the right number, or link to a profile.' } });
+          var hit = Object.keys(prof).filter(function (k) { return nk && pkey(prof[k].phone) === nk; });
+          if (hit.length) return Promise.resolve({ data: { ok: false, error: 'possible_duplicate', message: 'That number or email is already on a profile. Link to it instead.', matches: hit.map(function (k) { return { id: k, customer_no: prof[k].customer_no, full_name: prof[k].full_name }; }) } });
+        }
+        cmDone[args.p_rec_key] = { rec_key: args.p_rec_key, reference: cr.reference, name_on_sheet: cr.customer, how: { link: 'staff_link', new: 'staff_new', none: 'left_unlinked' }[args.p_action], customer_no: args.p_action === 'link' ? 101 : args.p_action === 'new' ? 390 : null, customer: args.p_action === 'link' ? 'Test Customer A' : args.p_action === 'new' ? cr.customer : null, by: 'Test Manager', at: new Date().toISOString() };
+        return Promise.resolve({ data: { ok: true, reference: cr.reference, customer_id: args.p_action === 'link' ? args.p_customer : 'c10' } });
+      }
+      if (fn === 'customer_sheet_orders') return Promise.resolve({ data: { ok: true, orders: args.p_customer === 'c1' ? [{ rec_key: 'sheet:walkin|2025-11-02T01:00:00Z', reference: 'W-0412', source: 'Walk-in sheet', fulfil_date: '2025-11-03', cake: 'Black Forest', size_inch: 8, value: 85, name_on_sheet: 'TEST CUST A', how: 'auto_match' }] : [] } });
       if (fn === 'customer_history') { var rl2 = window.__role || 'manager'; if (rl2 !== 'manager' && rl2 !== 'admin') return Promise.resolve({ data: { ok: false, message: 'Only a manager can see the change history.' } }); return Promise.resolve({ data: { ok: true, changes: custHistory } }); }
       if (fn === 'staff_set_channel_consent') { var pc2 = prof[args.p_customer]; args.p_channels.forEach(function (ch) { consentLog.push({ customer_id: args.p_customer, channel: ch, destination: ch === 'email' ? (pc2.email || '').toLowerCase() : pkey(pc2.phone), granted: args.p_granted, needs_reconfirm: false, source: 'Staff: Test Manager recorded a ' + (args.p_granted ? 'yes' : 'no'), recorded_at: new Date().toISOString() }); }); return Promise.resolve({ data: { ok: true, recorded: args.p_channels.length } }); }
       if (fn === 'staff_search_customers') return Promise.resolve({ data: (args.q.indexOf('0001') > -1 || args.q.toLowerCase().indexOf('customer a') > -1) ? [summary[0]] : [] });

@@ -1604,11 +1604,12 @@
       sb.from('customers').select('id,customer_no,customer_source,full_name,phone,alt_phone,email,preferred_contact,is_corporate,company,delivery_address,birth_day,birth_month,preferences,notes,version,review_flag,review_note,archived_at').eq('id', id).single(),
       sb.from('orders').select('id,reference,order_status,fulfilment_method,required_date,estimate_total,final_total,source,contact_name,order_items(product_name,variant,size_inch,occasion)').eq('customer_id', id).order('required_date', { ascending: false }).limit(100),
       can('manager', 'front_of_house', 'marketing') ? sb.from('consent_now').select('channel,destination,granted,needs_reconfirm,source,wording_code,recorded_at,applies,brand_code').eq('customer_id', id).eq('brand_code', 'corner-cafe') : Promise.resolve({ data: [] }),
-      can('manager', 'front_of_house', 'marketing') ? sb.from('marketing_consents').select('channel,destination,granted,needs_reconfirm,source,recorded_at').eq('customer_id', id).order('recorded_at', { ascending: false }).order('id', { ascending: false }).limit(12) : Promise.resolve({ data: [] })
+      can('manager', 'front_of_house', 'marketing') ? sb.from('marketing_consents').select('channel,destination,granted,needs_reconfirm,source,recorded_at').eq('customer_id', id).order('recorded_at', { ascending: false }).order('id', { ascending: false }).limit(12) : Promise.resolve({ data: [] }),
+      sb.rpc('customer_sheet_orders', { p_customer: id })
     ]).then(function (rs) {
       rs.forEach(function (r) { if (r.error) throw r.error; });
       if (!S.sheet || S.sheet.id !== id) return;
-      S.sheet.data = { sum: rs[0].data, c: rs[1].data, orders: rs[2].data || [], now: rs[3].data || [], log: rs[4].data || [] }; renderSheet();
+      S.sheet.data = { sum: rs[0].data, c: rs[1].data, orders: rs[2].data || [], now: rs[3].data || [], log: rs[4].data || [], sheet: (rs[5].data && rs[5].data.ok && rs[5].data.orders) || [] }; renderSheet();
     }).catch(fail);
   }
   function consentLine(d, ch) {
@@ -1657,6 +1658,11 @@
         }).join('') + '</ul></details>' : '') + '</section>';
     }
     h += '<section class="ccs-box"><h3>Orders</h3>' + (d.orders.length ? '<div class="ccs-list">' + d.orders.map(function (o) { var i = (o.order_items || [])[0]; return '<button type="button" class="ccs-card k-' + (STATUS[o.order_status] || ['', 'off'])[1] + '" data-act="open-order" data-id="' + o.id + '" style="grid-template-columns:110px minmax(0,1fr) auto"><span class="ccs-when"><b>' + esc(nice(o.required_date)) + '</b><span>' + esc(o.reference) + '</span></span><span class="ccs-what"><b>' + esc(cakeLine(i)) + '</b><span class="ccs-tags">' + pill(o.order_status, o.fulfilment_method) + (i && i.occasion ? '<span class="ccs-pill">' + esc(i.occasion) + '</span>' : '') + (o.contact_name && o.contact_name !== c.full_name ? '<span class="ccs-pill">Ordered as ' + esc(o.contact_name) + '</span>' : '') + '</span></span><span class="ccs-price">' + money(o.final_total != null ? o.final_total : o.estimate_total) + '</span></button>'; }).join('') + '</div>' : '<p class="ccs-hint">No orders.</p>') + '</section>';
+    if (d.sheet.length) h += '<section class="ccs-box"><h3>Orders from the old sheets</h3><p class="ccs-hint">Recorded in the Google Sheets before this app. Shown as typed; not yet in the totals above.</p><ul class="ccs-plain cm-sheetlist">' + d.sheet.map(function (o) {
+      return '<li><b>' + esc(o.fulfil_date ? nice(o.fulfil_date) + ' ' + o.fulfil_date.slice(0, 4) : 'No pickup date') + '</b> · ' + esc([o.cake, o.size_inch ? o.size_inch + ' inch' : ''].filter(Boolean).join(' ') || 'Cake not stated') +
+        (o.value != null ? ' · ' + money(o.value) : '') + ' · ' + esc(o.source || '') + (o.reference ? ' ' + esc(o.reference) : '') + (o.name_on_sheet && o.name_on_sheet !== c.full_name ? ' · as ' + esc(o.name_on_sheet) : '') +
+        (can('manager') ? ' <button type="button" class="ccs-link" data-act="rg-open" data-v="' + esc(o.rec_key) + '">Full record</button>' : '') + '</li>';
+    }).join('') + '</ul></section>';
     return h + '</div>';
   }
   function customerFields(c) {

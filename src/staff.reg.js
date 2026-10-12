@@ -25,6 +25,70 @@
       if (!r.data || !r.data.ok) g.err = (r.data && r.data.message) || 'The register could not load.'; else g.data = r.data;
       if (S.tab === 'register') view();
     }).catch(function (e) { console.error(e); g.loading = false; if (errKind(e) === 'expired') return sessionExpired(); g.err = 'The register could not load. Check the connection and try again.'; if (S.tab === 'register') view(); });
+    cmLoad();
+  }
+  // ---------- which customer each old sheet order belongs to ----------
+  // Clear cases (a full Fiji mobile already on exactly one profile with the same name, or on no profile) are done automatically.
+  // Everything else waits here. Nothing on the sheet is changed; a link only puts the sheet order on the customer's profile.
+  var CM_HOW = { auto_match: 'Linked automatically', auto_new: 'New profile made automatically', staff_link: 'Linked to', staff_new: 'New profile made', left_unlinked: 'Left without a profile' };
+  function cmLoad() {
+    var g = rgState(); if (!can('manager')) return; g.cm = g.cm || { data: null, err: null, open: null, msg: null, matches: null, phone: '', note: '' };
+    sb.rpc('register_customer_review').then(function (r) {
+      if (r.error) throw r.error;
+      if (!r.data || !r.data.ok) g.cm.err = (r.data && r.data.message) || 'Customer matching could not load.'; else { g.cm.data = r.data; g.cm.err = null; }
+      if (S.tab === 'register') view();
+    }).catch(function (e) { console.error(e); g.cm.err = 'Customer matching could not load. Check the connection and try again.'; if (S.tab === 'register') view(); });
+  }
+  function cmCard(c) {
+    var m = RG.cm, k = c.rec_key, opening = m.open === k;
+    var h = '<article class="ccs-box rg-card cm-card"><div class="rg-top"><div><b class="ccs-big">' + esc(c.customer || 'No name') + (c.reference ? ' · ' + esc(c.reference) : '') + '</b><p class="ccs-hint">' + esc(rgWhere(c)) + ' · ' + esc(rgLine(c)) + '</p></div>' +
+      '<button type="button" class="ccs-link" data-act="rg-open" data-v="' + esc(k) + '">Full record</button></div>';
+    h += '<dl class="ccs-kv">' + kv('Mobile on the sheet', (c.phone || '') + (c.phone_ok ? '' : ' (not a full mobile number)')) + kv('Email on the sheet', c.email) + '</dl>';
+    if (c.staff_email) h += '<p class="ccs-hint">The sheet has a staff email for this order. It will not be copied to the customer.</p>';
+    if (c.candidates.length) h += '<div class="rg-pair"><p class="ccs-label">Possible profile' + (c.candidates.length > 1 ? 's' : '') + '</p><ul class="ccs-plain">' + c.candidates.map(function (p) {
+      return '<li><b>' + esc(custNo(p.customer_no)) + ' ' + esc(p.full_name) + '</b> · ' + esc([p.phone, p.email].filter(Boolean).join(' · ')) + ' (' + esc(p.why) + ')' +
+        '<div class="ccs-actions-row"><button type="button" class="ccs-btn ccs-ghost ccs-small" data-act="rg-cm-link" data-k="' + esc(k) + '" data-v="' + esc(p.id) + '">Same person, link</button><button type="button" class="ccs-link" data-act="open-customer" data-id="' + esc(p.id) + '">Open profile</button></div></li>';
+    }).join('') + '</ul></div>';
+    else h += '<p class="ccs-hint">No profile has this mobile or email.</p>';
+    if (opening) {
+      h += '<div class="ccs-panel"><b>New customer profile for ' + esc(c.customer || '') + '</b><div class="ccs-field"><label class="ccs-label" for="cm-phone">Mobile number</label><input class="ccs-input" id="cm-phone" inputmode="tel" value="' + esc(m.phone) + '" placeholder="' + (c.phone_ok ? '' : 'Check the number with the customer or the order') + '"></div>' +
+        '<p class="ccs-hint">' + (c.phone_ok ? 'Taken from the sheet. Change it only if it is wrong.' : 'The number on the sheet is incomplete, so it is not filled in. Leave blank to use only the email.') + '</p>' +
+        (m.matches ? '<div class="ccs-warn"><b>That number or email is already on a profile.</b> Link to it instead.<ul class="ccs-plain">' + m.matches.map(function (p) { return '<li>' + esc(custNo(p.customer_no)) + ' ' + esc(p.full_name) + ' <button type="button" class="ccs-link" data-act="rg-cm-link" data-k="' + esc(k) + '" data-v="' + esc(p.id) + '">Link to this profile</button></li>'; }).join('') + '</ul></div>' : '') +
+        (m.msg ? '<p class="ccs-err">' + esc(m.msg) + '</p>' : '') +
+        '<div class="ccs-actions-row"><button type="button" class="ccs-btn ccs-good" data-act="rg-cm-new" data-k="' + esc(k) + '">Make the profile</button><button type="button" class="ccs-btn ccs-ghost" data-act="rg-cm-back">Back</button></div></div>';
+    } else {
+      h += '<div class="ccs-actions-row"><button type="button" class="ccs-btn ccs-ghost" data-act="rg-cm-open" data-k="' + esc(k) + '">' + (c.candidates.length ? 'Different person, new profile' : 'Make a new profile') + '</button>' +
+        '<button type="button" class="ccs-link" data-act="rg-cm-none" data-k="' + esc(k) + '">Leave without a profile</button></div>';
+    }
+    return h + '</article>';
+  }
+  function cmView() {
+    var m = RG && RG.cm; if (!m || !can('manager')) return '';
+    var h = '<h2 class="rg-h">Customers to match</h2>';
+    if (m.err) return h + '<p class="ccs-err">' + esc(m.err) + '</p>';
+    if (!m.data) return h + '<p class="ccs-loading">Loading…</p>';
+    var d = m.data;
+    h += d.pending.length ? '<p class="ccs-hint">Old sheet orders that could not be matched to a customer automatically. Linking puts the order on the customer\'s profile. A name alone is never enough: check the number, email or the order itself. Nothing on the sheet changes.</p>' + d.pending.map(cmCard).join('')
+      : '<p class="ccs-quiet">Every sheet order with a mobile number is on a customer profile or was left without one.</p>';
+    if (d.no_phone) h += '<p class="ccs-hint">' + int(d.no_phone) + ' sheet order' + (d.no_phone === 1 ? ' has' : 's have') + ' no mobile number. They still count in the figures, without a customer profile.</p>';
+    if (d.recent.length) h += '<details class="ccs-more"><summary>Customer matches made (' + d.recent.length + ')</summary><div class="ccs-history">' + d.recent.map(function (x) {
+      return '<div><span>' + esc(when(x.at)) + '</span><span><b style="font-weight:600;color:var(--ccs-ink)">' + esc(x.reference || '') + '</b> ' + esc(x.name_on_sheet || '') + ': ' + esc(CM_HOW[x.how] || x.how) +
+        (x.customer_no ? ' ' + esc(custNo(x.customer_no)) + ' ' + esc(x.customer || '') : '') + ' · ' + esc(x.by || 'Unknown') +
+        ' <button type="button" class="ccs-link" data-act="rg-cm-undo" data-k="' + esc(x.rec_key) + '">Undo</button></span></div>';
+    }).join('') + '</div></details>';
+    return h;
+  }
+  function cmDecide(k, action, cust, phone, note) {
+    var m = RG.cm; if (S.busy) return; S.busy = true; m.msg = null;
+    return sb.rpc('register_customer_decide', { p_rec_key: k, p_action: action, p_customer: cust || null, p_note: note || null, p_phone: phone || null }).then(function (r) {
+      S.busy = false; clearBusy(); if (r.error) throw r.error;
+      if (!r.data.ok) {
+        if (r.data.error === 'possible_duplicate') { m.matches = r.data.matches || []; m.msg = null; } else { m.msg = r.data.message; if (m.open !== k) toast(r.data.message, true); }
+        view(); return;
+      }
+      toast({ link: 'Linked to the profile', new: 'New profile made', none: 'Left without a profile', undo: 'Undone. The record is back in the list. Any profile made for it stays' }[action]);
+      m.open = null; m.matches = null; m.phone = ''; cmLoad();
+    }).catch(function (e) { S.busy = false; fail(e); });
   }
   function colName(i) { var s = ''; i++; while (i > 0) { var m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = Math.floor((i - 1) / 26); } return s; }
   function rgRaw(raw) {
@@ -68,6 +132,7 @@
       dxKpi('Left out', int(sy.excluded), 'Tests, copies and records left out', null) + '</div>';
     h += '<h2 class="rg-h">Waiting for review</h2>';
     h += d.records.length ? '<p class="ccs-hint">Check each one against the sheet or the order. Your decision is kept with your name and survives every later sheet update. Nothing in the sheets or orders is changed.</p>' + d.records.map(rgCard).join('') : '<p class="ccs-quiet">Nothing waiting. Every record is counted or left out with a reason.</p>';
+    h += cmView();
     if (d.recent.length) h += '<h2 class="rg-h">Recent decisions</h2><div class="ccs-history">' + d.recent.map(function (x) {
       return '<div><span>' + esc(when(x.at)) + '</span><span><b style="font-weight:600;color:var(--ccs-ink)">' + esc(x.reference || '') + '</b> ' + esc(RG_DEC[x.decision] || x.decision) + (x.note ? ': ' + esc(x.note) : '') + ' · ' + esc(x.by || 'Unknown') +
         ' <button type="button" class="ccs-link" data-act="rg-undo" data-k="' + esc(x.rec_key) + '">Undo</button></span></div>';
@@ -131,6 +196,15 @@
     else if (a === 'rg-ask') { g.noteFor = [k, v]; g.err2 = null; g.note = ''; view(); var n = document.getElementById('rg-note'); if (n) n.focus(); }
     else if (a === 'rg-cancel') { g.noteFor = null; g.err2 = null; view(); }
     else if (a === 'rg-do') { var note = g.noteFor && g.noteFor[0] === k ? val('rg-note').trim() : null; g.note = note || ''; if ((v === 'duplicate' || v === 'exclude') && (!note || note.length < 3)) { g.err2 = 'Add a short reason.'; view(); return; } markBusy(b, 'Saving…'); regDecide(k, v, note); }
+    else if (a === 'rg-cm-link') { markBusy(b, 'Linking…'); cmDecide(k, 'link', v); }
+    else if (a === 'rg-cm-open') { var pc = (g.cm.data.pending.filter(function (x) { return x.rec_key === k; })[0]) || {}; g.cm.open = k; g.cm.matches = null; g.cm.msg = null; g.cm.phone = pc.phone_ok ? pc.phone : ''; view(); var pf = document.getElementById('cm-phone'); if (pf) pf.focus(); }
+    else if (a === 'rg-cm-back') { g.cm.open = null; g.cm.matches = null; g.cm.msg = null; view(); }
+    else if (a === 'rg-cm-new') { g.cm.phone = val('cm-phone').trim(); markBusy(b, 'Saving…'); cmDecide(k, 'new', null, g.cm.phone); }
+    else if (a === 'rg-cm-none' || a === 'rg-cm-undo') {
+      var lbl = a === 'rg-cm-none' ? 'Leave without a profile' : 'Undo';
+      if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = a === 'rg-cm-none' ? 'Tap again to confirm' : 'Tap again to undo'; setTimeout(function () { if (b.isConnected) { b.dataset.armed = ''; b.textContent = lbl; } }, 4000); return; }
+      markBusy(b, 'Saving…'); cmDecide(k, a === 'rg-cm-none' ? 'none' : 'undo');
+    }
     else if (a === 'rg-undo') {
       if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = 'Tap again to undo'; setTimeout(function () { if (b.isConnected) { b.dataset.armed = ''; b.textContent = 'Undo'; } }, 4000); return; }
       markBusy(b, 'Undoing…'); regDecide(k, 'undo');
