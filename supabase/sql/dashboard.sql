@@ -16,7 +16,7 @@ begin
     'ok', true,
     'generated_at', now(),
     'last_change', greatest((select max(updated_at) from public.orders), (select max(recorded_at) from public.payments)),
-    'tests_excluded', (select count(*) from public.orders where is_test),
+    'tests_excluded', (select count(*) from public.orders where is_test and deleted_at is null),
     'products', (select coalesce(jsonb_agg(jsonb_build_object('n', name, 'on', status = 'active') order by sort), '[]') from public.products),
     'orders', (select coalesce(jsonb_agg(jsonb_build_object(
         'i', o.id, 'r', o.reference, 'src', o.source, 'st', o.order_status, 'ps', o.payment_status, 'fm', o.fulfilment_method,
@@ -33,7 +33,7 @@ begin
         'pay', (select jsonb_agg(jsonb_build_array(p.kind, p.amount, (p.recorded_at at time zone 'Pacific/Fiji')::date)) from public.payments p where p.order_id = o.id)
       ) order by o.required_date), '[]')
       from public.orders o left join public.customers c on c.id = o.customer_id
-      where not o.is_test)
+      where not o.is_test and o.deleted_at is null)
   ) into out;
   return out;
 end $$;
