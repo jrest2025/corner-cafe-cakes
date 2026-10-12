@@ -1564,24 +1564,21 @@
   function loadCustomers() {
     var c = S.cust; c.loaded = false; view();
     var req;
-    if (c.q.trim().length >= 2) req = sb.rpc('staff_search_customers', { q: c.q });
-    else { req = sb.from('customer_summary').select('*'); if (c.seg !== 'all') req = req.eq(c.seg, true); req = req.order('last_order_at', { ascending: false, nullsFirst: false }).limit(500); }
-    return req.then(function (r) { if (r.error) throw r.error; c.rows = r.data || []; c.loaded = true; if (S.tab === 'customers') view(); }).catch(fail);
+    if (c.q.trim().length < 2) return clLoad();
+    req = sb.rpc('staff_search_customers', { q: c.q });
+    return req.then(function (r) { if (r.error) throw r.error; c.rows = r.data || []; c.count = c.rows.length; c.loaded = true; if (S.tab === 'customers') view(); }).catch(fail);
   }
   function customersView() {
-    var c = S.cust;
+    var c = clState();
+    if (c.mode === 'dups' && can('manager')) return clDupsView();
     var h = '<div class="ccs-head"><div><h1 class="ccs-title">Customers</h1><p class="ccs-sub">Built from every online and counter order. Spend counts collected orders only.</p></div>' +
       '<div class="ccs-headacts"><input class="ccs-input ccs-search" id="ccs-cq" type="search" placeholder="Search name, mobile, email, company, C-number or order number" value="' + esc(c.q) + '">' +
       (can('manager', 'front_of_house') ? '<button type="button" class="ccs-btn" data-act="cust-new">Add customer</button>' : '') + '</div></div>';
-    var tool = function (rows, opted) {
-      return '<div class="ccs-ctool"><label class="ccs-show" for="ccs-seg"><span>Show</span><select class="ccs-input" id="ccs-seg">' + SEGS.map(function (s) { return '<option value="' + s[0] + '"' + (c.seg === s[0] && !c.q ? ' selected' : '') + '>' + (s[0] === 'all' ? 'All customers' : s[1]) + '</option>'; }).join('') + '</select></label>' +
-        (rows ? '<span class="ccs-ccount"><b>' + rows.length + '</b> customer' + (rows.length === 1 ? '' : 's') + ' · <b>' + opted.length + '</b> agreed to marketing</span>' : '<span class="ccs-ccount"></span>') +
-        (rows && can('manager', 'marketing') && opted.length ? '<span class="ccs-ctool-actions"><button type="button" class="ccs-btn ccs-ghost ccs-small" data-act="copy-numbers">Copy WhatsApp numbers</button><button type="button" class="ccs-btn ccs-ghost ccs-small" data-act="export-csv">Export</button></span>' : '') + '</div>';
-    };
-    if (!c.loaded) return h + tool(null) + '<p class="ccs-loading">Loading customers…</p>';
-    var rows = c.rows, opted = rows.filter(function (r) { return r.marketing_opt_in; });
-    h += tool(rows, opted);
-    if (!rows.length) return h + '<div class="ccs-empty"><b>No customers in this group yet.</b><span>Customers are added automatically when an order is placed.</span></div>';
+    if (c.q.trim().length >= 2) h += '<p class="ccs-hint cm-gline">Search results. Clear the search to use filters and groups.</p>';
+    else h += clToolbar();
+    if (!c.loaded) return h + '<p class="ccs-loading">Loading customers…</p>';
+    var rows = c.rows;
+    if (!rows.length) return h + '<div class="ccs-empty"><b>' + (Object.keys(c.flt || {}).length || c.seg !== 'all' ? 'No customers match these filters.' : 'No customers in this group yet.') + '</b><span>' + (Object.keys(c.flt || {}).length ? 'Remove a filter to see more.' : 'Customers are added automatically when an order is placed.') + '</span></div>';
     h += '<div class="ccs-table-wrap"><table class="ccs-table"><thead><tr><th>Customer</th><th>Mobile</th><th class="ccs-num">Orders</th><th class="ccs-num">Spend</th><th>Last order</th><th>Usually orders</th><th>Marketing</th></tr></thead><tbody>' +
       rows.map(function (r) {
         return '<tr class="ccs-click" data-act="open-customer" data-id="' + r.id + '"><td data-label="Customer"><b style="color:var(--ccs-ink)">' + esc(r.full_name) + '</b>' + (r.seg_upcoming_occasion ? '<br><span class="ccs-pill s-deposit">Occasion ' + esc(nice(r.next_occasion_date)) + '</span>' : '') + '</td><td data-label="Mobile">' + esc(r.phone) + '</td><td class="ccs-num" data-label="Orders">' + r.orders_count + '</td><td class="ccs-num" data-label="Spend">' + money(r.completed_spend) + '</td><td data-label="Last order">' + (r.last_order_at ? esc(stamp(r.last_order_at).split(',')[0]) : '—') + '</td><td data-label="Usually orders">' + esc(r.favourite_cake || '—') + '</td><td data-label="Marketing">' + (r.marketing_opt_in ? (r.consent_reconfirm ? '<span class="ccs-pill s-deposit">Yes, reconfirm</span>' : '<span class="ccs-pill s-good">Opted in</span>') : '<span class="ccs-quiet-no">No</span>') + '</td></tr>';
@@ -1606,16 +1603,26 @@
     renderSheet();
     if (!keep || !S.sheet.ws) wsLoad(id);
     return Promise.all([
-      sb.from('customer_summary').select('*').eq('id', id).single(),
-      sb.from('customers').select('id,customer_no,customer_source,full_name,phone,alt_phone,email,preferred_contact,is_corporate,company,delivery_address,birth_day,birth_month,preferences,notes,version,review_flag,review_note,archived_at').eq('id', id).single(),
+      sb.from('customer_summary').select('*').eq('id', id).maybeSingle(),
+      sb.from('customers').select('id,customer_no,customer_source,full_name,phone,alt_phone,email,preferred_contact,is_corporate,company,delivery_address,birth_day,birth_month,preferences,notes,version,review_flag,review_note,archived_at,merged_into').eq('id', id).single(),
       sb.from('orders').select('id,reference,order_status,payment_status,fulfilment_method,delivery_zone,delivery_address,delivery_contact,has_dietary,required_date,estimate_total,final_total,source,contact_name,order_items(product_name,variant,size_inch,quantity,finish,design_description,cake_message,occasion,dietary,dietary_note)').eq('customer_id', id).order('required_date', { ascending: false }).limit(100),
       can('manager', 'front_of_house', 'marketing') ? sb.from('consent_now').select('channel,destination,granted,needs_reconfirm,source,wording_code,recorded_at,applies,brand_code').eq('customer_id', id).eq('brand_code', 'corner-cafe') : Promise.resolve({ data: [] }),
       can('manager', 'front_of_house', 'marketing') ? sb.from('marketing_consents').select('channel,destination,granted,needs_reconfirm,source,recorded_at').eq('customer_id', id).order('recorded_at', { ascending: false }).order('id', { ascending: false }).limit(12) : Promise.resolve({ data: [] }),
-      sb.rpc('customer_sheet_orders', { p_customer: id })
+      sb.rpc('customer_sheet_orders', { p_customer: id }),
+      sb.from('customers').select('id,customer_no,full_name').eq('merged_into', id)
     ]).then(function (rs) {
       rs.forEach(function (r) { if (r.error) throw r.error; });
       if (!S.sheet || S.sheet.id !== id) return;
-      S.sheet.data = { sum: rs[0].data, c: rs[1].data, orders: rs[2].data || [], now: rs[3].data || [], log: rs[4].data || [], sheet: (rs[5].data && rs[5].data.ok && rs[5].data.orders) || [] }; renderSheet();
+      if (rs[1].data && rs[1].data.merged_into) { toast('That profile was merged into another. Opening the main profile.'); return openCustomer(rs[1].data.merged_into); }
+      var from = rs[6].data || [];
+      S.sheet.data = { sum: rs[0].data || {}, c: rs[1].data, orders: rs[2].data || [], now: rs[3].data || [], log: rs[4].data || [], sheet: (rs[5].data && rs[5].data.ok && rs[5].data.orders) || [], mergedFrom: from }; renderSheet();
+      // Marketing permission given on a merged profile is part of this customer's record
+      if (from.length && can('manager', 'front_of_house', 'marketing')) {
+        sb.from('marketing_consents').select('channel,destination,granted,needs_reconfirm,source,recorded_at').in('customer_id', from.map(function (x) { return x.id; })).order('recorded_at', { ascending: false }).limit(12).then(function (r) {
+          if (r.error || !S.sheet || S.sheet.id !== id || !S.sheet.data) return;
+          S.sheet.data.log = S.sheet.data.log.concat(r.data || []).sort(function (a, b) { return a.recorded_at < b.recorded_at ? 1 : -1; }).slice(0, 12); renderSheet();
+        });
+      }
     }).catch(fail);
   }
   function consentLine(d, ch) {
@@ -1637,7 +1644,8 @@
     var segs = [['seg_repeat', 'Repeat'], ['seg_first_time', 'First-time'], ['seg_high_value', 'High value'], ['seg_inactive', 'Inactive'], ['seg_birthday_buyer', 'Birthday buyer'], ['seg_corporate', 'Corporate']].filter(function (x) { return s[x[0]]; });
     var h = sheetHead(esc(c.full_name)) + '<div class="ccs-sheet-body">';
     h += '<p class="ccs-hint">Customer ' + esc(custNo(c.customer_no)) + (c.archived_at ? ' · Archived' : '') + '</p>';
-    if (c.review_flag === 'possible_duplicate') h += '<p class="ccs-warn"><b>Check for a duplicate.</b> ' + esc(c.review_note || 'Another profile has the same mobile number.') + '</p>';
+    if (c.review_flag === 'possible_duplicate') h += '<p class="ccs-warn"><b>Check for a duplicate.</b> ' + esc(c.review_note || 'Another profile has the same mobile number.') + (can('manager') ? ' <button type="button" class="ccs-link" data-act="ws-cm-dups-open">Review duplicates</button>' : '') + '</p>';
+    if ((d.mergedFrom || []).length) h += '<p class="ccs-hint">Merged into this profile: ' + esc(d.mergedFrom.map(function (x) { return custNo(x.customer_no) + ' ' + x.full_name; }).join(', ')) + '.</p>';
     h += '<div class="ccs-stats"><div><span>Orders</span><b>' + s.orders_count + '</b></div><div><span>Spend</span><b>' + money(s.completed_spend) + '</b></div><div><span>Average</span><b>' + (s.average_spend != null ? money(s.average_spend) : '—') + '</b></div><div><span>Cancelled</span><b>' + s.cancelled_count + '</b></div></div>';
     if (editor && !c.archived_at) h += '<div class="ccs-actions-row"><button type="button" class="ccs-btn ccs-new" data-act="cust-neworder">' + NAV_ICON['new'] + 'New order for this customer</button></div>';
     if (segs.length || s.seg_upcoming_occasion) h += '<div class="ccs-tags">' + segs.map(function (x) { return '<span class="ccs-tag">' + x[1] + '</span>'; }).join('') + (s.seg_upcoming_occasion ? '<span class="ccs-pill s-deposit">Occasion due ' + esc(nice(s.next_occasion_date)) + '</span>' : '') + '</div>';
@@ -1813,14 +1821,6 @@
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, function () { fallbackCopy(text); done(); }); else { fallbackCopy(text); done(); }
   }
   function fallbackCopy(text) { var t = document.createElement('textarea'); t.value = text; document.body.appendChild(t); t.select(); try { document.execCommand('copy'); } catch (e) {} t.remove(); }
-  function exportCsv() {
-    var rows = S.cust.rows.filter(function (r) { return r.marketing_opt_in; });
-    var q = function (v) { v = String(v == null ? '' : v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
-    var yn = function (b) { return b ? 'Yes' : 'No'; };
-    var csv = ['Customer,Name,Mobile,Email,WhatsApp yes,SMS yes,Email yes,Needs reconfirming,Orders,Spend FJD,Last order,Usually orders,Next occasion'].concat(rows.map(function (r) { return [custNo(r.customer_no), r.full_name, r.phone, r.email, yn(r.consent_whatsapp), yn(r.consent_sms), yn(r.consent_email), yn(r.consent_reconfirm), r.orders_count, r.completed_spend, r.last_order_at ? r.last_order_at.slice(0, 10) : '', r.favourite_cake, r.next_occasion_date].map(q).join(','); })).join('\n');
-    var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = 'corner-cafe-cake-customers-' + today() + '.csv'; document.body.appendChild(a); a.click(); a.remove();
-    toast(rows.length + ' opted-in customers exported');
-  }
 
 /*@DASH@*/
   // ---------- settings ----------
@@ -2037,6 +2037,7 @@
     var a = b.dataset.act, v = b.dataset.v;
     if (a.indexOf('dx-') === 0) { try { dashAct(a, b, v); } catch (err) { fail(err); } return; }
     if (a.indexOf('rg-') === 0) { try { regAct(a, b, v); } catch (err) { fail(err); } return; }
+    if (a.indexOf('ws-cm-') === 0) { try { clAct(a, b, v); } catch (err) { fail(err); } return; }
     if (a.indexOf('ws-') === 0) { try { wsAct(a, b, v); } catch (err) { fail(err); } return; }
     if (BUSY_ACTS[a] && !S.busyBtn) markBusy(b, BUSY_ACTS[a]);
     try {
@@ -2111,10 +2112,7 @@
         case 'consent-ch': setChannelConsent(b.dataset.ch, v === 'true'); break;
         case 'cust-save': saveCustomer(); break;
         case 'consent': sb.rpc('staff_set_consent', { p_customer: S.sheet.id, p_granted: v === 'true', p_note: null }).then(function (r) { if (r.error) throw r.error; if (!r.data.ok) throw new Error(r.data.message); toast(v === 'true' ? 'Marked as agreed' : 'Marked as opted out'); var id = S.sheet.id; openCustomer(id); if (S.cust.loaded) loadCustomers(); }).catch(fail); break;
-        case 'seg': S.cust.seg = v; S.cust.q = ''; loadCustomers(); break;
-        case 'copy-numbers': var wa = S.cust.rows.filter(function (r) { return r.consent_whatsapp && r.phone; }), wre = wa.filter(function (r) { return r.consent_reconfirm; }).length;
-          copyText(wa.map(function (r) { var d = digits(r.phone); return d.length === 7 ? '+679' + d : '+' + d; }).join('\n'), wa.length + ' WhatsApp numbers copied' + (wre ? '. ' + wre + ' need reconfirming first.' : '')); break;
-        case 'export-csv': exportCsv(); break;
+        case 'seg': clSegChange(v); break;
         // calendar
         case 'cal-view': S.cal.view = v; if (S.cal.sel) S.cal.anchor = S.cal.sel; if (v === 'day') S.cal.sel = S.cal.anchor; S.cal.pre = null; S.cal.ask = null; if (S.sheet && S.sheet.type === 'cal') sheetClose(); calLoad(); break;
         case 'cal-move': calMove(Number(v)); break;
@@ -2215,9 +2213,10 @@
     refreshStep();
   });
   root.addEventListener('change', function (e) {
+    if (e.target.dataset.wsc === 'cm-inc' && S.cust.exp) { S.cust.exp.inc = e.target.checked; view(); return; }
     if (e.target.dataset.wsc && S.sheet && S.sheet.type === 'customer') { wsForm()[e.target.dataset.wsc] = e.target.checked; S.sheet.wsAddErr = null; renderSheet(); if (e.target.checked) { var wt = document.getElementById('ws-title'); if (wt) wt.focus(); } return; }
     if (e.target.dataset.dx && DX) { dashChange(e.target); return; }
-    if (e.target.id === 'ccs-seg') { S.cust.seg = e.target.value; S.cust.q = ''; loadCustomers(); return; }
+    if (e.target.id === 'ccs-seg') { clSegChange(e.target.value); return; }
     if (e.target.id === 'cal-status' || e.target.id === 'cal-type') { S.cal[e.target.id === 'cal-status' ? 'status' : 'type'] = e.target.value; S.cal.pre = null; calRefresh(); return; }
     if (e.target.id === 'am-prod' && S.am) { amendSet('product', e.target.value); return; }
     if (e.target.id !== 'st-online') return;

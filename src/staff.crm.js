@@ -360,3 +360,354 @@
     return '<div class="ws-orderfu">' + (tasks.length ? '<p class="ccs-label">Open follow-ups for this order</p><ul class="ccs-plain">' + tasks.map(function (x) { return '<li' + (x.overdue ? ' class="ws-miss"' : '') + '>' + esc(x.title + ' · ' + wsDueLabel(x) + ' · For ' + wsWho(x)) + '</li>'; }).join('') + '</ul>' : '') +
       '<button type="button" class="ccs-link" data-act="ws-open" data-id="' + o.customer_id + '" data-tab="notes">Notes and follow-ups' + (f && f.notes ? ' (' + f.notes + ' about this order)' : '') + '</button></div>';
   }
+
+  // ---------- customers list: filters, saved groups, export, duplicate review (CRM step 4) ----------
+  // One filter definition, checked by the database, drives the list, saved groups and exports.
+  // Exports only include people who said yes to the chosen channel. Every export is recorded. Nothing is sent from here.
+  var CM_CONSENT = [['', 'Any'], ['any', 'Agreed to at least one'], ['whatsapp', 'WhatsApp yes'], ['sms', 'SMS yes'], ['email', 'Email yes'], ['call', 'Phone call yes'], ['reconfirm', 'Needs reconfirming'], ['none', 'No permission']];
+  var CM_CHANNEL = [['whatsapp', 'WhatsApp'], ['sms', 'SMS'], ['email', 'Email'], ['call', 'Phone call']];
+  var CM_SEGMAP = { seg_repeat: 1, seg_first_time: 1, seg_high_value: 1, seg_inactive: 1, seg_birthday_buyer: 1, seg_upcoming_occasion: 1, seg_upcoming_order: 1, seg_corporate: 1 };
+  function clState() {
+    var c = S.cust;
+    if (!c.flt) { c.flt = {}; c.mode = 'list'; c.groups = null; c.opts = null; c.groupId = null; c.panel = null; c.exp = null; c.err = null; c.count = null; }
+    return c;
+  }
+  function clGroup() { var c = clState(); return c.groupId && c.groups ? c.groups.filter(function (g) { return g.id === c.groupId; })[0] : null; }
+  // The filter actually sent: the Show choice plus the extra filters.
+  function clFilter() {
+    var c = clState(), f = {};
+    if (CM_SEGMAP[c.seg]) f.segment = c.seg;
+    if (c.seg === 'marketing_opt_in') f.consent = 'any';
+    Object.keys(c.flt).forEach(function (k) { if (c.flt[k] !== '' && c.flt[k] != null) f[k] = c.flt[k]; });
+    return f;
+  }
+  function clLoad() {
+    var c = clState(); c.loaded = false; c.err = null; view();
+    if (!c.groups) clGroupsLoad();
+    return sb.rpc('customer_filter', { p_filter: clFilter(), p_limit: 500 }).then(function (r) {
+      if (r.error) throw r.error;
+      if (!r.data.ok) { c.rows = []; c.count = 0; c.err = r.data.message; } else { c.rows = r.data.rows || []; c.count = r.data.count; }
+      c.loaded = true; if (S.tab === 'customers') view();
+    }).catch(fail);
+  }
+  function clGroupsLoad() {
+    var c = clState();
+    return sb.rpc('customer_groups_list').then(function (r) {
+      if (r.error) throw r.error;
+      if (r.data.ok) { c.groups = r.data.groups || []; c.canGroup = r.data.can_edit; if (S.tab === 'customers') view(); }
+    }).catch(function (e) { console.error(e); });
+  }
+  function clOptsLoad() {
+    var c = clState(); if (c.opts) return;
+    c.opts = { occasions: [], cakes: [], loading: true };
+    sb.rpc('customer_filter_options').then(function (r) { if (r.error) throw r.error; if (r.data.ok) { c.opts = r.data; if (S.tab === 'customers') view(); } }).catch(function (e) { c.opts = null; console.error(e); });
+  }
+  // The Show list: quick groups, then saved groups
+  function clShowSelect() {
+    var c = clState(), sel = c.groupId ? 'g:' + c.groupId : c.seg;
+    var h = '<label class="ccs-show" for="ccs-seg"><span>Show</span><select class="ccs-input" id="ccs-seg">' + SEGS.map(function (s) { return '<option value="' + s[0] + '"' + (sel === s[0] && !c.q ? ' selected' : '') + '>' + (s[0] === 'all' ? 'All customers' : s[1]) + '</option>'; }).join('');
+    if (c.groups && c.groups.length) h += '<optgroup label="Saved groups">' + c.groups.map(function (g) { return '<option value="g:' + g.id + '"' + (sel === 'g:' + g.id ? ' selected' : '') + '>' + esc(g.name) + ' (' + g.count + ')</option>'; }).join('') + '</optgroup>';
+    return h + '</select></label>';
+  }
+  function clSegChange(v) {
+    var c = clState(); c.q = ''; c.panel = null; c.exp = null;
+    if (v.indexOf('g:') === 0) { var g = (c.groups || []).filter(function (x) { return x.id === v.slice(2); })[0]; c.groupId = g ? g.id : null; c.seg = 'all'; c.flt = g ? Object.assign({}, g.filter) : {}; if (c.flt.segment) { c.seg = c.flt.segment; delete c.flt.segment; } }
+    else { c.groupId = null; c.seg = v; c.flt = {}; }
+    loadCustomers();
+  }
+  var CM_LABEL = {
+    spend_min: function (v) { return 'Spend from ' + money(v); }, spend_max: function (v) { return 'Spend up to ' + money(v); },
+    orders_min: function (v) { return 'At least ' + v + ' orders'; }, orders_max: function (v) { return 'At most ' + v + ' orders'; },
+    last_from: function (v) { return 'Last order from ' + nice(v); }, last_to: function (v) { return 'Last order up to ' + nice(v); },
+    quiet_days: function (v) { return 'No order in the last ' + v + ' days'; }, occasion: function (v) { return 'Occasion: ' + v; }, cake: function (v) { return 'Cake: ' + v; },
+    source: function (v) { return v === 'online' ? 'First ordered online' : 'First ordered at the counter'; },
+    consent: function (v) { return (CM_CONSENT.filter(function (x) { return x[0] === v; })[0] || [0, v])[1]; },
+    birthday_month: function (v) { return 'Birthday in ' + MONTHS[Number(v) - 1]; },
+    corporate: function (v) { return v ? 'Corporate' : 'Not corporate'; }, upcoming: function (v) { return v ? 'Has an order coming' : 'No order coming'; }
+  };
+  function clChips() {
+    var c = clState(), keys = Object.keys(c.flt).filter(function (k) { return c.flt[k] !== '' && c.flt[k] != null && CM_LABEL[k]; });
+    if (!keys.length) return '';
+    return '<div class="cm-chips" aria-label="Filters in use">' + keys.map(function (k) { return '<span class="cm-chip">' + esc(CM_LABEL[k](c.flt[k])) + '<button type="button" class="cm-x" data-act="ws-cm-unset" data-v="' + k + '" aria-label="Remove ' + esc(CM_LABEL[k](c.flt[k])) + '">×</button></span>'; }).join('') +
+      '<button type="button" class="ccs-link" data-act="ws-cm-clear">Clear filters</button></div>';
+  }
+  function clToolbar() {
+    var c = clState(), g = clGroup(), nf = Object.keys(c.flt).length;
+    var mayExport = can('manager', 'marketing'), mayGroup = can('manager', 'marketing');
+    var h = '<div class="ccs-ctool">' + clShowSelect() +
+      '<button type="button" class="ccs-btn ccs-ghost ccs-small" data-act="ws-cm-panel" data-v="filter" aria-expanded="' + (c.panel === 'filter') + '">Filters' + (nf ? ' (' + nf + ')' : '') + '</button>' +
+      (c.loaded ? '<span class="ccs-ccount"><b>' + c.count + '</b> customer' + (c.count === 1 ? '' : 's') + (c.count > c.rows.length ? ', showing the latest ' + c.rows.length : '') + '</span>' : '<span class="ccs-ccount"></span>') +
+      '<span class="ccs-ctool-actions">' +
+      (mayGroup && (nf || CM_SEGMAP[c.seg]) ? '<button type="button" class="ccs-btn ccs-ghost ccs-small" data-act="ws-cm-panel" data-v="save">' + (g ? 'Update group' : 'Save as group') + '</button>' : '') +
+      (mayExport && c.loaded && c.count ? '<button type="button" class="ccs-btn ccs-ghost ccs-small" data-act="ws-cm-panel" data-v="export">Export</button>' : '') +
+      (can('manager') ? '<button type="button" class="ccs-btn ccs-ghost ccs-small" data-act="ws-cm-dups">Possible duplicates</button>' : '') +
+      '</span></div>';
+    if (g) h += '<p class="ccs-hint cm-gline">Saved group <b>' + esc(g.name) + '</b>, made by ' + esc(g.by) + (g.updated_by ? ', last changed by ' + esc(g.updated_by) : '') + '. The list is worked out fresh each time, so new customers who match join it.</p>';
+    h += clChips();
+    if (c.panel === 'filter') h += clFilterPanel();
+    if (c.panel === 'save') h += clSavePanel();
+    if (c.panel === 'export') h += clExportPanel();
+    if (c.err) h += '<p class="ccs-err" role="alert">' + esc(c.err) + '</p>';
+    return h;
+  }
+  function clInput(id, label, v, type, extra) {
+    return '<div class="ccs-field"><label class="ccs-label" for="' + id + '">' + label + '</label><input class="ccs-input" id="' + id + '" type="' + (type || 'text') + '" value="' + esc(v == null ? '' : v) + '"' + (extra || '') + '></div>';
+  }
+  function clSelect(id, label, opts, v) {
+    return '<div class="ccs-field"><label class="ccs-label" for="' + id + '">' + label + '</label><select class="ccs-input" id="' + id + '">' + opts.map(function (o) { return '<option value="' + esc(o[0]) + '"' + (String(v == null ? '' : v) === String(o[0]) ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('') + '</select></div>';
+  }
+  function clFilterPanel() {
+    var c = clState(), f = c.flt, o = c.opts || { occasions: [], cakes: [] }; clOptsLoad();
+    var yn = [['', 'Any'], ['true', 'Yes'], ['false', 'No']];
+    var num = ' inputmode="decimal" autocomplete="off"';
+    return '<section class="ccs-panel cm-filter" aria-label="Filters"><b>Filter customers</b>' +
+      '<div class="ccs-row">' + clInput('cm-spend-min', 'Spend from (FJD)', f.spend_min, 'text', num) + clInput('cm-spend-max', 'Spend up to (FJD)', f.spend_max, 'text', num) +
+      clInput('cm-orders-min', 'At least this many orders', f.orders_min, 'text', num) + clInput('cm-orders-max', 'At most this many orders', f.orders_max, 'text', num) + '</div>' +
+      '<div class="ccs-row">' + clInput('cm-last-from', 'Last order from', f.last_from, 'date') + clInput('cm-last-to', 'Last order up to', f.last_to, 'date') +
+      clInput('cm-quiet', 'No order in the last (days)', f.quiet_days, 'text', num) + '</div>' +
+      '<div class="ccs-row">' + clSelect('cm-occasion', 'Occasion', [['', 'Any']].concat((o.occasions || []).map(function (x) { return [x, x]; })), f.occasion) +
+      clSelect('cm-cake', 'Has ordered this cake', [['', 'Any']].concat((o.cakes || []).map(function (x) { return [x, x]; })), f.cake) +
+      clSelect('cm-source', 'First ordered', [['', 'Any'], ['online', 'Online'], ['walk_in', 'At the counter or by phone']], f.source) + '</div>' +
+      '<div class="ccs-row">' + clSelect('cm-consent', 'Marketing permission', CM_CONSENT, f.consent) +
+      clSelect('cm-bmonth', 'Birthday month', [['', 'Any']].concat(MONTHS.map(function (m, i) { return [String(i + 1), m]; })), f.birthday_month) +
+      clSelect('cm-corp', 'Corporate customer', yn, f.corporate == null ? '' : String(f.corporate)) +
+      clSelect('cm-upcoming', 'Has an order coming', yn, f.upcoming == null ? '' : String(f.upcoming)) + '</div>' +
+      '<p class="ccs-hint">Spend counts collected orders only. Orders from the old sheets are not counted yet.</p>' +
+      '<div class="ccs-actions-row"><button type="button" class="ccs-btn" data-act="ws-cm-apply">Show customers</button><button type="button" class="ccs-btn ccs-ghost" data-act="ws-cm-panel" data-v="">Close</button></div></section>';
+  }
+  function clReadPanel() {
+    var f = {}, put = function (k, v) { v = String(v || '').trim(); if (v !== '') f[k] = v; };
+    put('spend_min', val('cm-spend-min').replace(/[$,\s]/g, '')); put('spend_max', val('cm-spend-max').replace(/[$,\s]/g, ''));
+    put('orders_min', val('cm-orders-min')); put('orders_max', val('cm-orders-max'));
+    put('last_from', val('cm-last-from')); put('last_to', val('cm-last-to')); put('quiet_days', val('cm-quiet'));
+    put('occasion', val('cm-occasion')); put('cake', val('cm-cake')); put('source', val('cm-source')); put('consent', val('cm-consent')); put('birthday_month', val('cm-bmonth'));
+    if (val('cm-corp')) f.corporate = val('cm-corp') === 'true';
+    if (val('cm-upcoming')) f.upcoming = val('cm-upcoming') === 'true';
+    var bad = ['spend_min', 'spend_max', 'orders_min', 'orders_max', 'quiet_days'].filter(function (k) { return f[k] != null && !/^\d{1,7}(\.\d{1,2})?$/.test(f[k]); })[0];
+    if (bad) return { err: 'Use a plain number for ' + { spend_min: 'spend from', spend_max: 'spend up to', orders_min: 'at least', orders_max: 'at most', quiet_days: 'no order in the last' }[bad] + '.' };
+    if (f.spend_min && f.spend_max && Number(f.spend_min) > Number(f.spend_max)) return { err: 'Spend from is more than spend up to.' };
+    if (f.last_from && f.last_to && f.last_from > f.last_to) return { err: 'The first date is after the second.' };
+    return { f: f };
+  }
+  function clSavePanel() {
+    var c = clState(), g = clGroup();
+    return '<section class="ccs-panel" aria-label="Save group"><b>' + (g ? 'Update ' + esc(g.name) : 'Save these filters as a group') + '</b>' +
+      clInput('cm-gname', 'Group name', g ? g.name : '', 'text', ' maxlength="60" autocomplete="off" placeholder="For example: Birthday buyers, no order in 6 months"') +
+      '<p class="ccs-hint">A group saves the filters, not a fixed list. Saving does not contact anyone.</p>' + (c.gErr ? '<p class="ccs-err" role="alert">' + esc(c.gErr) + '</p>' : '') +
+      '<div class="ccs-actions-row"><button type="button" class="ccs-btn" data-act="ws-cm-gsave" data-v="' + (g ? 'update' : 'new') + '">' + (g ? 'Save changes' : 'Save group') + '</button>' +
+      (g ? '<button type="button" class="ccs-btn ccs-ghost" data-act="ws-cm-gsave" data-v="new">Save as a new group</button>' : '') +
+      '<button type="button" class="ccs-btn ccs-ghost" data-act="ws-cm-panel" data-v="">Cancel</button>' +
+      (g ? '<button type="button" class="ccs-link ccs-red" data-act="ws-cm-garchive">Remove group</button>' : '') + '</div></section>';
+  }
+  function clExportPanel() {
+    var c = clState(), e = c.exp || (c.exp = { channel: null, pre: null, inc: false });
+    var h = '<section class="ccs-panel cm-export" aria-label="Export"><b>Export a contact list</b><p class="ccs-hint">Choose how these customers will be contacted. Only people who said yes to that channel, on the number or email they gave, are included. Nothing is sent from here, and the export is recorded with your name.</p>' +
+      '<div class="ccs-chips" role="group" aria-label="Channel">' + CM_CHANNEL.map(function (x) { return '<button type="button" class="ccs-chip" data-act="ws-cm-ech" data-v="' + x[0] + '" aria-pressed="' + (e.channel === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div>';
+    if (e.channel && !e.pre) h += '<p class="ccs-loading">Checking permission…</p>';
+    if (e.pre && e.pre.ok) {
+      var ch = (CM_CHANNEL.filter(function (x) { return x[0] === e.channel; })[0] || [0, ''])[1];
+      h += '<ul class="ccs-plain cm-explist"><li><b>' + e.pre.yes + '</b> can be contacted by ' + esc(ch) + '.</li>' +
+        (e.pre.no ? '<li><b>' + e.pre.no + '</b> left out: no permission for ' + esc(ch) + '.</li>' : '') +
+        (e.pre.reconfirm ? '<li><b>' + e.pre.reconfirm + '</b> said yes on the old walk-in sheet and need reconfirming. Left out unless you tick below.</li>' : '') + '</ul>';
+      if (e.pre.reconfirm) h += '<label class="ccs-check"><input type="checkbox" data-wsc="cm-inc"' + (e.inc ? ' checked' : '') + '> Include the ' + e.pre.reconfirm + ' who need reconfirming. Use this only to ask them to confirm, not for an offer.</label>';
+      var n = e.pre.yes + (e.inc ? e.pre.reconfirm : 0);
+      h += n ? '<div class="ccs-actions-row"><button type="button" class="ccs-btn" data-act="ws-cm-export" data-v="file">Download file (' + n + ')</button>' +
+        (e.channel !== 'email' ? '<button type="button" class="ccs-btn ccs-ghost" data-act="ws-cm-export" data-v="copy">Copy numbers</button>' : '') + '</div>' : '<p class="ccs-quiet">Nobody in this list can be contacted by ' + esc(ch) + '.</p>';
+    }
+    if (e.pre && !e.pre.ok) h += '<p class="ccs-err" role="alert">' + esc(e.pre.message) + '</p>';
+    return h + '<div class="ccs-actions-row"><button type="button" class="ccs-btn ccs-ghost" data-act="ws-cm-panel" data-v="">Close</button></div></section>';
+  }
+  function clExport(b, how) {
+    var c = clState(), e = c.exp; if (!e || !e.channel) return;
+    markBusy(b, 'Preparing…');
+    sb.rpc('customer_export', { p_filter: clFilter(), p_channel: e.channel, p_group: c.groupId, p_include_reconfirm: !!e.inc }).then(function (r) {
+      if (r.error) throw r.error; clearBusy();
+      if (!r.data.ok) { e.pre = { ok: false, message: r.data.message }; return view(); }
+      var rows = r.data.rows || [];
+      if (how === 'copy') {
+        copyText(rows.map(function (x) { var d = digits(x.destination); return d.length === 7 ? '+679' + d : '+' + d; }).join('\n'), clN(rows.length, 'number') + ' copied. The export is recorded.');
+        return;
+      }
+      var q = function (v) { v = String(v == null ? '' : v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+      var label = (CM_CHANNEL.filter(function (x) { return x[0] === e.channel; })[0] || [0, ''])[1];
+      var csv = ['Customer,Name,' + label + ',Needs reconfirming,Orders,Spend FJD,Last order'].concat(rows.map(function (x) { return [custNo(x.customer_no), x.full_name, x.destination, x.reconfirm ? 'Yes' : 'No', x.orders, x.spend, x.last_order || ''].map(q).join(','); })).join('\n');
+      var g = clGroup(), a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+      a.download = 'corner-cafe-' + (g ? g.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'customers') + '-' + e.channel + '-' + today() + '.csv';
+      document.body.appendChild(a); a.click(); a.remove();
+      toast(clN(rows.length, 'customer') + ' exported. The export is recorded.');
+    }).catch(function (x) { clearBusy(); fail(x); });
+  }
+  function clPreview() {
+    var c = clState(), e = c.exp, ch = e.channel;
+    sb.rpc('customer_export_preview', { p_filter: clFilter(), p_channel: ch }).then(function (r) {
+      if (r.error) throw r.error;
+      if (c.exp === e && e.channel === ch) { e.pre = r.data; view(); }
+    }).catch(fail);
+  }
+
+  // Duplicate review (managers)
+  function clDupsLoad() {
+    var c = clState(); c.dups = null; c.dupErr = null; view();
+    return sb.rpc('customer_duplicates').then(function (r) {
+      if (r.error) throw r.error;
+      if (!r.data.ok) c.dupErr = r.data.message; else c.dups = r.data;
+      if (S.tab === 'customers') view();
+    }).catch(fail);
+  }
+  function clCard(p, side, keep) {
+    var row = function (k, v) { return v ? '<dt>' + k + '</dt><dd>' + esc(v) + '</dd>' : ''; };
+    return '<div class="cm-side' + (keep ? ' is-keep' : '') + '"><p class="cm-who"><b>' + esc(p.full_name) + '</b> <span class="ccs-hint">' + esc(custNo(p.customer_no)) + '</span></p><dl class="ccs-kv">' +
+      row('Mobile', p.phone) + row('Other number', p.alt_phone) + row('Email', p.email) + row('Company', p.company) + row('Birthday', p.birthday) +
+      '<dt>Orders</dt><dd>' + p.orders + ', ' + money(p.spend) + (p.last_order_at ? ', last ' + esc(stamp(p.last_order_at).split(',')[0]) : '') + '</dd>' +
+      (p.sheet_orders ? '<dt>Old sheets</dt><dd>' + clN(p.sheet_orders, 'order') + '</dd>' : '') +
+      (p.notes_count || p.open_tasks ? '<dt>Notes</dt><dd>' + clN(p.notes_count, 'note') + ', ' + clN(p.open_tasks, 'open follow-up') + '</dd>' : '') +
+      '<dt>Marketing</dt><dd>' + (p.consents ? p.consents + ' yes' : 'None') + '</dd>' +
+      '<dt>Added</dt><dd>' + esc(stamp(p.created_at).split(',')[0]) + (p.source ? ', ' + esc(CUSTOMER_SOURCE[p.source] || p.source) : '') + '</dd></dl>' +
+      '<button type="button" class="ccs-link" data-act="open-customer" data-id="' + p.id + '">Open profile</button></div>';
+  }
+  function clN(n, one, many) { return n + ' ' + (n === 1 ? one : (many || one + 's')); }
+  function clPairKey(p) { return p.a.id + '|' + p.b.id; }
+  function clDefaultKeep(p) { return p.a.orders !== p.b.orders ? (p.a.orders > p.b.orders ? 'a' : 'b') : (p.a.created_at <= p.b.created_at ? 'a' : 'b'); }
+  function clPairCard(p) {
+    var c = clState(), key = clPairKey(p), m = c.merge && c.merge.key === key ? c.merge : null, nd = c.notSame === key;
+    var h = '<article class="ccs-box cm-pair"><div class="ccs-tags">' + p.reasons.map(function (r) { return '<span class="ccs-tag">' + esc(r) + '</span>'; }).join('') + '</div>' +
+      '<div class="cm-sides">' + clCard(p.a, 'a', m && m.keep === 'a') + clCard(p.b, 'b', m && m.keep === 'b') + '</div>';
+    if (m) h += clMergePanel(p, m);
+    else if (nd) h += '<div class="ccs-panel">' + clInput('cm-ns-note', 'Why are they different people? (optional)', '', 'text', ' maxlength="300" autocomplete="off" placeholder="For example: mother and daughter share the number"') +
+      '<div class="ccs-actions-row"><button type="button" class="ccs-btn" data-act="ws-cm-notsame-go" data-id="' + key + '">Not the same person</button><button type="button" class="ccs-btn ccs-ghost" data-act="ws-cm-notsame" data-id="">Back</button></div></div>';
+    else h += '<div class="ccs-actions-row"><button type="button" class="ccs-btn" data-act="ws-cm-merge" data-id="' + key + '">Same person, merge</button><button type="button" class="ccs-btn ccs-ghost" data-act="ws-cm-notsame" data-id="' + key + '">Not the same person</button></div>';
+    return h + '</article>';
+  }
+  function clMergePanel(p, m) {
+    var keep = p[m.keep], other = p[m.keep === 'a' ? 'b' : 'a'], pv = m.pre;
+    var h = '<div class="ccs-panel cm-merge"><b>Merge into one profile</b><div class="ccs-chips" role="group" aria-label="Which profile to keep">' +
+      ['a', 'b'].map(function (s) { return '<button type="button" class="ccs-chip" data-act="ws-cm-keep" data-v="' + s + '" aria-pressed="' + (m.keep === s) + '">Keep ' + esc(custNo(p[s].customer_no) + ' ' + p[s].full_name) + '</button>'; }).join('') + '</div>';
+    if (!pv) return h + '<p class="ccs-loading">Checking what moves…</p></div>';
+    if (!pv.ok) return h + '<p class="ccs-err" role="alert">' + esc(pv.message) + '</p></div>';
+    var mv = pv.moves, lines = [];
+    if (mv.orders) lines.push(mv.orders + ' order' + (mv.orders === 1 ? '' : 's'));
+    if (mv.sheet_orders) lines.push(mv.sheet_orders + ' old sheet order' + (mv.sheet_orders === 1 ? '' : 's'));
+    if (mv.notes) lines.push(mv.notes + ' note' + (mv.notes === 1 ? '' : 's'));
+    if (mv.tasks) lines.push(mv.tasks + ' follow-up' + (mv.tasks === 1 ? '' : 's'));
+    var fl = Object.keys(pv.fills || {}).map(function (k) { return (FIELD_LABEL[k] || k.replace('_', ' ')) ; }).filter(function (x, i, a) { return a.indexOf(x) === i && x !== 'Birthday month'; }).map(function (x) { return x === 'Birthday day' ? 'Birthday' : x; });
+    h += '<ul class="ccs-plain cm-explist"><li>' + esc(custNo(other.customer_no) + ' ' + other.full_name) + ' is marked as merged into ' + esc(custNo(keep.customer_no)) + '. It is kept, not erased.</li>' +
+      '<li>Moves across: ' + (lines.length ? esc(lines.join(', ')) : 'nothing') + '. Each order keeps the name and number it was placed with.</li>' +
+      (fl.length ? '<li>Fills in on ' + esc(custNo(keep.customer_no)) + ': ' + esc(fl.join(', ')) + '. Notes and preferences are added, not replaced.</li>' : '') +
+      ((pv.not_kept || []).length ? '<li class="ws-miss">Not copied, already has one: ' + esc(pv.not_kept.join(', ')) + '. It stays on the merged profile and its orders.</li>' : '') +
+      '<li>Marketing permission stays with the number or email it was given for. Nothing new is recorded.</li></ul>' +
+      clInput('cm-mreason', 'Why are they the same person? (optional)', '', 'text', ' maxlength="300" autocomplete="off" placeholder="For example: same number, customer confirmed"') +
+      '<p class="ccs-hint">A manager can undo this from the list below.</p>' + (m.err ? '<p class="ccs-err" role="alert">' + esc(m.err) + '</p>' : '') +
+      '<div class="ccs-actions-row"><button type="button" class="ccs-btn" data-act="ws-cm-merge-go">Merge</button><button type="button" class="ccs-btn ccs-ghost" data-act="ws-cm-merge" data-id="">Cancel</button></div></div>';
+    return h;
+  }
+  function clMergePreview() {
+    var c = clState(), m = c.merge, p = clFindPair(m.key); if (!p) return;
+    var keep = p[m.keep], other = p[m.keep === 'a' ? 'b' : 'a'];
+    m.pre = null; view();
+    sb.rpc('customer_merge_preview', { p_keep: keep.id, p_merge: other.id }).then(function (r) {
+      if (r.error) throw r.error; if (c.merge === m) { m.pre = r.data; view(); }
+    }).catch(fail);
+  }
+  function clFindPair(key) { var c = clState(); return ((c.dups && c.dups.pairs) || []).filter(function (p) { return clPairKey(p) === key; })[0]; }
+  function clDupsView() {
+    var c = clState(), d = c.dups;
+    var h = '<div class="ccs-head"><div><h1 class="ccs-title">Possible duplicate customers</h1><p class="ccs-sub">Profiles that share a mobile number, email or name. Check before merging: families and offices often share a number.</p></div>' +
+      '<div class="ccs-headacts"><button type="button" class="ccs-btn ccs-ghost" data-act="ws-cm-list">Back to customers</button></div></div>';
+    if (c.dupErr) return h + '<div class="ccs-empty"><b>' + esc(c.dupErr) + '</b></div>';
+    if (!d) return h + '<p class="ccs-loading">Looking for duplicates…</p>';
+    var strong = d.pairs.filter(function (p) { return p.strong; }), weak = d.pairs.filter(function (p) { return !p.strong; });
+    h += strong.length ? '<h2 class="rg-h">Same mobile or email (' + strong.length + ')</h2>' + strong.map(clPairCard).join('') : '<p class="ccs-quiet">No profiles share a mobile number or email.</p>';
+    if (weak.length) h += '<h2 class="rg-h">Same name only (' + weak.length + ')</h2><p class="ccs-hint">A shared name alone is weak evidence. Merge only if the orders or details show it is the same person.</p>' +
+      (c.weakOpen ? weak.map(clPairCard).join('') + '<button type="button" class="ccs-link" data-act="ws-cm-weak">Hide these</button>' : '<button type="button" class="ccs-btn ccs-ghost ccs-small" data-act="ws-cm-weak">Show ' + weak.length + ' name matches</button>');
+    if (d.merges.length) h += '<h2 class="rg-h">Recent merges</h2><div class="ccs-history">' + d.merges.map(function (m) {
+      var nm = function (x) { return custNo(x.customer_no) + ' ' + x.full_name; };
+      return '<div><span>' + esc(stamp(m.at)) + '</span><span>' + esc(nm(m.merged) + ' merged into ' + nm(m.kept) + ' by ' + m.by + (m.reason ? ': ' + m.reason : '')) +
+        (m.undone_at ? ' <span class="ccs-hint">Undone by ' + esc(m.undone_by) + ', ' + esc(stamp(m.undone_at)) + (m.undo_result && m.undo_result.details_kept && m.undo_result.details_kept.length ? '. Kept because they were changed since: ' + esc(m.undo_result.details_kept.join(', ')) : '') + '</span>'
+          : ' <button type="button" class="ccs-link" data-act="ws-cm-undo" data-id="' + m.id + '">Undo</button>') + '</span></div>';
+    }).join('') + '</div>';
+    if (d.dismissed.length) h += '<h2 class="rg-h">Marked as different people</h2><div class="ccs-history">' + d.dismissed.map(function (x) {
+      return '<div><span>' + esc(stamp(x.at)) + '</span><span>' + esc(custNo(x.a.customer_no) + ' ' + x.a.full_name + ' and ' + custNo(x.b.customer_no) + ' ' + x.b.full_name + ' · ' + x.by + (x.note ? ': ' + x.note : '')) +
+        ' <button type="button" class="ccs-link" data-act="ws-cm-unnotsame" data-id="' + x.id + '">Undo</button></span></div>';
+    }).join('') + '</div>';
+    return h;
+  }
+
+  function clAct(a, b, v) {
+    var c = clState(), id = b.dataset.id;
+    if (a === 'ws-cm-panel') { c.panel = v || null; c.gErr = null; if (v === 'export') c.exp = null; if (v === 'filter') clOptsLoad(); view(); return; }
+    if (a === 'ws-cm-apply') { var rp = clReadPanel(); if (rp.err) { c.err = rp.err; return view(); } c.flt = rp.f; c.panel = null; c.exp = null; loadCustomers(); return; }
+    if (a === 'ws-cm-unset') { delete c.flt[v]; c.exp = null; loadCustomers(); return; }
+    if (a === 'ws-cm-clear') { c.flt = {}; c.exp = null; if (c.groupId) { c.groupId = null; } loadCustomers(); return; }
+    if (a === 'ws-cm-ech') { c.exp = { channel: v, pre: null, inc: false }; view(); clPreview(); return; }
+    if (a === 'ws-cm-export') { clExport(b, v); return; }
+    if (a === 'ws-cm-gsave') {
+      var g = v === 'update' ? clGroup() : null, name = val('cm-gname').trim();
+      if (name.length < 2) { c.gErr = 'Give the group a name.'; return view(); }
+      markBusy(b, 'Saving…');
+      sb.rpc('customer_group_save', { p_id: g ? g.id : null, p_name: name, p_filter: clFilter(), p_version: g ? g.version : null }).then(function (r) {
+        if (r.error) throw r.error; clearBusy();
+        if (!r.data.ok) { c.gErr = r.data.message; return view(); }
+        c.panel = null; c.gErr = null; c.groupId = r.data.id; toast(g ? 'Group updated' : 'Group saved');
+        clGroupsLoad();
+      }).catch(function (x) { clearBusy(); fail(x); });
+      return;
+    }
+    if (a === 'ws-cm-garchive') {
+      var ga = clGroup(); if (!ga) return;
+      if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = 'Tap again to remove the group'; setTimeout(function () { if (b.isConnected) { b.dataset.armed = ''; b.textContent = 'Remove group'; } }, 4000); return; }
+      markBusy(b, 'Removing…');
+      sb.rpc('customer_group_archive', { p_id: ga.id, p_version: ga.version }).then(function (r) {
+        if (r.error) throw r.error; clearBusy();
+        if (!r.data.ok) { c.gErr = r.data.message; return view(); }
+        toast('Group removed. No customers were changed.'); c.groupId = null; c.panel = null; c.flt = {}; c.seg = 'all'; clGroupsLoad(); loadCustomers();
+      }).catch(function (x) { clearBusy(); fail(x); });
+      return;
+    }
+    if (a === 'ws-cm-dups-open') { c.mode = 'dups'; c.merge = null; goTab('customers'); if (S.tab === 'customers') clDupsLoad(); return; }
+    if (a === 'ws-cm-weak') { c.weakOpen = !c.weakOpen; view(); return; }
+    if (a === 'ws-cm-dups') { c.mode = 'dups'; c.merge = null; c.notSame = null; window.scrollTo(0, 0); clDupsLoad(); return; }
+    if (a === 'ws-cm-list') { c.mode = 'list'; c.merge = null; if (c.loaded) view(); else loadCustomers(); window.scrollTo(0, 0); return; }
+    if (a === 'ws-cm-merge') { if (!id) { c.merge = null; return view(); } var pm = clFindPair(id); if (!pm) return; c.notSame = null; c.merge = { key: id, keep: clDefaultKeep(pm), pre: null }; clMergePreview(); return; }
+    if (a === 'ws-cm-keep') { if (!c.merge) return; c.merge.keep = v; c.merge.err = null; clMergePreview(); return; }
+    if (a === 'ws-cm-merge-go') {
+      var m = c.merge, pg = m && clFindPair(m.key); if (!pg || !m.pre || !m.pre.ok) return;
+      var k = pg[m.keep], o = pg[m.keep === 'a' ? 'b' : 'a'];
+      markBusy(b, 'Merging…');
+      sb.rpc('customer_merge', { p_keep: k.id, p_merge: o.id, p_keep_version: m.pre.keep.version, p_merge_version: m.pre.merge.version, p_reason: val('cm-mreason') || null }).then(function (r) {
+        if (r.error) throw r.error; clearBusy();
+        if (!r.data.ok) { m.err = r.data.message; return view(); }
+        toast(custNo(o.customer_no) + ' merged into ' + custNo(k.customer_no) + '. You can undo it below.');
+        c.merge = null; c.loaded = false; clDupsLoad();
+      }).catch(function (x) { clearBusy(); fail(x); });
+      return;
+    }
+    if (a === 'ws-cm-notsame') { c.notSame = id || null; c.merge = null; view(); return; }
+    if (a === 'ws-cm-notsame-go') {
+      var pn = clFindPair(id); if (!pn) return;
+      markBusy(b, 'Saving…');
+      sb.rpc('customer_pair_dismiss', { p_a: pn.a.id, p_b: pn.b.id, p_note: val('cm-ns-note') || null }).then(function (r) {
+        if (r.error) throw r.error; clearBusy();
+        if (!r.data.ok) { toast(r.data.message, true); return; }
+        toast('Marked as different people'); c.notSame = null; clDupsLoad();
+      }).catch(function (x) { clearBusy(); fail(x); });
+      return;
+    }
+    if (a === 'ws-cm-undo') {
+      if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = 'Tap again to undo the merge'; setTimeout(function () { if (b.isConnected) { b.dataset.armed = ''; b.textContent = 'Undo'; } }, 4000); return; }
+      markBusy(b, 'Undoing…');
+      sb.rpc('customer_merge_undo', { p_merge: id, p_reason: null }).then(function (r) {
+        if (r.error) throw r.error; clearBusy();
+        if (!r.data.ok) { toast(r.data.message, true); return; }
+        var kept = r.data.result.details_kept || [];
+        toast('Merge undone.' + (kept.length ? ' Kept on the main profile because they were changed since: ' + kept.join(', ') + '.' : ''));
+        c.loaded = false; clDupsLoad();
+      }).catch(function (x) { clearBusy(); fail(x); });
+      return;
+    }
+    if (a === 'ws-cm-unnotsame') {
+      markBusy(b, 'Undoing…');
+      sb.rpc('customer_pair_undismiss', { p_id: id }).then(function (r) { if (r.error) throw r.error; clearBusy(); if (!r.data.ok) { toast(r.data.message, true); return; } toast('Back in the review list'); clDupsLoad(); }).catch(function (x) { clearBusy(); fail(x); });
+      return;
+    }
+  }

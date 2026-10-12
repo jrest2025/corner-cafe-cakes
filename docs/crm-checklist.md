@@ -45,6 +45,18 @@ Phase 1 checked on 12 October 2026: database checks run against the live data in
 | Orders | Repeat Order: new draft with today's products and prices; date, message, occasion and dietary asked again; items no longer sold flagged | Implemented and verified (step 3) |
 | Security | Notes and follow-ups: write (manager, front of house, marketing), read (plus finance), kitchen none; change own notes only unless manager; no direct table access | Implemented and verified (database rollback test with a temporary front-of-house login) |
 | Safety | Double taps cannot create duplicate notes or follow-ups | Implemented and verified (step 3) |
-| Later | Merge with undo, segments with thresholds, audiences (preview and export only), management view | Planned (phase 4) |
+| Duplicates | Manager review list: same mobile, mobile matching the other number, same email (strong); same name only shown separately | Implemented and verified (step 4: 29 pairs found in live data, 8 strong) |
+| Duplicates | Merge: manager chooses which profile to keep; orders, old sheet orders, notes and follow-ups move; blank details filled; notes and preferences added, not replaced | Implemented and verified (step 4, database rollback test) |
+| Duplicates | Merged profile kept and marked, never erased; orders keep their own contact details | Implemented and verified (step 4) |
+| Duplicates | Marketing permission never copied; read through the kept profile and still tied to the number or email it was given for | Implemented and verified (step 4) |
+| Duplicates | Undo: moves back exactly what moved; details changed since the merge are kept and reported | Implemented and verified (step 4) |
+| Duplicates | Version check: a merge is refused if either profile changed while open | Implemented and verified (step 4) |
+| Duplicates | "Not the same person" recorded with a note, removes the pair from the list, can be undone | Implemented and verified (step 4) |
+| Filters | Spend, number of orders, last order dates, no order in N days, occasion, cake ordered, first order type, marketing permission, birthday month, corporate, order coming; checked by the database | Implemented and verified (step 4) |
+| Groups | Saved groups store the filter, not a fixed list; names unique; version-checked; removed groups are archived | Implemented and verified (step 4) |
+| Export | Only people who said yes to the chosen channel on their current number or email; walk-in yes answers left out unless included for reconfirming; every export logged with who, when, filter, channel and counts | Implemented and verified (step 4) |
+| Export | The old unrecorded Copy WhatsApp numbers and Export buttons replaced by the recorded export | Implemented and verified (step 4) |
+| Security | Duplicates and merge: managers only. Filters: manager, front of house, finance, marketing. Groups and export: manager and marketing. Kitchen: none | Implemented and verified (database test with a temporary login in each role) |
+| Known limits | Spend and order counts leave out old sheet orders; orders removed by an admin stay on the merged profile | Open |
 | Later | Edge cases, restore drill, staff guide | Planned (phase 5) |
 | Never | Sending real campaigns | Not built, by design |

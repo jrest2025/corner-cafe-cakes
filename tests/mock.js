@@ -126,7 +126,7 @@
       return { data: orders };
     }
     if (table === 'customer_summary') { var i = st.filters.filter(function (f) { return f[0] === 'id'; })[0]; return { data: i ? summary.filter(function (s) { return s.id === i[1]; })[0] : summary }; }
-    if (table === 'customers') { var ci2 = st.filters.filter(function (f) { return f[0] === 'id'; })[0]; return { data: Object.assign({}, prof[ci2 ? ci2[1] : 'c1']) }; }
+    if (table === 'customers') { var mi = st.filters.filter(function (f) { return f[0] === 'merged_into'; })[0]; if (mi) { var mg = (window.__cm && window.__cm.merged) || {}; return { data: Object.keys(mg).filter(function (k) { return mg[k] === mi[1]; }).map(function (k) { return { id: k, customer_no: (prof[k] || {}).customer_no, full_name: (prof[k] || {}).full_name }; }) }; } var ci2 = st.filters.filter(function (f) { return f[0] === 'id'; })[0]; var pr = Object.assign({}, prof[ci2 ? ci2[1] : 'c1']); if (window.__cm && window.__cm.merged[pr.id]) pr.merged_into = window.__cm.merged[pr.id]; return { data: pr }; }
     if (table === 'consent_now') { var cn2 = st.filters.filter(function (f) { return f[0] === 'customer_id'; })[0]; return { data: consentNow(cn2[1]) }; }
     if (table === 'marketing_consents') { var cm2 = st.filters.filter(function (f) { return f[0] === 'customer_id'; })[0]; return { data: consentLog.filter(function (l) { return l.customer_id === cm2[1]; }).slice().reverse() }; }
     if (table === 'locations') return { data: { id: 'l1', accepts_online: true, lead_days_standard: 2, lead_days_custom: 5, max_days_ahead: 90, collection_open: '09:00:00', collection_close: '20:00:00', slot_minutes: 60, daily_capacity: null, defaults_confirmed: false } };
@@ -260,6 +260,56 @@
         }
         if (fn === 'my_followups') { var lim = add(args.p_days || 7); return ok({ allowed: true, all: !!args.p_all, tasks: W.tasks.filter(function (x) { return (x.status === 'open' || x.status === 'in_progress') && x.due_on <= lim && (args.p_all || x.mine || !x.assigned_to); }).map(function (x) { var c = prof[x.customer_id] || {}; return Object.assign(od(x), { customer: c.full_name || 'Customer', customer_no: c.customer_no }); }) }); }
         if (fn === 'order_followups') return ok({ tasks: W.tasks.filter(function (x) { return x.order_id === args.p_order && (x.status === 'open' || x.status === 'in_progress'); }).map(od), notes: W.notes.filter(function (x) { return x.order_id === args.p_order && !x.hidden; }).length });
+      }
+      // CRM step 4: filters, groups, export, duplicates (invented data)
+      if (/^customer_(filter|filter_options|groups_list|group_save|group_archive|export_preview|export|duplicates|merge_preview|merge|merge_undo|pair_dismiss|pair_undismiss)$/.test(fn)) {
+        var CMr = window.__role || 'manager', cmMgr = CMr === 'manager' || CMr === 'admin', cmMkt = cmMgr || CMr === 'marketing';
+        var CM = window.__cm = window.__cm || { groups: [], exports: [], merges: [], dismissed: [], merged: {}, n: 0 };
+        var okc = function (d) { return Promise.resolve({ data: Object.assign({ ok: true }, d) }); }, noc = function (code, msg, field) { return Promise.resolve({ data: { ok: false, error: code, message: msg, field: field || null } }); };
+        var live = function () { return summary.filter(function (r) { return !CM.merged[r.id]; }); };
+        var match = function (f) { return live().filter(function (r) {
+          if (f.spend_min && !(r.completed_spend >= Number(f.spend_min))) return false;
+          if (f.spend_max && !(r.completed_spend <= Number(f.spend_max))) return false;
+          if (f.orders_min && !(r.orders_count >= Number(f.orders_min))) return false;
+          if (f.segment && !r[f.segment]) return false;
+          if (f.source && r.first_source !== f.source) return false;
+          if (f.cake && r.favourite_cake !== f.cake) return false;
+          if (f.consent === 'any' && !(r.consent_whatsapp || r.consent_sms)) return false;
+          if (f.consent === 'whatsapp' && !r.consent_whatsapp) return false;
+          if (f.consent === 'none' && (r.consent_whatsapp || r.consent_sms)) return false;
+          return true; }); };
+        var badf = function (f) { var k = Object.keys(f || {}).filter(function (x) { return ['spend_min', 'spend_max', 'orders_min', 'orders_max', 'quiet_days'].indexOf(x) > -1 && !/^\d+(\.\d{1,2})?$/.test(f[x]); })[0]; return k ? 'Use a plain number for ' + k.replace('_', ' ') + '.' : null; };
+        if (CMr === 'kitchen') return noc('forbidden', 'Your login cannot see customers.');
+        if (fn === 'customer_filter') { if (badf(args.p_filter)) return noc('filter', badf(args.p_filter)); var ms = match(args.p_filter); return okc({ count: ms.length, rows: ms.slice(0, args.p_limit || 500) }); }
+        if (fn === 'customer_filter_options') return okc({ occasions: ['Anniversary', 'Birthday', 'Wedding'], cakes: ['Mudcake', 'Red Velvet', 'Cheesecake'] });
+        if (fn === 'customer_groups_list') return okc({ can_edit: cmMkt, groups: CM.groups.filter(function (g) { return !g.archived; }).map(function (g) { return Object.assign({}, g, { count: match(g.filter).length }); }) });
+        if (fn === 'customer_group_save') {
+          if (!cmMkt) return noc('forbidden', 'Only a manager or marketing can save groups.');
+          var gn = (args.p_name || '').trim(); if (gn.length < 2) return noc('name', 'Give the group a name of 2 to 60 characters.', 'name');
+          if (!Object.keys(args.p_filter || {}).length) return noc('filter', 'Choose at least one filter before saving a group.');
+          if (CM.groups.some(function (g) { return !g.archived && g.name.toLowerCase() === gn.toLowerCase() && g.id !== args.p_id; })) return noc('name', 'A group with that name already exists.', 'name');
+          if (args.p_id) { var ge = CM.groups.filter(function (g) { return g.id === args.p_id; })[0]; if (ge.version !== args.p_version) return noc('changed', 'Someone else changed this group. Open it again.'); ge.name = gn; ge.filter = args.p_filter; ge.version++; ge.updated_by = 'Test Manager'; return okc({ id: ge.id, version: ge.version }); }
+          var ng = { id: 'g' + (++CM.n), name: gn, filter: args.p_filter, version: 1, by: 'Test Manager', at: new Date().toISOString() }; CM.groups.push(ng); return okc({ id: ng.id, version: 1 });
+        }
+        if (fn === 'customer_group_archive') { var ga = CM.groups.filter(function (g) { return g.id === args.p_id; })[0]; if (!ga || ga.version !== args.p_version) return noc('changed', 'That group was changed or removed already.'); ga.archived = true; return okc({}); }
+        var expRows = function (f, ch) { return match(f).map(function (r) { var yes = ch === 'whatsapp' ? r.consent_whatsapp : ch === 'sms' ? r.consent_sms : ch === 'email' ? r.consent_email : false; return { r: r, state: !yes ? 'no' : r.consent_reconfirm ? 'reconfirm' : 'yes' }; }); };
+        if (fn === 'customer_export_preview') { if (!cmMkt) return noc('forbidden', 'Only a manager or marketing can export customers.'); var ep = expRows(args.p_filter, args.p_channel); var cnt = function (st) { return ep.filter(function (x) { return x.state === st; }).length; }; return okc({ yes: cnt('yes'), reconfirm: cnt('reconfirm'), no: cnt('no'), total: ep.length }); }
+        if (fn === 'customer_export') {
+          if (!cmMkt) return noc('forbidden', 'Only a manager or marketing can export customers.');
+          var ex = expRows(args.p_filter, args.p_channel), rows = ex.filter(function (x) { return x.state === 'yes' || (args.p_include_reconfirm && x.state === 'reconfirm'); }).map(function (x) { return { customer_no: x.r.customer_no, full_name: x.r.full_name, destination: args.p_channel === 'email' ? x.r.email : x.r.phone, reconfirm: x.state === 'reconfirm', orders: x.r.orders_count, spend: x.r.completed_spend, last_order: (x.r.last_order_at || '').slice(0, 10) }; });
+          CM.exports.push({ channel: args.p_channel, group: args.p_group, rows: rows.length, include: !!args.p_include_reconfirm }); return okc({ rows: rows, left_out_no: ex.filter(function (x) { return x.state === 'no'; }).length });
+        }
+        if (!cmMgr) return noc('forbidden', 'Only a manager can review duplicate customers.');
+        var card = function (id) { var r = summary.filter(function (x) { return x.id === id; })[0] || {}, p = prof[id] || {}; return { id: id, customer_no: r.customer_no, full_name: r.full_name, phone: r.phone, email: r.email || null, orders: r.orders_count, spend: r.completed_spend, last_order_at: r.last_order_at, created_at: id === 'c1' ? '2025-01-01T00:00:00Z' : '2026-09-01T00:00:00Z', version: p.version || 1, notes_count: id === 'c1' ? 1 : 0, open_tasks: 0, sheet_orders: id === 'c1' ? 1 : 0, consents: id === 'c1' ? 2 : 0, source: 'sheet_import' }; };
+        var pairKey = 'c1|c2';
+        if (fn === 'customer_duplicates') return okc({ pairs: (CM.merged.c2 || CM.dismissed.some(function (d) { return !d.undone; })) ? [] : [{ a: card('c1'), b: card('c2'), reasons: ['Same mobile number', 'Same name'], strong: true }],
+          merges: CM.merges.slice().reverse(), dismissed: CM.dismissed.filter(function (d) { return !d.undone; }) });
+        if (fn === 'customer_merge_preview') return okc({ keep: card(args.p_keep), merge: card(args.p_merge), fills: args.p_keep === 'c2' ? { email: 'a@example.com', birth_day: 5, birth_month: 3 } : { notes: 'x' }, not_kept: [], moves: { orders: 1, notes: 0, tasks: 0, sheet_orders: 0, profiles: 0 } });
+        if (fn === 'customer_merge') { if (window.__mergeStale) return noc('changed', 'One of these profiles changed while you were looking. Check the details again, then merge.'); CM.merged[args.p_merge] = args.p_keep; var mk = summary.filter(function (x) { return x.id === args.p_keep; })[0], mm = summary.filter(function (x) { return x.id === args.p_merge; })[0];
+          CM.merges.push({ id: 'm' + (++CM.n), at: new Date().toISOString(), by: 'Test Manager', reason: args.p_reason, kept: { id: mk.id, customer_no: mk.customer_no, full_name: mk.full_name }, merged: { id: mm.id, customer_no: mm.customer_no, full_name: mm.full_name } }); return okc({ merge_id: 'm' + CM.n, moved: { orders: 1 } }); }
+        if (fn === 'customer_merge_undo') { var mu = CM.merges.filter(function (m) { return m.id === args.p_merge; })[0]; if (mu.undone_at) return noc('done', 'This merge has already been undone.'); mu.undone_at = new Date().toISOString(); mu.undone_by = 'Test Manager'; mu.undo_result = { details_kept: ['email'] }; delete CM.merged[mu.merged.id]; return okc({ result: { details_kept: ['email'] } }); }
+        if (fn === 'customer_pair_dismiss') { CM.dismissed.push({ id: 'd' + (++CM.n), at: new Date().toISOString(), by: 'Test Manager', note: args.p_note, a: { customer_no: 101, full_name: 'Test Customer A' }, b: { customer_no: 102, full_name: 'Test Customer B' } }); return okc({}); }
+        if (fn === 'customer_pair_undismiss') { CM.dismissed.forEach(function (d) { if (d.id === args.p_id) d.undone = true; }); return okc({}); }
       }
       if (fn === 'customer_sheet_orders') return Promise.resolve({ data: { ok: true, orders: args.p_customer === 'c1' ? [{ rec_key: 'sheet:walkin|2025-11-02T01:00:00Z', reference: 'W-0412', source: 'Walk-in sheet', fulfil_date: '2025-11-03', cake: 'Black Forest', size_inch: 8, value: 85, name_on_sheet: 'TEST CUST A', how: 'auto_match' }] : [] } });
       if (fn === 'customer_history') { var rl2 = window.__role || 'manager'; if (rl2 !== 'manager' && rl2 !== 'admin') return Promise.resolve({ data: { ok: false, message: 'Only a manager can see the change history.' } }); return Promise.resolve({ data: { ok: true, changes: custHistory } }); }
