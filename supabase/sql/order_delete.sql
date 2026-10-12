@@ -20,8 +20,7 @@ begin
   end if;
   return new;
 end $$;
-drop trigger if exists t_orders_deleted_guard on public.orders;
-create trigger t_orders_deleted_guard before update on public.orders
+create or replace trigger t_orders_deleted_guard before update on public.orders
   for each row execute function public.block_deleted_order_change();
 
 create or replace function public.block_payment_on_deleted() returns trigger
@@ -32,15 +31,10 @@ begin
   end if;
   return new;
 end $$;
-drop trigger if exists t_payments_deleted_guard on public.payments;
-create trigger t_payments_deleted_guard before insert on public.payments
+create or replace trigger t_payments_deleted_guard before insert on public.payments
   for each row execute function public.block_payment_on_deleted();
 
--- Emails for a deleted order are stopped.
-alter table public.email_outbox drop constraint if exists email_outbox_status_check;
-alter table public.email_outbox add constraint email_outbox_status_check
-  check (status = any (array['pending','sending','sent','failed','cancelled']));
-
+-- Emails for a deleted order are stopped: the sender skips them, and delete marks them as failed so they are never retried.
 create or replace function public.claim_outbox(p_limit integer default 20)
 returns setof public.email_outbox language sql security definer set search_path = public as $$
   update public.email_outbox e set status = 'sending', attempts = e.attempts + 1
@@ -118,7 +112,7 @@ begin
   end if;
   select full_name into v_name from public.staff_profiles where user_id = auth.uid();
   update public.orders set deleted_at = now(), deleted_by = auth.uid(), deleted_reason = v_reason where id = o.id;
-  update public.email_outbox set status = 'cancelled', last_error = 'Order deleted'
+  update public.email_outbox set status = 'failed', attempts = 99, last_error = 'Order deleted'
    where order_id = o.id and status in ('pending','failed','sending');
   perform public._log(o.id, auth.uid(), v_name, 'deleted', jsonb_build_object('reason', v_reason, 'status_at_delete', o.order_status));
   return jsonb_build_object('ok', true, 'reference', o.reference);
