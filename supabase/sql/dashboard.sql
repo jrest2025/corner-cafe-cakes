@@ -2,7 +2,7 @@
 -- Test orders are flagged and left out. Only admins and the marketing role can read it.
 
 alter table public.orders add column if not exists is_test boolean not null default false;
-update public.orders set is_test = true where reference in ('CC-1001', 'CC-1007');
+update public.orders set is_test = true where reference in ('CC-1001', 'CC-1007', 'CC-1008', 'CC-1016');
 
 create or replace function public.dashboard_data()
 returns jsonb
