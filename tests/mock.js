@@ -59,6 +59,24 @@
   ];
   var regDecisions = [];
   var cust = [{ id: 'c1', full_name: 'Test Customer A', phone: '912 0001', email: 'a@example.com', preferred_contact: 'whatsapp' }, { id: 'c2', full_name: 'Test Customer B', phone: '912 0002' }];
+  var prof = {
+    c1: { id: 'c1', customer_no: 101, full_name: 'Test Customer A', phone: '912 0001', alt_phone: null, email: 'a@example.com', preferred_contact: 'whatsapp', is_corporate: false, company: null, delivery_address: null, birth_day: null, birth_month: null, preferences: null, notes: 'Prefers less sweet icing', version: 3, review_flag: null, review_note: null, archived_at: null },
+    c2: { id: 'c2', customer_no: 102, full_name: 'Test Customer B', phone: '912 0002', alt_phone: null, email: null, preferred_contact: 'whatsapp', is_corporate: false, company: null, delivery_address: null, birth_day: null, birth_month: null, preferences: null, notes: null, version: 1, review_flag: 'possible_duplicate', review_note: 'Same mobile number as 1 other profile with a different name. Check whether this is the same person.', archived_at: null }
+  };
+  var consentLog = [
+    { customer_id: 'c1', channel: 'whatsapp', destination: '6799120001', granted: true, needs_reconfirm: true, source: 'Brought over from the first consent record', recorded_at: '2026-01-10T00:00:00Z' },
+    { customer_id: 'c1', channel: 'sms', destination: '6799120001', granted: true, needs_reconfirm: true, source: 'Brought over from the first consent record', recorded_at: '2026-01-10T00:00:00Z' }
+  ];
+  var custHistory = [{ at: '2026-10-01T02:00:00Z', by: 'Test Manager', field: 'notes', from: null, to: 'Prefers less sweet icing' }];
+  function pkey(p) { var d = String(p || '').replace(/\D/g, ''); return d.length === 7 ? '679' + d : d; }
+  function consentNow(id) {
+    var c = prof[id] || {}, seen = {}, out = [];
+    consentLog.filter(function (l) { return l.customer_id === id; }).slice().reverse().forEach(function (l) {
+      var k = l.channel + '|' + l.destination; if (seen[k]) return; seen[k] = 1;
+      out.push(Object.assign({}, l, { brand_code: 'corner-cafe', applies: l.destination === (l.channel === 'email' ? (c.email || '').toLowerCase() : pkey(c.phone)) }));
+    });
+    return out;
+  }
   var orders = [
     { id: 'o1', reference: 'CC-1001', order_status: 'awaiting_review', payment_status: 'unpaid', order_type: 'standard', source: 'online', created_at: new Date().toISOString(), required_date: add(2), required_time: '14:00:00', estimate_total: 68, final_total: null, deposit_required: null, has_dietary: true, rush_override: false, version: 1, customer_id: 'c1', customers: cust[0], order_items: [{ product_name: 'Chocolate, Mudcake or Mocha', variant: 'Mudcake', size_inch: 8, quantity: 1, finish: 'standard', occasion: 'Birthday', cake_message: 'Happy 30th', dietary: ['Nut allergy'], serves_label: 'About 12–16 slices' }], order_events: [{ at: new Date().toISOString(), kind: 'created', actor_label: 'Guest (online)', detail: { source: 'online' } }], order_attachments: [], payments: [] },
     { id: 'o2', reference: 'CC-1002', order_status: 'awaiting_quote', payment_status: 'unpaid', order_type: 'custom', source: 'online', created_at: new Date().toISOString(), required_date: add(6), required_time: '11:00:00', estimate_total: 95, final_total: null, has_dietary: false, version: 1, customer_id: 'c2', customers: cust[1], order_items: [{ product_name: 'Cheesecake', size_inch: 8, quantity: 1, finish: 'custom', design_description: 'Gold and white, number 50 topper' }], order_events: [], order_attachments: [], payments: [] },
@@ -81,13 +99,14 @@
     Object.assign(snap(orders[1]), { id: 'o5', reference: 'CC-1012', date: T, status: 'completed', stage: 'ready', brief_version: 1, handed_over_at: new Date().toISOString(), late: false })
   ];
   var summary = [
-    { id: 'c1', full_name: 'Test Customer A', phone: '912 0001', email: 'a@example.com', orders_count: 4, completed_count: 3, completed_spend: 214, average_spend: 71.33, cancelled_count: 0, last_order_at: new Date().toISOString(), favourite_cake: 'Mudcake', occasions: ['Birthday'], marketing_opt_in: true, seg_repeat: true, seg_birthday_buyer: true, seg_upcoming_occasion: true, next_occasion_date: add(12), first_source: 'online' },
-    { id: 'c2', full_name: 'Test Customer B', phone: '912 0002', orders_count: 1, completed_count: 0, completed_spend: 0, cancelled_count: 0, last_order_at: new Date().toISOString(), favourite_cake: null, occasions: [], marketing_opt_in: false, first_source: 'online' }
+    { id: 'c1', full_name: 'Test Customer A', phone: '912 0001', email: 'a@example.com', orders_count: 4, completed_count: 3, completed_spend: 214, average_spend: 71.33, cancelled_count: 0, last_order_at: new Date().toISOString(), favourite_cake: 'Mudcake', occasions: ['Birthday'], marketing_opt_in: true, consent_whatsapp: true, consent_sms: true, consent_reconfirm: true, customer_no: 101, seg_repeat: true, seg_birthday_buyer: true, seg_upcoming_occasion: true, next_occasion_date: add(12), first_source: 'online' },
+    { id: 'c2', full_name: 'Test Customer B', phone: '912 0002', orders_count: 1, completed_count: 0, completed_spend: 0, cancelled_count: 0, last_order_at: new Date().toISOString(), favourite_cake: null, occasions: [], marketing_opt_in: false, customer_no: 102, first_source: 'online' }
   ];
   var calls = window.__calls = [];
   function result(table, st) {
     if (table === 'staff_profiles') return { data: { user_id: 'u1', full_name: 'Test Manager', role: window.__role || 'manager', active: true } };
     if (table === 'orders') {
+      if (window.__contactDiff) { orders[0].contact_name = 'Sam Collecting'; orders[0].contact_phone = '912 0777'; orders[0].contact_email = null; }
       var lk = st.filters.filter(function (f) { return f[0] === 'ilike:reference'; })[0], ink = st.filters.filter(function (f) { return f[0] === 'in:customer_id'; })[0];
       if (lk) return { data: lk[1].toUpperCase().indexOf('0500') > -1 ? [older] : [] };
       if (ink) return { data: ink[1].indexOf('c1') > -1 ? [older, orders[0]] : [] };
@@ -102,8 +121,9 @@
       return { data: orders };
     }
     if (table === 'customer_summary') { var i = st.filters.filter(function (f) { return f[0] === 'id'; })[0]; return { data: i ? summary.filter(function (s) { return s.id === i[1]; })[0] : summary }; }
-    if (table === 'customers') return { data: Object.assign({}, cust[0], { notes: 'Prefers less sweet icing' }) };
-    if (table === 'customer_consents') return { data: [{ granted: true, source: 'Online cake order form', recorded_at: new Date().toISOString() }] };
+    if (table === 'customers') { var ci2 = st.filters.filter(function (f) { return f[0] === 'id'; })[0]; return { data: Object.assign({}, prof[ci2 ? ci2[1] : 'c1']) }; }
+    if (table === 'consent_now') { var cn2 = st.filters.filter(function (f) { return f[0] === 'customer_id'; })[0]; return { data: consentNow(cn2[1]) }; }
+    if (table === 'marketing_consents') { var cm2 = st.filters.filter(function (f) { return f[0] === 'customer_id'; })[0]; return { data: consentLog.filter(function (l) { return l.customer_id === cm2[1]; }).slice().reverse() }; }
     if (table === 'locations') return { data: { id: 'l1', accepts_online: true, lead_days_standard: 2, lead_days_custom: 5, max_days_ahead: 90, collection_open: '09:00:00', collection_close: '20:00:00', slot_minutes: 60, daily_capacity: null, defaults_confirmed: false } };
     if (table === 'closed_dates') return { data: [] };
     if (table === 'delivery_zones') return { data: [{ id: 'z1', name: 'Nadi town', fee: 10, active: true, sort: 1 }, { id: 'z2', name: 'Denarau', fee: 15, active: true, sort: 2 }, { id: 'z3', name: 'Other area', fee: null, active: true, sort: 9 }] };
@@ -156,6 +176,17 @@
       if (fn === 'admin_restore_order') { calls.push(['rpc', fn, args]); var dx = (window.__deleted || []).filter(function (x) { return x.id === args.p_order; })[0]; window.__deleted = window.__deleted.filter(function (x) { return x !== dx; }); orders.push(dx.o); return Promise.resolve({ data: { ok: true, reference: dx.reference } }); }
       calls.push(['rpc', fn, args]);
       if (fn === 'get_order_setup') return Promise.resolve({ data: setup });
+      if (fn === 'staff_update_customer') {
+        var pc = prof[args.p_customer], chg = args.p_changes || {};
+        if (window.__custStale && !window.__custStaleDone) { window.__custStaleDone = true; pc.version += 1; return Promise.resolve({ data: { ok: false, error: 'changed', message: 'Someone else changed this customer while you had it open. Your typing is kept. Check their latest details, then save again.', current: Object.assign({}, pc) } }); }
+        if (args.p_version !== pc.version) return Promise.resolve({ data: { ok: false, error: 'changed', message: 'Someone else changed this customer while you had it open. Your typing is kept. Check their latest details, then save again.', current: Object.assign({}, pc) } });
+        if ('birth_day' in chg && chg.birth_month === 2 && chg.birth_day > 29) return Promise.resolve({ data: { ok: false, error: 'birthday', field: 'birthday', message: 'That day does not exist in that month.' } });
+        var oldKey = pkey(pc.phone); Object.keys(chg).forEach(function (k) { pc[k] = chg[k] === '' ? null : chg[k]; }); pc.version += 1;
+        var moved = 'phone' in chg && pkey(chg.phone) !== oldKey && consentNow(args.p_customer).some(function (k) { return k.granted && k.destination === oldKey; });
+        return Promise.resolve({ data: { ok: true, version: pc.version, changed: Object.keys(chg), orders_updated: args.p_active_orders ? 2 : 0, shared_phone: 0, consent_not_moved: moved } });
+      }
+      if (fn === 'customer_history') { var rl2 = window.__role || 'manager'; if (rl2 !== 'manager' && rl2 !== 'admin') return Promise.resolve({ data: { ok: false, message: 'Only a manager can see the change history.' } }); return Promise.resolve({ data: { ok: true, changes: custHistory } }); }
+      if (fn === 'staff_set_channel_consent') { var pc2 = prof[args.p_customer]; args.p_channels.forEach(function (ch) { consentLog.push({ customer_id: args.p_customer, channel: ch, destination: ch === 'email' ? (pc2.email || '').toLowerCase() : pkey(pc2.phone), granted: args.p_granted, needs_reconfirm: false, source: 'Staff: Test Manager recorded a ' + (args.p_granted ? 'yes' : 'no'), recorded_at: new Date().toISOString() }); }); return Promise.resolve({ data: { ok: true, recorded: args.p_channels.length } }); }
       if (fn === 'staff_search_customers') return Promise.resolve({ data: (args.q.indexOf('0001') > -1 || args.q.toLowerCase().indexOf('customer a') > -1) ? [summary[0]] : [] });
       if (fn === 'calendar_counts') { var m = {}; orders.forEach(function (o) { if (o.order_status === 'cancelled' || o.order_status === 'declined' || o.required_date < args.p_from || o.required_date > args.p_to) return; var r = m[o.required_date] = m[o.required_date] || { day: o.required_date, orders: 0, cakes: 0, deliveries: 0, attention: 0, done: 0 }; r.orders++; r.cakes += o.order_items.reduce(function (s, i) { return s + (i.quantity || 1); }, 0); if (['awaiting_review', 'awaiting_quote', 'awaiting_deposit'].indexOf(o.order_status) > -1) r.attention++; }); return Promise.resolve({ data: Object.keys(m).map(function (k) { return m[k]; }) }); }
       if (fn === 'staff_create_order' && window.__createFail) return Promise.reject(new Error('Failed to fetch'));

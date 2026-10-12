@@ -223,12 +223,22 @@
   }
 
   // ---------- orders ----------
-  var ORDER_LIST = 'id,reference,revision,order_status,payment_status,production_status,fulfilment_method,delivery_zone,order_type,source,required_date,required_time,estimate_total,final_total,deposit_required,has_dietary,rush_override,created_at,customers(full_name,phone),order_items(product_name,variant,size_inch,quantity,finish,occasion)';
+  var ORDER_LIST = 'id,reference,revision,order_status,payment_status,production_status,fulfilment_method,delivery_zone,order_type,source,required_date,required_time,estimate_total,final_total,deposit_required,has_dietary,rush_override,created_at,contact_name,contact_phone,contact_email,customers(full_name,phone),order_items(product_name,variant,size_inch,quantity,finish,occasion)';
+  // Each order keeps its own contact details. Show those, and keep the profile for the link and comparison.
+  function withContact(r) {
+    var rows = r && r.data ? (Array.isArray(r.data) ? r.data : [r.data]) : [];
+    rows.forEach(function (o) {
+      if (!o || !o.contact_name || o.profile !== undefined) return;
+      o.profile = o.customers || null;
+      o.customers = Object.assign({}, o.customers || {}, { full_name: o.contact_name, phone: o.contact_phone || '', email: o.contact_email || null });
+    });
+    return r;
+  }
   function loadOrders(silent) {
     var from = addDays(today(), -45);
     return sb.from('orders').select(ORDER_LIST).or('required_date.gte.' + from + ',order_status.in.(' + NEEDS.join(',') + ')')
       .order('required_date', { ascending: true }).order('required_time', { ascending: true }).limit(400)
-      .then(function (r) {
+      .then(withContact).then(function (r) {
         if (r.error) throw r.error;
         var before = S.orders.filter(function (o) { return NEEDS.indexOf(o.order_status) > -1; }).length;
         S.orders = r.data || []; S.loaded = true;
@@ -246,12 +256,12 @@
     S.older = { q: q, loading: true, rows: [] };
     olderTimer = setTimeout(function () {
       var safe = q.replace(/[%_,()*]/g, ' ').trim();
-      var byRef = sb.from('orders').select(ORDER_LIST).ilike('reference', '%' + safe + '%').order('required_date', { ascending: false }).limit(20);
+      var byRef = sb.from('orders').select(ORDER_LIST).ilike('reference', '%' + safe + '%').order('required_date', { ascending: false }).limit(20).then(withContact);
       var byCust = sb.rpc('staff_search_customers', { q: q });
       Promise.all([byRef, byCust]).then(function (rs) {
         if (rs[0].error) throw rs[0].error; if (rs[1].error) throw rs[1].error;
         var ids = (rs[1].data || []).map(function (c) { return c.id; });
-        var more = ids.length ? sb.from('orders').select(ORDER_LIST).in('customer_id', ids).order('required_date', { ascending: false }).limit(40) : Promise.resolve({ data: [] });
+        var more = ids.length ? sb.from('orders').select(ORDER_LIST).in('customer_id', ids).order('required_date', { ascending: false }).limit(40).then(withContact) : Promise.resolve({ data: [] });
         return more.then(function (r2) {
           if (r2.error) throw r2.error;
           if (!S.older || S.older.q !== q) return;
@@ -394,7 +404,7 @@
   function openOrder(id) {
     S.sheet = { type: 'order', id: id, data: null, photos: [], showHistory: false }; S.panel = null; S.panelErr = null; S.dirty = {};
     sheetOpen(); renderSheet();
-    return sb.from('orders').select('*, customers(*), order_items(*), order_events(*), order_attachments(*), payments(*), order_amendments(*)').eq('id', id).single().then(function (r) {
+    return sb.from('orders').select('*, customers(*), order_items(*), order_events(*), order_attachments(*), payments(*), order_amendments(*)').eq('id', id).single().then(withContact).then(function (r) {
       if (r.error) throw r.error;
       if (!S.sheet || S.sheet.id !== id) return;
       S.sheet.data = r.data;
@@ -501,6 +511,7 @@
     if (c) {
       h += '<section class="ccs-box"><h3>Customer</h3><p class="ccs-big">' + esc(c.full_name) + '</p><dl class="ccs-kv">' +
         kv('Mobile', c.phone + (c.preferred_contact === 'whatsapp' ? ' (WhatsApp)' : '')) + kv('Email', c.email) + kv('Ordered via', SOURCE_LABEL[o.source]) +
+        (o.profile && o.profile.full_name && o.profile.full_name !== c.full_name ? kv('Profile name', o.profile.full_name + ' (the name on this order is kept as it was)') : '') +
         (S.sheet.custOrders != null ? kv('History', S.sheet.custOrders > 1 ? 'Returning customer, ' + S.sheet.custOrders + ' orders' : 'First order') : '') + '</dl>' +
         '<div class="ccs-actions-row"><a class="ccs-btn ccs-ghost" href="' + esc(waLink(c.phone)) + '" target="_blank" rel="noopener">WhatsApp</a><a class="ccs-btn ccs-ghost" href="tel:' + esc(digits(c.phone)) + '">Call</a>' +
         (can('manager', 'front_of_house', 'finance', 'marketing') ? '<button type="button" class="ccs-btn ccs-ghost" data-act="open-customer" data-id="' + c.id + '">Customer profile</button>' : '') + '</div></section>';
@@ -797,7 +808,7 @@
     var i = (o.order_items || [])[0] || {}, c = o.customers || {}, pr = (S.setup.products || []).filter(function (p) { return p.name === i.product_name; })[0];
     var v = { date: o.required_date, time: String(o.required_time).slice(0, 5), product: pr ? pr.code : '', variant: i.variant || '', size: String(i.size_inch || ''), qty: String(i.quantity || 1),
       finish: i.finish || 'standard', design: i.design_description || '', message: i.cake_message || '', occasion: i.occasion || '', diet: o.has_dietary ? 'yes' : 'no',
-      diets: (i.dietary || []).slice(), dietNote: i.dietary_note || '', knotes: i.kitchen_notes || '', cnotes: o.customer_notes || '', cname: c.full_name || '', cemail: c.email || '', price: '' };
+      diets: (i.dietary || []).slice(), dietNote: i.dietary_note || '', knotes: i.kitchen_notes || '', cnotes: o.customer_notes || '', cname: c.full_name || '', cemail: c.email || '', cphone: c.phone || '', price: '' };
     return Object.assign({ orig: JSON.parse(JSON.stringify(v)), by: null, reason: '', preview: null, open: { when: true } }, v);
   }
   function amendSet(f, v) {
@@ -825,6 +836,7 @@
     if (a.cnotes !== o0.cnotes) ch.customer_notes = a.cnotes;
     if (a.cname !== o0.cname) ch.customer_name = a.cname;
     if (a.cemail !== o0.cemail) ch.customer_email = a.cemail;
+    if (a.cphone !== o0.cphone) ch.customer_phone = a.cphone;
     if (String(a.price).trim() !== '') ch.price = num(a.price);
     return ch;
   }
@@ -878,8 +890,9 @@
       (a.diet === 'yes' ? '<div class="ccs-chips">' + DIETS.map(function (x) { return '<button type="button" class="ccs-chip" data-act="am-diet" data-v="' + esc(x) + '" aria-pressed="' + (a.diets.indexOf(x) > -1) + '">' + esc(x) + '</button>'; }).join('') + '</div>' + fld('am-dnote', 'dietNote', 'Details for the kitchen', a.dietNote) : ''));
     h += sec('notes', 'Kitchen instructions and notes', a.knotes || a.cnotes ? 'Has notes' : 'None',
       area('am-knotes', 'knotes', 'Kitchen instructions', a.knotes, 'Filling, frosting, extras') + area('am-cnotes', 'cnotes', 'Order notes', a.cnotes));
-    h += sec('cust', 'Customer contact', a.cname + (a.cemail ? ' · ' + a.cemail : ''),
-      '<div class="ccs-row">' + fld('am-cname', 'cname', 'Name', a.cname) + fld('am-cemail', 'cemail', 'Email', a.cemail, ' type="email"') + '</div><p class="ccs-hint">This updates the customer record on all their orders. To change the mobile number, create the order under the right customer.</p>');
+    h += sec('cust', 'Contact on this order', a.cname + (a.cphone ? ' · ' + a.cphone : '') + (a.cemail ? ' · ' + a.cemail : ''),
+      '<div class="ccs-row">' + fld('am-cname', 'cname', 'Name', a.cname) + fld('am-cphone', 'cphone', 'Mobile', a.cphone, ' inputmode="tel"') + '</div>' + fld('am-cemail', 'cemail', 'Email', a.cemail, ' type="email"') +
+      '<p class="ccs-hint">Changes this order only. The customer profile stays as it is. To change the profile, open Customer profile.</p>');
     if (can('manager')) h += sec('price', 'Agreed price', a.price ? money(num(a.price)) + ' (set by you)' : money(total) + ' now',
       fld('am-price', 'price', 'New agreed price (FJD)', a.price, ' inputmode="decimal" placeholder="Leave blank to recalculate from the price list"') + '<p class="ccs-hint">Payments already recorded are never changed.</p>');
     h += '<div class="ccs-field"><span class="ccs-label">Who asked for the change?</span><div class="ccs-chips">' + [['guest', 'Guest'], ['staff', 'Our team'], ['other', 'Someone else']].map(function (x) { return chip('by', x[0], x[1], a.by === x[0]); }).join('') + '</div>' +
@@ -893,7 +906,7 @@
     (r.warnings || []).forEach(function (w) { h += '<p class="ccs-note">' + esc(w) + '</p>'; });
     if (r.kitchen_ack_required) h += '<p class="ccs-note">The kitchen has started this cake. They will be asked to confirm they have seen the change.</p>';
     if (r.needs_reprint) h += '<p class="ccs-note">A kitchen brief was printed. Print the new version after saving and throw the old one away.</p>';
-    if (r.customer_record) h += '<p class="ccs-hint">The customer record changes on all their orders.</p>';
+    if (r.contact_only) h += '<p class="ccs-hint">Contact changes apply to this order only. The customer profile is not changed.</p>';
     if (r.time_change_cause === 'business_delay') h += '<p class="ccs-hint">Recorded as our delay. The original time is kept.</p>';
     h += '<p class="ccs-hint">Requested by ' + ({ guest: 'the guest', staff: 'our team', other: 'someone else' })[S.am.by] + '. Reason: ' + esc(S.am.reason.trim()) + '</p>';
     h += '<p class="ccs-hint">' + (S.setup && S.setup.guest_emails ? 'The customer is not emailed about changes yet.' : 'Guest emails are off. Tell the customer by WhatsApp or phone after saving.') + '</p>';
@@ -1198,7 +1211,7 @@
 
   // ---------- calendar ----------
   // Pickup calendar: Year, Month, Week and Day. Dates are the scheduled collection or delivery date (business time zone).
-  var CAL_LIST = 'id,reference,revision,order_status,payment_status,production_status,fulfilment_method,delivery_zone,source,required_date,required_time,estimate_total,final_total,has_dietary,rush_override,customer_notes,customers(full_name,phone),order_items(product_name,variant,size_inch,quantity,finish,design_description,cake_message,dietary,dietary_note),order_amendments(kitchen_ack_required,kitchen_ack_at)';
+  var CAL_LIST = 'id,reference,revision,order_status,payment_status,production_status,fulfilment_method,delivery_zone,source,required_date,required_time,estimate_total,final_total,has_dietary,rush_override,customer_notes,contact_name,contact_phone,contact_email,customers(full_name,phone),order_items(product_name,variant,size_inch,quantity,finish,design_description,cake_message,dietary,dietary_note),order_amendments(kitchen_ack_required,kitchen_ack_at)';
   var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   var WD = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   var CAL_STATUS = [['active', 'All active orders'], ['needs', 'Needs action'], ['confirmed', 'Confirmed'], ['done', 'Handed over'], ['off', 'Cancelled or declined']];
@@ -1260,7 +1273,7 @@
     if (key !== c.range || !silent) { c.loading = key !== c.range; c.err = false; if (key !== c.range) c.rows = []; calRefresh(); }
     return sb.from('orders').select(CAL_LIST).gte('required_date', rg[0]).lte('required_date', rg[1])
       .order('required_date', { ascending: true }).order('required_time', { ascending: true }).limit(1000)
-      .then(function (r) {
+      .then(withContact).then(function (r) {
         if (seq !== c.seq) return; if (r.error) throw r.error;
         c.rows = r.data || []; c.range = key; c.loading = false; c.err = false; calRefresh();
       }).catch(function (e) {
@@ -1505,7 +1518,7 @@
     var w = S.wl[d];
     if (!w || (w.at && Date.now() - w.at > 60000 && !w.loading)) {
       S.wl[d] = { loading: true, at: w && w.at, rows: w && w.rows };
-      sb.from('orders').select(CAL_LIST).eq('required_date', d).limit(300).then(function (r) {
+      sb.from('orders').select(CAL_LIST).eq('required_date', d).limit(300).then(withContact).then(function (r) {
         if (r.error) throw r.error; S.wl[d] = { at: Date.now(), rows: r.data || [] };
         if (newOpen() && D.step === 3 && D.date === d) refreshStep();
       }).catch(function (e) { console.error(e); S.wl[d] = { at: Date.now(), err: true }; if (newOpen() && D.step === 3 && D.date === d) refreshStep(); });
@@ -1542,7 +1555,7 @@
   function customersView() {
     var c = S.cust;
     var h = '<div class="ccs-head"><div><h1 class="ccs-title">Customers</h1><p class="ccs-sub">Built from every online and counter order. Spend counts collected orders only.</p></div>' +
-      '<input class="ccs-input ccs-search" id="ccs-cq" type="search" placeholder="Search mobile or name" value="' + esc(c.q) + '"></div>' +
+      '<input class="ccs-input ccs-search" id="ccs-cq" type="search" placeholder="Search name, mobile, email, company, C-number or order number" value="' + esc(c.q) + '"></div>' +
       '';
     var tool = function (rows, opted) {
       return '<div class="ccs-ctool"><label class="ccs-show" for="ccs-seg"><span>Show</span><select class="ccs-input" id="ccs-seg">' + SEGS.map(function (s) { return '<option value="' + s[0] + '"' + (c.seg === s[0] && !c.q ? ' selected' : '') + '>' + (s[0] === 'all' ? 'All customers' : s[1]) + '</option>'; }).join('') + '</select></label>' +
@@ -1555,22 +1568,48 @@
     if (!rows.length) return h + '<div class="ccs-empty"><b>No customers in this group yet.</b><span>Customers are added automatically when an order is placed.</span></div>';
     h += '<div class="ccs-table-wrap"><table class="ccs-table"><thead><tr><th>Customer</th><th>Mobile</th><th class="ccs-num">Orders</th><th class="ccs-num">Spend</th><th>Last order</th><th>Usually orders</th><th>Marketing</th></tr></thead><tbody>' +
       rows.map(function (r) {
-        return '<tr class="ccs-click" data-act="open-customer" data-id="' + r.id + '"><td data-label="Customer"><b style="color:var(--ccs-ink)">' + esc(r.full_name) + '</b>' + (r.seg_upcoming_occasion ? '<br><span class="ccs-pill s-deposit">Occasion ' + esc(nice(r.next_occasion_date)) + '</span>' : '') + '</td><td data-label="Mobile">' + esc(r.phone) + '</td><td class="ccs-num" data-label="Orders">' + r.orders_count + '</td><td class="ccs-num" data-label="Spend">' + money(r.completed_spend) + '</td><td data-label="Last order">' + (r.last_order_at ? esc(stamp(r.last_order_at).split(',')[0]) : '—') + '</td><td data-label="Usually orders">' + esc(r.favourite_cake || '—') + '</td><td data-label="Marketing">' + (r.marketing_opt_in ? '<span class="ccs-pill s-good">Opted in</span>' : '<span class="ccs-quiet-no">No</span>') + '</td></tr>';
+        return '<tr class="ccs-click" data-act="open-customer" data-id="' + r.id + '"><td data-label="Customer"><b style="color:var(--ccs-ink)">' + esc(r.full_name) + '</b>' + (r.seg_upcoming_occasion ? '<br><span class="ccs-pill s-deposit">Occasion ' + esc(nice(r.next_occasion_date)) + '</span>' : '') + '</td><td data-label="Mobile">' + esc(r.phone) + '</td><td class="ccs-num" data-label="Orders">' + r.orders_count + '</td><td class="ccs-num" data-label="Spend">' + money(r.completed_spend) + '</td><td data-label="Last order">' + (r.last_order_at ? esc(stamp(r.last_order_at).split(',')[0]) : '—') + '</td><td data-label="Usually orders">' + esc(r.favourite_cake || '—') + '</td><td data-label="Marketing">' + (r.marketing_opt_in ? (r.consent_reconfirm ? '<span class="ccs-pill s-deposit">Yes, reconfirm</span>' : '<span class="ccs-pill s-good">Opted in</span>') : '<span class="ccs-quiet-no">No</span>') + '</td></tr>';
       }).join('') + '</tbody></table></div>';
     return h;
   }
-  function openCustomer(id) {
-    S.sheet = { type: 'customer', id: id, data: null, edit: false }; S.panelErr = null; S.dirty = {}; sheetOpen(); renderSheet();
-    Promise.all([
+  // ---------- customer profile ----------
+  // Edits go through staff_update_customer: version-checked, validated, every field kept in the change history.
+  // Orders keep the contact they were placed with unless staff choose to update open orders.
+  var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  var CHANNELS = [['whatsapp', 'WhatsApp'], ['sms', 'SMS'], ['email', 'Email'], ['call', 'Phone call']];
+  var FIELD_LABEL = { full_name: 'Name', phone: 'Mobile', alt_phone: 'Other number', email: 'Email', preferred_contact: 'Best way to reach them', company: 'Company',
+    is_corporate: 'Corporate customer', delivery_address: 'Delivery address', birth_day: 'Birthday day', birth_month: 'Birthday month', preferences: 'Preferences',
+    notes: 'Service notes', review_flag: 'Review flag', review_note: 'Review note', archived_at: 'Archived', merged_into: 'Merged into' };
+  var OPEN_STATUSES = ['awaiting_review', 'awaiting_quote', 'awaiting_approval', 'awaiting_deposit', 'confirmed'];
+  function custNo(n) { return n != null ? 'C-' + n : ''; }
+  function birthday(d, m) { return d && m ? d + ' ' + MONTHS[m - 1] : ''; }
+  function openCustomer(id, keepEdit) {
+    var keep = keepEdit && S.sheet && S.sheet.type === 'customer' && S.sheet.id === id;
+    if (!keep) { S.sheet = { type: 'customer', id: id, data: null, edit: false }; S.panelErr = null; S.dirty = {}; sheetOpen(); }
+    renderSheet();
+    return Promise.all([
       sb.from('customer_summary').select('*').eq('id', id).single(),
-      sb.from('customers').select('id,full_name,email,preferred_contact,is_corporate,company,notes').eq('id', id).single(),
-      sb.from('orders').select('id,reference,order_status,fulfilment_method,required_date,estimate_total,final_total,source,order_items(product_name,variant,size_inch,occasion)').eq('customer_id', id).order('required_date', { ascending: false }).limit(100),
-      sb.from('customer_consents').select('granted,source,recorded_at').eq('customer_id', id).order('recorded_at', { ascending: false }).limit(5)
+      sb.from('customers').select('id,customer_no,full_name,phone,alt_phone,email,preferred_contact,is_corporate,company,delivery_address,birth_day,birth_month,preferences,notes,version,review_flag,review_note,archived_at').eq('id', id).single(),
+      sb.from('orders').select('id,reference,order_status,fulfilment_method,required_date,estimate_total,final_total,source,contact_name,order_items(product_name,variant,size_inch,occasion)').eq('customer_id', id).order('required_date', { ascending: false }).limit(100),
+      can('manager', 'front_of_house', 'marketing') ? sb.from('consent_now').select('channel,destination,granted,needs_reconfirm,source,wording_code,recorded_at,applies,brand_code').eq('customer_id', id).eq('brand_code', 'corner-cafe') : Promise.resolve({ data: [] }),
+      can('manager', 'front_of_house', 'marketing') ? sb.from('marketing_consents').select('channel,destination,granted,needs_reconfirm,source,recorded_at').eq('customer_id', id).order('recorded_at', { ascending: false }).order('id', { ascending: false }).limit(12) : Promise.resolve({ data: [] })
     ]).then(function (rs) {
       rs.forEach(function (r) { if (r.error) throw r.error; });
       if (!S.sheet || S.sheet.id !== id) return;
-      S.sheet.data = { sum: rs[0].data, c: rs[1].data, orders: rs[2].data || [], consents: rs[3].data || [] }; renderSheet();
+      S.sheet.data = { sum: rs[0].data, c: rs[1].data, orders: rs[2].data || [], now: rs[3].data || [], log: rs[4].data || [] }; renderSheet();
     }).catch(fail);
+  }
+  function consentLine(d, ch) {
+    var c = d.c;
+    var rows = d.now.filter(function (k) { return k.channel === ch && k.applies; }), k = rows[0];
+    var target = ch === 'email' ? c.email : c.phone;
+    if (!target) return { text: ch === 'email' ? 'No email on the profile' : 'No mobile number on the profile', cls: 'ccs-quiet-no', none: true };
+    if (!k) {
+      var old = d.now.filter(function (x) { return x.channel === ch && !x.applies && x.granted; }).length;
+      return { text: old ? 'Not asked for this ' + (ch === 'email' ? 'email' : 'number') + '. An earlier yes was for a different one.' : 'Not asked', cls: 'ccs-quiet-no' };
+    }
+    if (!k.granted) return { text: 'No', cls: 'ccs-quiet-no', no: true };
+    return k.needs_reconfirm ? { text: 'Yes, needs reconfirming', cls: 'ccs-pill s-deposit', yes: true, re: true } : { text: 'Yes', cls: 'ccs-pill s-good', yes: true };
   }
   function customerSheet() {
     var d = S.sheet.data;
@@ -1578,32 +1617,113 @@
     var s = d.sum, c = d.c, editor = can('manager', 'front_of_house');
     var segs = [['seg_repeat', 'Repeat'], ['seg_first_time', 'First-time'], ['seg_high_value', 'High value'], ['seg_inactive', 'Inactive'], ['seg_birthday_buyer', 'Birthday buyer'], ['seg_corporate', 'Corporate']].filter(function (x) { return s[x[0]]; });
     var h = sheetHead(esc(c.full_name)) + '<div class="ccs-sheet-body">';
+    h += '<p class="ccs-hint">Customer ' + esc(custNo(c.customer_no)) + (c.archived_at ? ' · Archived' : '') + '</p>';
+    if (c.review_flag === 'possible_duplicate') h += '<p class="ccs-warn"><b>Check for a duplicate.</b> ' + esc(c.review_note || 'Another profile has the same mobile number.') + '</p>';
     h += '<div class="ccs-stats"><div><span>Orders</span><b>' + s.orders_count + '</b></div><div><span>Spend</span><b>' + money(s.completed_spend) + '</b></div><div><span>Average</span><b>' + (s.average_spend != null ? money(s.average_spend) : '—') + '</b></div><div><span>Cancelled</span><b>' + s.cancelled_count + '</b></div></div>';
     if (segs.length || s.seg_upcoming_occasion) h += '<div class="ccs-tags">' + segs.map(function (x) { return '<span class="ccs-pill">' + x[1] + '</span>'; }).join('') + (s.seg_upcoming_occasion ? '<span class="ccs-pill s-deposit">Occasion due ' + esc(nice(s.next_occasion_date)) + '</span>' : '') + '</div>';
-    if (S.sheet.edit) {
-      h += '<section class="ccs-panel"><b>Edit details</b><div class="ccs-row"><div class="ccs-field"><label class="ccs-label" for="ce-name">Name</label><input class="ccs-input" id="ce-name" value="' + esc(c.full_name) + '"></div><div class="ccs-field"><label class="ccs-label" for="ce-email">Email</label><input class="ccs-input" id="ce-email" type="email" value="' + esc(c.email || '') + '"></div></div>' +
-        '<div class="ccs-row"><div class="ccs-field"><label class="ccs-label" for="ce-pref">Best way to reach them</label><select class="ccs-input" id="ce-pref">' + [['whatsapp', 'WhatsApp'], ['phone', 'Phone call'], ['email', 'Email']].map(function (o) { return '<option value="' + o[0] + '"' + (c.preferred_contact === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></div>' +
-        '<div class="ccs-field"><label class="ccs-label" for="ce-company">Company (corporate customers)</label><input class="ccs-input" id="ce-company" value="' + esc(c.company || '') + '"></div></div>' +
-        '<label class="ccs-check"><input type="checkbox" id="ce-corp"' + (c.is_corporate ? ' checked' : '') + '> Corporate customer</label>' +
-        '<div class="ccs-field"><label class="ccs-label" for="ce-notes">Service notes</label><textarea class="ccs-input" id="ce-notes" placeholder="Preferences that help the team. No health or personal details.">' + esc(c.notes || '') + '</textarea></div>' +
-        (S.panelErr ? '<p class="ccs-err">' + esc(S.panelErr) + '</p>' : '') +
-        '<div class="ccs-actions-row"><button type="button" class="ccs-btn ccs-good" data-act="cust-save">Save</button><button type="button" class="ccs-btn ccs-ghost" data-act="cust-edit">Back</button></div></section>';
-    } else {
-      h += '<section class="ccs-box"><h3>Contact</h3><dl class="ccs-kv">' + kv('Mobile', s.phone) + kv('Email', c.email) + kv('Prefers', { whatsapp: 'WhatsApp', phone: 'Phone call', email: 'Email' }[c.preferred_contact]) + kv('Company', c.company) + kv('First came via', SOURCE_LABEL[s.first_source]) + kv('Usually orders', s.favourite_cake) + kv('Occasions', (s.occasions || []).join(', ')) + kv('Notes', c.notes) + '</dl>' +
-        '<div class="ccs-actions-row"><a class="ccs-btn ccs-ghost" href="' + esc(waLink(s.phone)) + '" target="_blank" rel="noopener">WhatsApp</a><a class="ccs-btn ccs-ghost" href="tel:' + esc(digits(s.phone)) + '">Call</a>' + (editor ? '<button type="button" class="ccs-btn ccs-ghost" data-act="cust-edit">Edit details</button>' : '') + '</div></section>';
+    if (S.sheet.edit) h += customerEditor(d);
+    else {
+      h += '<section class="ccs-box"><h3>Contact</h3><dl class="ccs-kv">' + kv('Mobile', c.phone) + kv('Other number', c.alt_phone) + kv('Email', c.email) +
+        kv('Prefers', { whatsapp: 'WhatsApp', phone: 'Phone call', email: 'Email' }[c.preferred_contact]) + kv('Company', c.company) + kv('Delivery address', c.delivery_address) +
+        kv('Birthday', birthday(c.birth_day, c.birth_month)) + kv('Preferences', c.preferences) + kv('Service notes', c.notes) +
+        kv('First came via', SOURCE_LABEL[s.first_source]) + kv('Usually orders', s.favourite_cake) + kv('Occasions', (s.occasions || []).join(', ')) + '</dl>' +
+        '<div class="ccs-actions-row">' + (c.phone ? '<a class="ccs-btn ccs-ghost" href="' + esc(waLink(c.phone)) + '" target="_blank" rel="noopener">WhatsApp</a><a class="ccs-btn ccs-ghost" href="tel:' + esc(digits(c.phone)) + '">Call</a>' : '') +
+        (editor ? '<button type="button" class="ccs-btn ccs-ghost" data-act="cust-edit">Edit details</button>' : '') +
+        (can('manager') ? '<button type="button" class="ccs-btn ccs-ghost" data-act="cust-history">' + (S.sheet.hist ? 'Hide change history' : 'Change history') + '</button>' : '') + '</div></section>';
+      if (S.sheet.hist) h += customerHistory();
     }
-    var last = d.consents[0];
-    h += '<section class="ccs-box"><h3>Marketing</h3><p>' + (s.marketing_opt_in ? '<span class="ccs-pill s-good">Agreed to cake specials and reminders</span>' : '<span class="ccs-pill s-off">Not agreed</span>') + '</p>' +
-      (last ? '<p class="ccs-hint">' + esc(last.source) + ', ' + esc(stamp(last.recorded_at)) + '</p>' : '<p class="ccs-hint">No marketing choice recorded. Only message customers who have agreed.</p>') +
-      (can('manager', 'front_of_house', 'marketing') ? '<button type="button" class="ccs-link' + (s.marketing_opt_in ? ' ccs-red' : '') + '" data-act="consent" data-v="' + (s.marketing_opt_in ? 'false' : 'true') + '">' + (s.marketing_opt_in ? 'Customer asked to stop messages' : 'Customer agreed to receive messages') + '</button>' : '') + '</section>';
-    h += '<section class="ccs-box"><h3>Orders</h3>' + (d.orders.length ? '<div class="ccs-list">' + d.orders.map(function (o) { var i = (o.order_items || [])[0]; return '<button type="button" class="ccs-card k-' + (STATUS[o.order_status] || ['', 'off'])[1] + '" data-act="open-order" data-id="' + o.id + '" style="grid-template-columns:110px minmax(0,1fr) auto"><span class="ccs-when"><b>' + esc(nice(o.required_date)) + '</b><span>' + esc(o.reference) + '</span></span><span class="ccs-what"><b>' + esc(cakeLine(i)) + '</b><span class="ccs-tags">' + pill(o.order_status, o.fulfilment_method) + (i && i.occasion ? '<span class="ccs-pill">' + esc(i.occasion) + '</span>' : '') + '</span></span><span class="ccs-price">' + money(o.final_total != null ? o.final_total : o.estimate_total) + '</span></button>'; }).join('') + '</div>' : '<p class="ccs-hint">No orders.</p>') + '</section>';
+    if (can('manager', 'front_of_house', 'marketing')) {
+      h += '<section class="ccs-box"><h3>Marketing permission: Corner Café</h3><p class="ccs-hint">Only message customers by a channel marked Yes. A yes is kept with the number or email it was given for, so a new number starts at Not asked.</p><dl class="ccs-kv">' +
+        CHANNELS.map(function (ch) {
+          var st = consentLine(d, ch[0]);
+          var btns = st.none ? '' : ' <span class="ccs-consent-acts">' + (st.yes && !st.re ? '' : '<button type="button" class="ccs-link" data-act="consent-ch" data-ch="' + ch[0] + '" data-v="true">' + (st.yes ? 'Customer reconfirmed' : 'Customer said yes') + '</button>') +
+            (st.no ? '' : ' <button type="button" class="ccs-link ccs-red" data-act="consent-ch" data-ch="' + ch[0] + '" data-v="false">' + (st.yes ? 'Customer said stop' : 'Customer said no') + '</button>') + '</span>';
+          return '<dt>' + ch[1] + '</dt><dd><span class="' + st.cls + '">' + esc(st.text) + '</span>' + btns + '</dd>';
+        }).join('') + '</dl>' +
+        (d.log.length ? '<details class="ccs-more"><summary>Permission record</summary><ul class="ccs-plain">' + d.log.map(function (l) {
+          return '<li>' + esc(stamp(l.recorded_at)) + ': ' + esc((CHANNELS.filter(function (x) { return x[0] === l.channel; })[0] || [0, l.channel])[1]) + ' ' + (l.granted ? 'yes' : 'no') + (l.needs_reconfirm ? ' (needs reconfirming)' : '') + ', ' + esc(l.destination) + '. ' + esc(l.source) + '</li>';
+        }).join('') + '</ul></details>' : '') + '</section>';
+    }
+    h += '<section class="ccs-box"><h3>Orders</h3>' + (d.orders.length ? '<div class="ccs-list">' + d.orders.map(function (o) { var i = (o.order_items || [])[0]; return '<button type="button" class="ccs-card k-' + (STATUS[o.order_status] || ['', 'off'])[1] + '" data-act="open-order" data-id="' + o.id + '" style="grid-template-columns:110px minmax(0,1fr) auto"><span class="ccs-when"><b>' + esc(nice(o.required_date)) + '</b><span>' + esc(o.reference) + '</span></span><span class="ccs-what"><b>' + esc(cakeLine(i)) + '</b><span class="ccs-tags">' + pill(o.order_status, o.fulfilment_method) + (i && i.occasion ? '<span class="ccs-pill">' + esc(i.occasion) + '</span>' : '') + (o.contact_name && o.contact_name !== c.full_name ? '<span class="ccs-pill">Ordered as ' + esc(o.contact_name) + '</span>' : '') + '</span></span><span class="ccs-price">' + money(o.final_total != null ? o.final_total : o.estimate_total) + '</span></button>'; }).join('') + '</div>' : '<p class="ccs-hint">No orders.</p>') + '</section>';
     return h + '</div>';
   }
+  function customerEditor(d) {
+    var c = d.c, open = d.orders.filter(function (o) { return OPEN_STATUSES.indexOf(o.order_status) > -1; }).length;
+    var inp = function (id, label, v, extra) { return '<div class="ccs-field"><label class="ccs-label" for="' + id + '">' + label + '</label><input class="ccs-input" id="' + id + '" value="' + esc(v == null ? '' : v) + '"' + (extra || '') + '></div>'; };
+    var ta = function (id, label, v, ph) { return '<div class="ccs-field"><label class="ccs-label" for="' + id + '">' + label + '</label><textarea class="ccs-input" id="' + id + '" placeholder="' + esc(ph || '') + '">' + esc(v || '') + '</textarea></div>'; };
+    var sel = function (id, label, opts, v) { return '<div class="ccs-field"><label class="ccs-label" for="' + id + '">' + label + '</label><select class="ccs-input" id="' + id + '">' + opts.map(function (o) { return '<option value="' + o[0] + '"' + (String(v == null ? '' : v) === String(o[0]) ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></div>'; };
+    var days = [['', 'Day']].concat(Array.apply(null, Array(31)).map(function (x, i) { return [i + 1, String(i + 1)]; }));
+    var months = [['', 'Month']].concat(MONTHS.map(function (m, i) { return [i + 1, m]; }));
+    var h = '<section class="ccs-panel"><b>Edit details</b>' +
+      '<div class="ccs-row">' + inp('ce-name', 'Name', c.full_name, ' autocomplete="off"') + inp('ce-phone', 'Mobile', c.phone, ' inputmode="tel"') + '</div>' +
+      '<div class="ccs-row">' + inp('ce-alt', 'Other number (optional)', c.alt_phone, ' inputmode="tel"') + inp('ce-email', 'Email', c.email, ' type="email"') + '</div>' +
+      '<div class="ccs-row">' + sel('ce-pref', 'Best way to reach them', [['whatsapp', 'WhatsApp'], ['phone', 'Phone call'], ['email', 'Email']], c.preferred_contact) + inp('ce-company', 'Company (corporate customers)', c.company) + '</div>' +
+      '<label class="ccs-check"><input type="checkbox" id="ce-corp"' + (c.is_corporate ? ' checked' : '') + '> Corporate customer</label>' +
+      ta('ce-addr', 'Usual delivery address (optional)', c.delivery_address) +
+      '<div class="ccs-row">' + sel('ce-bday', 'Birthday day (optional)', days, c.birth_day) + sel('ce-bmonth', 'Birthday month', months, c.birth_month) + '</div><p class="ccs-hint">Day and month only. Never ask for the year.</p>' +
+      ta('ce-prefs', 'Preferences', c.preferences, 'For example: less sweet, prefers chocolate, collects after 5pm') +
+      ta('ce-notes', 'Service notes', c.notes, 'Things that help the team. No health or personal details.');
+    if (open) h += '<div class="ccs-field"><span class="ccs-label">If the name, mobile, email or company changes, what about the ' + open + ' open order' + (open > 1 ? 's' : '') + '?</span><div class="ccs-chips">' +
+      '<button type="button" class="ccs-chip" data-act="ce-orders" data-v="profile" aria-pressed="' + (S.sheet.ordersChoice === 'profile') + '">Profile only</button>' +
+      '<button type="button" class="ccs-chip" data-act="ce-orders" data-v="orders" aria-pressed="' + (S.sheet.ordersChoice === 'orders') + '">Also update open orders</button></div>' +
+      '<p class="ccs-hint">Completed and cancelled orders always keep the details they were placed with.</p></div>';
+    if (S.sheet.conflict) h += '<p class="ccs-warn">' + esc(S.sheet.conflict) + '</p>';
+    if (S.panelErr) h += '<p class="ccs-err">' + esc(S.panelErr) + '</p>';
+    return h + '<div class="ccs-actions-row"><button type="button" class="ccs-btn ccs-good" data-act="cust-save">Save</button><button type="button" class="ccs-btn ccs-ghost" data-act="cust-edit">Back</button></div></section>';
+  }
+  function customerHistory() {
+    var hs = S.sheet.hist;
+    if (hs.loading) return '<section class="ccs-box"><h3>Change history</h3><p class="ccs-loading">Loading…</p></section>';
+    var fmt = function (f, v) { if (v == null || v === '') return 'blank'; if (f === 'birth_month') return MONTHS[v - 1] || v; if (typeof v === 'boolean') return v ? 'Yes' : 'No'; return String(v); };
+    return '<section class="ccs-box"><h3>Change history</h3>' + (hs.rows.length ? '<ul class="ccs-plain">' + hs.rows.map(function (r) {
+      return '<li>' + esc(stamp(r.at)) + ', ' + esc(r.by) + ': ' + esc(FIELD_LABEL[r.field] || r.field) + ' from ' + esc(fmt(r.field, r.from)) + ' to ' + esc(fmt(r.field, r.to)) + '</li>';
+    }).join('') + '</ul>' : '<p class="ccs-hint">No changes recorded since the profile was made.</p>') + '</section>';
+  }
+  function loadCustomerHistory() {
+    var id = S.sheet.id; S.sheet.hist = { loading: true, rows: [] }; renderSheet();
+    sb.rpc('customer_history', { p_customer: id }).then(function (r) {
+      if (r.error) throw r.error; if (!r.data.ok) throw new Error(r.data.message);
+      if (S.sheet && S.sheet.id === id) { S.sheet.hist = { rows: r.data.changes || [] }; renderSheet(); }
+    }).catch(function (e) { if (S.sheet) S.sheet.hist = null; fail(e); });
+  }
   function saveCustomer() {
-    var id = S.sheet.id, upd = { full_name: val('ce-name').trim(), email: val('ce-email').trim().toLowerCase() || null, preferred_contact: val('ce-pref'), company: val('ce-company').trim() || null, is_corporate: document.getElementById('ce-corp').checked, notes: val('ce-notes').trim() || null };
-    if (upd.full_name.length < 2) { S.panelErr = 'Enter the customer name.'; return renderSheet(); }
-    if (upd.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(upd.email)) { S.panelErr = 'Check the email address.'; return renderSheet(); }
-    sb.from('customers').update(upd).eq('id', id).then(function (r) { if (r.error) throw r.error; toast('Customer updated'); S.sheet.edit = false; S.panelErr = null; openCustomer(id); if (S.cust.loaded) loadCustomers(); }).catch(fail);
+    var d = S.sheet.data, c = d.c, id = S.sheet.id;
+    var now = { full_name: val('ce-name').trim().replace(/\s+/g, ' '), phone: val('ce-phone').trim(), alt_phone: val('ce-alt').trim(), email: val('ce-email').trim().toLowerCase(),
+      preferred_contact: val('ce-pref'), company: val('ce-company').trim(), is_corporate: document.getElementById('ce-corp').checked, delivery_address: val('ce-addr').trim(),
+      birth_day: val('ce-bday') ? Number(val('ce-bday')) : null, birth_month: val('ce-bmonth') ? Number(val('ce-bmonth')) : null, preferences: val('ce-prefs').trim(), notes: val('ce-notes').trim() };
+    var ch = {}; Object.keys(now).forEach(function (k) { var a = now[k], b = c[k]; if (a === '') a = null; if (b === '') b = null; if (k === 'is_corporate') { a = !!a; b = !!b; } if (a !== (b == null ? null : b)) ch[k] = now[k]; });
+    var keep = function (m) { S.panelErr = m; ['ce-name', 'ce-phone', 'ce-alt', 'ce-email', 'ce-company', 'ce-addr', 'ce-prefs', 'ce-notes'].forEach(function (f) { S.dirty[f] = val(f); }); clearBusy(); renderSheet(); };
+    if (!Object.keys(ch).length) return keep('Nothing has changed.');
+    if (now.full_name.length < 2) return keep('Enter the customer name.');
+    if (now.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(now.email)) return keep('Check the email address.');
+    if ((now.birth_day == null) !== (now.birth_month == null)) return keep('Give both the day and the month, or leave the birthday blank.');
+    var contactChange = ['full_name', 'phone', 'email', 'company'].some(function (k) { return k in ch; });
+    var open = d.orders.filter(function (o) { return OPEN_STATUSES.indexOf(o.order_status) > -1; }).length;
+    if (contactChange && open && !S.sheet.ordersChoice) return keep('Choose whether the open orders should change too.');
+    sb.rpc('staff_update_customer', { p_customer: id, p_version: c.version, p_changes: ch, p_active_orders: contactChange && S.sheet.ordersChoice === 'orders' }).then(function (r) {
+      if (r.error) throw r.error;
+      if (!r.data.ok) {
+        if (r.data.error === 'changed') {
+          keep(null); S.sheet.conflict = r.data.message;
+          var cur = r.data.current || {}; d.c = Object.assign({}, c, { version: cur.version });
+          return openCustomer(id, true);
+        }
+        return keep(r.data.message);
+      }
+      var msg = 'Customer updated.';
+      if (r.data.orders_updated) msg += ' ' + r.data.orders_updated + ' open order' + (r.data.orders_updated > 1 ? 's' : '') + ' updated.';
+      if (r.data.shared_phone) msg += ' This number is also on ' + r.data.shared_phone + ' other profile' + (r.data.shared_phone > 1 ? 's' : '') + '.';
+      if (r.data.consent_not_moved) msg += ' Marketing permission stays with the old number or email. Ask the customer again.';
+      clearBusy(); S.sheet.edit = false; S.sheet.conflict = null; S.sheet.ordersChoice = null; S.sheet.hist = null; S.panelErr = null; S.dirty = {}; toast(msg);
+      openCustomer(id, true); if (S.cust.loaded) loadCustomers();
+    }).catch(function (e) { clearBusy(); fail(e); });
+  }
+  function setChannelConsent(ch, yes) {
+    var id = S.sheet.id;
+    return sb.rpc('staff_set_channel_consent', { p_customer: id, p_channels: [ch], p_granted: yes, p_note: null }).then(function (r) {
+      if (r.error) throw r.error; if (!r.data.ok) throw new Error(r.data.message);
+      clearBusy(); toast(yes ? 'Recorded: customer said yes' : 'Recorded: customer said no'); openCustomer(id, true); if (S.cust.loaded) loadCustomers();
+    }).catch(function (e) { clearBusy(); fail(e); });
   }
   function copyText(text, msg) {
     var done = function () { toast(msg); };
@@ -1613,7 +1733,8 @@
   function exportCsv() {
     var rows = S.cust.rows.filter(function (r) { return r.marketing_opt_in; });
     var q = function (v) { v = String(v == null ? '' : v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
-    var csv = ['Name,Mobile,Email,Orders,Spend FJD,Last order,Usually orders,Next occasion'].concat(rows.map(function (r) { return [r.full_name, r.phone, r.email, r.orders_count, r.completed_spend, r.last_order_at ? r.last_order_at.slice(0, 10) : '', r.favourite_cake, r.next_occasion_date].map(q).join(','); })).join('\n');
+    var yn = function (b) { return b ? 'Yes' : 'No'; };
+    var csv = ['Customer,Name,Mobile,Email,WhatsApp yes,SMS yes,Email yes,Needs reconfirming,Orders,Spend FJD,Last order,Usually orders,Next occasion'].concat(rows.map(function (r) { return [custNo(r.customer_no), r.full_name, r.phone, r.email, yn(r.consent_whatsapp), yn(r.consent_sms), yn(r.consent_email), yn(r.consent_reconfirm), r.orders_count, r.completed_spend, r.last_order_at ? r.last_order_at.slice(0, 10) : '', r.favourite_cake, r.next_occasion_date].map(q).join(','); })).join('\n');
     var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = 'corner-cafe-cake-customers-' + today() + '.csv'; document.body.appendChild(a); a.click(); a.remove();
     toast(rows.length + ' opted-in customers exported');
   }
@@ -1820,7 +1941,7 @@
     }).catch(function () { loginView('Could not connect. Check the internet connection.'); });
   });
   var BUSY_ACTS = { 'do-delete': 'Deleting…', 'do-confirm': 'Saving…', 'do-decline': 'Saving…', 'do-cancel': 'Saving…', 'do-note': 'Saving…', 'do-waive': 'Saving…', 'do-collected': 'Saving…', 'do-fulfil': 'Saving…',
-    'do-brief': 'Preparing…', 'do-pay': 'Saving…', 'k-stage': 'Saving…', 'k-next': 'Saving…', 'k-ready': 'Saving…', 'k-assign': 'Saving…', 'save-zones': 'Saving…', 'add-zone': 'Saving…', 'cust-save': 'Saving…',
+    'do-brief': 'Preparing…', 'do-pay': 'Saving…', 'k-stage': 'Saving…', 'k-next': 'Saving…', 'k-ready': 'Saving…', 'k-assign': 'Saving…', 'save-zones': 'Saving…', 'add-zone': 'Saving…', 'cust-save': 'Saving…', 'consent-ch': 'Saving…',
     'consent': 'Saving…', 'save-loc': 'Saving…', 'add-closed': 'Saving…', 'save-prod': 'Saving…', 'save-staff': 'Saving…', 'tm-add': 'Adding…', 'tm-reset-save': 'Saving…', 'bk-link': 'Linking…', 'bk-copy': 'Copying…' };
   root.addEventListener('click', function (e) {
     if (e.target.id === 'ccs-shade') { if (hasTyping()) { toast('Your typing is kept. Finish, tap Back, or tap the cross to close.'); return; } sheetClose(); return; }
@@ -1887,11 +2008,15 @@
         case 'add-zone': addZone(); break;
         case 'do-pay': pay(); break;
         case 'open-customer': openCustomer(b.dataset.id); break;
-        case 'cust-edit': S.sheet.edit = !S.sheet.edit; S.panelErr = null; S.dirty = {}; renderSheet(); break;
+        case 'cust-edit': S.sheet.edit = !S.sheet.edit; S.sheet.conflict = null; S.sheet.ordersChoice = null; S.panelErr = null; S.dirty = {}; renderSheet(); break;
+        case 'cust-history': if (S.sheet.hist) { S.sheet.hist = null; renderSheet(); } else loadCustomerHistory(); break;
+        case 'ce-orders': S.sheet.ordersChoice = v; S.panelErr = null; renderSheet(); break;
+        case 'consent-ch': setChannelConsent(b.dataset.ch, v === 'true'); break;
         case 'cust-save': saveCustomer(); break;
         case 'consent': sb.rpc('staff_set_consent', { p_customer: S.sheet.id, p_granted: v === 'true', p_note: null }).then(function (r) { if (r.error) throw r.error; if (!r.data.ok) throw new Error(r.data.message); toast(v === 'true' ? 'Marked as agreed' : 'Marked as opted out'); var id = S.sheet.id; openCustomer(id); if (S.cust.loaded) loadCustomers(); }).catch(fail); break;
         case 'seg': S.cust.seg = v; S.cust.q = ''; loadCustomers(); break;
-        case 'copy-numbers': copyText(S.cust.rows.filter(function (r) { return r.marketing_opt_in; }).map(function (r) { var d = digits(r.phone); return d.length === 7 ? '+679' + d : '+' + d; }).join('\n'), 'Numbers of opted-in customers copied'); break;
+        case 'copy-numbers': var wa = S.cust.rows.filter(function (r) { return r.consent_whatsapp && r.phone; }), wre = wa.filter(function (r) { return r.consent_reconfirm; }).length;
+          copyText(wa.map(function (r) { var d = digits(r.phone); return d.length === 7 ? '+679' + d : '+' + d; }).join('\n'), wa.length + ' WhatsApp numbers copied' + (wre ? '. ' + wre + ' need reconfirming first.' : '')); break;
         case 'export-csv': exportCsv(); break;
         // calendar
         case 'cal-view': S.cal.view = v; if (S.cal.sel) S.cal.anchor = S.cal.sel; if (v === 'day') S.cal.sel = S.cal.anchor; S.cal.pre = null; S.cal.ask = null; if (S.sheet && S.sheet.type === 'cal') sheetClose(); calLoad(); break;

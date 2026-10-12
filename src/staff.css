@@ -517,3 +517,10 @@
 #cc-staff .rg-pair p { margin: 0; }
 #cc-staff .rg-raw { font-size: 14px; }
 @media (max-width: 759px) { #cc-staff .rg-top { flex-direction: column; } }
+/* Customer profile (CRM phase 1) */
+.ccs-warn { font-size: 14px; color: #6A4510; font-weight: 600; margin: 8px 0; }
+.ccs-warn b { font-weight: 700; }
+.ccs-plain { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; font-size: 13px; color: var(--ccs-muted); }
+.ccs-more summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--ccs-ink); margin-top: 10px; }
+.ccs-consent-acts { display: inline-flex; flex-wrap: wrap; gap: 4px 12px; margin-left: 8px; }
+.ccs-consent-acts .ccs-link { font-size: 13px; }
