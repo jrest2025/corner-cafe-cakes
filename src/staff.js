@@ -26,8 +26,8 @@
   function val(id) { var el = document.getElementById(id); return el ? el.value : ''; }
 
   var STATUS = {
-    awaiting_review: ['Needs review', 'action'], awaiting_quote: ['Needs a quote', 'action'], awaiting_approval: ['Waiting for customer', 'deposit'],
-    awaiting_deposit: ['Waiting for deposit', 'deposit'], confirmed: ['Confirmed', 'good'], completed: ['Collected', 'done'],
+    awaiting_review: ['Needs review', 'review'], awaiting_quote: ['Needs a quote', 'review'], awaiting_approval: ['Waiting for customer', 'wait'],
+    awaiting_deposit: ['Waiting for deposit', 'wait'], confirmed: ['Confirmed', 'confirmed'], completed: ['Collected', 'done'],
     declined: ['Declined', 'off'], cancelled: ['Cancelled', 'off']
   };
   var PAY = { unpaid: 'Unpaid', deposit_paid: 'Part paid', paid: 'Paid', refunded: 'Refunded' };
@@ -39,11 +39,13 @@
   var NEEDS = ['awaiting_review', 'awaiting_quote', 'awaiting_deposit'];
   var OPEN = ['awaiting_review', 'awaiting_quote', 'awaiting_approval', 'awaiting_deposit', 'confirmed'];
   function statusLabel(status, method) { if (status === 'completed' && method === 'delivery') return 'Delivered'; return (STATUS[status] || [status])[0]; }
-  function pill(status, method) { var s = STATUS[status] || [status, 'off']; return '<span class="ccs-pill s-' + s[1] + '">' + esc(statusLabel(status, method)) + '</span>'; }
+  function pill(status, method) { var s = STATUS[status] || [status, 'off']; return '<span class="ccs-pill st s-' + s[1] + '">' + esc(statusLabel(status, method)) + '</span>'; }
+  // Payment is a separate fact from order status: white, outlined, with a $ sign
+  function payPill(ps) { var c = { unpaid: 'p-unpaid', deposit_paid: 'p-part', paid: 'p-paid', refunded: 'p-refunded' }[ps]; return c ? '<span class="ccs-pay ' + c + '">' + esc(PAY[ps]) + '</span>' : ''; }
   var STAGES = [['not_started', 'Not started'], ['scheduled', 'Scheduled'], ['preparing', 'Preparing'], ['baking', 'Baking'], ['assembling', 'Cooling and assembly'], ['decorating', 'Decorating'], ['quality_check', 'Quality check'], ['ready', 'Ready']];
   var STAGE_LABEL = {}; STAGES.forEach(function (s) { STAGE_LABEL[s[0]] = s[1]; }); STAGE_LABEL.in_production = 'In production';
   function stageIndex(s) { for (var i = 0; i < STAGES.length; i++) if (STAGES[i][0] === s) return i; return 0; }
-  function stagePill(s) { var tone = s === 'ready' ? 'good' : s === 'quality_check' ? 'action' : s === 'not_started' ? 'off' : 'deposit'; return '<span class="ccs-pill s-' + tone + '">' + (s === 'not_started' ? 'Kitchen: not started' : esc(STAGE_LABEL[s] || s)) + '</span>'; }
+  function stagePill(s) { var tone = s === 'ready' ? 'ready' : (s === 'not_started' || s === 'scheduled') ? 'idle' : 'prep'; return '<span class="ccs-pill st s-' + tone + '">Kitchen: ' + (s === 'not_started' ? 'not started' : esc((STAGE_LABEL[s] || s).toLowerCase())) + '</span>'; }
   function whenLabel(iso) { var t = today(); return iso === t ? 'Today' : iso === addDays(t, 1) ? 'Tomorrow' : nice(iso); }
 
   // ---------- state ----------
@@ -313,12 +315,12 @@
     var i = firstItem(o), c = o.customers, st = STATUS[o.order_status] || ['', 'off'];
     var tags = pill(o.order_status, o.fulfilment_method);
     if (o.has_dietary) tags += '<span class="ccs-pill s-alert">Dietary</span>';
-    if (o.order_type === 'custom') tags += '<span class="ccs-pill">Custom</span>';
+    if (o.order_type === 'custom') tags += '<span class="ccs-tag">Custom</span>';
     if (o.rush_override) tags += '<span class="ccs-pill s-alert">Short notice</span>';
     if (o.revision) tags += '<span class="ccs-pill s-amend">Amended</span>';
-    if (o.order_status === 'confirmed' && o.payment_status !== 'paid') tags += '<span class="ccs-pill s-deposit">' + PAY[o.payment_status] + '</span>';
+    if (o.order_status === 'confirmed' || o.order_status === 'completed') tags += payPill(o.payment_status);
     if (o.order_status === 'confirmed') tags += stagePill(o.production_status);
-    if (o.fulfilment_method === 'delivery') tags += '<span class="ccs-pill">Delivery' + (o.delivery_zone ? ', ' + esc(o.delivery_zone) : '') + '</span>';
+    if (o.fulfilment_method === 'delivery') tags += '<span class="ccs-tag">Delivery' + (o.delivery_zone ? ', ' + esc(o.delivery_zone) : '') + '</span>';
     return '<button type="button" class="ccs-card k-' + st[1] + '" data-act="open-order" data-id="' + o.id + '">' +
       '<span class="ccs-when"><b>' + esc(nice(o.required_date) + (String(o.required_date).slice(0, 4) !== today().slice(0, 4) ? ' ' + String(o.required_date).slice(0, 4) : '')) + '</b><span>' + esc(t12(o.required_time)) + '</span></span>' +
       '<span class="ccs-what"><b>' + esc(cakeLine(i)) + '</b><span class="ccs-meta">' + esc(c ? c.full_name : 'Customer details hidden') + ' · ' + esc(o.reference) + ' · ' + esc(SOURCE_LABEL[o.source]) + '</span><span class="ccs-tags">' + tags + '</span></span>' +
@@ -342,7 +344,7 @@
       var msg = S.q ? ['No orders match “' + esc(S.q) + '”.', 'Try a mobile number or an order number like CC-1001.'] :
         S.filter === 'action' ? ['Nothing waiting.', 'New online orders appear here for review. Walk-in orders go in through New order.'] :
         S.filter === 'today' ? ['No cakes due today.', ''] : ['No orders yet.', 'Orders from the website and the counter will show here.'];
-      return h + '<div class="ccs-empty" style="margin-top:16px"><b>' + msg[0] + '</b><span>' + msg[1] + '</span>' + (can('manager', 'front_of_house') ? '<button type="button" class="ccs-btn" data-tab="new">New order</button>' : '') + '</div>';
+      return h + '<div class="ccs-empty" style="margin-top:16px"><b>' + msg[0] + '</b><span>' + msg[1] + '</span>' + (can('manager', 'front_of_house') ? '<button type="button" class="ccs-btn ccs-new" data-tab="new">' + NAV_ICON['new'] + 'New order</button>' : '') + '</div>';
     }
     if (S.filter === 'action' && !S.q) return h + '<div class="ccs-list" style="margin-top:16px">' + list.map(orderCard).join('') + '</div>';
     var out = '', day = null, perDay = {};
@@ -369,7 +371,7 @@
     var t = today(), wkEnd = addDays(t, 6), money_ = can('manager', 'finance', 'front_of_house');
     var first = ((S.me && S.me.full_name) || '').trim().split(' ')[0];
     var h = '<div class="ccs-dash-head"><div><p class="ccs-eyebrow">' + esc(nice(t, true)) + '</p><h1 class="ccs-title">' + greet() + (first ? ', ' + esc(first) : '') + '</h1></div>' +
-      (can('manager', 'front_of_house') ? '<button type="button" class="ccs-btn ccs-btn-hero" data-tab="new">' + NAV_ICON['new'] + 'New order</button>' : '') + '</div>';
+      (can('manager', 'front_of_house') ? '<button type="button" class="ccs-btn ccs-btn-hero ccs-new" data-tab="new">' + NAV_ICON['new'] + 'New order</button>' : '') + '</div>';
     if (draftHasContent() && can('manager', 'front_of_house')) h += '<div class="ccs-note ccs-draftbar"><span>Unfinished order' + (draftWho() ? ' for ' + esc(draftWho()) : '') + '.</span><button type="button" class="ccs-btn ccs-ghost" data-tab="new">Continue it</button></div>';
     if (!S.loaded) return h + '<p class="ccs-loading">Loading today…</p>';
     var live = S.orders.filter(function (o) { return o.order_status !== 'declined' && o.order_status !== 'cancelled'; });
@@ -435,7 +437,7 @@
   // how: 'pop' = the back gesture already removed the entry; 'replace' = a tab change takes the entry over; default = remove our entry
   function sheetClose(how) {
     var wasSheet = !!S.sheet;
-    if (S.sheet && S.sheet.type === 'new' && draftHasContent()) { saveDraft(); toast('Unfinished order kept. Tap Add order on the same day to carry on.'); } if (S.cal) S.cal.pre = null;
+    if (S.sheet && S.sheet.type === 'new' && draftHasContent()) { saveDraft(); toast('Unfinished order kept. Tap New order on the same day to carry on.'); } if (S.cal) S.cal.pre = null;
     if (wasSheet && S.tab === 'calendar' && S.me) setTimeout(function () { calLoad(true); }, 0);
     S.sheet = null; S.panel = null; S.dirty = {}; var s = document.getElementById('ccs-sheet'), sh = document.getElementById('ccs-shade'); if (s) { s.classList.remove('ccs-open'); sh.classList.remove('ccs-open'); }
     if (S.sheetHist) { S.sheetHist = false; if (how !== 'pop' && how !== 'replace') { S.ignorePop = true; try { history.back(); } catch (x) { S.ignorePop = false; } } }
@@ -501,7 +503,7 @@
     var o = S.sheet.data;
     if (!o) return sheetHead('Loading…') + '<div class="ccs-sheet-body"><p class="ccs-loading">Loading order…</p></div>';
     var i = (o.order_items || [])[0] || {}, c = o.customers, paid = paidTotal(o), total = Number(o.final_total != null ? o.final_total : o.estimate_total), bal = Math.max(total - paid, 0);
-    var h = sheetHead(esc(o.reference), pill(o.order_status, o.fulfilment_method) + (o.revision ? '<span class="ccs-pill s-amend">Amended</span>' : '')) + '<div class="ccs-sheet-body">';
+    var h = sheetHead(esc(o.reference), pill(o.order_status, o.fulfilment_method) + (o.order_status === 'confirmed' || o.order_status === 'completed' ? payPill(o.payment_status) : '') + (o.revision ? '<span class="ccs-tag">Amended</span>' : '')) + '<div class="ccs-sheet-body">';
     h += actionsBox(o, total, paid, bal);
     if (o.has_dietary) h += '<div class="ccs-alert">Dietary or allergy: ' + esc([].concat(i.dietary || [], i.dietary_note ? [i.dietary_note] : []).join(', ') || 'see notes') + '</div>';
     h += '<section class="ccs-box"><h3>Cake</h3><p class="ccs-big">' + esc(cakeLine(i)) + '</p><dl class="ccs-kv">' +
@@ -528,7 +530,7 @@
         (can('manager', 'front_of_house', 'finance', 'marketing') ? '<button type="button" class="ccs-btn ccs-ghost" data-act="open-customer" data-id="' + c.id + '">Customer profile</button>' : '') + '</div></section>';
     }
     if (can('manager', 'finance', 'front_of_house')) {
-      h += '<section class="ccs-box"><h3>Payment</h3><div class="ccs-money"><div><span>Price</span><b>' + money(total) + '</b></div><div><span>Deposit</span><b>' + (o.deposit_required ? money(o.deposit_required) : '—') + '</b></div><div><span>Paid</span><b>' + money(paid) + '</b></div><div><span>To pay</span><b>' + money(bal) + '</b></div></div>' +
+      h += '<section class="ccs-box"><h3>Payment ' + payPill(o.payment_status) + '</h3><div class="ccs-money"><div><span>Price</span><b>' + money(total) + '</b></div><div><span>Deposit</span><b>' + (o.deposit_required ? money(o.deposit_required) : '—') + '</b></div><div><span>Paid</span><b>' + money(paid) + '</b></div><div><span>To pay</span><b>' + money(bal) + '</b></div></div>' +
         (paid > total ? '<p class="ccs-note">' + money(paid - total) + ' more than the order total has been paid. A manager decides on a refund or credit. Nothing is refunded automatically.</p>' : '') + ((o.payments || []).length ? '<div class="ccs-history">' + o.payments.slice().sort(function (a, b) { return a.recorded_at < b.recorded_at ? -1 : 1; }).map(function (p) { return '<div><span>' + esc(stamp(p.recorded_at)) + '</span><b style="font-weight:500">' + money(p.amount) + ' ' + esc(p.kind) + ' by ' + esc(p.method.replace('_', ' ')) + (p.reference ? ' · ' + esc(p.reference) : '') + '</b></div>'; }).join('') + '</div>' : '<p class="ccs-hint">No payments recorded yet.</p>') + '</section>';
     }
     if (o.internal_notes) h += '<section class="ccs-box"><h3>Team notes</h3><p style="white-space:pre-wrap;font-size:15px">' + esc(o.internal_notes) + '</p></section>';
@@ -1068,7 +1070,7 @@
       var r = D.result;
       return '<div class="ccs-done"><div class="ccs-tick" aria-hidden="true">✓</div><h1 class="ccs-title">' + esc(r.reference) + ' is saved</h1><p>' + esc(statusLabel(r.status)) + '. ' +
         (r.status === 'confirmed' ? 'Hand the customer their order number.' : r.status === 'awaiting_deposit' ? 'It confirms itself as soon as the deposit is recorded.' : 'It is in Needs action for review.') + '</p>' +
-        '<div class="ccs-actions-row">' + (D.fromCal ? '<button type="button" class="ccs-btn" data-act="cal-back">Back to calendar</button><button type="button" class="ccs-btn ccs-ghost" data-act="open-order" data-id="' + r.order_id + '">Open order</button>' : '<button type="button" class="ccs-btn" data-act="open-order" data-id="' + r.order_id + '">Open order</button>') + '<button type="button" class="ccs-btn ccs-ghost" data-act="new-again">Start another order</button></div></div>';
+        '<div class="ccs-actions-row">' + '<button type="button" class="ccs-btn ccs-ghost" data-act="open-order" data-id="' + r.order_id + '">Open order</button>' + (D.fromCal ? '<button type="button" class="ccs-btn ccs-ghost" data-act="cal-back">Back to calendar</button>' : '') + '<button type="button" class="ccs-btn ccs-new" data-act="new-again">' + NAV_ICON['new'] + 'New order</button></div></div>';
     }
     var inSheet = newInSheet();
     var h = inSheet ? (draftHasContent() && !D.confirmReset ? '<div class="ccs-newtop"><button type="button" class="ccs-link ccs-red" data-act="new-again">Start over</button></div>' : '')
@@ -1313,7 +1315,7 @@
     var who = cu.full_name || o.reference;
     return '<button type="button" class="ccs-cev k-' + tone + (full ? ' is-full' : '') + (S.cal.pre === o.id ? ' is-sel' : '') + (S.cal.justAdded === o.id ? ' is-new' : '') + '" data-act="cal-pre" data-id="' + o.id + '" aria-label="' + esc(t12(o.required_time) + ', ' + who + ', ' + cakeLine(i) + ', ' + statusLabel(o.order_status, o.fulfilment_method) + (dl ? ', delivery' : '')) + '">' +
       '<span class="ccs-cev-t">' + esc(t12(o.required_time)) + '</span><span class="ccs-cev-n">' + esc(who) + '</span>' +
-      (full ? '<span class="ccs-cev-c">' + esc(cakeLine(i)) + '</span><span class="ccs-tags">' + pill(o.order_status, o.fulfilment_method) + (dl ? '<span class="ccs-pill s-done">Delivery</span>' : '') + (o.has_dietary ? '<span class="ccs-pill s-alert">Dietary</span>' : '') + (amendWaiting(o) ? '<span class="ccs-pill s-amend">Change for kitchen</span>' : '') + '</span>' : '') + '</button>';
+      (full ? '<span class="ccs-cev-c">' + esc(cakeLine(i)) + '</span><span class="ccs-tags">' + pill(o.order_status, o.fulfilment_method) + (dl ? '<span class="ccs-tag">Delivery</span>' : '') + (o.has_dietary ? '<span class="ccs-pill s-alert">Dietary</span>' : '') + (amendWaiting(o) ? '<span class="ccs-pill s-amend">Change for kitchen</span>' : '') + '</span>' : '') + '</button>';
   }
   function calErrBox(act) { return '<div class="ccs-empty ccs-calerr" role="alert"><b>The calendar could not load.</b><span>This is a connection problem, not an empty day. Nothing has changed.</span><button type="button" class="ccs-btn" data-act="' + act + '">Try again</button></div>'; }
 
@@ -1379,7 +1381,7 @@
       days.forEach(function (d) {
         var here = calDay(d).filter(function (o) { return slotOf(o.required_time) === s; }), past = d < t || (d === t && s <= nt), shut = isClosed(d);
         g += '<div class="ccs-wcell' + (here.length > 1 ? ' is-busy' : '') + (shut ? ' is-closed' : '') + '">' + here.map(function (o) { return calChip(o, false); }).join('') +
-          (add && !past && !shut ? '<button type="button" class="ccs-wadd" data-act="cal-add" data-v="' + d + '" data-t="' + s + '" aria-label="Add order for ' + esc(nice(d)) + ' at ' + t12(s) + '"><span aria-hidden="true">+</span></button>' : '') + '</div>';
+          (add && !past && !shut ? '<button type="button" class="ccs-wadd" data-act="cal-add" data-v="' + d + '" data-t="' + s + '" aria-label="New order for ' + esc(nice(d)) + ' at ' + t12(s) + '"><span aria-hidden="true">+</span></button>' : '') + '</div>';
       });
     });
     g += '</div>';
@@ -1390,7 +1392,7 @@
   function calDayBlock(d) {
     var list = calDay(d), tot = dayTotals(list), add = can('manager', 'front_of_house') && d >= today() && !isClosed(d);
     return '<section class="ccs-wday' + (d === today() ? ' is-today' : '') + '"><div class="ccs-wday-head"><button type="button" class="ccs-wday-date" data-act="cal-sel" data-v="' + d + '"><b>' + esc(nice(d, true)) + '</b><span>' + (isClosed(d) ? 'Closed' : tot.orders ? countText(tot) : 'No pickups scheduled') + '</span></button>' +
-      (add ? '<button type="button" class="ccs-btn ccs-ghost ccs-small" data-act="cal-add" data-v="' + d + '">Add order</button>' : '') + '</div>' +
+      (add ? '<button type="button" class="ccs-btn ccs-new ccs-small" data-act="cal-add" data-v="' + d + '">' + NAV_ICON['new'] + 'New order</button>' : '') + '</div>' +
       (list.length ? '<div class="ccs-daylist">' + list.map(function (o) { return calChip(o, true); }).join('') + '</div>' : '') + '</section>';
   }
 
@@ -1400,14 +1402,14 @@
       '<div><b>' + list.filter(function (o) { return o.fulfilment_method === 'delivery'; }).length + '</b><span>deliveries</span></div></div>';
     if (shut) h += '<p class="ccs-note">The café is closed for cake collections on this day.</p>';
     h += capLine(d);
-    if (add && d >= t && !shut) h += '<button type="button" class="ccs-btn ccs-wide ccs-dayadd" data-act="cal-add" data-v="' + d + '">Add order for this date</button>';
+    if (add && d >= t && !shut) h += '<button type="button" class="ccs-btn ccs-new ccs-wide ccs-dayadd" data-act="cal-add" data-v="' + d + '">' + NAV_ICON['new'] + 'New order for this date</button>';
     h += calAsk();
-    if (!list.length) h += '<div class="ccs-empty"><b>No pickups scheduled</b><span>' + (c.status !== 'active' || c.type !== 'all' ? 'Nothing matches the filters for this day.' : 'Tap a time below, or Add order, to book one.') + '</span></div>';
+    if (!list.length) h += '<div class="ccs-empty"><b>No pickups scheduled</b><span>' + (c.status !== 'active' || c.type !== 'all' ? 'Nothing matches the filters for this day.' : 'Tap a time below, or New order, to book one.') + '</span></div>';
     h += '<ol class="ccs-dslots">';
     calSlots().forEach(function (s) {
       var here = list.filter(function (o) { return slotOf(o.required_time) === s; }), past = d < t || (d === t && s <= nt);
       h += '<li class="ccs-dslot' + (here.length ? ' has-orders' : '') + (here.length > 1 ? ' is-busy' : '') + '"><span class="ccs-dslot-t">' + t12(s) + (here.length > 1 ? '<em>' + here.length + ' pickups</em>' : '') + '</span><div class="ccs-dslot-b">' + here.map(function (o) { return calChip(o, true); }).join('') +
-        (add && !past && !shut ? '<button type="button" class="ccs-wadd ccs-dadd" data-act="cal-add" data-v="' + d + '" data-t="' + s + '">Add at ' + t12(s) + '</button>' : '') + '</div></li>';
+        (add && !past && !shut ? '<button type="button" class="ccs-wadd ccs-dadd" data-act="cal-add" data-v="' + d + '" data-t="' + s + '">New order at ' + t12(s) + '</button>' : '') + '</div></li>';
     });
     return h + '</ol></div>';
   }
@@ -1424,7 +1426,7 @@
   function dayPanel() {
     var c = S.cal, d = c.sel;
     if (c.pre) return previewPanel();
-    if (!d) return '<div class="ccs-calhint"><b>Select a date</b><p class="ccs-hint">Its pickups and an Add order button appear here.</p></div>';
+    if (!d) return '<div class="ccs-calhint"><b>Select a date</b><p class="ccs-hint">Its pickups and a New order button appear here.</p></div>';
     var h = '<div class="ccs-dayp"><p class="ccs-eyebrow">' + (d === today() ? 'Today' : d === addDays(today(), 1) ? 'Tomorrow' : 'Selected day') + '</p><h2 class="ccs-dayp-title">' + esc(nice(d, true) + ' ' + d.slice(0, 4)) + '</h2>';
     if (c.err) return h + calErrBox('cal-retry') + '</div>';
     if (!calHas(d)) return h + '<p class="ccs-loading">Loading pickups…</p></div>';
@@ -1432,7 +1434,7 @@
     h += '<div class="ccs-daytot"><div><b>' + tot.orders + '</b><span>' + (tot.orders === 1 ? 'order' : 'orders') + '</span></div><div><b>' + tot.cakes + '</b><span>' + (tot.cakes === 1 ? 'cake' : 'cakes') + '</span></div></div>';
     if (shut) h += '<p class="ccs-note">The café is closed for cake collections on this day.</p>';
     h += capLine(d);
-    if (add) h += '<button type="button" class="ccs-btn ccs-wide" data-act="cal-add" data-v="' + d + '">Add order for this date</button>';
+    if (add) h += '<button type="button" class="ccs-btn ccs-new ccs-wide" data-act="cal-add" data-v="' + d + '">' + NAV_ICON['new'] + 'New order for this date</button>';
     h += calAsk();
     h += list.length ? '<div class="ccs-daylist">' + list.map(function (o) { return calChip(o, true); }).join('') + '</div>'
       : '<div class="ccs-empty"><b>No pickups scheduled</b>' + (c.status !== 'active' || c.type !== 'all' ? '<span>Nothing matches the filters for this day.</span>' : '') + '</div>';
@@ -1602,7 +1604,7 @@
     return Promise.all([
       sb.from('customer_summary').select('*').eq('id', id).single(),
       sb.from('customers').select('id,customer_no,customer_source,full_name,phone,alt_phone,email,preferred_contact,is_corporate,company,delivery_address,birth_day,birth_month,preferences,notes,version,review_flag,review_note,archived_at').eq('id', id).single(),
-      sb.from('orders').select('id,reference,order_status,fulfilment_method,required_date,estimate_total,final_total,source,contact_name,order_items(product_name,variant,size_inch,occasion)').eq('customer_id', id).order('required_date', { ascending: false }).limit(100),
+      sb.from('orders').select('id,reference,order_status,payment_status,fulfilment_method,required_date,estimate_total,final_total,source,contact_name,order_items(product_name,variant,size_inch,occasion)').eq('customer_id', id).order('required_date', { ascending: false }).limit(100),
       can('manager', 'front_of_house', 'marketing') ? sb.from('consent_now').select('channel,destination,granted,needs_reconfirm,source,wording_code,recorded_at,applies,brand_code').eq('customer_id', id).eq('brand_code', 'corner-cafe') : Promise.resolve({ data: [] }),
       can('manager', 'front_of_house', 'marketing') ? sb.from('marketing_consents').select('channel,destination,granted,needs_reconfirm,source,recorded_at').eq('customer_id', id).order('recorded_at', { ascending: false }).order('id', { ascending: false }).limit(12) : Promise.resolve({ data: [] }),
       sb.rpc('customer_sheet_orders', { p_customer: id })
@@ -1633,7 +1635,8 @@
     h += '<p class="ccs-hint">Customer ' + esc(custNo(c.customer_no)) + (c.archived_at ? ' · Archived' : '') + '</p>';
     if (c.review_flag === 'possible_duplicate') h += '<p class="ccs-warn"><b>Check for a duplicate.</b> ' + esc(c.review_note || 'Another profile has the same mobile number.') + '</p>';
     h += '<div class="ccs-stats"><div><span>Orders</span><b>' + s.orders_count + '</b></div><div><span>Spend</span><b>' + money(s.completed_spend) + '</b></div><div><span>Average</span><b>' + (s.average_spend != null ? money(s.average_spend) : '—') + '</b></div><div><span>Cancelled</span><b>' + s.cancelled_count + '</b></div></div>';
-    if (segs.length || s.seg_upcoming_occasion) h += '<div class="ccs-tags">' + segs.map(function (x) { return '<span class="ccs-pill">' + x[1] + '</span>'; }).join('') + (s.seg_upcoming_occasion ? '<span class="ccs-pill s-deposit">Occasion due ' + esc(nice(s.next_occasion_date)) + '</span>' : '') + '</div>';
+    if (editor && !c.archived_at) h += '<div class="ccs-actions-row"><button type="button" class="ccs-btn ccs-new" data-act="cust-neworder">' + NAV_ICON['new'] + 'New order for this customer</button></div>';
+    if (segs.length || s.seg_upcoming_occasion) h += '<div class="ccs-tags">' + segs.map(function (x) { return '<span class="ccs-tag">' + x[1] + '</span>'; }).join('') + (s.seg_upcoming_occasion ? '<span class="ccs-pill s-deposit">Occasion due ' + esc(nice(s.next_occasion_date)) + '</span>' : '') + '</div>';
     if (S.sheet.edit) h += customerEditor(d);
     else {
       h += '<section class="ccs-box"><h3>Contact</h3><dl class="ccs-kv">' + kv('Mobile', c.phone) + kv('Other number', c.alt_phone) + kv('Email', c.email) +
@@ -1657,7 +1660,7 @@
           return '<li>' + esc(stamp(l.recorded_at)) + ': ' + esc((CHANNELS.filter(function (x) { return x[0] === l.channel; })[0] || [0, l.channel])[1]) + ' ' + (l.granted ? 'yes' : 'no') + (l.needs_reconfirm ? ' (needs reconfirming)' : '') + ', ' + esc(l.destination) + '. ' + esc(l.source) + '</li>';
         }).join('') + '</ul></details>' : '') + '</section>';
     }
-    h += '<section class="ccs-box"><h3>Orders</h3>' + (d.orders.length ? '<div class="ccs-list">' + d.orders.map(function (o) { var i = (o.order_items || [])[0]; return '<button type="button" class="ccs-card k-' + (STATUS[o.order_status] || ['', 'off'])[1] + '" data-act="open-order" data-id="' + o.id + '" style="grid-template-columns:110px minmax(0,1fr) auto"><span class="ccs-when"><b>' + esc(nice(o.required_date)) + '</b><span>' + esc(o.reference) + '</span></span><span class="ccs-what"><b>' + esc(cakeLine(i)) + '</b><span class="ccs-tags">' + pill(o.order_status, o.fulfilment_method) + (i && i.occasion ? '<span class="ccs-pill">' + esc(i.occasion) + '</span>' : '') + (o.contact_name && o.contact_name !== c.full_name ? '<span class="ccs-pill">Ordered as ' + esc(o.contact_name) + '</span>' : '') + '</span></span><span class="ccs-price">' + money(o.final_total != null ? o.final_total : o.estimate_total) + '</span></button>'; }).join('') + '</div>' : '<p class="ccs-hint">No orders.</p>') + '</section>';
+    h += '<section class="ccs-box"><h3>Orders</h3>' + (d.orders.length ? '<div class="ccs-list">' + d.orders.map(function (o) { var i = (o.order_items || [])[0]; return '<button type="button" class="ccs-card k-' + (STATUS[o.order_status] || ['', 'off'])[1] + '" data-act="open-order" data-id="' + o.id + '" style="grid-template-columns:110px minmax(0,1fr) auto"><span class="ccs-when"><b>' + esc(nice(o.required_date)) + '</b><span>' + esc(o.reference) + '</span></span><span class="ccs-what"><b>' + esc(cakeLine(i)) + '</b><span class="ccs-tags">' + pill(o.order_status, o.fulfilment_method) + (i && i.occasion ? '<span class="ccs-pill">' + esc(i.occasion) + '</span>' : '') + (o.order_status === 'confirmed' || o.order_status === 'completed' ? payPill(o.payment_status) : '') + (o.contact_name && o.contact_name !== c.full_name ? '<span class="ccs-tag">Ordered as ' + esc(o.contact_name) + '</span>' : '') + '</span></span><span class="ccs-price">' + money(o.final_total != null ? o.final_total : o.estimate_total) + '</span></button>'; }).join('') + '</div>' : '<p class="ccs-hint">No orders.</p>') + '</section>';
     if (d.sheet.length) h += '<section class="ccs-box"><h3>Orders from the old sheets</h3><p class="ccs-hint">Recorded in the Google Sheets before this app. Shown as typed; not yet in the totals above.</p><ul class="ccs-plain cm-sheetlist">' + d.sheet.map(function (o) {
       return '<li><b>' + esc(o.fulfil_date ? nice(o.fulfil_date) + ' ' + o.fulfil_date.slice(0, 4) : 'No pickup date') + '</b> · ' + esc([o.cake, o.size_inch ? o.size_inch + ' inch' : ''].filter(Boolean).join(' ') || 'Cake not stated') +
         (o.value != null ? ' · ' + money(o.value) : '') + ' · ' + esc(o.source || '') + (o.reference ? ' ' + esc(o.reference) : '') + (o.name_on_sheet && o.name_on_sheet !== c.full_name ? ' · as ' + esc(o.name_on_sheet) : '') +
@@ -2071,6 +2074,14 @@
         case 'add-zone': addZone(); break;
         case 'do-pay': pay(); break;
         case 'open-customer': openCustomer(b.dataset.id); break;
+        case 'cust-neworder': (function () {
+          // Same New order form, with this customer already chosen
+          var cd = S.sheet && S.sheet.data; if (!cd) return;
+          if (draftHasContent()) { toast('You have an unfinished order. Finish or clear it first.', true); goTab('new'); return; }
+          D = freshDraft(); D.phone = cd.c.phone || '';
+          D.customer = { id: cd.c.id, full_name: cd.c.full_name, phone: cd.c.phone || '', orders_count: cd.sum.orders_count, favourite_cake: cd.sum.favourite_cake };
+          D.step = 1; D.reached = 1; goTab('new'); window.scrollTo(0, 0);
+        })(); break;
         case 'cust-edit': S.sheet.edit = !S.sheet.edit; S.sheet.conflict = null; S.sheet.ordersChoice = null; S.panelErr = null; S.dirty = {}; renderSheet(); break;
         case 'cust-cancel': if (hasTyping() && !confirmDiscard(b)) break; S.sheet.edit = false; S.sheet.conflict = null; S.sheet.ordersChoice = null; S.panelErr = null; S.dirty = {}; renderSheet(); break;
         case 'cust-new': openNewCustomer(); break;

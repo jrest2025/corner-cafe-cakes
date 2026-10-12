@@ -88,7 +88,7 @@ async def main():
         await pg.click('[data-tab="orders"]'); await pg.click('[data-act="filter"][data-v="upcoming"]'); await pg.wait_for_timeout(150)
         await pg.click('[data-act="open-order"][data-id="o3"]'); await pg.wait_for_timeout(400)
         lab = await pg.evaluate("(()=>{const b=document.querySelector('[data-act=panel][data-v=collected]');return [b.textContent,b.disabled,getComputedStyle(b).backgroundColor]})()")
-        check('U19 locked button says why and looks locked', lab[0] == 'Mark delivered after payment' and lab[1] and lab[2] == 'rgb(236, 233, 228)', lab)
+        check('U19 locked button says why and looks locked', lab[0] == 'Mark delivered after payment' and lab[1] and lab[2] == 'rgb(238, 242, 246)', lab)
         small = await pg.evaluate(SMALL, '#ccs-sheet')
         check('U17 no control under 44 pixels on the order screen', not small, small)
         gap = await pg.evaluate("(()=>{const a=document.querySelector('[data-v=note]').getBoundingClientRect(),c=document.querySelector('[data-v=cancel]').getBoundingClientRect();return Math.round(c.left-a.right)})()")
