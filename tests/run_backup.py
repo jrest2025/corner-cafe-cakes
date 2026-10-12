@@ -60,7 +60,7 @@ async def main():
         check('link sent with the pasted address', lc and lc[-1]['url'].endswith('#gid=0'), lc)
         t = await text(pg)
         check('linked: sheet name, last copied and count shown', 'Cake backup' in t and 'Orders copied' in t and '9' in t and 'Last copied' in t, t[-500:])
-        check('linked: summary says On', 'Backup to Google Sheet\tOn' in t or 'Backup to Google Sheet On' in t or 'On' in await pg.inner_text('.ccs-set details:last-of-type summary'))
+        check('linked: summary says On', 'Backup to Google Sheet\tOn' in t or 'Backup to Google Sheet On' in t or 'On' in await pg.inner_text('.ccs-set summary:has-text("Backup to Google Sheet")'))
         href = await pg.get_attribute('.ccs-history a.ccs-link', 'href'); tgt = await pg.get_attribute('.ccs-history a.ccs-link', 'target')
         check('open sheet link opens Google in a new tab', href.startswith('https://docs.google.com/') and tgt == '_blank', href)
         await pg.screenshot(path=str(OUT / 'linked.png'), full_page=True)

@@ -2,7 +2,7 @@ import subprocess, json, re, os
 os.chdir('/home/claude/cakes')
 def run(c): subprocess.run(c, shell=True, check=True)
 run('npx -y terser@5.31.0 guest.js -c -m -o dist/guest.min.js')
-open('dist/staff.full.js','w').write(open('staff.js').read().replace('/*@DASH@*/', open('staff.dash.js').read()))
+open('dist/staff.full.js','w').write(open('staff.js').read().replace('/*@DASH@*/', open('staff.dash.js').read() + open('staff.reg.js').read()))
 run('npx -y terser@5.31.0 dist/staff.full.js -c -m -o dist/staff.min.js')
 run('npx -y csso-cli@4.0.2 guest.css -o dist/guest.min.css')
 run('npx -y csso-cli@4.0.2 staff.css -o dist/staff.min.css')

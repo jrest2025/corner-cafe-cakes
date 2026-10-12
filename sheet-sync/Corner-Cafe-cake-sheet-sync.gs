@@ -1,9 +1,10 @@
 /**
  * Corner Café cake orders: Google Sheets to staff app sync
  *
- * Every 5 minutes this sends the rows of both cake order sheets to the staff app.
- * The staff app keeps only orders due from today onwards, and never sends emails for them.
- * It reads the sheets only. It never changes them.
+ * Every 5 minutes this sends every row of both cake order sheets to the staff app.
+ *  - Every row, past and future, goes into the cake register, which the dashboard counts from. Changed rows are logged.
+ *  - Orders due from today onwards also appear in the staff app's order list. No emails are sent for them.
+ * It reads the sheets only. It never changes them. Keep entering orders in the sheets as usual.
  *
  * One-time setup (about 5 minutes):
  *   1. In Supabase: Edge Functions > Secrets. Add a secret named SHEET_SYNC_SECRET.
@@ -26,18 +27,24 @@ function syncCakeOrders() {
   const key = PropertiesService.getScriptProperties().getProperty('SYNC_KEY');
   if (!key) throw new Error('Add the SYNC_KEY script property first (see the setup notes at the top).');
   const results = [];
+  const send = function (body) {
+    return UrlFetchApp.fetch(SYNC_URL, { method: 'post', contentType: 'application/json', muteHttpExceptions: true, headers: { 'x-sync-key': key }, payload: JSON.stringify(body) });
+  };
   CAKE_SHEETS.forEach(function (s) {
-    const tab = SpreadsheetApp.openById(s.id).getSheetByName(s.tab);
-    if (!tab || tab.getLastRow() < 2) return;
-    // Display values keep dates and times exactly as staff typed them, for example 22.10.2026 and 2:00 PM
-    const values = tab.getRange(2, 1, tab.getLastRow() - 1, tab.getLastColumn()).getDisplayValues();
-    const rows = values.map(function (v, i) { return { row: i + 2, values: v }; });
-    const res = UrlFetchApp.fetch(SYNC_URL, {
-      method: 'post', contentType: 'application/json', muteHttpExceptions: true,
-      headers: { 'x-sync-key': key },
-      payload: JSON.stringify({ sheet: s.name, rows: rows }),
-    });
-    results.push(s.name + ': ' + res.getResponseCode() + ' ' + res.getContentText());
+    try {
+      const tab = SpreadsheetApp.openById(s.id).getSheetByName(s.tab);
+      if (!tab) throw new Error('The tab "' + s.tab + '" was not found. Was it renamed?');
+      if (tab.getLastRow() < 2) throw new Error('The sheet has no rows below the heading.');
+      // Display values keep dates and times exactly as staff typed them, for example 22.10.2026 and 2:00 PM
+      const values = tab.getRange(2, 1, tab.getLastRow() - 1, tab.getLastColumn()).getDisplayValues();
+      const rows = values.map(function (v, i) { return { row: i + 2, values: v }; });
+      const res = send({ sheet: s.name, rows: rows });
+      results.push(s.name + ': ' + res.getResponseCode() + ' ' + res.getContentText());
+    } catch (e) {
+      // Tell the staff app, so the dashboard and register show the sheet is not up to date
+      try { send({ op: 'failed', sheet: s.name, message: String(e && e.message || e) }); } catch (x) {}
+      results.push(s.name + ': could not be read. ' + e);
+    }
   });
   console.log(results.join('\n'));
   return results;

@@ -31,6 +31,33 @@
     window.__dashLast = out;
     return { ok: true, generated_at: new Date().toISOString(), last_change: new Date().toISOString(), tests_excluded: 2, products: P.map(function (x) { return { n: x[0], on: true }; }).concat([{ n: 'Vanilla or Piña Colada', on: true }]), orders: out };
   }
+
+  // invented register feed: the same invented orders in the register's shape, plus sheet-only records
+  function regFeed() {
+    var f = dashFeed(); if (!f.ok) return f;
+    var T0 = new Intl.DateTimeFormat('en-CA', { timeZone: 'Pacific/Fiji' }).format(new Date());
+    var out = f.orders.map(function (o, n) {
+      var sheet = o.imp, st = o.st === 'completed' ? 'completed' : o.st === 'cancelled' ? 'cancelled' : o.st === 'confirmed' ? 'confirmed' : 'received';
+      var cp = o.st === 'cancelled' ? null : sheet ? (o.pd < T0 ? 'assumed' : 'pending') : o.st === 'completed' ? 'recorded' : o.pd < T0 ? 'not_recorded' : 'pending';
+      if (sheet && st === 'completed') st = 'received';
+      var paid = 0, ref = 0; (o.pay || []).forEach(function (p) { if (p[0] === 'refund') ref += p[1]; else paid += p[1]; });
+      var tot = o.fin != null ? o.fin : o.est;
+      return { k: (sheet ? 'sheet:x' : 'app:') + o.i, i: sheet ? (n % 3 ? null : o.i) : o.i, r: o.r, src: o.src === 'online' ? 'Online' : 'Walk-in', sys: sheet ? (o.src === 'online' ? 'Online sheet' : 'Walk-in sheet') : (o.src === 'online' ? 'Website' : 'Staff app'),
+        st: st, cp: cp, od: o.od, odb: sheet ? 'Date taken by staff' : 'Entered in the system', odok: !(sheet && n % 5 === 0), pd: o.pd, pt: o.pt, fm: o.fm, c: o.c, cn: o.cn, it: o.it,
+        lv: o.est, cv: o.fin, paid: sheet ? null : paid, ref: sheet ? null : ref, bal: sheet || st === 'cancelled' ? null : Math.max(tot - paid, 0), wn: [], pay: o.pay, ho: o.ho, ra: o.ra, rev: o.rev, cx: o.cx, ca: o.ca };
+    });
+    window.__regLast = out;
+    var ago = function (m) { return new Date(Date.now() - m * 6e4).toISOString(); };
+    return { ok: true, generated_at: new Date().toISOString(), tests_excluded: 2, products: f.products, orders: out, left_out: { needs_review: 3, excluded: 2 },
+      sync: { online: { ok_at: ago(window.__syncStale ? 300 : 3), fail_at: null, fail_msg: null }, walkin: { ok_at: ago(4), fail_at: window.__syncFail ? ago(1) : null, fail_msg: window.__syncFail ? 'The sheet could not be opened' : null }, stale_minutes: 20, records: 580, needs_review: 3, excluded: 2 } };
+  }
+  var regCards = [
+    { rec_key: 'sheet:walkin|2026-05-02T01:00:00Z', reference: 'H-0310', source: 'Walk-in sheet', channel: 'Walk-in', sheet_row: 120, order_date: '2026-05-01', order_date_basis: 'Date taken by staff', fulfil_date: '2026-05-04', fulfil_time: '14:00', method: 'collection', customer: 'Test Guest One', phone_key: '6799120001', cake: 'Cheesecake', size_inch: 8, list_value: 95, confirmed_value: null, status: 'received', review: 'needs_review', flags: ['possible_duplicate'], warnings: [], duplicate_of: 'sheet:online|2026-04-30T22:00:00Z', staff_member: 'Staff A', raw: ['Staff A', 'Test', 'Guest One', '', '9120001', '', '', 'Cheesecake'],
+      other: { rec_key: 'sheet:online|2026-04-30T22:00:00Z', reference: 'H-0301', source: 'Online sheet', sheet_row: 88, customer: 'Test Guest One', cake: 'Cheesecake', size_inch: 8, fulfil_date: '2026-05-04', order_date: '2026-04-30', status: 'received' } },
+    { rec_key: 'sheet:online|2026-06-01T01:00:00Z', reference: 'H-0402', source: 'Online sheet', channel: 'Online', sheet_row: 140, order_date: '2026-06-01', order_date_basis: 'Form submission time', fulfil_date: null, fulfil_time: null, method: 'collection', customer: 'Test Guest Two', phone_key: '6799120002', cake: 'Red Velvet', size_inch: 6, list_value: 38, confirmed_value: null, status: 'received', review: 'needs_review', flags: ['no_fulfilment_date'], warnings: ['No pickup time'], duplicate_of: null, raw: ['Test', 'Guest Two'], other: null },
+    { rec_key: 'sheet:online|2026-07-01T01:00:00Z', reference: 'H-0450', source: 'Online sheet', channel: 'Online', sheet_row: 150, order_date: '2026-07-01', order_date_basis: 'Form submission time', fulfil_date: '2026-07-03', method: 'collection', customer: 'Test Test', phone_key: '6799120003', cake: 'Strawberry', size_inch: 6, list_value: 40, status: 'received', review: 'needs_review', flags: ['possible_test'], warnings: [], raw: ['Test', 'Test'], other: null }
+  ];
+  var regDecisions = [];
   var cust = [{ id: 'c1', full_name: 'Test Customer A', phone: '912 0001', email: 'a@example.com', preferred_contact: 'whatsapp' }, { id: 'c2', full_name: 'Test Customer B', phone: '912 0002' }];
   var orders = [
     { id: 'o1', reference: 'CC-1001', order_status: 'awaiting_review', payment_status: 'unpaid', order_type: 'standard', source: 'online', created_at: new Date().toISOString(), required_date: add(2), required_time: '14:00:00', estimate_total: 68, final_total: null, deposit_required: null, has_dietary: true, rush_override: false, version: 1, customer_id: 'c1', customers: cust[0], order_items: [{ product_name: 'Chocolate, Mudcake or Mocha', variant: 'Mudcake', size_inch: 8, quantity: 1, finish: 'standard', occasion: 'Birthday', cake_message: 'Happy 30th', dietary: ['Nut allergy'], serves_label: 'About 12–16 slices' }], order_events: [{ at: new Date().toISOString(), kind: 'created', actor_label: 'Guest (online)', detail: { source: 'online' } }], order_attachments: [], payments: [] },
@@ -115,6 +142,18 @@
       return Promise.resolve({ data: { ok: false, message: 'Unknown request.' } }); } },
     rpc: function (fn, args) {
       if (fn === 'dashboard_data') { calls.push(['rpc', fn, args]); return Promise.resolve({ data: dashFeed() }); }
+      if (fn === 'dashboard_register') { calls.push(['rpc', fn, args]); return Promise.resolve({ data: regFeed() }); }
+      if (fn === 'register_review_list') { calls.push(['rpc', fn, args]); var rl = window.__role || 'manager'; if (rl !== 'manager' && rl !== 'admin') return Promise.resolve({ data: { ok: false, message: 'Only managers can review register records.' } }); var rf = regFeed(); return Promise.resolve({ data: { ok: true, sync: Object.assign({}, rf.sync, { needs_review: regCards.length }), records: regCards.slice(), recent: regDecisions.slice() } }); }
+      if (fn === 'register_decide') { calls.push(['rpc', fn, args]); if ((args.p_decision === 'duplicate' || args.p_decision === 'exclude') && !(args.p_note || '').trim()) return Promise.resolve({ data: { ok: false, message: 'Add a short reason.' } });
+        var ci = regCards.findIndex(function (c) { return c.rec_key === args.p_rec_key; }), ref = ci > -1 ? regCards[ci].reference : 'H-0000';
+        if (args.p_decision === 'undo') regDecisions = regDecisions.filter(function (d) { return d.rec_key !== args.p_rec_key; }); else { if (ci > -1) regCards.splice(ci, 1); regDecisions.unshift({ rec_key: args.p_rec_key, reference: ref, decision: args.p_decision, note: args.p_note, by: 'Test Manager', at: new Date().toISOString() }); }
+        return Promise.resolve({ data: { ok: true, reference: ref } }); }
+      if (fn === 'register_record') { calls.push(['rpc', fn, args]); var rc = regCards.filter(function (c) { return c.rec_key === args.p_rec_key; })[0] || Object.assign({}, regCards[0], { rec_key: args.p_rec_key, reference: 'H-0123', review: 'ok', flags: [], other: null, order_id: null });
+        return Promise.resolve({ data: { ok: true, record: rc, history: [{ at: '2026-10-12T07:47:00Z', source: 'load', by: null, changes: { added: true } }, { at: '2026-10-12T08:10:00Z', source: 'sheet', by: null, changes: { size_inch: { from: 6, to: 8 } } }], versions: [{ at: 1 }, { at: 2 }] } }); }
+      if (fn === 'admin_delete_order') { calls.push(['rpc', fn, args]); var od = orders.filter(function (x) { return x.id === args.p_order; })[0]; if (!od) return Promise.resolve({ data: { ok: false, message: 'That order was not found.' } }); if ((od.payments || []).length) return Promise.resolve({ data: { ok: false, message: 'This order has a payment recorded, so it cannot be deleted.' } });
+        orders.splice(orders.indexOf(od), 1); window.__deleted = (window.__deleted || []).concat([{ id: od.id, reference: od.reference, customer: od.customers.full_name, date: od.required_date, deleted_at: new Date().toISOString(), deleted_by: 'Test Admin', reason: args.p_reason, o: od }]); return Promise.resolve({ data: { ok: true, reference: od.reference } }); }
+      if (fn === 'admin_deleted_orders') return Promise.resolve({ data: { ok: true, orders: (window.__deleted || []).slice() } });
+      if (fn === 'admin_restore_order') { calls.push(['rpc', fn, args]); var dx = (window.__deleted || []).filter(function (x) { return x.id === args.p_order; })[0]; window.__deleted = window.__deleted.filter(function (x) { return x !== dx; }); orders.push(dx.o); return Promise.resolve({ data: { ok: true, reference: dx.reference } }); }
       calls.push(['rpc', fn, args]);
       if (fn === 'get_order_setup') return Promise.resolve({ data: setup });
       if (fn === 'staff_search_customers') return Promise.resolve({ data: (args.q.indexOf('0001') > -1 || args.q.toLowerCase().indexOf('customer a') > -1) ? [summary[0]] : [] });

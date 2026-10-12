@@ -507,3 +507,13 @@
 #cc-staff .ccs-day, #cc-staff .ccs-col h2 { font-size: 13.5px; letter-spacing: .05em; }
 .ccs-bksteps { margin: 0 0 12px; padding-left: 20px; display: grid; gap: 6px; }
 .ccs-bkmail { color: var(--ccs-ink); overflow-wrap: anywhere; }
+/* cake register */
+#cc-staff .rg-h { font-size: 18px; font-weight: 600; color: var(--ccs-ink); margin: 26px 0 8px; }
+#cc-staff .rg-card { display: grid; gap: 10px; margin-bottom: 12px; }
+#cc-staff .rg-top { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+#cc-staff .rg-top .ccs-hint { margin: 4px 0 0; }
+#cc-staff .rg-flags { margin: 0; padding-left: 18px; color: var(--ccs-text); font-size: 15px; display: grid; gap: 4px; }
+#cc-staff .rg-pair, #cc-staff .rg-rawbox { border-left: 3px solid var(--ccs-line); padding: 4px 0 4px 12px; display: grid; gap: 4px; }
+#cc-staff .rg-pair p { margin: 0; }
+#cc-staff .rg-raw { font-size: 14px; }
+@media (max-width: 759px) { #cc-staff .rg-top { flex-direction: column; } }

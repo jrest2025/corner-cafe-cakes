@@ -110,6 +110,7 @@
     customers: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm7 0a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM2 20c0-3.3 3.1-6 7-6s7 2.7 7 6zm15 0c0-1.9-.7-3.6-1.9-4.9.6-.1 1.2-.1 1.9-.1 2.8 0 5 1.8 5 5z"/></svg>',
     more: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 10a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm7 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm7 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"/></svg>',
     calendar: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M7 2h2v2h6V2h2v2h3v18H4V4h3zM6 10v10h12V10zm0-4v2h12V6zm2 6h3v3H8z"/></svg>',
+    register: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14v18H5zm2 2v14h10V5zm2 2h6v2H9zm0 4h6v2H9zm0 4h4v2H9z"/></svg>',
     dash: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10h3v10zm6.5 0V4h3v16zM17 20v-7h3v7z"/></svg>',
     settings: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.4 13a7.6 7.6 0 0 0 0-2l2.1-1.6-2-3.4-2.5 1a7.4 7.4 0 0 0-1.7-1L15 3.3h-4l-.4 2.7a7.4 7.4 0 0 0-1.7 1l-2.5-1-2 3.4L6.6 11a7.6 7.6 0 0 0 0 2l-2.1 1.6 2 3.4 2.5-1c.5.4 1.1.7 1.7 1l.4 2.7h4l.4-2.7c.6-.3 1.2-.6 1.7-1l2.5 1 2-3.4zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/></svg>'
   };
@@ -119,6 +120,7 @@
     if (can('manager', 'front_of_house')) tabs.push(['kitchen', 'Kitchen']);
     if (can('manager', 'front_of_house')) tabs.push(['new', 'New order']);
     if (can('marketing')) tabs.push(['dash', 'Dashboard']);
+    if (can('manager')) tabs.push(['register', 'Register']);
     if (can('manager', 'front_of_house', 'finance', 'marketing')) tabs.push(['customers', 'Customers']);
     if (can('manager')) tabs.push(['settings', 'Settings']);
     tabs.push(['more', 'More']);
@@ -129,7 +131,7 @@
     var needs = needsCount();
     // On phones, Customers and Settings move under More so the bottom bar keeps 5 large tabs (U15)
     return navTabs().map(function (t) {
-      var where = t[0] === 'more' ? ' ccs-nav-phone' : (t[0] === 'customers' || t[0] === 'settings' || t[0] === 'kitchen' || t[0] === 'dash') ? ' ccs-nav-wide' : '';
+      var where = t[0] === 'more' ? ' ccs-nav-phone' : (t[0] === 'customers' || t[0] === 'settings' || t[0] === 'kitchen' || t[0] === 'dash' || t[0] === 'register') ? ' ccs-nav-wide' : '';
       return '<button type="button" class="ccs-nav-item' + (t[0] === 'new' ? ' ccs-nav-new' : '') + where + '" data-tab="' + t[0] + '"' + (S.tab === t[0] ? ' aria-current="page"' : '') + '>' + NAV_ICON[t[0]] + '<span>' + t[1] + '</span>' +
         (t[0] === 'orders' && needs ? '<span class="ccs-count">' + needs + '</span>' : '') + '</button>';
     }).join('');
@@ -160,6 +162,7 @@
     else if (S.tab === 'customers') m.innerHTML = customersView();
     else if (S.tab === 'settings') m.innerHTML = settingsView();
     else if (S.tab === 'dash') m.innerHTML = dashView();
+    else if (S.tab === 'register') m.innerHTML = regView();
     else if (S.tab === 'kitchen') m.innerHTML = kitchenView();
     else if (S.tab === 'calendar') m.innerHTML = calendarView();
   }
@@ -425,6 +428,7 @@
     if (S.tab === 'customers' && !S.cust.loaded) loadCustomers();
     if (S.tab === 'settings') loadSettings();
     if (S.tab === 'dash') dashLoad();
+    if (S.tab === 'register') regLoad();
     if (S.tab === 'kitchen') loadKitchen();
     if (S.tab === 'orders' || S.tab === 'today') loadOrders(true);
     if (S.tab === 'calendar') calLoad();
@@ -452,6 +456,7 @@
     if (can('manager', 'front_of_house')) links += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-tab="kitchen">Kitchen</button>';
     if (can('manager', 'front_of_house', 'finance', 'marketing')) links += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-tab="customers">Customers</button>';
     if (can('marketing')) links += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-tab="dash">Dashboard</button>';
+    if (can('manager')) links += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-tab="register">Cake register</button>';
     if (can('manager')) links += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-tab="settings">Settings</button>';
     if (links) h += '<div class="ccs-more-links">' + links + '</div>';
     if (S.sheet.confirmOut && draftHasContent()) h += '<div class="ccs-panel ccs-confirm" role="alert"><b>You have an unfinished order' + (draftWho() ? ' for ' + esc(draftWho()) : '') + '.</b><p class="ccs-hint">Signing out deletes it from this device.</p><div class="ccs-actions-row"><button type="button" class="ccs-btn ccs-danger" data-act="signout" data-sure="1">Sign out anyway</button><button type="button" class="ccs-btn ccs-ghost" data-tab="new">Finish the order</button></div></div>';
@@ -460,7 +465,7 @@
   }
   function renderSheet() {
     var el = document.getElementById('ccs-sheet'); if (!el || !S.sheet) return;
-    var body = S.sheet.type === 'new' ? sheetHead('New order') + '<div class="ccs-sheet-body ccs-newsheet">' + newView() + '</div>' : S.sheet.type === 'cal' ? calSheet() : S.sheet.type === 'order' ? orderSheet() : S.sheet.type === 'customer' ? customerSheet() : S.sheet.type === 'kitchen' ? kitchenSheet() : S.sheet.type === 'more' ? moreSheet() : S.sheet.type === 'dash' ? dashSheet() : S.sheet.type === 'pw' ? sheetHead('Change my password') + '<div class="ccs-sheet-body"><form class="ccs-box ccs-pwform" id="ccs-pw">' + pwFields(S.pwErr) + '</form></div>' : '';
+    var body = S.sheet.type === 'new' ? sheetHead('New order') + '<div class="ccs-sheet-body ccs-newsheet">' + newView() + '</div>' : S.sheet.type === 'cal' ? calSheet() : S.sheet.type === 'order' ? orderSheet() : S.sheet.type === 'customer' ? customerSheet() : S.sheet.type === 'kitchen' ? kitchenSheet() : S.sheet.type === 'more' ? moreSheet() : S.sheet.type === 'dash' ? dashSheet() : S.sheet.type === 'reg' ? regSheet() : S.sheet.type === 'pw' ? sheetHead('Change my password') + '<div class="ccs-sheet-body"><form class="ccs-box ccs-pwform" id="ccs-pw">' + pwFields(S.pwErr) + '</form></div>' : '';
     var keep = el.querySelector('.ccs-sheet-body'), top = keep ? keep.scrollTop : 0, focus = captureFocus(el);
     el.innerHTML = body;
     // put back anything staff were typing (the screen refreshes itself every minute) (U2)
@@ -518,7 +523,7 @@
       stage: 'Kitchen: ' + (STAGE_LABEL[d.to] || d.to) + (d.qc_by ? ', checked by ' + d.qc_by : ''),
       brief_printed: 'Kitchen brief version ' + d.version + (d.new_version ? ' printed' : ' reprinted') + (d.changes && d.changes.length ? ' (changed: ' + d.changes.join(', ') + ')' : ''),
       fulfilment: d.method === 'delivery' ? 'Set to delivery, ' + (d.zone || '') + ', fee ' + money(d.fee) : 'Set to collection',
-      assigned: d.to ? 'Assigned to ' + d.to : 'Assignment cleared', amended: 'Amended, revision ' + d.revision + (d.reason ? ' (' + d.reason + ')' : ''), kitchen_ack: 'Kitchen acknowledged the changes', imported: 'Brought in from the Google Sheet', sheet_linked: 'Linked to its Google Sheet row' };
+      assigned: d.to ? 'Assigned to ' + d.to : 'Assignment cleared', amended: 'Amended, revision ' + d.revision + (d.reason ? ' (' + d.reason + ')' : ''), kitchen_ack: 'Kitchen acknowledged the changes', deleted: 'Deleted', restored: 'Restored after being deleted', imported: 'Brought in from the Google Sheet', sheet_linked: 'Linked to its Google Sheet row' };
     if (e.kind === 'collected') map.collected = (d.method === 'delivery' ? 'Delivered' : 'Collected') + (d.to ? ', received by ' + d.to : '');
     return (map[e.kind] || e.kind) + (d.note ? ': ' + d.note : '') + ' · ' + who;
   }
@@ -540,6 +545,12 @@
       return '<div class="ccs-panel"><b>' + lbl[0] + '</b><div class="ccs-field"><label class="ccs-label" for="ccs-note">' + lbl[1] + '</label><textarea class="ccs-input" id="ccs-note" data-autofocus></textarea></div>' +
         (p === 'cancel' && paid > 0 ? '<p class="ccs-note">' + money(paid) + ' has been paid. Arrange the refund with a manager after cancelling.</p>' : '') + err +
         '<div class="ccs-actions-row"><button type="button" class="ccs-btn ' + lbl[3] + '" data-act="do-' + p + '">' + lbl[2] + '</button><button type="button" class="ccs-btn ccs-ghost" data-act="panel" data-v="">Back</button></div></div>';
+    }
+    if (p === 'delete') {
+      return '<div class="ccs-panel"><b>Delete this order</b><p class="ccs-hint">Only for test orders and orders entered by mistake. The order disappears from every list, count and figure, and no more emails go out for it. It is kept with your name and reason, and an admin can restore it from Settings.</p>' +
+        '<div class="ccs-field"><label class="ccs-label" for="ccs-note">Why is it being deleted? (required)</label><textarea class="ccs-input" id="ccs-note" data-autofocus placeholder="For example: test order, or entered twice by mistake"></textarea></div>' +
+        '<div class="ccs-field"><label class="ccs-label" for="ccs-delref">Type the order number ' + esc(o.reference) + ' to confirm</label><input class="ccs-input" id="ccs-delref" autocomplete="off" autocapitalize="characters" spellcheck="false"></div>' + err +
+        '<div class="ccs-actions-row"><button type="button" class="ccs-btn ccs-danger" data-act="do-delete">Delete order</button><button type="button" class="ccs-btn ccs-ghost" data-act="panel" data-v="">Back</button></div></div>';
     }
     if (p === 'fulfil') {
       var F = S.ful, zones = (S.setup && S.setup.delivery_zones) || [], zf = zones.filter(function (z) { return z.name === F.zone; })[0];
@@ -592,9 +603,11 @@
     if (orderer && OPEN.indexOf(st) > -1 && (o.production_status !== 'ready' || can('manager'))) main += '<button type="button" class="ccs-btn ccs-ghost" data-act="panel" data-v="amend">Amend order</button>';
     if (orderer && OPEN.indexOf(st) > -1) { more.push(['note', '+ Add note']); more.push(['cancel', 'Cancel order']); }
     else if (orderer) more.push(['note', '+ Add note']);
+    // Admins can delete orders entered by mistake or for testing, but never one with money recorded
+    if (S.me.role === 'admin' && !(o.payments || []).length) more.push(['delete', 'Delete order']);
     if (!main && !more.length) return '';
     return '<div class="ccs-actions">' + (main ? '<div class="ccs-actions-row">' + main + '</div>' : '') + (hint ? '<p class="ccs-hint">' + esc(hint) + '</p>' : '') + (S.panelErr ? '<p class="ccs-err">' + esc(S.panelErr) + '</p>' : '') +
-      (more.length ? '<div class="ccs-actions-row ccs-more-row">' + more.map(function (m) { return '<button type="button" class="ccs-link' + (m[0] === 'cancel' || m[0] === 'decline' ? ' ccs-red' : '') + '" data-act="panel" data-v="' + m[0] + '">' + m[1] + '</button>'; }).join('') + '</div>' : '') + '</div>';
+      (more.length ? '<div class="ccs-actions-row ccs-more-row">' + more.map(function (m) { return '<button type="button" class="ccs-link' + (m[0] === 'cancel' || m[0] === 'decline' || m[0] === 'delete' ? ' ccs-red' : '') + '" data-act="panel" data-v="' + m[0] + '">' + m[1] + '</button>'; }).join('') + '</div>' : '') + '</div>';
   }
   function receiverChips(o, dl) {
     var c = o.customers, opts = [];
@@ -615,6 +628,24 @@
       if (!(S.setup && S.setup.guest_emails) && ['confirm', 'decline', 'cancel', 'waive_deposit'].indexOf(action) > -1) msg += '. Now let the customer know.';
       toast(msg); S.panel = null; openOrder(o.id); loadOrders(true);
     }).catch(function (e) { S.busy = false; fail(e); });
+  }
+  function deleteOrder() {
+    var o = S.sheet.data, reason = val('ccs-note').trim(), ref = val('ccs-delref').trim();
+    if (reason.length < 5) { S.panelErr = 'Say why this order is being deleted.'; S.dirty['ccs-note'] = reason; S.dirty['ccs-delref'] = ref; clearBusy(); return renderSheet(); }
+    if (ref.toUpperCase() !== String(o.reference).toUpperCase()) { S.panelErr = 'Type the order number exactly as shown: ' + o.reference + '.'; S.dirty['ccs-note'] = reason; S.dirty['ccs-delref'] = ref; clearBusy(); return renderSheet(); }
+    if (S.busy) return; S.busy = true; S.panelErr = null;
+    sb.rpc('admin_delete_order', { p_order: o.id, p_reference: ref, p_reason: reason }).then(function (r) {
+      S.busy = false; if (r.error) throw r.error;
+      if (!r.data.ok) { S.panelErr = r.data.message; S.dirty['ccs-note'] = reason; S.dirty['ccs-delref'] = ref; clearBusy(); return renderSheet(); }
+      S.dirty = {}; sheetClose(); toast(o.reference + ' deleted. An admin can restore it from Settings.');
+      if (DX) DX.data = null; if (RG) RG.data = null; loadOrders(true);
+    }).catch(function (e) { S.busy = false; fail(e); });
+  }
+  function restoreOrder(id) {
+    sb.rpc('admin_restore_order', { p_order: id }).then(function (r) {
+      if (r.error) throw r.error; if (!r.data.ok) { clearBusy(); return toast(r.data.message, true); }
+      toast(r.data.reference + ' restored'); if (DX) DX.data = null; if (RG) RG.data = null; loadSettings(); loadOrders(true);
+    }).catch(fail);
   }
   function pay() {
     var o = S.sheet.data, amt = num(val('ccs-amt'));
@@ -1592,8 +1623,8 @@
   function loadSettings() {
     S.settings = null; view();
     var reqs = [sb.from('locations').select('*').eq('code', 'corner-cafe').single(), sb.from('closed_dates').select('*').gte('closed_on', today()).order('closed_on'), sb.from('products').select('*, product_sizes(*), product_variants(*)').order('sort'), sb.from('delivery_zones').select('*').order('sort')];
-    if (can('admin')) reqs.push(sb.rpc('admin_list_users'));
-    Promise.all(reqs).then(function (rs) { rs.forEach(function (r) { if (r.error) throw r.error; }); S.settings = { loc: rs[0].data, closed: rs[1].data || [], products: rs[2].data || [], zones: rs[3].data || [], team: rs[4] ? rs[4].data || [] : null }; if (S.tab === 'settings') view(); if (can('admin')) backupLoad(); }).catch(fail);
+    if (can('admin')) { reqs.push(sb.rpc('admin_list_users')); reqs.push(sb.rpc('admin_deleted_orders')); }
+    Promise.all(reqs).then(function (rs) { rs.forEach(function (r) { if (r.error) throw r.error; }); S.settings = { loc: rs[0].data, closed: rs[1].data || [], products: rs[2].data || [], zones: rs[3].data || [], team: rs[4] ? rs[4].data || [] : null, deleted: rs[5] && rs[5].data && rs[5].data.ok ? rs[5].data.orders : null }; if (S.tab === 'settings') view(); if (can('admin')) backupLoad(); }).catch(fail);
   }
   function settingsView() {
     var h = '<div class="ccs-head"><div><h1 class="ccs-title">Settings</h1><p class="ccs-sub">Changes apply to the website order form straight away.</p></div></div>';
@@ -1641,8 +1672,18 @@
           '<div class="ccs-actions-row ccs-more-row"><button type="button" class="ccs-btn ccs-ghost" data-act="save-staff" data-id="' + u.user_id + '">Save</button>' + (mine ? '' : '<button type="button" class="ccs-link" data-act="tm-reset" data-id="' + u.user_id + '">Forgotten password? Set a new one</button>') + '</div></div>';
       }).join('') + '</div></details>';
       h += backupView(st);
+      h += deletedView(st);
     }
     return h + '</div>';
+  }
+  // ---------- deleted orders (admins) ----------
+  function deletedView(st) {
+    var l = st.deleted; if (!l) return '';
+    return '<details><summary>Deleted orders <span>' + (l.length ? l.length + ' deleted' : 'None') + '</span></summary><div class="ccs-set-body">' +
+      (l.length ? '<p class="ccs-hint">Deleted orders are hidden from every list and figure. Restore puts an order back exactly as it was.</p><div class="ccs-history">' + l.map(function (d) {
+        return '<div><span>' + esc(when(d.deleted_at)) + '</span><span><b style="font-weight:600;color:var(--ccs-ink)">' + esc(d.reference) + '</b> ' + esc(d.customer || '') + ', due ' + esc(nice(d.date)) + ' · deleted by ' + esc(d.deleted_by) + ': ' + esc(d.reason || '') +
+          ' <button type="button" class="ccs-link" data-act="del-restore" data-id="' + d.id + '">Restore</button></span></div>';
+      }).join('') + '</div>' : '<p class="ccs-hint">No orders have been deleted. Admins can delete a test order or one entered by mistake from the order itself, as long as no payment is recorded.</p>') + '</div></details>';
   }
   // ---------- Google Sheet backup (admins) ----------
   function when(iso) { return iso ? new Date(iso).toLocaleString('en-GB', { timeZone: 'Pacific/Fiji', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) : ''; }
@@ -1778,7 +1819,7 @@
       boot();
     }).catch(function () { loginView('Could not connect. Check the internet connection.'); });
   });
-  var BUSY_ACTS = { 'do-confirm': 'Saving…', 'do-decline': 'Saving…', 'do-cancel': 'Saving…', 'do-note': 'Saving…', 'do-waive': 'Saving…', 'do-collected': 'Saving…', 'do-fulfil': 'Saving…',
+  var BUSY_ACTS = { 'do-delete': 'Deleting…', 'do-confirm': 'Saving…', 'do-decline': 'Saving…', 'do-cancel': 'Saving…', 'do-note': 'Saving…', 'do-waive': 'Saving…', 'do-collected': 'Saving…', 'do-fulfil': 'Saving…',
     'do-brief': 'Preparing…', 'do-pay': 'Saving…', 'k-stage': 'Saving…', 'k-next': 'Saving…', 'k-ready': 'Saving…', 'k-assign': 'Saving…', 'save-zones': 'Saving…', 'add-zone': 'Saving…', 'cust-save': 'Saving…',
     'consent': 'Saving…', 'save-loc': 'Saving…', 'add-closed': 'Saving…', 'save-prod': 'Saving…', 'save-staff': 'Saving…', 'tm-add': 'Adding…', 'tm-reset-save': 'Saving…', 'bk-link': 'Linking…', 'bk-copy': 'Copying…' };
   root.addEventListener('click', function (e) {
@@ -1791,6 +1832,7 @@
     }
     var a = b.dataset.act, v = b.dataset.v;
     if (a.indexOf('dx-') === 0) { try { dashAct(a, b, v); } catch (err) { fail(err); } return; }
+    if (a.indexOf('rg-') === 0) { try { regAct(a, b, v); } catch (err) { fail(err); } return; }
     if (BUSY_ACTS[a] && !S.busyBtn) markBusy(b, BUSY_ACTS[a]);
     try {
       switch (a) {
@@ -1816,6 +1858,10 @@
         }
         case 'do-decline': act('decline', { p_note: val('ccs-note').trim() || null }); break;
         case 'do-cancel': act('cancel', { p_note: val('ccs-note').trim() }); break;
+        case 'do-delete': deleteOrder(); break;
+        case 'del-restore':
+          if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = 'Tap again to restore'; setTimeout(function () { if (b.isConnected) { b.dataset.armed = ''; b.textContent = 'Restore'; } }, 4000); break; }
+          markBusy(b, 'Restoring…'); restoreOrder(b.dataset.id); break;
         case 'do-note': act('note', { p_note: val('ccs-note').trim() }); break;
         case 'do-waive': act('waive_deposit', { p_note: val('ccs-note').trim() }); break;
         case 'do-collected': act('collected', { p_note: val('ccs-note').trim() }); break;

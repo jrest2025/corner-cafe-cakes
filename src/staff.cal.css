@@ -166,6 +166,8 @@
 #cc-staff .dx-f { min-width: 170px; flex: 1 1 170px; max-width: 260px; }
 #cc-staff .dx-period { font-size: 14px; color: #57514c; margin: 0 0 12px; }
 #cc-staff .dx-kpis { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+#cc-staff .dx-kpis.dx-kpis8 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 899px) { #cc-staff .dx-kpis.dx-kpis8 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 #cc-staff .dx-kpis-s .ccs-kpi-n { font-size: 24px; }
 #cc-staff .dx-kpi { text-align: left; font: inherit; color: inherit; }
 #cc-staff div.dx-kpi { cursor: default; }

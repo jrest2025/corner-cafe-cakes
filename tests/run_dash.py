@@ -26,7 +26,9 @@ async def main():
         ctx, pg = await newpage(b, {'width': 1366, 'height': 1000}, errs)
         await pg.click('.ccs-nav [data-tab="dash"]'); await pg.wait_for_timeout(700)
         t = await pg.inner_text('#ccs-main')
-        check('summary figures visible', all(x in t for x in ['Cakes sold', 'Collected orders', 'Net sales', 'Average order', 'Booked ahead', 'Cash collected']), t[:600])
+        check('summary figures visible', all(x in t for x in ['Orders received', 'Completed sales', 'Sales value', 'Payments collected', 'Outstanding', 'Cancellations', 'Refunds', 'Booked ahead']), t[:600])
+        check('sheet read times shown', 'Last read: Online sheet' in t and 'Walk-in sheet' in t and 'Not up to date' not in t, t[:400])
+        check('completed sales split recorded and assumed', 'recorded in the app' in t and 'assumed from the sheets' in t)
         check('freshness shown', 'Figures as of' in t)
         check('data notes shown', 'things to know about this data' in t)
         await pg.screenshot(path=str(OUT / 'desk-top.png'))
@@ -41,7 +43,7 @@ async def main():
         # tap the cakes sold figure -> drill list
         await pg.click('.dx-kpis .dx-kpi >> nth=0'); await pg.wait_for_timeout(400)
         sh = await pg.inner_text('#ccs-sheet')
-        check('tapping a figure lists the orders', 'Cakes sold' in sh and 'orders' in sh and await pg.locator('#ccs-sheet tbody tr').count() > 0, sh[:300])
+        check('tapping a figure lists the orders', 'Orders received' in sh and 'orders' in sh and await pg.locator('#ccs-sheet tbody tr').count() > 0, sh[:300])
         await pg.click('#ccs-sheet [data-act="close"]'); await pg.wait_for_timeout(300)
         # filter: last 12 months + product + channel; numbers should drop
         def kpi(i): return pg.locator('.dx-kpis').first.locator('.ccs-kpi-n').nth(i).inner_text()
@@ -50,7 +52,7 @@ async def main():
         await pg.select_option('#dx-prod', 'Cheesecake'); await pg.wait_for_timeout(300)
         bq = await kpi(0)
         check('product filter narrows cakes sold', int(bq.replace(',', '')) < int(a.replace(',', '')), (a, bq))
-        await pg.select_option('#dx-ch', 'online'); await pg.wait_for_timeout(300)
+        await pg.select_option('#dx-ch', 'Online'); await pg.wait_for_timeout(300)
         cq = await kpi(0)
         check('channel filter narrows further', int(cq.replace(',', '')) <= int(bq.replace(',', '')), (bq, cq))
         check('filter label shown', 'Showing Cheesecake only' in await pg.inner_text('#ccs-main'))
@@ -61,7 +63,7 @@ async def main():
         await pg.select_option('#dx-prod', 'all'); await pg.select_option('#dx-p', 'c'); await pg.wait_for_timeout(300)
         check('custom dates offer from and to', await pg.locator('#dx-from').count() == 1 and await pg.locator('#dx-to').count() == 1)
         await pg.select_option('#dx-p', 'all'); await pg.wait_for_timeout(300)
-        ind = await pg.evaluate("(function(){var c=0,v=0,n=0;window.__dashLast.forEach(function(o){if(o.st!=='completed')return;n++;o.it.forEach(function(i){c+=i[3]});var r=0;(o.pay||[]).forEach(function(p){if(p[0]==='refund')r+=p[1]});v+=(o.fin!=null?o.fin:o.est)-r});return [c,n,Math.round(v)]})()")
+        ind = await pg.evaluate("(function(){var a=0,v=0,n=0;window.__regLast.forEach(function(o){a++;if(o.cp!=='recorded'&&o.cp!=='assumed')return;n++;v+=(o.cv!=null?o.cv:o.lv)-(o.ref||0)});return [a,n,Math.round(v)]})()")
         shown = [int((await kpi(i)).replace(',', '').replace('$', '')) for i in range(3)]
         check('all-time totals match an independent count', shown == ind, (shown, ind))
         # year overview switching
@@ -72,17 +74,42 @@ async def main():
         # status filter on order list
         await pg.select_option('#dx-st', 'off'); await pg.wait_for_timeout(300)
         rows = await pg.evaluate("Array.from(document.querySelectorAll('[data-dxsec=\"ol\"] tbody tr')).map(function(r){return r.innerText})")
-        check('status filter shows only cancelled or declined', rows and all('Cancelled' in r or 'Declined' in r for r in rows), rows[:3])
+        check('status filter shows only cancelled', rows and all('Cancelled' in r for r in rows), rows[:3])
         # export
         async with pg.expect_download() as dl:
             await pg.click('[data-act="dx-export"]')
         f = await (await dl.value).path(); csv = open(f).read()
-        check('export has summary and order rows', 'Cakes sold' in csv and 'Order,Order date,Pickup date' in csv and csv.count('\n') > 20, csv[:200])
+        check('export has summary and order rows', 'Completed sales' in csv and 'Counted by' in csv and 'Order,Order date,Pickup date' in csv and csv.count('\n') > 20, csv[:200])
         # sales exclude cancelled: drill on cakes sold has no cancelled
         await pg.select_option('#dx-st', 'all')
-        await pg.click('.dx-kpis .dx-kpi >> nth=0'); await pg.wait_for_timeout(400)
+        await pg.click('.dx-kpis .dx-kpi >> nth=1'); await pg.wait_for_timeout(400)
         st = await pg.evaluate("Array.from(document.querySelectorAll('#ccs-sheet tbody tr')).map(function(r){return r.innerText})")
         check('sales never include cancelled orders', st and not any('Cancelled' in r for r in st))
+        await pg.click('#ccs-sheet [data-act="close"]'); await pg.wait_for_timeout(300)
+        # count by order date
+        await pg.select_option('#dx-b', 'o'); await pg.wait_for_timeout(300)
+        t = await pg.inner_text('#ccs-main')
+        check('count by order date relabels the period', 'by order date' in t, t[:300])
+        await pg.click('.dx-flags summary'); await pg.wait_for_timeout(200)
+        check('order date note explains records left out', 'no reliable order date' in await pg.inner_text('#ccs-main'))
+        check('review records explained', 'waiting for a manager to review' in await pg.inner_text('#ccs-main'))
+        # a sheet order without an app order opens its register record
+        import datetime
+        await pg.select_option('#dx-b', 'p'); await pg.select_option('#dx-st', 'completed'); await pg.select_option('#dx-p', 'c'); await pg.wait_for_timeout(300)
+        await pg.fill('#dx-from', (datetime.date.today() - datetime.timedelta(days=600)).isoformat()); await pg.wait_for_timeout(200)
+        await pg.fill('#dx-to', (datetime.date.today() - datetime.timedelta(days=300)).isoformat()); await pg.wait_for_timeout(300)
+        await pg.evaluate("document.querySelector('[data-dxsec=\"ol\"]').open=true")
+        rg = pg.locator('[data-dxsec="ol"] tr[data-act="rg-open"]')
+        check('sheet-only orders link to the register record', await rg.count() > 0)
+        await rg.first.click(); await pg.wait_for_timeout(400)
+        sh = await pg.inner_text('#ccs-sheet')
+        check('register record shows the sheet row and history', 'the sheet row as typed' in sh.lower() and 'history' in sh.lower() and 'Column A' in sh, sh[:400])
+        await ctx.close()
+        # stale and failed sheet reads are shown
+        ctx, pg = await newpage(b, {'width': 1280, 'height': 900}, errs, 'marketing', 'window.__syncStale=true; window.__syncFail=true;')
+        await pg.click('.ccs-nav [data-tab="dash"]'); await pg.wait_for_timeout(600)
+        t = await pg.inner_text('#ccs-main')
+        check('stale and failed sheet reads warned', 'Not up to date' in t and 'could not be read' in t and 'has not been read since' in t, t[:500])
         await ctx.close()
         # access refused message
         ctx, pg = await newpage(b, {'width': 1280, 'height': 900}, errs, 'marketing', 'window.__dashFail=true;')
