@@ -19,5 +19,5 @@ create or replace trigger t_customers_version before update on public.customers
   for each row execute function public.bump_customer_version();
 revoke all on function public.bump_customer_version() from public, anon, authenticated;
 
--- AFTER the new staff app is published (not yet run):
--- alter policy edit_customers on public.customers using (false) with check (false);
+-- Run on 12 October 2026 after the staff app was published:
+alter policy edit_customers on public.customers using (false) with check (false);

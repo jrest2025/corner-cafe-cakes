@@ -150,6 +150,16 @@
   function captureFocus(scope) { var a = document.activeElement; if (!a || !a.id || !scope || !scope.contains(a)) return null; var f = { id: a.id }; try { f.s = a.selectionStart; f.e = a.selectionEnd; } catch (x) {} return f; }
   function restoreFocus(f) { if (!f) return false; var el = document.getElementById(f.id); if (!el) return false; try { el.focus({ preventScroll: true }); if (f.s != null) el.setSelectionRange(f.s, f.e); } catch (x) {} return true; }
   function hasTyping() { for (var k in S.dirty) if (String(S.dirty[k] || '').trim()) return true; return false; }
+  // First tap warns, second tap within 5 seconds goes ahead.
+  function confirmDiscard(b, msg) {
+    if (b.dataset.armed === '1') return true;
+    b.dataset.armed = '1'; clearBusy();
+    if (b.dataset.act !== 'close') { b.dataset.was = b.textContent; b.textContent = 'Tap again to discard changes'; }
+    toast(msg || 'You have unsaved changes. Tap again to discard them.', true);
+    setTimeout(function () { if (b.isConnected) { b.dataset.armed = ''; if (b.dataset.was) b.textContent = b.dataset.was; } }, 5000);
+    return false;
+  }
+  window.addEventListener('beforeunload', function (e) { if (S.me && S.sheet && hasTyping()) { e.preventDefault(); e.returnValue = ''; } });
   function view() {
     var m = document.getElementById('ccs-main'); if (!m) return;
     var keepFocus = captureFocus(m);
@@ -431,6 +441,7 @@
     if (S.sheetHist) { S.sheetHist = false; if (how !== 'pop' && how !== 'replace') { S.ignorePop = true; try { history.back(); } catch (x) { S.ignorePop = false; } } }
   }
   function goTab(t, fromPop) {
+    if (!fromPop && S.sheet && hasTyping()) { toast('Save or cancel your changes first.', true); return; }
     var hadSheet = S.sheetHist;
     S.tab = t; sheetClose(hadSheet && !fromPop ? 'replace' : 'pop');
     try { if (!fromPop) { if (hadSheet) history.replaceState({ ccs: 'tab', tab: t }, ''); else history.pushState({ ccs: 'tab', tab: t }, ''); } } catch (x) {}
@@ -448,7 +459,7 @@
     if (!S.me) return;
     if (S.sheet) {
       var keep = function () { try { history.pushState({ ccs: 'sheet' }, ''); } catch (x) {} };
-      if (hasTyping()) { keep(); toast('Your typing is kept. Finish, tap Back, or tap the cross to close.'); return; }
+      if (hasTyping()) { keep(); toast('Your typing is kept. Save it, or tap the cross twice to discard it.'); return; }
       if (S.panel) { S.panel = null; S.panelErr = null; renderSheet(); keep(); return; }
       if (S.sheet.type === 'more' && S.sheet.confirmOut) { S.sheet.confirmOut = false; renderSheet(); keep(); return; }
       S.sheetHist = false; sheetClose('pop'); return;
@@ -475,7 +486,7 @@
   }
   function renderSheet() {
     var el = document.getElementById('ccs-sheet'); if (!el || !S.sheet) return;
-    var body = S.sheet.type === 'new' ? sheetHead('New order') + '<div class="ccs-sheet-body ccs-newsheet">' + newView() + '</div>' : S.sheet.type === 'cal' ? calSheet() : S.sheet.type === 'order' ? orderSheet() : S.sheet.type === 'customer' ? customerSheet() : S.sheet.type === 'kitchen' ? kitchenSheet() : S.sheet.type === 'more' ? moreSheet() : S.sheet.type === 'dash' ? dashSheet() : S.sheet.type === 'reg' ? regSheet() : S.sheet.type === 'pw' ? sheetHead('Change my password') + '<div class="ccs-sheet-body"><form class="ccs-box ccs-pwform" id="ccs-pw">' + pwFields(S.pwErr) + '</form></div>' : '';
+    var body = S.sheet.type === 'new' ? sheetHead('New order') + '<div class="ccs-sheet-body ccs-newsheet">' + newView() + '</div>' : S.sheet.type === 'cal' ? calSheet() : S.sheet.type === 'order' ? orderSheet() : S.sheet.type === 'customer' ? customerSheet() : S.sheet.type === 'custnew' ? newCustomerSheet() : S.sheet.type === 'kitchen' ? kitchenSheet() : S.sheet.type === 'more' ? moreSheet() : S.sheet.type === 'dash' ? dashSheet() : S.sheet.type === 'reg' ? regSheet() : S.sheet.type === 'pw' ? sheetHead('Change my password') + '<div class="ccs-sheet-body"><form class="ccs-box ccs-pwform" id="ccs-pw">' + pwFields(S.pwErr) + '</form></div>' : '';
     var keep = el.querySelector('.ccs-sheet-body'), top = keep ? keep.scrollTop : 0, focus = captureFocus(el);
     el.innerHTML = body;
     // put back anything staff were typing (the screen refreshes itself every minute) (U2)
@@ -1555,8 +1566,8 @@
   function customersView() {
     var c = S.cust;
     var h = '<div class="ccs-head"><div><h1 class="ccs-title">Customers</h1><p class="ccs-sub">Built from every online and counter order. Spend counts collected orders only.</p></div>' +
-      '<input class="ccs-input ccs-search" id="ccs-cq" type="search" placeholder="Search name, mobile, email, company, C-number or order number" value="' + esc(c.q) + '"></div>' +
-      '';
+      '<div class="ccs-headacts"><input class="ccs-input ccs-search" id="ccs-cq" type="search" placeholder="Search name, mobile, email, company, C-number or order number" value="' + esc(c.q) + '">' +
+      (can('manager', 'front_of_house') ? '<button type="button" class="ccs-btn" data-act="cust-new">Add customer</button>' : '') + '</div></div>';
     var tool = function (rows, opted) {
       return '<div class="ccs-ctool"><label class="ccs-show" for="ccs-seg"><span>Show</span><select class="ccs-input" id="ccs-seg">' + SEGS.map(function (s) { return '<option value="' + s[0] + '"' + (c.seg === s[0] && !c.q ? ' selected' : '') + '>' + (s[0] === 'all' ? 'All customers' : s[1]) + '</option>'; }).join('') + '</select></label>' +
         (rows ? '<span class="ccs-ccount"><b>' + rows.length + '</b> customer' + (rows.length === 1 ? '' : 's') + ' · <b>' + opted.length + '</b> agreed to marketing</span>' : '<span class="ccs-ccount"></span>') +
@@ -1580,6 +1591,7 @@
   var FIELD_LABEL = { full_name: 'Name', phone: 'Mobile', alt_phone: 'Other number', email: 'Email', preferred_contact: 'Best way to reach them', company: 'Company',
     is_corporate: 'Corporate customer', delivery_address: 'Delivery address', birth_day: 'Birthday day', birth_month: 'Birthday month', preferences: 'Preferences',
     notes: 'Service notes', review_flag: 'Review flag', review_note: 'Review note', archived_at: 'Archived', merged_into: 'Merged into' };
+  var CUSTOMER_SOURCE = { online_order: 'Website order', staff_order: 'Order taken by staff', sheet_import: 'Old order sheets', staff_added: 'Added by staff' };
   var OPEN_STATUSES = ['awaiting_review', 'awaiting_quote', 'awaiting_approval', 'awaiting_deposit', 'confirmed'];
   function custNo(n) { return n != null ? 'C-' + n : ''; }
   function birthday(d, m) { return d && m ? d + ' ' + MONTHS[m - 1] : ''; }
@@ -1589,7 +1601,7 @@
     renderSheet();
     return Promise.all([
       sb.from('customer_summary').select('*').eq('id', id).single(),
-      sb.from('customers').select('id,customer_no,full_name,phone,alt_phone,email,preferred_contact,is_corporate,company,delivery_address,birth_day,birth_month,preferences,notes,version,review_flag,review_note,archived_at').eq('id', id).single(),
+      sb.from('customers').select('id,customer_no,customer_source,full_name,phone,alt_phone,email,preferred_contact,is_corporate,company,delivery_address,birth_day,birth_month,preferences,notes,version,review_flag,review_note,archived_at').eq('id', id).single(),
       sb.from('orders').select('id,reference,order_status,fulfilment_method,required_date,estimate_total,final_total,source,contact_name,order_items(product_name,variant,size_inch,occasion)').eq('customer_id', id).order('required_date', { ascending: false }).limit(100),
       can('manager', 'front_of_house', 'marketing') ? sb.from('consent_now').select('channel,destination,granted,needs_reconfirm,source,wording_code,recorded_at,applies,brand_code').eq('customer_id', id).eq('brand_code', 'corner-cafe') : Promise.resolve({ data: [] }),
       can('manager', 'front_of_house', 'marketing') ? sb.from('marketing_consents').select('channel,destination,granted,needs_reconfirm,source,recorded_at').eq('customer_id', id).order('recorded_at', { ascending: false }).order('id', { ascending: false }).limit(12) : Promise.resolve({ data: [] })
@@ -1626,9 +1638,9 @@
       h += '<section class="ccs-box"><h3>Contact</h3><dl class="ccs-kv">' + kv('Mobile', c.phone) + kv('Other number', c.alt_phone) + kv('Email', c.email) +
         kv('Prefers', { whatsapp: 'WhatsApp', phone: 'Phone call', email: 'Email' }[c.preferred_contact]) + kv('Company', c.company) + kv('Delivery address', c.delivery_address) +
         kv('Birthday', birthday(c.birth_day, c.birth_month)) + kv('Preferences', c.preferences) + kv('Service notes', c.notes) +
-        kv('First came via', SOURCE_LABEL[s.first_source]) + kv('Usually orders', s.favourite_cake) + kv('Occasions', (s.occasions || []).join(', ')) + '</dl>' +
+        kv('Came from', CUSTOMER_SOURCE[c.customer_source] || SOURCE_LABEL[s.first_source]) + kv('Usually orders', s.favourite_cake) + kv('Occasions', (s.occasions || []).join(', ')) + '</dl>' +
         '<div class="ccs-actions-row">' + (c.phone ? '<a class="ccs-btn ccs-ghost" href="' + esc(waLink(c.phone)) + '" target="_blank" rel="noopener">WhatsApp</a><a class="ccs-btn ccs-ghost" href="tel:' + esc(digits(c.phone)) + '">Call</a>' : '') +
-        (editor ? '<button type="button" class="ccs-btn ccs-ghost" data-act="cust-edit">Edit details</button>' : '') +
+        (editor ? '<button type="button" class="ccs-btn ccs-ghost" data-act="cust-edit">Edit Customer</button>' : '') +
         (can('manager') ? '<button type="button" class="ccs-btn ccs-ghost" data-act="cust-history">' + (S.sheet.hist ? 'Hide change history' : 'Change history') + '</button>' : '') + '</div></section>';
       if (S.sheet.hist) h += customerHistory();
     }
@@ -1647,15 +1659,13 @@
     h += '<section class="ccs-box"><h3>Orders</h3>' + (d.orders.length ? '<div class="ccs-list">' + d.orders.map(function (o) { var i = (o.order_items || [])[0]; return '<button type="button" class="ccs-card k-' + (STATUS[o.order_status] || ['', 'off'])[1] + '" data-act="open-order" data-id="' + o.id + '" style="grid-template-columns:110px minmax(0,1fr) auto"><span class="ccs-when"><b>' + esc(nice(o.required_date)) + '</b><span>' + esc(o.reference) + '</span></span><span class="ccs-what"><b>' + esc(cakeLine(i)) + '</b><span class="ccs-tags">' + pill(o.order_status, o.fulfilment_method) + (i && i.occasion ? '<span class="ccs-pill">' + esc(i.occasion) + '</span>' : '') + (o.contact_name && o.contact_name !== c.full_name ? '<span class="ccs-pill">Ordered as ' + esc(o.contact_name) + '</span>' : '') + '</span></span><span class="ccs-price">' + money(o.final_total != null ? o.final_total : o.estimate_total) + '</span></button>'; }).join('') + '</div>' : '<p class="ccs-hint">No orders.</p>') + '</section>';
     return h + '</div>';
   }
-  function customerEditor(d) {
-    var c = d.c, open = d.orders.filter(function (o) { return OPEN_STATUSES.indexOf(o.order_status) > -1; }).length;
+  function customerFields(c) {
     var inp = function (id, label, v, extra) { return '<div class="ccs-field"><label class="ccs-label" for="' + id + '">' + label + '</label><input class="ccs-input" id="' + id + '" value="' + esc(v == null ? '' : v) + '"' + (extra || '') + '></div>'; };
     var ta = function (id, label, v, ph) { return '<div class="ccs-field"><label class="ccs-label" for="' + id + '">' + label + '</label><textarea class="ccs-input" id="' + id + '" placeholder="' + esc(ph || '') + '">' + esc(v || '') + '</textarea></div>'; };
     var sel = function (id, label, opts, v) { return '<div class="ccs-field"><label class="ccs-label" for="' + id + '">' + label + '</label><select class="ccs-input" id="' + id + '">' + opts.map(function (o) { return '<option value="' + o[0] + '"' + (String(v == null ? '' : v) === String(o[0]) ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></div>'; };
     var days = [['', 'Day']].concat(Array.apply(null, Array(31)).map(function (x, i) { return [i + 1, String(i + 1)]; }));
     var months = [['', 'Month']].concat(MONTHS.map(function (m, i) { return [i + 1, m]; }));
-    var h = '<section class="ccs-panel"><b>Edit details</b>' +
-      '<div class="ccs-row">' + inp('ce-name', 'Name', c.full_name, ' autocomplete="off"') + inp('ce-phone', 'Mobile', c.phone, ' inputmode="tel"') + '</div>' +
+    return '<div class="ccs-row">' + inp('ce-name', 'Name', c.full_name, ' autocomplete="off"') + inp('ce-phone', 'Mobile', c.phone, ' inputmode="tel"') + '</div>' +
       '<div class="ccs-row">' + inp('ce-alt', 'Other number (optional)', c.alt_phone, ' inputmode="tel"') + inp('ce-email', 'Email', c.email, ' type="email"') + '</div>' +
       '<div class="ccs-row">' + sel('ce-pref', 'Best way to reach them', [['whatsapp', 'WhatsApp'], ['phone', 'Phone call'], ['email', 'Email']], c.preferred_contact) + inp('ce-company', 'Company (corporate customers)', c.company) + '</div>' +
       '<label class="ccs-check"><input type="checkbox" id="ce-corp"' + (c.is_corporate ? ' checked' : '') + '> Corporate customer</label>' +
@@ -1663,13 +1673,62 @@
       '<div class="ccs-row">' + sel('ce-bday', 'Birthday day (optional)', days, c.birth_day) + sel('ce-bmonth', 'Birthday month', months, c.birth_month) + '</div><p class="ccs-hint">Day and month only. Never ask for the year.</p>' +
       ta('ce-prefs', 'Preferences', c.preferences, 'For example: less sweet, prefers chocolate, collects after 5pm') +
       ta('ce-notes', 'Service notes', c.notes, 'Things that help the team. No health or personal details.');
+  }
+  // Cancel or close with unsaved typing needs a second tap, so nothing typed is lost by accident.
+  function cancelBtn(act, label) {
+    return '<button type="button" class="ccs-btn ccs-ghost" data-act="' + act + '">' + (label || 'Cancel') + '</button>';
+  }
+  function customerEditor(d) {
+    var c = d.c, open = d.orders.filter(function (o) { return OPEN_STATUSES.indexOf(o.order_status) > -1; }).length;
+    var h = '<section class="ccs-panel"><b>Edit customer</b>' + customerFields(c);
     if (open) h += '<div class="ccs-field"><span class="ccs-label">If the name, mobile, email or company changes, what about the ' + open + ' open order' + (open > 1 ? 's' : '') + '?</span><div class="ccs-chips">' +
       '<button type="button" class="ccs-chip" data-act="ce-orders" data-v="profile" aria-pressed="' + (S.sheet.ordersChoice === 'profile') + '">Profile only</button>' +
       '<button type="button" class="ccs-chip" data-act="ce-orders" data-v="orders" aria-pressed="' + (S.sheet.ordersChoice === 'orders') + '">Also update open orders</button></div>' +
       '<p class="ccs-hint">Completed and cancelled orders always keep the details they were placed with.</p></div>';
     if (S.sheet.conflict) h += '<p class="ccs-warn">' + esc(S.sheet.conflict) + '</p>';
     if (S.panelErr) h += '<p class="ccs-err">' + esc(S.panelErr) + '</p>';
-    return h + '<div class="ccs-actions-row"><button type="button" class="ccs-btn ccs-good" data-act="cust-save">Save</button><button type="button" class="ccs-btn ccs-ghost" data-act="cust-edit">Back</button></div></section>';
+    return h + '<div class="ccs-actions-row"><button type="button" class="ccs-btn ccs-good" data-act="cust-save">Save changes</button>' + cancelBtn('cust-cancel') + '</div></section>';
+  }
+  function openNewCustomer() {
+    S.sheet = { type: 'custnew', c: { preferred_contact: 'whatsapp' }, consent: [], matches: null }; S.panelErr = null; S.dirty = {}; sheetOpen(); renderSheet();
+    var f = document.getElementById('ce-name'); if (f) f.focus();
+  }
+  function newCustomerSheet() {
+    var sh = S.sheet, h = sheetHead('Add customer') + '<div class="ccs-sheet-body"><section class="ccs-panel">' + customerFields(sh.c);
+    h += '<div class="ccs-field"><span class="ccs-label">Marketing: did the customer agree to receive Corner Café cake specials and reminders?</span><div class="ccs-chips">' +
+      CHANNELS.map(function (ch) { return '<button type="button" class="ccs-chip" data-act="cn-consent" data-v="' + ch[0] + '" aria-pressed="' + (sh.consent.indexOf(ch[0]) > -1) + '">' + ch[1] + '</button>'; }).join('') +
+      '</div><p class="ccs-hint">Only tap a channel if the customer said yes to it. Leave all off if they were not asked.</p></div>';
+    if (sh.matches) h += '<div class="ccs-warn"><b>Already on a profile.</b> Check this is not the same person before adding.<ul class="ccs-plain">' + sh.matches.map(function (m) {
+      return '<li>' + esc(custNo(m.customer_no)) + ' ' + esc(m.full_name) + ' (' + esc(m.why) + ') <button type="button" class="ccs-link" data-act="open-customer" data-id="' + esc(m.id) + '">Open this customer</button></li>';
+    }).join('') + '</ul></div>';
+    if (S.panelErr) h += '<p class="ccs-err">' + esc(S.panelErr) + '</p>';
+    h += '<div class="ccs-actions-row"><button type="button" class="ccs-btn ccs-good" data-act="cn-save"' + (sh.matches ? ' data-v="force"' : '') + '>' + (sh.matches ? 'Not the same person, add customer' : 'Add customer') + '</button>' + cancelBtn('cn-cancel') + '</div></section></div>';
+    return h;
+  }
+  function readCustomerForm() {
+    return { full_name: val('ce-name').trim().replace(/\s+/g, ' '), phone: val('ce-phone').trim(), alt_phone: val('ce-alt').trim(), email: val('ce-email').trim().toLowerCase(),
+      preferred_contact: val('ce-pref'), company: val('ce-company').trim(), is_corporate: document.getElementById('ce-corp').checked, delivery_address: val('ce-addr').trim(),
+      birth_day: val('ce-bday') ? Number(val('ce-bday')) : null, birth_month: val('ce-bmonth') ? Number(val('ce-bmonth')) : null, preferences: val('ce-prefs').trim(), notes: val('ce-notes').trim() };
+  }
+  function keepCustomerTyping() { ['ce-name', 'ce-phone', 'ce-alt', 'ce-email', 'ce-company', 'ce-addr', 'ce-prefs', 'ce-notes'].forEach(function (f) { var v = val(f); if (v) S.dirty[f] = v; }); }
+  function saveNewCustomer(force) {
+    var sh = S.sheet, f = readCustomerForm();
+    sh.c = Object.assign({}, f);
+    var stop = function (m) { S.panelErr = m; keepCustomerTyping(); clearBusy(); renderSheet(); };
+    if (f.full_name.length < 2) return stop('Enter the customer name.');
+    if (!digits(f.phone) && !f.email) return stop('Enter a mobile number or an email so the customer can be reached.');
+    if (f.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.email)) return stop('Check the email address.');
+    if ((f.birth_day == null) !== (f.birth_month == null)) return stop('Give both the day and the month, or leave the birthday blank.');
+    sb.rpc('staff_create_customer', { p: Object.assign({}, f, { consent_channels: sh.consent }), p_confirm_new: !!force }).then(function (r) {
+      if (r.error) throw r.error;
+      if (!r.data.ok) {
+        if (r.data.error === 'possible_duplicate') { sh.matches = r.data.matches || []; return stop(null); }
+        return stop(r.data.message);
+      }
+      clearBusy(); S.dirty = {}; toast('Customer ' + custNo(r.data.customer_no) + ' added');
+      if (S.cust.loaded) loadCustomers();
+      openCustomer(r.data.id);
+    }).catch(function (e) { clearBusy(); fail(e); });
   }
   function customerHistory() {
     var hs = S.sheet.hist;
@@ -1688,9 +1747,7 @@
   }
   function saveCustomer() {
     var d = S.sheet.data, c = d.c, id = S.sheet.id;
-    var now = { full_name: val('ce-name').trim().replace(/\s+/g, ' '), phone: val('ce-phone').trim(), alt_phone: val('ce-alt').trim(), email: val('ce-email').trim().toLowerCase(),
-      preferred_contact: val('ce-pref'), company: val('ce-company').trim(), is_corporate: document.getElementById('ce-corp').checked, delivery_address: val('ce-addr').trim(),
-      birth_day: val('ce-bday') ? Number(val('ce-bday')) : null, birth_month: val('ce-bmonth') ? Number(val('ce-bmonth')) : null, preferences: val('ce-prefs').trim(), notes: val('ce-notes').trim() };
+    var now = readCustomerForm();
     var ch = {}; Object.keys(now).forEach(function (k) { var a = now[k], b = c[k]; if (a === '') a = null; if (b === '') b = null; if (k === 'is_corporate') { a = !!a; b = !!b; } if (a !== (b == null ? null : b)) ch[k] = now[k]; });
     var keep = function (m) { S.panelErr = m; ['ce-name', 'ce-phone', 'ce-alt', 'ce-email', 'ce-company', 'ce-addr', 'ce-prefs', 'ce-notes'].forEach(function (f) { S.dirty[f] = val(f); }); clearBusy(); renderSheet(); };
     if (!Object.keys(ch).length) return keep('Nothing has changed.');
@@ -1941,10 +1998,10 @@
     }).catch(function () { loginView('Could not connect. Check the internet connection.'); });
   });
   var BUSY_ACTS = { 'do-delete': 'Deleting…', 'do-confirm': 'Saving…', 'do-decline': 'Saving…', 'do-cancel': 'Saving…', 'do-note': 'Saving…', 'do-waive': 'Saving…', 'do-collected': 'Saving…', 'do-fulfil': 'Saving…',
-    'do-brief': 'Preparing…', 'do-pay': 'Saving…', 'k-stage': 'Saving…', 'k-next': 'Saving…', 'k-ready': 'Saving…', 'k-assign': 'Saving…', 'save-zones': 'Saving…', 'add-zone': 'Saving…', 'cust-save': 'Saving…', 'consent-ch': 'Saving…',
+    'do-brief': 'Preparing…', 'do-pay': 'Saving…', 'k-stage': 'Saving…', 'k-next': 'Saving…', 'k-ready': 'Saving…', 'k-assign': 'Saving…', 'save-zones': 'Saving…', 'add-zone': 'Saving…', 'cust-save': 'Saving…', 'cn-save': 'Saving…', 'consent-ch': 'Saving…',
     'consent': 'Saving…', 'save-loc': 'Saving…', 'add-closed': 'Saving…', 'save-prod': 'Saving…', 'save-staff': 'Saving…', 'tm-add': 'Adding…', 'tm-reset-save': 'Saving…', 'bk-link': 'Linking…', 'bk-copy': 'Copying…' };
   root.addEventListener('click', function (e) {
-    if (e.target.id === 'ccs-shade') { if (hasTyping()) { toast('Your typing is kept. Finish, tap Back, or tap the cross to close.'); return; } sheetClose(); return; }
+    if (e.target.id === 'ccs-shade') { if (hasTyping()) { toast('Your typing is kept. Save it, or tap the cross twice to discard it.'); return; } sheetClose(); return; }
     var b = e.target.closest('[data-act],[data-tab]'); if (!b || b.disabled) return;
     if (b.dataset.tab && !b.dataset.act) {
       if (b.dataset.tab === 'more') { openMore(false); return; }
@@ -1964,7 +2021,7 @@
         case 'goto': S.filter = v; S.q = ''; goTab('orders'); window.scrollTo(0, 0); break;
         case 'day': S.filter = 'day'; S.day = v; S.q = ''; goTab('orders'); window.scrollTo(0, 0); break;
         case 'open-order': if (b.tagName === 'A') return; openOrder(b.dataset.id); break;
-        case 'close': sheetClose(); break;
+        case 'close': if (hasTyping() && !confirmDiscard(b, 'Tap again to discard your changes')) break; S.dirty = {}; sheetClose(); break;
         case 'fill': var fi = document.getElementById(b.dataset.f); if (fi) { fi.value = v; S.dirty[fi.id] = v; fi.focus(); } break;
         case 'history': S.sheet.showHistory = true; renderSheet(); break;
         case 'panel': S.panel = v || null; S.panelErr = null; S.dirty = {}; if (v === 'pay') { S.payKey = uuid(); S.payMethod = 'cash'; }
@@ -2009,6 +2066,11 @@
         case 'do-pay': pay(); break;
         case 'open-customer': openCustomer(b.dataset.id); break;
         case 'cust-edit': S.sheet.edit = !S.sheet.edit; S.sheet.conflict = null; S.sheet.ordersChoice = null; S.panelErr = null; S.dirty = {}; renderSheet(); break;
+        case 'cust-cancel': if (hasTyping() && !confirmDiscard(b)) break; S.sheet.edit = false; S.sheet.conflict = null; S.sheet.ordersChoice = null; S.panelErr = null; S.dirty = {}; renderSheet(); break;
+        case 'cust-new': openNewCustomer(); break;
+        case 'cn-consent': var ci = S.sheet.consent.indexOf(v); if (ci > -1) S.sheet.consent.splice(ci, 1); else S.sheet.consent.push(v); S.sheet.c = readCustomerForm(); keepCustomerTyping(); renderSheet(); break;
+        case 'cn-save': saveNewCustomer(v === 'force'); break;
+        case 'cn-cancel': if (hasTyping() && !confirmDiscard(b)) break; S.dirty = {}; sheetClose(); break;
         case 'cust-history': if (S.sheet.hist) { S.sheet.hist = null; renderSheet(); } else loadCustomerHistory(); break;
         case 'ce-orders': S.sheet.ordersChoice = v; S.panelErr = null; renderSheet(); break;
         case 'consent-ch': setChannelConsent(b.dataset.ch, v === 'true'); break;

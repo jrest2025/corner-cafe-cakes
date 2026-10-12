@@ -524,3 +524,6 @@
 .ccs-more summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--ccs-ink); margin-top: 10px; }
 .ccs-consent-acts { display: inline-flex; flex-wrap: wrap; gap: 4px 12px; margin-left: 8px; }
 .ccs-consent-acts .ccs-link { font-size: 13px; }
+.ccs-headacts { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.ccs-headacts .ccs-btn { min-height: 50px; }
+@media (max-width: 640px) { .ccs-headacts { width: 100%; } .ccs-headacts .ccs-search { max-width: none; flex: 1 1 100%; } .ccs-headacts .ccs-btn { flex: 1 1 100%; } }

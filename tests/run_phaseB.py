@@ -44,7 +44,9 @@ async def main():
         await pg.go_back(); await pg.wait_for_timeout(300)
         check('U4 back keeps typed work', await pg.evaluate(is_open) and await pg.eval_on_selector('#ccs-note', 'e=>e.value') == 'Keep me')
         await pg.click('[data-act="close"]'); await pg.wait_for_timeout(300)
-        check('U4 cross still closes', not await pg.evaluate(is_open))
+        check('U4 cross with typing warns first', await pg.evaluate(is_open))
+        await pg.click('[data-act="close"]'); await pg.wait_for_timeout(300)
+        check('U4 second tap on the cross discards and closes', not await pg.evaluate(is_open))
         await pg.go_back(); await pg.wait_for_timeout(400)
         check('U4 back from Orders returns to Today', await pg.evaluate("document.querySelector('.ccs-nav-item[aria-current]').dataset.tab") == 'today')
         # U14 label

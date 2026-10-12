@@ -185,6 +185,14 @@
         var moved = 'phone' in chg && pkey(chg.phone) !== oldKey && consentNow(args.p_customer).some(function (k) { return k.granted && k.destination === oldKey; });
         return Promise.resolve({ data: { ok: true, version: pc.version, changed: Object.keys(chg), orders_updated: args.p_active_orders ? 2 : 0, shared_phone: 0, consent_not_moved: moved } });
       }
+      if (fn === 'staff_create_customer') {
+        var cp = args.p || {}, ck = pkey(cp.phone), same = Object.keys(prof).filter(function (k) { return ck && pkey(prof[k].phone) === ck; });
+        if (same.length && !args.p_confirm_new) return Promise.resolve({ data: { ok: false, error: 'possible_duplicate', message: 'This number or email is already on a customer profile.', matches: same.map(function (k) { return { id: k, customer_no: prof[k].customer_no, full_name: prof[k].full_name, phone: prof[k].phone, why: 'same mobile number' }; }) } });
+        var nid = 'c9'; prof[nid] = Object.assign({ id: nid, customer_no: 389, customer_source: 'staff_added', version: 1, alt_phone: null, review_flag: null }, cp);
+        summary.push({ id: nid, full_name: cp.full_name, phone: cp.phone, orders_count: 0, completed_count: 0, completed_spend: 0, cancelled_count: 0, occasions: [], customer_no: 389 });
+        (cp.consent_channels || []).forEach(function (ch) { consentLog.push({ customer_id: nid, channel: ch, destination: ch === 'email' ? cp.email : ck, granted: true, needs_reconfirm: false, source: 'Staff: Test Manager recorded a yes when adding the customer', recorded_at: new Date().toISOString() }); });
+        return Promise.resolve({ data: { ok: true, id: nid, customer_no: 389, shared_with: same.length } });
+      }
       if (fn === 'customer_history') { var rl2 = window.__role || 'manager'; if (rl2 !== 'manager' && rl2 !== 'admin') return Promise.resolve({ data: { ok: false, message: 'Only a manager can see the change history.' } }); return Promise.resolve({ data: { ok: true, changes: custHistory } }); }
       if (fn === 'staff_set_channel_consent') { var pc2 = prof[args.p_customer]; args.p_channels.forEach(function (ch) { consentLog.push({ customer_id: args.p_customer, channel: ch, destination: ch === 'email' ? (pc2.email || '').toLowerCase() : pkey(pc2.phone), granted: args.p_granted, needs_reconfirm: false, source: 'Staff: Test Manager recorded a ' + (args.p_granted ? 'yes' : 'no'), recorded_at: new Date().toISOString() }); }); return Promise.resolve({ data: { ok: true, recorded: args.p_channels.length } }); }
       if (fn === 'staff_search_customers') return Promise.resolve({ data: (args.q.indexOf('0001') > -1 || args.q.toLowerCase().indexOf('customer a') > -1) ? [summary[0]] : [] });
