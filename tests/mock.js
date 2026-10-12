@@ -214,6 +214,53 @@
         cmDone[args.p_rec_key] = { rec_key: args.p_rec_key, reference: cr.reference, name_on_sheet: cr.customer, how: { link: 'staff_link', new: 'staff_new', none: 'left_unlinked' }[args.p_action], customer_no: args.p_action === 'link' ? 101 : args.p_action === 'new' ? 390 : null, customer: args.p_action === 'link' ? 'Test Customer A' : args.p_action === 'new' ? cr.customer : null, by: 'Test Manager', at: new Date().toISOString() };
         return Promise.resolve({ data: { ok: true, reference: cr.reference, customer_id: args.p_action === 'link' ? args.p_customer : 'c10' } });
       }
+      // CRM step 3 workspace (invented data)
+      if (fn.indexOf('customer_note') === 0 || fn.indexOf('customer_task') === 0 || fn === 'customer_workspace' || fn === 'my_followups' || fn === 'order_followups') {
+        var W = window.__ws = window.__ws || { notes: [{ id: 'n1', customer_id: 'c1', kind: 'enquiry', tone: null, channel: 'whatsapp', body: 'Asked about a two-tier cake for a 50th birthday in December.', by: 'Test Staff', at: '2026-10-01T02:00:00Z', mine: false, version: 1, hidden: false, order_id: null, order_ref: null }],
+          tasks: [{ id: 't1', customer_id: 'c1', title: 'Send the two-tier quote', due_on: add(-1), status: 'open', assigned_to: 'u1', assignee: 'Test Manager', mine: true, by: 'Test Staff', at: '2026-10-01T02:00:00Z', version: 1, order_id: null, order_ref: null }], versions: {}, n: 1 };
+        var role = window.__role || 'manager', mgr = role === 'manager' || role === 'admin', write = mgr || role === 'front_of_house' || role === 'marketing';
+        var ok = function (d) { return Promise.resolve({ data: Object.assign({ ok: true }, d) }); }, no = function (code, msg, field) { return Promise.resolve({ data: { ok: false, error: code, message: msg, field: field || null } }); };
+        var od = function (t) { return Object.assign({}, t, { overdue: (t.status === 'open' || t.status === 'in_progress') && t.due_on < T }); };
+        if (fn === 'customer_workspace') { if (!write && role !== 'finance') return no('forbidden', 'Your login cannot see customer notes.'); return ok({ can_write: write, is_manager: mgr, notes: W.notes.filter(function (x) { return x.customer_id === args.p_customer && (!x.hidden || mgr); }).slice().reverse(), tasks: W.tasks.filter(function (x) { return x.customer_id === args.p_customer; }).map(od), staff: [{ id: 'u1', name: 'Test Manager' }, { id: 'u7', name: 'Test Staff' }] }); }
+        if (!write && fn !== 'order_followups') return no('forbidden', 'Your login cannot do that.');
+        if (fn === 'customer_note_add') {
+          var dup = W.notes.filter(function (x) { return x.idem === args.p_idem; })[0]; if (dup) return ok({ note: dup, repeat: true });
+          if (/[0-9][0-9 -]{11,}[0-9]/.test(args.p_body) && args.p_body.replace(/[^0-9]/g, '').length >= 13) return no('body', 'Do not record card or bank account numbers. Write "paid by card" instead.', 'body');
+          if (args.p_kind === 'feedback' && !args.p_tone) return no('tone', 'Choose how the feedback felt.', 'tone');
+          var ord = orders.filter(function (o) { return o.id === args.p_order; })[0];
+          var nn = { id: 'n' + (++W.n + 100), customer_id: args.p_customer, kind: args.p_kind, tone: args.p_tone, channel: args.p_channel, body: args.p_body.trim(), by: 'Test Manager', at: new Date().toISOString(), mine: true, version: 1, hidden: false, order_id: args.p_order, order_ref: ord ? ord.reference : null, idem: args.p_idem };
+          W.notes.push(nn); return ok({ note: nn });
+        }
+        if (fn === 'customer_note_edit') {
+          var ne = W.notes.filter(function (x) { return x.id === args.p_note; })[0];
+          if (ne.version !== args.p_version) return no('changed', 'Someone changed this note while you were typing.');
+          if ((args.p_reason || '').trim().length < 3) return no('reason', 'Say briefly why it is being changed.', 'reason');
+          (W.versions[ne.id] = W.versions[ne.id] || []).unshift({ version: ne.version, body: ne.body, by: 'Test Manager', at: new Date().toISOString(), reason: args.p_reason });
+          ne.body = args.p_body.trim(); ne.version++; ne.edited_at = new Date().toISOString(); ne.edited_by = 'Test Manager'; return ok({ note: ne });
+        }
+        if (fn === 'customer_note_hide') { if (!mgr) return no('forbidden', 'Only a manager can remove a note.'); if ((args.p_reason || '').trim().length < 3) return no('reason', 'Say briefly why it is being removed.', 'reason'); var nh = W.notes.filter(function (x) { return x.id === args.p_note; })[0]; nh.hidden = true; nh.hidden_by = 'Test Manager'; nh.hidden_at = new Date().toISOString(); nh.hidden_reason = args.p_reason; return ok({ note: nh }); }
+        if (fn === 'customer_note_history') { var nv = W.notes.filter(function (x) { return x.id === args.p_note; })[0]; return ok({ current: nv.body, versions: W.versions[args.p_note] || [] }); }
+        if (fn === 'customer_task_add') {
+          var tdup = W.tasks.filter(function (x) { return x.idem === args.p_idem; })[0]; if (tdup) return ok({ task: od(tdup), repeat: true });
+          if (!args.p_due || args.p_due < T) return no('due', 'The due date is in the past.', 'due');
+          var tord = orders.filter(function (o) { return o.id === args.p_order; })[0];
+          var nt = { id: 't' + (++W.n + 100), customer_id: args.p_customer, title: args.p_title, due_on: args.p_due, status: 'open', assigned_to: args.p_assignee, assignee: args.p_assignee === 'u1' ? 'Test Manager' : args.p_assignee === 'u7' ? 'Test Staff' : null, mine: args.p_assignee === 'u1', by: 'Test Manager', at: new Date().toISOString(), version: 1, order_id: args.p_order, order_ref: tord ? tord.reference : null, note_id: args.p_note, idem: args.p_idem };
+          W.tasks.push(nt); return ok({ task: od(nt) });
+        }
+        if (fn === 'customer_task_update') {
+          var tu = W.tasks.filter(function (x) { return x.id === args.p_task; })[0];
+          if (tu.version !== args.p_version) return no('changed', 'Someone else updated this follow-up. Check it again.');
+          var a2 = args.p_action;
+          if ((a2 === 'done' || a2 === 'cancel') && (!args.p_outcome || args.p_outcome.length < 3)) return no('outcome', 'Say what happened.', 'outcome');
+          if (a2 === 'start') tu.status = 'in_progress';
+          if (a2 === 'done' || a2 === 'cancel') { tu.status = a2 === 'done' ? 'done' : 'cancelled'; tu.outcome = args.p_outcome; tu.done_by = 'Test Manager'; tu.done_at = new Date().toISOString(); }
+          if (a2 === 'reopen') { tu.status = 'open'; if (tu.due_on < T) tu.due_on = T; }
+          if (a2 === 'edit') { if (args.p_due < T) return no('due', 'The due date is in the past.', 'due'); tu.due_on = args.p_due; tu.assigned_to = args.p_assignee; tu.mine = args.p_assignee === 'u1'; tu.assignee = args.p_assignee === 'u7' ? 'Test Staff' : args.p_assignee === 'u1' ? 'Test Manager' : null; }
+          tu.version++; return ok({ task: od(tu) });
+        }
+        if (fn === 'my_followups') { var lim = add(args.p_days || 7); return ok({ allowed: true, all: !!args.p_all, tasks: W.tasks.filter(function (x) { return (x.status === 'open' || x.status === 'in_progress') && x.due_on <= lim && (args.p_all || x.mine || !x.assigned_to); }).map(function (x) { var c = prof[x.customer_id] || {}; return Object.assign(od(x), { customer: c.full_name || 'Customer', customer_no: c.customer_no }); }) }); }
+        if (fn === 'order_followups') return ok({ tasks: W.tasks.filter(function (x) { return x.order_id === args.p_order && (x.status === 'open' || x.status === 'in_progress'); }).map(od), notes: W.notes.filter(function (x) { return x.order_id === args.p_order && !x.hidden; }).length });
+      }
       if (fn === 'customer_sheet_orders') return Promise.resolve({ data: { ok: true, orders: args.p_customer === 'c1' ? [{ rec_key: 'sheet:walkin|2025-11-02T01:00:00Z', reference: 'W-0412', source: 'Walk-in sheet', fulfil_date: '2025-11-03', cake: 'Black Forest', size_inch: 8, value: 85, name_on_sheet: 'TEST CUST A', how: 'auto_match' }] : [] } });
       if (fn === 'customer_history') { var rl2 = window.__role || 'manager'; if (rl2 !== 'manager' && rl2 !== 'admin') return Promise.resolve({ data: { ok: false, message: 'Only a manager can see the change history.' } }); return Promise.resolve({ data: { ok: true, changes: custHistory } }); }
       if (fn === 'staff_set_channel_consent') { var pc2 = prof[args.p_customer]; args.p_channels.forEach(function (ch) { consentLog.push({ customer_id: args.p_customer, channel: ch, destination: ch === 'email' ? (pc2.email || '').toLowerCase() : pkey(pc2.phone), granted: args.p_granted, needs_reconfirm: false, source: 'Staff: Test Manager recorded a ' + (args.p_granted ? 'yes' : 'no'), recorded_at: new Date().toISOString() }); }); return Promise.resolve({ data: { ok: true, recorded: args.p_channels.length } }); }

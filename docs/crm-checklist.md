@@ -32,7 +32,19 @@ Phase 1 checked on 12 October 2026: database checks run against the live data in
 | Security | Roles enforced in the database: edit (manager, front of house), history (manager), marketing permission (manager, front of house, marketing) | Implemented and verified |
 | Backup | Copy of every customer, consent and order table before the change | Implemented and verified (schema backup_20261012) |
 | Later | Register customers linked to profiles, review list, reconciliation | Planned (phase 2) |
-| Later | Profile tabs, notes, follow-ups, Repeat Order | Planned (phase 3) |
+| Profile | Four tabs: Overview, Orders, Notes and follow-ups, Communications; marketing permission kept apart from purchases | Implemented and verified (step 3) |
+| Profile | Overview shows next order, open and overdue follow-ups, last note | Implemented and verified (step 3) |
+| Notes | Dated notes, enquiries and feedback (happy, mixed, complaint), with channel and optional order | Implemented and verified (step 3) |
+| Notes | Internal only: separate tables never read by emails, guest page or kitchen briefs | Implemented and verified (brief printed without note text) |
+| Notes | Card numbers, passwords and PINs refused; on-screen reminder about health and allergy details | Implemented and verified (step 3) |
+| Notes | Changes need a reason; old wording kept; managers remove from view, never erase | Implemented and verified (step 3) |
+| Follow-ups | Assign to a person or anyone, due date, start, done with outcome, no longer needed with reason, reopen, change date or person; every change logged | Implemented and verified (step 3) |
+| Follow-ups | Linked to a customer, and optionally an order or a note | Implemented and verified (step 3) |
+| Follow-ups | Today page: overdue, due today, next 7 days for me and unassigned; managers can see everyone's | Implemented and verified (step 3) |
+| Follow-ups | Order screen shows open follow-ups and note count for that order | Implemented and verified (step 3) |
+| Orders | Repeat Order: new draft with today's products and prices; date, message, occasion and dietary asked again; items no longer sold flagged | Implemented and verified (step 3) |
+| Security | Notes and follow-ups: write (manager, front of house, marketing), read (plus finance), kitchen none; change own notes only unless manager; no direct table access | Implemented and verified (database rollback test with a temporary front-of-house login) |
+| Safety | Double taps cannot create duplicate notes or follow-ups | Implemented and verified (step 3) |
 | Later | Merge with undo, segments with thresholds, audiences (preview and export only), management view | Planned (phase 4) |
 | Later | Edge cases, restore drill, staff guide | Planned (phase 5) |
 | Never | Sending real campaigns | Not built, by design |

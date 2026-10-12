@@ -54,6 +54,10 @@ async def main():
         await open_customer(pg)
         sh = await pg.inner_text('#ccs-sheet')
         check('profile shows the customer number', 'C-101' in sh, sh[:200])
+        check('profile opens on Overview with four sections', await pg.locator('#ccs-sheet .ws-tabs [data-act="ws-tab"]').count() == 4 and await pg.locator('#ccs-sheet [data-act="ws-tab"][data-v="overview"][aria-pressed="true"]').count() == 1)
+        check('marketing is not mixed into the overview', 'Marketing permission' not in sh)
+        await pg.click('#ccs-sheet [data-act="ws-tab"][data-v="comms"]'); await pg.wait_for_timeout(150)
+        sh = await pg.inner_text('#ccs-sheet')
         check('marketing shown per channel with reconfirm flag', 'WhatsApp' in sh and 'Yes, needs reconfirming' in sh and 'SMS' in sh and 'Phone call' in sh, sh)
         check('email channel not asked yet', 'Not asked' in sh)
         await pg.screenshot(path=str(OUT / 'profile.png'), full_page=True)
@@ -63,7 +67,9 @@ async def main():
         check('reconfirm sends WhatsApp only', c and c[-1]['p_channels'] == ['whatsapp'] and c[-1]['p_granted'] is True, c)
         sh = await pg.inner_text('#ccs-sheet')
         check('WhatsApp now plain Yes, SMS still needs reconfirming', sh.count('Yes, needs reconfirming') == 1, sh)
+        check('service messages explained as separate from marketing', 'service messages' in sh)
         # history
+        await pg.click('#ccs-sheet [data-act="ws-tab"][data-v="overview"]'); await pg.wait_for_timeout(150)
         await pg.click('#ccs-sheet [data-act="cust-history"]'); await pg.wait_for_timeout(400)
         sh = await pg.inner_text('#ccs-sheet')
         check('manager sees field history in plain words', 'Service notes from blank to Prefers less sweet icing' in sh, sh[-400:])
@@ -88,7 +94,10 @@ async def main():
         check('result explains orders updated and permission not moved', '2 open orders updated' in toast and 'Marketing permission stays' in toast, toast)
         sh = await pg.inner_text('#ccs-sheet')
         check('profile shows the new birthday without a year', '29 February' in sh, sh[:600])
+        await pg.click('#ccs-sheet [data-act="ws-tab"][data-v="comms"]'); await pg.wait_for_timeout(150)
+        sh = await pg.inner_text('#ccs-sheet')
         check('old WhatsApp yes no longer applies to the new number', 'An earlier yes was for a different one' in sh, sh)
+        await pg.click('#ccs-sheet [data-act="ws-tab"][data-v="overview"]'); await pg.wait_for_timeout(150)
         await ctx.close()
 
         # ---- someone else saved first ----
@@ -113,7 +122,7 @@ async def main():
             await open_customer(pg)
             check(f'{role}: edit {"shown" if edit else "hidden"}', (await pg.locator('#ccs-sheet [data-act="cust-edit"]').count() > 0) == edit)
             check(f'{role}: history {"shown" if hist else "hidden"}', (await pg.locator('#ccs-sheet [data-act="cust-history"]').count() > 0) == hist)
-            check(f'{role}: marketing {"shown" if mkt else "hidden"}', ('marketing permission' in (await pg.inner_text('#ccs-sheet')).lower()) == mkt)
+            check(f'{role}: marketing {"shown" if mkt else "hidden"}', (await pg.locator('#ccs-sheet [data-act="ws-tab"][data-v="comms"]').count() > 0) == mkt)
             await ctx.close()
 
         # ---- duplicate flag and search wording ----

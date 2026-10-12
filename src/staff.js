@@ -401,6 +401,7 @@
     h += '<section class="ccs-panel-card"><div class="ccs-card-head"><h2>Due today</h2>' + (todays.length ? '<span class="ccs-hint">' + collected + ' of ' + todays.length + ' handed over</span>' : '') + '</div>' +
       (todays.length ? '<div class="ccs-minis">' + todays.map(function (o) { return miniRow(o, true); }).join('') + '</div>' : '<p class="ccs-quiet">No cakes due today.</p>') + '</section>';
     h += '</div>';
+    h += fuPanel();
     // where orders come from, last 30 days
     var since = addDays(t, -30), recent = S.orders.filter(function (o) { return (o.created_at || '').slice(0, 10) >= since; });
     if (recent.length && can('manager', 'marketing', 'finance')) {
@@ -420,6 +421,7 @@
       if (r.error) throw r.error;
       if (!S.sheet || S.sheet.id !== id) return;
       S.sheet.data = r.data;
+      if (r.data.customer_id) orderFuLoad(id);
       var att = r.data.order_attachments || [];
       if (att.length) sb.storage.from('cake-references').createSignedUrls(att.map(function (a) { return a.storage_path; }), 900).then(function (u) {
         if (u.data && S.sheet && S.sheet.id === id) { S.sheet.photos = u.data.map(function (x) { return x.signedUrl; }).filter(Boolean); renderSheet(); }
@@ -527,7 +529,7 @@
         (o.profile && o.profile.full_name && o.profile.full_name !== c.full_name ? kv('Profile name', o.profile.full_name + ' (the name on this order is kept as it was)') : '') +
         (S.sheet.custOrders != null ? kv('History', S.sheet.custOrders > 1 ? 'Returning customer, ' + S.sheet.custOrders + ' orders' : 'First order') : '') + '</dl>' +
         '<div class="ccs-actions-row"><a class="ccs-btn ccs-ghost" href="' + esc(waLink(c.phone)) + '" target="_blank" rel="noopener">WhatsApp</a><a class="ccs-btn ccs-ghost" href="tel:' + esc(digits(c.phone)) + '">Call</a>' +
-        (can('manager', 'front_of_house', 'finance', 'marketing') ? '<button type="button" class="ccs-btn ccs-ghost" data-act="open-customer" data-id="' + c.id + '">Customer profile</button>' : '') + '</div></section>';
+        (can('manager', 'front_of_house', 'finance', 'marketing') ? '<button type="button" class="ccs-btn ccs-ghost" data-act="open-customer" data-id="' + c.id + '">Customer profile</button>' : '') + '</div>' + orderFuBox(o) + '</section>';
     }
     if (can('manager', 'finance', 'front_of_house')) {
       h += '<section class="ccs-box"><h3>Payment ' + payPill(o.payment_status) + '</h3><div class="ccs-money"><div><span>Price</span><b>' + money(total) + '</b></div><div><span>Deposit</span><b>' + (o.deposit_required ? money(o.deposit_required) : '—') + '</b></div><div><span>Paid</span><b>' + money(paid) + '</b></div><div><span>To pay</span><b>' + money(bal) + '</b></div></div>' +
@@ -1077,6 +1079,7 @@
       : '<div class="ccs-head"><div><h1 class="ccs-title">New order</h1><p class="ccs-sub">For walk-in, phone, WhatsApp and social media orders</p></div>' + (draftHasContent() && !D.confirmReset ? '<button type="button" class="ccs-link ccs-red" data-act="new-again">Start over</button>' : '') + '</div>';
     if (D.confirmReset) h += '<div class="ccs-panel ccs-confirm" role="alert"><b>Clear this order?</b><p class="ccs-hint">The customer, cake and date you have entered will be lost.</p><div class="ccs-actions-row"><button type="button" class="ccs-btn ccs-danger" data-act="new-clear">Clear order</button><button type="button" class="ccs-btn ccs-ghost" data-act="new-keep">Keep going</button></div></div>';
     if (D.fromCal && D.date && !D.confirmReset) h += '<div class="ccs-note ccs-calnote"><span>Pickup date from the calendar: <b>' + esc(nice(D.date, true)) + (D.time ? ' at ' + esc(t12(D.time)) : '') + '</b>. Change it in the When step if needed.</span>' + (inSheet ? '' : '<button type="button" class="ccs-link" data-act="cal-back">Back to calendar</button>') + '</div>';
+    if (D.repeat && !D.confirmReset) h += repeatNote();
     else if (D.restored && draftHasContent()) h += '<p class="ccs-note">Carrying on the unfinished order' + (draftWho() ? ' for ' + esc(draftWho()) : '') + ', started ' + esc(stamp(D.saved)) + '.</p>';
     h += '<ol class="ccs-nprog" aria-label="Progress">' + NSTEPS.map(function (st, i) { var c = i === D.step ? 'is-now' : (i <= D.reached && st.sum() ? 'is-done' : ''); return '<li class="' + c + '"><span>' + (c === 'is-done' ? '&#10003;' : (i + 1)) + '</span>' + st.k + '</li>'; }).join('') + '</ol>';
     h += '<p class="ccs-label" style="margin:0 0 8px">How did they order?</p><div class="ccs-chips" role="group" aria-label="How they ordered" style="margin-bottom:14px">' + SOURCES.map(function (s) { return '<button type="button" class="ccs-chip" data-act="n-source" data-v="' + s[0] + '" aria-pressed="' + (D.source === s[0]) + '">' + s[1] + '</button>'; }).join('') + '</div>';
@@ -1599,12 +1602,13 @@
   function birthday(d, m) { return d && m ? d + ' ' + MONTHS[m - 1] : ''; }
   function openCustomer(id, keepEdit) {
     var keep = keepEdit && S.sheet && S.sheet.type === 'customer' && S.sheet.id === id;
-    if (!keep) { S.sheet = { type: 'customer', id: id, data: null, edit: false }; S.panelErr = null; S.dirty = {}; sheetOpen(); }
+    if (!keep) { S.sheet = { type: 'customer', id: id, data: null, edit: false, tab: 'overview' }; S.panelErr = null; S.dirty = {}; sheetOpen(); }
     renderSheet();
+    if (!keep || !S.sheet.ws) wsLoad(id);
     return Promise.all([
       sb.from('customer_summary').select('*').eq('id', id).single(),
       sb.from('customers').select('id,customer_no,customer_source,full_name,phone,alt_phone,email,preferred_contact,is_corporate,company,delivery_address,birth_day,birth_month,preferences,notes,version,review_flag,review_note,archived_at').eq('id', id).single(),
-      sb.from('orders').select('id,reference,order_status,payment_status,fulfilment_method,required_date,estimate_total,final_total,source,contact_name,order_items(product_name,variant,size_inch,occasion)').eq('customer_id', id).order('required_date', { ascending: false }).limit(100),
+      sb.from('orders').select('id,reference,order_status,payment_status,fulfilment_method,delivery_zone,delivery_address,delivery_contact,has_dietary,required_date,estimate_total,final_total,source,contact_name,order_items(product_name,variant,size_inch,quantity,finish,design_description,cake_message,occasion,dietary,dietary_note)').eq('customer_id', id).order('required_date', { ascending: false }).limit(100),
       can('manager', 'front_of_house', 'marketing') ? sb.from('consent_now').select('channel,destination,granted,needs_reconfirm,source,wording_code,recorded_at,applies,brand_code').eq('customer_id', id).eq('brand_code', 'corner-cafe') : Promise.resolve({ data: [] }),
       can('manager', 'front_of_house', 'marketing') ? sb.from('marketing_consents').select('channel,destination,granted,needs_reconfirm,source,recorded_at').eq('customer_id', id).order('recorded_at', { ascending: false }).order('id', { ascending: false }).limit(12) : Promise.resolve({ data: [] }),
       sb.rpc('customer_sheet_orders', { p_customer: id })
@@ -1637,35 +1641,48 @@
     h += '<div class="ccs-stats"><div><span>Orders</span><b>' + s.orders_count + '</b></div><div><span>Spend</span><b>' + money(s.completed_spend) + '</b></div><div><span>Average</span><b>' + (s.average_spend != null ? money(s.average_spend) : '—') + '</b></div><div><span>Cancelled</span><b>' + s.cancelled_count + '</b></div></div>';
     if (editor && !c.archived_at) h += '<div class="ccs-actions-row"><button type="button" class="ccs-btn ccs-new" data-act="cust-neworder">' + NAV_ICON['new'] + 'New order for this customer</button></div>';
     if (segs.length || s.seg_upcoming_occasion) h += '<div class="ccs-tags">' + segs.map(function (x) { return '<span class="ccs-tag">' + x[1] + '</span>'; }).join('') + (s.seg_upcoming_occasion ? '<span class="ccs-pill s-deposit">Occasion due ' + esc(nice(s.next_occasion_date)) + '</span>' : '') + '</div>';
-    if (S.sheet.edit) h += customerEditor(d);
-    else {
-      h += '<section class="ccs-box"><h3>Contact</h3><dl class="ccs-kv">' + kv('Mobile', c.phone) + kv('Other number', c.alt_phone) + kv('Email', c.email) +
-        kv('Prefers', { whatsapp: 'WhatsApp', phone: 'Phone call', email: 'Email' }[c.preferred_contact]) + kv('Company', c.company) + kv('Delivery address', c.delivery_address) +
-        kv('Birthday', birthday(c.birth_day, c.birth_month)) + kv('Preferences', c.preferences) + kv('Service notes', c.notes) +
-        kv('Came from', CUSTOMER_SOURCE[c.customer_source] || SOURCE_LABEL[s.first_source]) + kv('Usually orders', s.favourite_cake) + kv('Occasions', (s.occasions || []).join(', ')) + '</dl>' +
-        '<div class="ccs-actions-row">' + (c.phone ? '<a class="ccs-btn ccs-ghost" href="' + esc(waLink(c.phone)) + '" target="_blank" rel="noopener">WhatsApp</a><a class="ccs-btn ccs-ghost" href="tel:' + esc(digits(c.phone)) + '">Call</a>' : '') +
-        (editor ? '<button type="button" class="ccs-btn ccs-ghost" data-act="cust-edit">Edit Customer</button>' : '') +
-        (can('manager') ? '<button type="button" class="ccs-btn ccs-ghost" data-act="cust-history">' + (S.sheet.hist ? 'Hide change history' : 'Change history') + '</button>' : '') + '</div></section>';
-      if (S.sheet.hist) h += customerHistory();
+    var tab = S.sheet.edit ? 'overview' : (S.sheet.tab || 'overview');
+    var tabsList = [['overview', 'Overview'], ['orders', 'Orders (' + d.orders.length + ')']];
+    if (wsCanRead()) { var wsOpen = S.sheet.ws ? S.sheet.ws.tasks.filter(function (x) { return x.status === 'open' || x.status === 'in_progress'; }).length : 0; tabsList.push(['notes', 'Notes and follow-ups' + (wsOpen ? ' (' + wsOpen + ')' : '')]); }
+    if (can('manager', 'front_of_house', 'marketing')) tabsList.push(['comms', 'Communications']);
+    h += '<div class="ccs-tabs ws-tabs" role="group" aria-label="Customer sections">' + tabsList.map(function (x) { return '<button type="button" class="ccs-tab" data-act="ws-tab" data-v="' + x[0] + '" aria-pressed="' + (tab === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div>';
+    if (tab === 'overview') {
+      if (S.sheet.edit) h += customerEditor(d);
+      else {
+        h += '<section class="ccs-box"><h3>Contact</h3><dl class="ccs-kv">' + kv('Mobile', c.phone) + kv('Other number', c.alt_phone) + kv('Email', c.email) +
+          kv('Prefers', { whatsapp: 'WhatsApp', phone: 'Phone call', email: 'Email' }[c.preferred_contact]) + kv('Company', c.company) + kv('Delivery address', c.delivery_address) +
+          kv('Birthday', birthday(c.birth_day, c.birth_month)) + kv('Preferences', c.preferences) + kv('Service notes', c.notes) +
+          kv('Came from', CUSTOMER_SOURCE[c.customer_source] || SOURCE_LABEL[s.first_source]) + kv('Usually orders', s.favourite_cake) + kv('Occasions', (s.occasions || []).join(', ')) + '</dl>' +
+          '<div class="ccs-actions-row">' + (c.phone ? '<a class="ccs-btn ccs-ghost" href="' + esc(waLink(c.phone)) + '" target="_blank" rel="noopener">WhatsApp</a><a class="ccs-btn ccs-ghost" href="tel:' + esc(digits(c.phone)) + '">Call</a>' : '') +
+          (editor ? '<button type="button" class="ccs-btn ccs-ghost" data-act="cust-edit">Edit Customer</button>' : '') +
+          (can('manager') ? '<button type="button" class="ccs-btn ccs-ghost" data-act="cust-history">' + (S.sheet.hist ? 'Hide change history' : 'Change history') + '</button>' : '') + '</div></section>';
+        if (S.sheet.hist) h += customerHistory();
+      }
+      if (!S.sheet.edit) h += wsOverview(d);
+    } else if (tab === 'orders') {
+      h += '<section class="ccs-box"><h3>Orders</h3>' + (editor && d.orders.length ? '<p class="ccs-hint">Repeat this order starts a new order with today\'s prices. You choose the date and check the message and dietary needs again.</p>' : '') + (d.orders.length ? '<div class="ccs-list">' + d.orders.map(function (o) { var i = (o.order_items || [])[0]; return '<button type="button" class="ccs-card k-' + (STATUS[o.order_status] || ['', 'off'])[1] + '" data-act="open-order" data-id="' + o.id + '" style="grid-template-columns:110px minmax(0,1fr) auto"><span class="ccs-when"><b>' + esc(nice(o.required_date)) + '</b><span>' + esc(o.reference) + '</span></span><span class="ccs-what"><b>' + esc(cakeLine(i)) + '</b><span class="ccs-tags">' + pill(o.order_status, o.fulfilment_method) + (i && i.occasion ? '<span class="ccs-pill">' + esc(i.occasion) + '</span>' : '') + (o.order_status === 'confirmed' || o.order_status === 'completed' ? payPill(o.payment_status) : '') + (o.contact_name && o.contact_name !== c.full_name ? '<span class="ccs-tag">Ordered as ' + esc(o.contact_name) + '</span>' : '') + '</span></span><span class="ccs-price">' + money(o.final_total != null ? o.final_total : o.estimate_total) + '</span></button>' + (editor && !c.archived_at && i ? '<div class="ws-repeat"><button type="button" class="ccs-link" data-act="ws-repeat" data-id="' + o.id + '">Repeat this order</button></div>' : ''); }).join('') + '</div>' : '<p class="ccs-hint">No orders.</p>') + '</section>';
+      if (d.sheet.length) h += '<section class="ccs-box"><h3>Orders from the old sheets</h3><p class="ccs-hint">Recorded in the Google Sheets before this app. Shown as typed; not yet in the totals above.</p><ul class="ccs-plain cm-sheetlist">' + d.sheet.map(function (o) {
+        return '<li><b>' + esc(o.fulfil_date ? nice(o.fulfil_date) + ' ' + o.fulfil_date.slice(0, 4) : 'No pickup date') + '</b> · ' + esc([o.cake, o.size_inch ? o.size_inch + ' inch' : ''].filter(Boolean).join(' ') || 'Cake not stated') +
+          (o.value != null ? ' · ' + money(o.value) : '') + ' · ' + esc(o.source || '') + (o.reference ? ' ' + esc(o.reference) : '') + (o.name_on_sheet && o.name_on_sheet !== c.full_name ? ' · as ' + esc(o.name_on_sheet) : '') +
+          (can('manager') ? ' <button type="button" class="ccs-link" data-act="rg-open" data-v="' + esc(o.rec_key) + '">Full record</button>' : '') + '</li>';
+      }).join('') + '</ul></section>';
+    } else if (tab === 'notes') {
+      h += wsView();
+    } else if (tab === 'comms') {
+      if (can('manager', 'front_of_house', 'marketing')) {
+        h += '<section class="ccs-box"><h3>Marketing permission: Corner Café</h3><p class="ccs-hint">Only message customers by a channel marked Yes. A yes is kept with the number or email it was given for, so a new number starts at Not asked.</p><dl class="ccs-kv">' +
+          CHANNELS.map(function (ch) {
+            var st = consentLine(d, ch[0]);
+            var btns = st.none ? '' : ' <span class="ccs-consent-acts">' + (st.yes && !st.re ? '' : '<button type="button" class="ccs-link" data-act="consent-ch" data-ch="' + ch[0] + '" data-v="true">' + (st.yes ? 'Customer reconfirmed' : 'Customer said yes') + '</button>') +
+              (st.no ? '' : ' <button type="button" class="ccs-link ccs-red" data-act="consent-ch" data-ch="' + ch[0] + '" data-v="false">' + (st.yes ? 'Customer said stop' : 'Customer said no') + '</button>') + '</span>';
+            return '<dt>' + ch[1] + '</dt><dd><span class="' + st.cls + '">' + esc(st.text) + '</span>' + btns + '</dd>';
+          }).join('') + '</dl>' +
+          (d.log.length ? '<details class="ccs-more"><summary>Permission record</summary><ul class="ccs-plain">' + d.log.map(function (l) {
+            return '<li>' + esc(stamp(l.recorded_at)) + ': ' + esc((CHANNELS.filter(function (x) { return x[0] === l.channel; })[0] || [0, l.channel])[1]) + ' ' + (l.granted ? 'yes' : 'no') + (l.needs_reconfirm ? ' (needs reconfirming)' : '') + ', ' + esc(l.destination) + '. ' + esc(l.source) + '</li>';
+          }).join('') + '</ul></details>' : '') + '</section>';
+      }
+      h += '<p class="ccs-hint ws-service">Messages about an order, such as ready for collection or a change, are service messages and do not need marketing permission.</p>';
     }
-    if (can('manager', 'front_of_house', 'marketing')) {
-      h += '<section class="ccs-box"><h3>Marketing permission: Corner Café</h3><p class="ccs-hint">Only message customers by a channel marked Yes. A yes is kept with the number or email it was given for, so a new number starts at Not asked.</p><dl class="ccs-kv">' +
-        CHANNELS.map(function (ch) {
-          var st = consentLine(d, ch[0]);
-          var btns = st.none ? '' : ' <span class="ccs-consent-acts">' + (st.yes && !st.re ? '' : '<button type="button" class="ccs-link" data-act="consent-ch" data-ch="' + ch[0] + '" data-v="true">' + (st.yes ? 'Customer reconfirmed' : 'Customer said yes') + '</button>') +
-            (st.no ? '' : ' <button type="button" class="ccs-link ccs-red" data-act="consent-ch" data-ch="' + ch[0] + '" data-v="false">' + (st.yes ? 'Customer said stop' : 'Customer said no') + '</button>') + '</span>';
-          return '<dt>' + ch[1] + '</dt><dd><span class="' + st.cls + '">' + esc(st.text) + '</span>' + btns + '</dd>';
-        }).join('') + '</dl>' +
-        (d.log.length ? '<details class="ccs-more"><summary>Permission record</summary><ul class="ccs-plain">' + d.log.map(function (l) {
-          return '<li>' + esc(stamp(l.recorded_at)) + ': ' + esc((CHANNELS.filter(function (x) { return x[0] === l.channel; })[0] || [0, l.channel])[1]) + ' ' + (l.granted ? 'yes' : 'no') + (l.needs_reconfirm ? ' (needs reconfirming)' : '') + ', ' + esc(l.destination) + '. ' + esc(l.source) + '</li>';
-        }).join('') + '</ul></details>' : '') + '</section>';
-    }
-    h += '<section class="ccs-box"><h3>Orders</h3>' + (d.orders.length ? '<div class="ccs-list">' + d.orders.map(function (o) { var i = (o.order_items || [])[0]; return '<button type="button" class="ccs-card k-' + (STATUS[o.order_status] || ['', 'off'])[1] + '" data-act="open-order" data-id="' + o.id + '" style="grid-template-columns:110px minmax(0,1fr) auto"><span class="ccs-when"><b>' + esc(nice(o.required_date)) + '</b><span>' + esc(o.reference) + '</span></span><span class="ccs-what"><b>' + esc(cakeLine(i)) + '</b><span class="ccs-tags">' + pill(o.order_status, o.fulfilment_method) + (i && i.occasion ? '<span class="ccs-pill">' + esc(i.occasion) + '</span>' : '') + (o.order_status === 'confirmed' || o.order_status === 'completed' ? payPill(o.payment_status) : '') + (o.contact_name && o.contact_name !== c.full_name ? '<span class="ccs-tag">Ordered as ' + esc(o.contact_name) + '</span>' : '') + '</span></span><span class="ccs-price">' + money(o.final_total != null ? o.final_total : o.estimate_total) + '</span></button>'; }).join('') + '</div>' : '<p class="ccs-hint">No orders.</p>') + '</section>';
-    if (d.sheet.length) h += '<section class="ccs-box"><h3>Orders from the old sheets</h3><p class="ccs-hint">Recorded in the Google Sheets before this app. Shown as typed; not yet in the totals above.</p><ul class="ccs-plain cm-sheetlist">' + d.sheet.map(function (o) {
-      return '<li><b>' + esc(o.fulfil_date ? nice(o.fulfil_date) + ' ' + o.fulfil_date.slice(0, 4) : 'No pickup date') + '</b> · ' + esc([o.cake, o.size_inch ? o.size_inch + ' inch' : ''].filter(Boolean).join(' ') || 'Cake not stated') +
-        (o.value != null ? ' · ' + money(o.value) : '') + ' · ' + esc(o.source || '') + (o.reference ? ' ' + esc(o.reference) : '') + (o.name_on_sheet && o.name_on_sheet !== c.full_name ? ' · as ' + esc(o.name_on_sheet) : '') +
-        (can('manager') ? ' <button type="button" class="ccs-link" data-act="rg-open" data-v="' + esc(o.rec_key) + '">Full record</button>' : '') + '</li>';
-    }).join('') + '</ul></section>';
     return h + '</div>';
   }
   function customerFields(c) {
@@ -2020,6 +2037,7 @@
     var a = b.dataset.act, v = b.dataset.v;
     if (a.indexOf('dx-') === 0) { try { dashAct(a, b, v); } catch (err) { fail(err); } return; }
     if (a.indexOf('rg-') === 0) { try { regAct(a, b, v); } catch (err) { fail(err); } return; }
+    if (a.indexOf('ws-') === 0) { try { wsAct(a, b, v); } catch (err) { fail(err); } return; }
     if (BUSY_ACTS[a] && !S.busyBtn) markBusy(b, BUSY_ACTS[a]);
     try {
       switch (a) {
@@ -2077,12 +2095,12 @@
         case 'cust-neworder': (function () {
           // Same New order form, with this customer already chosen
           var cd = S.sheet && S.sheet.data; if (!cd) return;
-          if (draftHasContent()) { toast('You have an unfinished order. Finish or clear it first.', true); goTab('new'); return; }
+          if (draftHasContent()) { goTab('new'); toast('You have an unfinished order. Finish or clear it first.', true); return; }
           D = freshDraft(); D.phone = cd.c.phone || '';
           D.customer = { id: cd.c.id, full_name: cd.c.full_name, phone: cd.c.phone || '', orders_count: cd.sum.orders_count, favourite_cake: cd.sum.favourite_cake };
           D.step = 1; D.reached = 1; goTab('new'); window.scrollTo(0, 0);
         })(); break;
-        case 'cust-edit': S.sheet.edit = !S.sheet.edit; S.sheet.conflict = null; S.sheet.ordersChoice = null; S.panelErr = null; S.dirty = {}; renderSheet(); break;
+        case 'cust-edit': S.sheet.tab = 'overview'; S.sheet.edit = !S.sheet.edit; S.sheet.conflict = null; S.sheet.ordersChoice = null; S.panelErr = null; S.dirty = {}; renderSheet(); break;
         case 'cust-cancel': if (hasTyping() && !confirmDiscard(b)) break; S.sheet.edit = false; S.sheet.conflict = null; S.sheet.ordersChoice = null; S.panelErr = null; S.dirty = {}; renderSheet(); break;
         case 'cust-new': openNewCustomer(); break;
         case 'cn-consent': var ci = S.sheet.consent.indexOf(v); if (ci > -1) S.sheet.consent.splice(ci, 1); else S.sheet.consent.push(v); S.sheet.c = readCustomerForm(); keepCustomerTyping(); renderSheet(); break;
@@ -2197,6 +2215,7 @@
     refreshStep();
   });
   root.addEventListener('change', function (e) {
+    if (e.target.dataset.wsc && S.sheet && S.sheet.type === 'customer') { wsForm()[e.target.dataset.wsc] = e.target.checked; S.sheet.wsAddErr = null; renderSheet(); if (e.target.checked) { var wt = document.getElementById('ws-title'); if (wt) wt.focus(); } return; }
     if (e.target.dataset.dx && DX) { dashChange(e.target); return; }
     if (e.target.id === 'ccs-seg') { S.cust.seg = e.target.value; S.cust.q = ''; loadCustomers(); return; }
     if (e.target.id === 'cal-status' || e.target.id === 'cal-type') { S.cal[e.target.id === 'cal-status' ? 'status' : 'type'] = e.target.value; S.cal.pre = null; calRefresh(); return; }

@@ -81,6 +81,7 @@ async def main():
         # Profile shows sheet orders
         await pg.click('.ccs-nav [data-tab="customers"]'); await pg.wait_for_timeout(450)
         await pg.locator('[data-act="open-customer"][data-id="c1"]').first.click(); await pg.wait_for_timeout(500)
+        await pg.click('#ccs-sheet [data-act="ws-tab"][data-v="orders"]'); await pg.wait_for_timeout(150)
         sh = await pg.inner_text('#ccs-sheet')
         check('profile shows Orders from the old sheets', 'orders from the old sheets' in sh.lower() and 'Black Forest' in sh and 'W-0412' in sh, sh[-500:])
         check('name as typed on the sheet shown', 'as TEST CUST A' in sh)
@@ -92,6 +93,7 @@ async def main():
         check('finance: no Register tab', await pg.locator('.ccs-nav [data-tab="register"]').count() == 0)
         await pg.click('.ccs-nav [data-tab="customers"]'); await pg.wait_for_timeout(450)
         await pg.locator('[data-act="open-customer"][data-id="c1"]').first.click(); await pg.wait_for_timeout(500)
+        await pg.click('#ccs-sheet [data-act="ws-tab"][data-v="orders"]'); await pg.wait_for_timeout(150)
         sh = await pg.inner_text('#ccs-sheet')
         check('finance: sheet orders visible, no Full record button', 'orders from the old sheets' in sh.lower() and await pg.locator('#ccs-sheet [data-act="rg-open"]').count() == 0)
         await ctx.close()
