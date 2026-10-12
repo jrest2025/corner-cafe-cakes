@@ -19,7 +19,10 @@ Phase 1 checked on 12 October 2026: database checks run against the live data in
 | Editing | Direct table edits closed; only the checked save path | Implemented, awaiting publish (open until the new app is live, so the current app keeps working) |
 | Orders | Each order keeps its own contact name, mobile and email | Implemented and verified (all 501 existing orders filled, none changed otherwise) |
 | Orders | Separate payer, recipient and collection contact | Planned (columns exist, screens in phase 3) |
-| Orders | Guest purchases without a profile | Planned (phase 2: register records with no phone stay without a profile) |
+| Orders | Guest purchases without a profile | Implemented and verified (sheet orders with no mobile stay without a profile and still count in figures) |
+| Orders | Old sheet orders on customer profiles | Implemented and verified (step 2: automatic only for a full Fiji mobile on one profile with the same name; everything else to a manager list with link, new profile, leave, undo) |
+| Customers | Add customer without an order, with duplicate check on mobile or email | Implemented and verified (step 1) |
+| Editing | Edit Customer with Save and Cancel; unsaved typing needs a second tap to discard | Implemented and verified (step 1) |
 | Matching | New order links to a profile only on same mobile and same name; otherwise a new profile flagged for review; never overwrites | Implemented and verified |
 | Search | Name, mobile, second number, email, company, C-number, order number | Implemented and verified |
 | Consent | Per brand, channel (WhatsApp, SMS, email, call) and exact number or email; history kept, never edited | Implemented and verified |
