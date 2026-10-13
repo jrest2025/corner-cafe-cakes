@@ -19,7 +19,7 @@ async def newpage(b, vp, errs, role='manager'):
 
 async def calls(pg, fn): return await pg.evaluate(f"(window.__calls||[]).filter(function(c){{return c[1]==='{fn}'}}).map(function(c){{return c[2]}})")
 async def sheet(pg): return await pg.inner_text('#ccs-sheet')
-async def tab(pg, v): await pg.click(f'#ccs-sheet .ws-tabs [data-v="{v}"]'); await pg.wait_for_timeout(200)
+async def tab(pg, v): await pg.locator(f'#cp-{v}').scroll_into_view_if_needed(); await pg.wait_for_timeout(200)
 async def open_c1(pg):
     await pg.click('.ccs-nav [data-tab="customers"]'); await pg.wait_for_timeout(450)
     await pg.locator('[data-act="open-customer"][data-id="c1"]').first.click(); await pg.wait_for_timeout(600)
@@ -38,7 +38,7 @@ async def main():
         await pg.screenshot(path=str(OUT / 'desk-today.png'), full_page=True)
         await pg.click('.ws-furow'); await pg.wait_for_timeout(700)
         sh = await sheet(pg)
-        check('tapping it opens the customer on Notes and follow-ups', await pg.locator('#ccs-sheet .ws-tabs [data-v="notes"][aria-pressed="true"]').count() == 1 and 'Send the two-tier quote' in sh, sh[:400])
+        check('tapping it opens the customer on Notes and follow-ups', await pg.evaluate("(function(){var r=document.getElementById('cp-notes').getBoundingClientRect();return r.top<innerHeight&&r.bottom>0})()") and 'Send the two-tier quote' in sh, sh[:400])
         check('the overdue follow-up is marked overdue', 'Overdue, was due' in sh)
         check('the earlier enquiry is listed with who and how', 'Asked about a two-tier cake' in sh and 'Test Staff' in sh and 'WhatsApp' in sh)
         check('internal-only reminder is shown', 'Internal only' in sh and 'Never shown to the customer' in sh)
@@ -125,7 +125,7 @@ async def main():
         # Overview summary
         await tab(pg, 'overview')
         sh = await sheet(pg)
-        sh = sh.lower(); i0 = sh.find('coming up'); check('overview shows next order, open follow-ups and last note', i0 > -1 and 'next order' in sh and '3 open' in sh and 'last note' in sh, sh[i0:i0+400] if i0>-1 else sh[:900])
+        sh = sh.lower(); check('one page shows orders, follow-ups and notes together', 'orders (' in sh and 'follow-ups' in sh and 'notes, enquiries and feedback' in sh, sh[:900])
 
         # Order screen shows linked follow-up; kitchen brief never shows notes
         await tab(pg, 'orders')
@@ -142,7 +142,7 @@ async def main():
         # Repeat order
         ctx, pg = await newpage(b, DESK, errs)
         await open_c1(pg); await tab(pg, 'orders')
-        check('each order has Repeat this order', await pg.locator('[data-act="ws-repeat"]').count() == await pg.locator('#ccs-sheet .ccs-card').count() >= 3)
+        check('each order has Repeat this order', await pg.locator('[data-act="ws-repeat"]').count() == await pg.locator('#cp-orders tbody tr.ccs-click').count() >= 3)
         await pg.click('[data-act="ws-repeat"][data-id="o1"]'); await pg.wait_for_timeout(600)
         t = await pg.inner_text('#ccs-main')
         d = await pg.evaluate("(function(){try{return JSON.parse(localStorage.getItem('ccs-draft-u1'))}catch(e){return null}})()")
@@ -190,7 +190,7 @@ async def main():
         await ctx.close()
         ctx, pg = await newpage(b, DESK, errs, 'finance')
         await open_c1(pg)
-        check('finance: no Communications tab', await pg.locator('#ccs-sheet .ws-tabs [data-v="comms"]').count() == 0)
+        check('finance: no marketing permission section', await pg.locator('#cp-comms').count() == 0)
         await tab(pg, 'notes')
         check('finance: reads notes, cannot add or change', 'Asked about a two-tier cake' in await sheet(pg) and await pg.locator('[data-act="ws-save"]').count() == 0 and await pg.locator('[data-act="ws-edit"]').count() == 0 and await pg.locator('[data-act="ws-task-mode"]').count() == 0)
         await pg.click("#ccs-sheet [data-act=\"close\"]"); await pg.wait_for_timeout(200); await pg.click(".ccs-nav [data-tab=\"today\"]"); await pg.wait_for_timeout(500)

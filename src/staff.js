@@ -2016,53 +2016,58 @@
     h += '<p class="ccs-hint">Customer ' + esc(custNo(c.customer_no)) + (c.archived_at ? ' · Archived' : '') + '</p>';
     if (c.review_flag === 'possible_duplicate') h += '<p class="ccs-warn"><b>Check for a duplicate.</b> ' + esc(c.review_note || 'Another profile has the same mobile number.') + (can('manager') ? ' <button type="button" class="ccs-link" data-act="ws-cm-dups-open">Review duplicates</button>' : '') + '</p>';
     if ((d.mergedFrom || []).length) h += '<p class="ccs-hint">Merged into this profile: ' + esc(d.mergedFrom.map(function (x) { return custNo(x.customer_no) + ' ' + x.full_name; }).join(', ')) + '.</p>';
-    h += '<div class="ccs-stats"><div><span>Orders</span><b>' + s.orders_count + '</b></div><div><span>Spend</span><b>' + money(s.completed_spend) + '</b></div><div><span>Average</span><b>' + (s.average_spend != null ? money(s.average_spend) : '—') + '</b></div><div><span>Cancelled</span><b>' + s.cancelled_count + '</b></div></div>';
     var ctc = c.phone ? '<a class="ccs-btn ccs-ghost" href="' + esc(waLink(c.phone)) + '" target="_blank" rel="noopener">WhatsApp</a><a class="ccs-btn ccs-ghost" href="tel:' + esc(digits(c.phone)) + '">Call</a>' : '';
     if ((editor && !c.archived_at) || ctc) h += '<div class="ccs-actions-row ccs-cust-acts">' + (editor && !c.archived_at ? '<button type="button" class="ccs-btn ccs-new" data-act="cust-neworder">' + NAV_ICON['new'] + 'New order for this customer</button>' : '') + ctc + '</div>';
-    if (segs.length || s.seg_upcoming_occasion) h += '<div class="ccs-tags">' + segs.map(function (x) { return '<span class="ccs-tag">' + x[1] + '</span>'; }).join('') + (s.seg_upcoming_occasion ? '<span class="ccs-pill s-amend">Occasion due ' + esc(nice(s.next_occasion_date)) + '</span>' : '') + '</div>';
-    var tab = S.sheet.edit ? 'overview' : (S.sheet.tab || 'overview');
-    var tabsList = [['overview', 'Overview'], ['orders', 'Orders (' + d.orders.length + ')']];
-    if (wsCanRead()) { var wsOpen = S.sheet.ws ? S.sheet.ws.tasks.filter(function (x) { return x.status === 'open' || x.status === 'in_progress'; }).length : 0; tabsList.push(['notes', 'Notes' + (wsOpen ? ' (' + wsOpen + ')' : '')]); }
-    if (can('manager', 'front_of_house', 'marketing')) tabsList.push(['comms', 'Communications']);
-    h += '<div class="ccs-tabs ws-tabs" role="group" aria-label="Customer sections">' + tabsList.map(function (x) { return '<button type="button" class="ccs-tab" data-act="ws-tab" data-v="' + x[0] + '" aria-pressed="' + (tab === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div>';
-    if (tab === 'overview') {
-      if (S.sheet.edit) h += customerEditor(d);
-      else {
-        h += '<section class="ccs-box"><h3>Contact</h3><dl class="ccs-kv">' + kv('Mobile', c.phone) + kv('Other number', c.alt_phone) + kv('Email', c.email) +
-          kv('Prefers', { whatsapp: 'WhatsApp', phone: 'Phone call', email: 'Email' }[c.preferred_contact]) + kv('Company', c.company) + kv('Delivery address', c.delivery_address) +
-          kv('Birthday', birthday(c.birth_day, c.birth_month)) + kv('Preferences', c.preferences) + kv('Service notes', c.notes) +
-          kv('Came from', CUSTOMER_SOURCE[c.customer_source] || SOURCE_LABEL[s.first_source]) + kv('Usually orders', s.favourite_cake) + kv('Occasions', (s.occasions || []).join(', ')) + '</dl>' +
-          '<div class="ccs-actions-row">' +
-          (editor ? '<button type="button" class="ccs-btn ccs-ghost" data-act="cust-edit">Edit Customer</button>' : '') +
-          (can('manager') ? '<button type="button" class="ccs-btn ccs-ghost" data-act="cust-history">' + (S.sheet.hist ? 'Hide change history' : 'Change history') + '</button>' : '') +
-          '<button type="button" class="ccs-btn ccs-ghost" data-act="ws-cm-s5-rep" aria-expanded="' + !!S.sheet.rep + '">Customer report</button>' + '</div></section>';
-        h += s5ReportPanel();
-        if (S.sheet.hist) h += customerHistory();
-      }
-      if (!S.sheet.edit) h += wsOverview(d);
-    } else if (tab === 'orders') {
-      h += '<section class="ccs-box"><h3>Orders</h3>' + (editor && d.orders.length ? '<p class="ccs-hint">Repeat this order starts a new order with today\'s prices. You choose the date and check the message and dietary needs again.</p>' : '') + (d.orders.length ? '<div class="ccs-list">' + d.orders.map(function (o) { var i = (o.order_items || [])[0]; return '<button type="button" class="ccs-card k-' + (STATUS[o.order_status] || ['', 'off'])[1] + '" data-act="open-order" data-id="' + o.id + '" style="grid-template-columns:110px minmax(0,1fr) auto"><span class="ccs-when"><b>' + esc(nice(o.required_date)) + '</b><span>' + esc(o.reference) + '</span></span><span class="ccs-what"><b>' + esc(cakeLine(i)) + '</b><span class="ccs-tags">' + pill(o.order_status, o.fulfilment_method) + (i && i.occasion ? '<span class="ccs-pill">' + esc(i.occasion) + '</span>' : '') + (o.order_status === 'confirmed' || o.order_status === 'completed' ? payPill(o.payment_status) : '') + (o.contact_name && o.contact_name !== c.full_name ? '<span class="ccs-tag">Ordered as ' + esc(o.contact_name) + '</span>' : '') + '</span></span><span class="ccs-price">' + money(o.final_total != null ? o.final_total : o.estimate_total) + '</span></button>' + (editor && !c.archived_at && i ? '<div class="ws-repeat"><button type="button" class="ccs-link" data-act="ws-repeat" data-id="' + o.id + '">Repeat this order</button></div>' : ''); }).join('') + '</div>' : '<p class="ccs-hint">No orders.</p>') + '</section>';
-      if (d.sheet.length) h += '<section class="ccs-box"><h3>Orders from the old sheets</h3><p class="ccs-hint">Recorded in the Google Sheets before this app. Shown as typed; not yet in the totals above.</p><ul class="ccs-plain cm-sheetlist">' + d.sheet.map(function (o) {
-        return '<li><b>' + esc(o.fulfil_date ? nice(o.fulfil_date) + ' ' + o.fulfil_date.slice(0, 4) : 'No pickup date') + '</b> · ' + esc([o.cake, o.size_inch ? o.size_inch + ' inch' : ''].filter(Boolean).join(' ') || 'Cake not stated') +
-          (o.value != null ? ' · ' + money(o.value) : '') + ' · ' + esc(o.source || '') + (o.reference ? ' ' + esc(o.reference) : '') + (o.name_on_sheet && o.name_on_sheet !== c.full_name ? ' · as ' + esc(o.name_on_sheet) : '') +
-          (can('manager') ? ' <button type="button" class="ccs-link" data-act="rg-open" data-v="' + esc(o.rec_key) + '">Full record</button>' : '') + '</li>';
-      }).join('') + '</ul></section>';
-    } else if (tab === 'notes') {
-      h += wsView();
-    } else if (tab === 'comms') {
-      if (can('manager', 'front_of_house', 'marketing')) {
-        h += '<section class="ccs-box"><h3>Marketing permission: Corner Café</h3><p class="ccs-hint">Only message customers by a channel marked Yes. A yes is kept with the number or email it was given for, so a new number starts at Not asked.</p><dl class="ccs-kv">' +
-          CHANNELS.map(function (ch) {
-            var st = consentLine(d, ch[0]);
-            var btns = st.none ? '' : ' <span class="ccs-consent-acts">' + (st.yes && !st.re ? '' : '<button type="button" class="ccs-link" data-act="consent-ch" data-ch="' + ch[0] + '" data-v="true">' + (st.yes ? 'Customer reconfirmed' : 'Customer said yes') + '</button>') +
-              (st.no ? '' : ' <button type="button" class="ccs-link ccs-red" data-act="consent-ch" data-ch="' + ch[0] + '" data-v="false">' + (st.yes ? 'Customer said stop' : 'Customer said no') + '</button>') + '</span>';
-            return '<dt>' + ch[1] + '</dt><dd><span class="' + st.cls + '">' + esc(st.text) + '</span>' + btns + '</dd>';
-          }).join('') + '</dl>' +
-          (d.log.length ? '<details class="ccs-more"><summary>Permission record</summary><ul class="ccs-plain">' + d.log.map(function (l) {
-            return '<li>' + esc(stamp(l.recorded_at)) + ': ' + esc((CHANNELS.filter(function (x) { return x[0] === l.channel; })[0] || [0, l.channel])[1]) + ' ' + (l.granted ? 'yes' : 'no') + (l.needs_reconfirm ? ' (needs reconfirming)' : '') + ', ' + esc(l.destination) + '. ' + esc(l.source) + '</li>';
-          }).join('') + '</ul></details>' : '') + '</section>';
-      }
-      h += '<p class="ccs-hint ws-service">Messages about an order, such as ready for collection or a change, are service messages and do not need marketing permission.</p>';
+    // One page, plain tables: details, orders, notes, permission
+    var cpDate = function (iso) { return iso ? new Date(iso + 'T12:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }) : ''; };
+    var row = function (k, v, raw) { return v || v === 0 ? '<tr><th scope="row">' + esc(k) + '</th><td>' + (raw ? v : esc(v)) + '</td></tr>' : ''; };
+    var mk = '';
+    if (can('manager', 'front_of_house', 'marketing')) mk = CHANNELS.map(function (ch) { var st = consentLine(d, ch[0]); return ch[1] + ': ' + st.text; }).join(' · ');
+    h += '<section class="ccs-box cp-sec" id="cp-overview"><h3>Guest details</h3>';
+    if (S.sheet.edit) h += customerEditor(d);
+    else {
+      h += '<table class="cp-table"><tbody>' +
+        row('Customer number', custNo(c.customer_no) + (c.archived_at ? ' (archived)' : '')) + row('Mobile', c.phone) + row('Other number', c.alt_phone) + row('Email', c.email) +
+        row('Prefers', { whatsapp: 'WhatsApp', phone: 'Phone call', email: 'Email' }[c.preferred_contact]) + row('Company', c.company) + row('Delivery address', c.delivery_address) +
+        row('Birthday', birthday(c.birth_day, c.birth_month)) + row('Preferences', c.preferences) + row('Service notes', c.notes) +
+        row('Came from', CUSTOMER_SOURCE[c.customer_source] || SOURCE_LABEL[s.first_source]) + row('Usually orders', s.favourite_cake) + row('Occasions', (s.occasions || []).join(', ')) +
+        row('Next occasion', s.seg_upcoming_occasion ? nice(s.next_occasion_date, true) : '') +
+        row('Orders', s.orders_count + (s.cancelled_count ? ' (' + s.cancelled_count + ' cancelled)' : '')) + row('Spend', money(s.completed_spend) + (s.average_spend != null ? ', average ' + money(s.average_spend) : '')) +
+        row('Groups', segs.map(function (x) { return x[1]; }).join(', ')) + row('Marketing', mk) + '</tbody></table>' +
+        '<div class="ccs-actions-row ccs-more-row">' +
+        (editor ? '<button type="button" class="ccs-btn ccs-ghost" data-act="cust-edit">Edit details</button>' : '') +
+        (can('manager') ? '<button type="button" class="ccs-btn ccs-ghost" data-act="cust-history">' + (S.sheet.hist ? 'Hide change history' : 'Change history') + '</button>' : '') +
+        '<button type="button" class="ccs-btn ccs-ghost" data-act="ws-cm-s5-rep" aria-expanded="' + !!S.sheet.rep + '">Customer report</button></div>';
+      h += s5ReportPanel();
+      if (S.sheet.hist) h += customerHistory();
+    }
+    h += '</section>';
+    // Orders, newest first
+    var ords = d.orders.slice().sort(function (a, b) { return a.required_date < b.required_date ? 1 : -1; });
+    h += '<section class="ccs-box cp-sec" id="cp-orders"><h3>Orders (' + ords.length + ')</h3>' + (ords.length ? '<div class="cp-scroll"><table class="cp-table cp-list"><thead><tr><th scope="col">Date</th><th scope="col">Order</th><th scope="col">Cake</th><th scope="col">Status</th><th scope="col" class="ccs-num">Price</th>' + (editor && !c.archived_at ? '<th scope="col"><span class="ccs-sr">Repeat</span></th>' : '') + '</tr></thead><tbody>' +
+      ords.map(function (o) { var i = (o.order_items || [])[0];
+        return '<tr class="ccs-click" data-act="open-order" data-id="' + o.id + '"><td data-label="Date" class="cp-nw">' + esc(cpDate(o.required_date)) + '</td><td data-label="Order" class="cp-nw">' + esc(o.reference) + '</td><td data-label="Cake">' + esc(cakeLine(i)) + (i && i.occasion ? '<br><span class="ccs-hint">' + esc(i.occasion) + '</span>' : '') + (o.contact_name && o.contact_name !== c.full_name ? '<br><span class="ccs-hint">Ordered as ' + esc(o.contact_name) + '</span>' : '') + '</td><td data-label="Status">' + esc(statusLabel(o.order_status, o.fulfilment_method)) + (o.order_status === 'confirmed' || o.order_status === 'completed' ? '<br><span class="ccs-hint">' + esc(PAY[o.payment_status] || '') + '</span>' : '') + '</td><td class="ccs-num" data-label="Price">' + money(o.final_total != null ? o.final_total : o.estimate_total) + '</td>' +
+          (editor && !c.archived_at ? '<td>' + (i ? '<button type="button" class="ccs-link" data-act="ws-repeat" data-id="' + o.id + '" aria-label="Repeat order ' + esc(o.reference) + '">Repeat</button>' : '') + '</td>' : '') + '</tr>';
+      }).join('') + '</tbody></table></div>' + (editor ? '<p class="ccs-hint">Repeat starts a new order with today\'s prices. You choose the date and check the message and dietary needs again.</p>' : '') : '<p class="ccs-hint">No orders.</p>');
+    if (d.sheet.length) h += '<h4 class="cp-sub">From the old sheets</h4><p class="ccs-hint">Recorded in the Google Sheets before this app. Shown as typed; not yet in the totals.</p><div class="cp-scroll"><table class="cp-table cp-list"><thead><tr><th scope="col">Date</th><th scope="col">Cake</th><th scope="col">Recorded in</th><th scope="col" class="ccs-num">Value</th></tr></thead><tbody>' + d.sheet.map(function (o) {
+        return '<tr><td data-label="Date">' + esc(o.fulfil_date ? nice(o.fulfil_date) + ' ' + o.fulfil_date.slice(0, 4) : 'No pickup date') + '</td><td data-label="Cake">' + esc([o.cake, o.size_inch ? o.size_inch + ' inch' : ''].filter(Boolean).join(' ') || 'Cake not stated') + (o.name_on_sheet && o.name_on_sheet !== c.full_name ? '<br><span class="ccs-hint">as ' + esc(o.name_on_sheet) + '</span>' : '') + '</td><td data-label="Recorded in">' + esc(o.source || '') + (o.reference ? ' ' + esc(o.reference) : '') + (can('manager') ? ' <button type="button" class="ccs-link" data-act="rg-open" data-v="' + esc(o.rec_key) + '">Full record</button>' : '') + '</td><td class="ccs-num" data-label="Value">' + (o.value != null ? money(o.value) : '') + '</td></tr>';
+      }).join('') + '</tbody></table></div>';
+    h += '</section>';
+    // Notes and follow-ups
+    if (wsCanRead()) h += '<section class="cp-sec" id="cp-notes"><h3 class="cp-h">Notes and follow-ups</h3>' + wsView() + '</section>';
+    // Marketing permission
+    if (can('manager', 'front_of_house', 'marketing')) {
+      h += '<section class="ccs-box cp-sec" id="cp-comms"><h3>Marketing permission: Corner Café</h3><p class="ccs-hint">Only message customers by a channel marked Yes. A yes is kept with the number or email it was given for, so a new number starts at Not asked.</p><table class="cp-table"><tbody>' +
+        CHANNELS.map(function (ch) {
+          var st = consentLine(d, ch[0]);
+          var btns = st.none ? '' : ' <span class="ccs-consent-acts">' + (st.yes && !st.re ? '' : '<button type="button" class="ccs-link" data-act="consent-ch" data-ch="' + ch[0] + '" data-v="true">' + (st.yes ? 'Customer reconfirmed' : 'Customer said yes') + '</button>') +
+            (st.no ? '' : ' <button type="button" class="ccs-link ccs-red" data-act="consent-ch" data-ch="' + ch[0] + '" data-v="false">' + (st.yes ? 'Customer said stop' : 'Customer said no') + '</button>') + '</span>';
+          return '<tr><th scope="row">' + ch[1] + '</th><td><span class="' + st.cls + '">' + esc(st.text) + '</span>' + btns + '</td></tr>';
+        }).join('') + '</tbody></table>' +
+        (d.log.length ? '<h4 class="cp-sub">Permission history</h4><div class="cp-scroll"><table class="cp-table cp-list"><thead><tr><th scope="col">Date</th><th scope="col">Channel</th><th scope="col">Answer</th><th scope="col">Number or email</th><th scope="col">Source</th></tr></thead><tbody>' + d.log.map(function (l) {
+          return '<tr><td data-label="Date">' + esc(stamp(l.recorded_at)) + '</td><td data-label="Channel">' + esc((CHANNELS.filter(function (x) { return x[0] === l.channel; })[0] || [0, l.channel])[1]) + '</td><td data-label="Answer">' + (l.granted ? 'Yes' : 'No') + (l.needs_reconfirm ? ', needs reconfirming' : '') + '</td><td data-label="Number or email">' + esc(l.destination) + '</td><td data-label="Source">' + esc(l.source) + '</td></tr>';
+        }).join('') + '</tbody></table></div>' : '') +
+        '<p class="ccs-hint ws-service">Messages about an order, such as ready for collection or a change, are service messages and do not need marketing permission.</p></section>';
     }
     return h + '</div>';
   }
