@@ -802,3 +802,19 @@ body.ccs-is-off #cc-staff .ccs-side { top: var(--ccs-offh, 44px); }
   #cc-staff #ccs-main .sl-live { top: 72px; max-height: calc(100dvh - 210px); }
   #cc-staff #ccs-main .ccs-day { top: 60px; }
 }
+
+/* ===== Refinement 14 Oct 2026 (second pass): large touch targets for order taking, next action on every order ===== */
+#cc-staff .sl-stepper .ccs-chip { min-height: 56px; padding: 0 22px; font-size: 19px; }
+#cc-staff .sl-stepper .ccs-chips { gap: 12px; }
+#cc-staff .sl-stepper .ccs-input { min-height: 60px; font-size: 20px; }
+#cc-staff .sl-stepper .sl-cell { min-height: 64px; font-size: 18px; }
+#cc-staff .sl-stepper .ccs-match { min-height: 64px; }
+#cc-staff .sl-stepper .ccs-check { min-height: 52px; }
+#cc-staff .sl-stepper .ccs-check input { width: 26px; height: 26px; }
+#cc-staff .sl-stepper .sl-chg { min-height: 48px; }
+#cc-staff .sl-stepper .ccs-btn, #cc-staff .sl-stepbar .ccs-btn { min-height: 64px; font-size: 20px; }
+#cc-staff .ccs-menubtn { min-height: 48px; }
+#cc-staff .ccs-next { display: block; margin-top: 2px; font-size: 16.5px; font-weight: 600; color: #243247; }
+#cc-staff .ccs-next em { font-style: normal; font-weight: 800; color: #4c6a37; margin-right: 4px; }
+#cc-staff .ccs-next.is-wait { color: #526176; font-weight: 500; }
+#cc-staff .ccs-next.is-wait em { color: #526176; font-weight: 700; }

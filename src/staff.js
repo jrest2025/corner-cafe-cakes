@@ -356,6 +356,19 @@
       return (a.required_date + a.required_time) < (b.required_date + b.required_time) ? -1 : 1;
     });
   }
+  // The one next action for an order, and who owns it. Mirrors the main button on the order screen.
+  function nextStep(o) {
+    var st = o.order_status, owing = o.payment_status !== 'paid', dl = o.fulfilment_method === 'delivery';
+    if (st === 'awaiting_review') return ['Check it, then confirm', 'you'];
+    if (st === 'awaiting_quote') return ['Give a price, then confirm', 'you'];
+    if (st === 'awaiting_approval') return ['Waiting for the guest to reply', 'wait'];
+    if (st === 'awaiting_deposit') return ['Record the deposit', 'you'];
+    if (st !== 'confirmed') return null;
+    if (o.production_status !== 'ready') return ['Kitchen: ' + (STAGE_LABEL[o.production_status] || 'Not started').toLowerCase() + (owing ? '. Balance still owing' : ''), 'wait'];
+    if (owing) return ['Take the balance, then hand over', 'you'];
+    return [dl ? 'Mark delivered' : 'Mark collected', 'you'];
+  }
+  function nextHtml(o) { var n = nextStep(o); return n ? '<span class="ccs-next' + (n[1] === 'wait' ? ' is-wait' : '') + '"><em>Next:</em> ' + esc(n[0]) + '</span>' : ''; }
   function orderCard(o) {
     var i = firstItem(o), c = o.customers, st = STATUS[o.order_status] || ['', 'off'];
     var late = isOverdue(o), tags = (late ? '<span class="ccs-pill s-alert">Overdue</span>' : '') + pill(o.order_status, o.fulfilment_method);
@@ -368,7 +381,7 @@
     if (o.fulfilment_method === 'delivery') tags += '<span class="ccs-tag">Delivery' + (o.delivery_zone ? ', ' + esc(o.delivery_zone) : '') + '</span>';
     return '<button type="button" class="ccs-card k-' + st[1] + (late || o.has_dietary ? ' is-red' : '') + '" data-act="open-order" data-id="' + o.id + '">' +
       '<span class="ccs-when"><b>' + esc(nice(o.required_date) + (String(o.required_date).slice(0, 4) !== today().slice(0, 4) ? ' ' + String(o.required_date).slice(0, 4) : '')) + '</b><span>' + esc(t12(o.required_time)) + '</span></span>' +
-      '<span class="ccs-what"><b>' + esc(cakeLine(i)) + '</b><span class="ccs-meta">' + esc(c ? c.full_name : 'Customer details hidden') + ' · ' + esc(o.reference) + ' · ' + esc(SOURCE_LABEL[o.source]) + '</span><span class="ccs-tags">' + tags + '</span></span>' +
+      '<span class="ccs-what"><b>' + esc(cakeLine(i)) + '</b><span class="ccs-meta">' + esc(c ? c.full_name : 'Customer details hidden') + ' · ' + esc(o.reference) + ' · ' + esc(SOURCE_LABEL[o.source]) + '</span><span class="ccs-tags">' + tags + '</span>' + nextHtml(o) + '</span>' +
       '<span class="ccs-price">' + money(o.final_total != null ? o.final_total : o.estimate_total) + '<small>' + (o.final_total != null ? 'agreed' : (o.order_type === 'custom' ? 'from' : 'price')) + '</small></span></button>';
   }
   function ordersView() {
@@ -413,7 +426,7 @@
     var i = firstItem(o), c = o.customers, st = STATUS[o.order_status] || ['', 'off'];
     return '<button type="button" class="ccs-mini k-' + st[1] + (isOverdue(o) || o.has_dietary ? ' is-red' : '') + '" data-act="open-order" data-id="' + o.id + '">' +
       '<span class="ccs-mini-t">' + (showTime ? esc(t12(o.required_time)) : esc(nice(o.required_date))) + '</span>' +
-      '<span class="ccs-mini-m"><b>' + esc(cakeLine(i)) + '</b><span>' + esc(c ? c.full_name : '') + ' · ' + esc(o.reference) + '</span></span>' +
+      '<span class="ccs-mini-m"><b>' + esc(cakeLine(i)) + '</b><span>' + esc(c ? c.full_name : '') + ' · ' + esc(o.reference) + '</span>' + nextHtml(o) + '</span>' +
       '<span class="ccs-mini-r">' + (o.order_status === 'confirmed' ? stagePill(o.production_status) : pill(o.order_status, o.fulfilment_method)) + ((o.order_status === 'confirmed' || o.order_status === 'awaiting_deposit') && o.payment_status !== 'paid' && can('manager', 'finance', 'front_of_house') ? payPill(o.payment_status) : '') + (o.fulfilment_method === 'delivery' ? '<span class="ccs-pill">Delivery</span>' : '') + (o.has_dietary ? '<span class="ccs-pill s-alert">Dietary</span>' : '') + '</span></button>';
   }
   function todayView() {
@@ -1229,7 +1242,7 @@
       var r = D.result;
       return '<div class="ccs-done"><div class="ccs-tick" aria-hidden="true">✓</div><h1 class="ccs-title">' + esc(r.reference) + ' is saved</h1><p>' + esc(statusLabel(r.status)) + '. ' +
         (r.status === 'confirmed' ? 'Hand the customer their order number.' : r.status === 'awaiting_deposit' ? 'It confirms itself as soon as the deposit is recorded.' : 'It is in Needs action for review.') + '</p>' +
-        '<div class="ccs-actions-row">' + '<button type="button" class="ccs-btn ccs-ghost" data-act="open-order" data-id="' + r.order_id + '">Open order</button>' + (D.fromCal ? '<button type="button" class="ccs-btn ccs-ghost" data-act="cal-back">Back to calendar</button>' : '') + '<button type="button" class="ccs-btn ccs-new" data-act="new-again">' + NAV_ICON['new'] + 'New order</button></div></div>';
+        '<div class="ccs-actions-row">' + '<button type="button" class="ccs-btn ccs-ghost" data-act="open-order" data-id="' + r.order_id + '">Open order</button>' + (D.fromCal ? '<button type="button" class="ccs-btn ccs-ghost" data-act="cal-back">Back to calendar</button>' : '') + '<button type="button" class="ccs-btn ccs-new" data-act="new-again">' + NAV_ICON['new'] + 'New order</button>' + (newInSheet() ? '' : '<button type="button" class="ccs-btn ccs-ghost" data-tab="orders">Go to orders</button>') + '</div></div>';
     }
     var inSheet = newInSheet();
     var h = inSheet ? (draftHasContent() && !D.confirmReset ? '<div class="ccs-newtop"><button type="button" class="ccs-link ccs-red" data-act="new-again">Start over</button></div>' : '')
