@@ -313,9 +313,9 @@
   var LOGO_URL = CFG.logoUrl || 'https://cdn.prod.website-files.com/6a0afe25d2f1212db6f93a0e/6a2973404d4e9162e671b50f_Corner%20Cafe%20(2)-p-800.png';
   function buildPdf(d, items, kind) {
     var c = d.collection, ct = d.contact || {};
-    // Photos are cropped to the exact frame shape used in the PDF (83 by 46 mm), so nothing is stretched.
-    var FRAME_W = 83, FRAME_H = 46, PX = 12;
-    return Promise.all([Promise.all(items.map(function (it) { return photo(it.image_url, FRAME_W * PX, FRAME_H * PX); })), logo(LOGO_URL), fontData]).then(function (res) {
+    // Square photos, three across. Cropped to the exact square frame, so nothing is stretched.
+    var COLS = 3, GAPW = 7, FRAME_W = (174 - GAPW * (COLS - 1)) / COLS, FRAME_H = FRAME_W, PX = 12;
+    return Promise.all([Promise.all(items.map(function (it) { return photo(it.image_url, Math.round(FRAME_W * PX), Math.round(FRAME_H * PX)); })), logo(LOGO_URL), fontData]).then(function (res) {
       var imgs = res[0], lg = res[1];
       var J = window.jspdf.jsPDF, doc = new J({ unit: 'mm', format: 'a4', compress: true });
       res[2].forEach(function (f) { doc.addFileToVFS(f[0], f[1]); doc.addFont(f[0], FONTS[f[0]][0], FONTS[f[0]][1]); });
@@ -355,43 +355,55 @@
       y += 1; doc.setDrawColor(BRAND.cream[0], BRAND.cream[1], BRAND.cream[2]); doc.setLineWidth(1.2); doc.line(M, y, M + 30, y); y += 8;
 
       // Products: two-column cards, photo on top. A row of cards never splits across pages.
-      var GAP = CW - 2 * FRAME_W, CWD = FRAME_W, IH = FRAME_H, FOOT = H - 19;
+      var GAP = GAPW, CWD = FRAME_W, IH = FRAME_H, FOOT = H - 19;
+      // Each option is one line when label and price fit side by side, otherwise the price goes on its own line.
+      function optLines(o) {
+        var pt = priceText(o, c.show_prices);
+        font('Outfit', 'bold', 8.5); var pw = doc.getTextWidth(pt);
+        font('Outfit', 'normal', 8.5); var lw = doc.getTextWidth(o.label);
+        return { pt: pt, split: lw + pw + 3 > CWD };
+      }
       function measure(it) {
-        font('Gelasio', 'normal', 14.5); var nameL = doc.splitTextToSize(it.name, CWD).slice(0, 3);
-        font('Outfit', 'normal', 9.5); var desc = it.description ? doc.splitTextToSize(it.description, CWD) : [];
-        if (desc.length > 8) { desc = desc.slice(0, 8); desc[7] = desc[7].replace(/\s+\S*$/, '') + '…'; }
+        font('Gelasio', 'normal', 12.5); var nameL = doc.splitTextToSize(it.name, CWD).slice(0, 3);
+        font('Outfit', 'normal', 8.8); var desc = it.description ? doc.splitTextToSize(it.description, CWD) : [];
+        if (desc.length > 7) { desc = desc.slice(0, 7); desc[6] = desc[6].replace(/\s+\S*$/, '') + '…'; }
+        font('Outfit', 'normal', 8.5);
         var extra = [AVAIL[it.availability], it.dietary_info, it.ordering_note].filter(Boolean).map(function (x) { return doc.splitTextToSize(x, CWD)[0]; });
-        var opts = it.options || [];
-        var h = IH + 6 + 5 + nameL.length * 6 + 1 + desc.length * 4.3 + (opts.length ? 4 : 0) + opts.length * 5.8 + extra.length * 4.8;
+        var opts = (it.options || []).map(function (o) { var l = optLines(o); return { o: o, pt: l.pt, split: l.split }; });
+        var oh = opts.reduce(function (a, q) { return a + (q.split ? 9.4 : 5.3); }, 0);
+        var h = IH + 5.5 + 4.5 + nameL.length * 5.3 + 1 + desc.length * 3.9 + (opts.length ? 3.6 : 0) + oh + extra.length * 4.4;
         return { nameL: nameL, desc: desc, extra: extra, opts: opts, h: h };
       }
       function card(it, img, m, x, top) {
         if (img) doc.addImage(img, 'JPEG', x, top, CWD, IH, undefined, 'FAST');
-        else { doc.setFillColor(244, 239, 230); doc.rect(x, top, CWD, IH, 'F'); font('Gelasio', 'normal', 12); col(BRAND.soft); doc.text(doc.splitTextToSize(it.name, CWD - 16), x + CWD / 2, top + IH / 2, { align: 'center' }); }
-        var ty = top + IH + 6;
-        font('Outfit', 'bold', 7.5); col(BRAND.soft);
-        doc.text(((it.category || '') + (it.is_test ? '   TEST' : '')).toUpperCase(), x, ty); ty += 6;
-        font('Gelasio', 'normal', 14.5); col(BRAND.brown); m.nameL.forEach(function (l) { doc.text(l, x, ty); ty += 6; });
-        ty += 0.5; font('Outfit', 'normal', 9.5); col(BRAND.ink); m.desc.forEach(function (l) { doc.text(l, x, ty); ty += 4.3; });
-        if (m.opts.length) ty += 4;
-        m.opts.forEach(function (o) {
-          doc.setDrawColor(BRAND.line[0], BRAND.line[1], BRAND.line[2]); doc.setLineWidth(0.25); doc.line(x, ty - 3.9, x + CWD, ty - 3.9);
-          var pt = priceText(o, c.show_prices);
-          font('Outfit', 'bold', 9.5); var pw = doc.getTextWidth(pt);
-          doc.text(pt, x + CWD, ty, { align: 'right' });
-          font('Outfit', 'normal', 9.5); col(BRAND.ink); doc.text(doc.splitTextToSize(o.label, CWD - pw - 4)[0], x, ty); ty += 5.8;
+        else { doc.setFillColor(244, 239, 230); doc.rect(x, top, CWD, IH, 'F'); font('Gelasio', 'normal', 11); col(BRAND.soft); doc.text(doc.splitTextToSize(it.name, CWD - 12), x + CWD / 2, top + IH / 2, { align: 'center' }); }
+        var ty = top + IH + 5.5;
+        font('Outfit', 'bold', 7); col(BRAND.soft);
+        doc.text(((it.category || '') + (it.is_test ? '   TEST' : '')).toUpperCase(), x, ty); ty += 5.3;
+        font('Gelasio', 'normal', 12.5); col(BRAND.brown); m.nameL.forEach(function (l) { doc.text(l, x, ty); ty += 5.3; });
+        ty += 0.3; font('Outfit', 'normal', 8.8); col(BRAND.ink); m.desc.forEach(function (l) { doc.text(l, x, ty); ty += 3.9; });
+        if (m.opts.length) ty += 3.6;
+        m.opts.forEach(function (q) {
+          doc.setDrawColor(BRAND.line[0], BRAND.line[1], BRAND.line[2]); doc.setLineWidth(0.25); doc.line(x, ty - 3.6, x + CWD, ty - 3.6);
+          font('Outfit', 'normal', 8.5); col(BRAND.ink);
+          if (q.split) {
+            doc.text(doc.splitTextToSize(q.o.label, CWD)[0], x, ty); ty += 4.1;
+            font('Outfit', 'bold', 8.5); doc.text(q.pt, x + CWD, ty, { align: 'right' }); ty += 5.3;
+          } else {
+            doc.text(q.o.label, x, ty); font('Outfit', 'bold', 8.5); doc.text(q.pt, x + CWD, ty, { align: 'right' }); ty += 5.3;
+          }
         });
         m.extra.forEach(function (e, i) {
-          if (i === 0 && AVAIL[it.availability]) { font('Outfit', 'bold', 9); doc.setTextColor(122, 75, 18); } else { font('Outfit', 'normal', 9); col(BRAND.soft); }
-          doc.text(e, x, ty); ty += 4.8;
+          if (i === 0 && AVAIL[it.availability]) { font('Outfit', 'bold', 8.5); doc.setTextColor(122, 75, 18); } else { font('Outfit', 'normal', 8.5); col(BRAND.soft); }
+          doc.text(e, x, ty); ty += 4.4;
         });
       }
-      for (var k = 0; k < items.length; k += 2) {
-        var pair = items.slice(k, k + 2), ms = pair.map(measure);
+      for (var k = 0; k < items.length; k += COLS) {
+        var pair = items.slice(k, k + COLS), ms = pair.map(measure);
         var rowH = Math.max.apply(null, ms.map(function (m) { return m.h; }));
         if (y + rowH > FOOT) newPage();
         pair.forEach(function (it, j) { card(it, imgs[k + j], ms[j], M + j * (CWD + GAP), y); });
-        y += rowH + 10;
+        y += rowH + 8;
       }
 
       // How to order block, kept together, with QR code.

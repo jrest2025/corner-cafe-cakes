@@ -97,7 +97,7 @@ async def wait_ready(pg, ms=15000):
 async def save_pdf(pg, name):
     b64 = await pg.evaluate("""async()=>{var b=window.CCCatalogue._state.sheet.blob;var a=new Uint8Array(await b.arrayBuffer());var s='';for(var i=0;i<a.length;i+=32768)s+=String.fromCharCode.apply(null,a.subarray(i,i+32768));return btoa(s)}""")
     p = OUT / name; p.write_bytes(base64.b64decode(b64))
-    txt = subprocess.run(['pdftotext', '-layout', str(p), '-'], capture_output=True, text=True).stdout
+    txt = subprocess.run(['pdftotext', '-raw', str(p), '-'], capture_output=True, text=True).stdout
     pages = int(subprocess.run(['pdfinfo', str(p)], capture_output=True, text=True).stdout.split('Pages:')[1].split()[0])
     subprocess.run(['pdftoppm', '-png', '-r', '60', str(p), str(OUT / name.replace('.pdf', ''))])
     return p, txt, pages
@@ -133,10 +133,10 @@ async def main():
         check('Escape closes the preview', await pg.locator('#ccc-sheet').count() == 0)
         # Full catalogue
         await click(pg, '[data-act="full"]'); st = await wait_ready(pg); f, txt, pages = await save_pdf(pg, 'full.pdf')
-        check('full catalogue: every product except sold out', st == 'ready' and all(i['name'] in txt.replace('\n', ' ') for i in BASE['items'][:6]) and 'Sold Out Yule Log' not in txt, txt[:400])
+        check('full catalogue: every product except sold out', st == 'ready' and all(i['name'] in ' '.join(txt.split()) for i in BASE['items'][:6]) and 'Sold Out Yule Log' not in txt, txt[:400])
         lst = subprocess.run(['pdfimages', '-list', str(f)], capture_output=True, text=True).stdout.splitlines()[2:]
         dims = [(int(l.split()[3]), int(l.split()[4])) for l in lst if l.split()[2] == 'image' and l.split()[8] == 'jpeg']
-        check('photos cropped to the frame shape, not stretched (83 by 46)', dims and all(abs(w / h - 83 / 46) < 0.01 for w, h in dims), dims)
+        check('photos are square (1:1), cropped not stretched', dims and all(w == h for w, h in dims), dims)
         check('full catalogue: page numbers and footer', 'Page 1 of %d' % pages in txt and 'cornercafefiji.com' in txt and 'FULL CATALOGUE' in txt)
         await click(pg, '[data-act="close"]')
         # Select all and persistence
@@ -162,7 +162,7 @@ async def main():
         m = Mock(); m.data = big(); ctx, pg, errs = await setup(b, m, {'width': 1366, 'height': 900})
         await click(pg, '[data-act="full"]'); st = await wait_ready(pg, 30000); f, txt, pages = await save_pdf(pg, 'big.pdf')
         check('14 long products run onto extra pages', st == 'ready' and pages >= 4, pages)
-        check('every product name appears', all(('Number %d ' % i) in txt for i in range(1, 15)))
+        check('every product name appears', all(('Number %d ' % i) in ' '.join(txt.split()) for i in range(1, 15)))
         bad = subprocess.run(['pdftotext', '-bbox', str(f), '-'], capture_output=True, text=True).stdout
         import re
         ys = [float(m_.group(1)) for m_ in re.finditer(r'yMax="([0-9.]+)"', bad)]
@@ -182,7 +182,7 @@ async def main():
         check('busy reply shown in plain words, no PDF', st == 'error' and 'Too many catalogues' in await pg.inner_text('#ccc-sheet'))
         await click(pg, '[data-act="close"]'); m.log_reply = {"ok": True}; m.break_img = True
         await click(pg, '[data-act="full"]'); st = await wait_ready(pg); f, txt, pages = await save_pdf(pg, 'noimg.pdf')
-        check('missing photo: PDF still made with a plain panel', st == 'ready' and 'Chocolate Gingerbread House' in txt)
+        check('missing photo: PDF still made with a plain panel', st == 'ready' and 'Chocolate Gingerbread House' in ' '.join(txt.split()))
         check('no page errors (failures)', not errs, errs)
         await ctx.close()
 
