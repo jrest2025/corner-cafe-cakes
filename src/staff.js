@@ -71,13 +71,31 @@
     if (code === '42501' || /permission denied|not allowed/i.test(m)) return 'denied';
     return 'other';
   }
+  // A message written for staff (from the server or a form check) is shown as it is (B18)
+  function userErr(m) { var e = new Error(m || 'This was not saved. Try again.'); e.userMsg = true; return e; }
   function fail(e) {
     console.error(e); clearBusy();
+    if (e && e.userMsg) return toast(e.message, true);
     var k = errKind(e);
     if (k === 'expired') return sessionExpired();
     toast(k === 'offline' ? 'No internet connection. Nothing was saved. Check the Wi-Fi and try again.' :
       k === 'denied' ? 'Your login is not allowed to do that. Ask a manager.' :
       'Something went wrong and it was not saved. Try again. If it keeps happening, tell a manager.', true);
+  }
+  // A read failed: the message to show in place of the content. Null when the session expired (already handled).
+  function readErr(e, what) {
+    console.error(e); clearBusy(); var k = errKind(e);
+    if (k === 'expired') { sessionExpired(); return null; }
+    return k === 'offline' ? 'No internet connection, so ' + what + ' could not load.' : k === 'denied' ? 'Your login cannot see ' + what + '. Ask a manager.' : what.charAt(0).toUpperCase() + what.slice(1) + ' could not load.';
+  }
+  // Reads get their own wording: nothing was being saved (A6)
+  function loadFail(e) {
+    console.error(e); clearBusy();
+    var k = errKind(e);
+    if (k === 'expired') return sessionExpired();
+    toast(k === 'offline' ? 'No internet connection, so this could not load. Nothing has changed.' :
+      k === 'denied' ? 'Your login cannot see this. Ask a manager.' :
+      'This could not load. Try again. If it keeps happening, tell a manager.', true);
   }
   function sessionExpired() {
     saveDraft();
@@ -97,9 +115,15 @@
   // Offline banner (U9)
   function netBanner() {
     var n = document.getElementById('ccs-offline');
-    if (navigator.onLine) { if (n) n.remove(); return; }
+    if (navigator.onLine) { if (n) n.remove(); document.body.classList.remove('ccs-is-off'); return; }
+    document.body.classList.add('ccs-is-off');
     if (!n) { n = document.createElement('div'); n.id = 'ccs-offline'; n.className = 'ccs-offline'; n.setAttribute('role', 'alert'); n.textContent = 'No internet connection. Changes will not save until it is back.'; root.insertBefore(n, root.firstChild); }
+    document.body.style.setProperty('--ccs-offh', n.offsetHeight + 'px');
   }
+  // Phone: the bottom bar hides while typing, so it never covers the field (A14)
+  function isTextField(t) { return t && (t.tagName === 'TEXTAREA' || (t.tagName === 'INPUT' && !/^(checkbox|radio|button|submit|range|color|file)$/i.test(t.type)) || (t.tagName === 'SELECT')); }
+  document.addEventListener('focusin', function (e) { if (isTextField(e.target)) document.body.classList.add('ccs-kb'); });
+  document.addEventListener('focusout', function () { setTimeout(function () { if (!isTextField(document.activeElement)) document.body.classList.remove('ccs-kb'); }, 60); });
   window.addEventListener('offline', netBanner);
   window.addEventListener('online', function () { netBanner(); if (S.me) { toast('Back online'); tick(); } });
 
@@ -151,7 +175,8 @@
   function refreshNav() { var n = root.querySelector('.ccs-nav'); if (n) n.innerHTML = navHtml(); }
   function captureFocus(scope) { var a = document.activeElement; if (!a || !a.id || !scope || !scope.contains(a)) return null; var f = { id: a.id }; try { f.s = a.selectionStart; f.e = a.selectionEnd; } catch (x) {} return f; }
   function restoreFocus(f) { if (!f) return false; var el = document.getElementById(f.id); if (!el) return false; try { el.focus({ preventScroll: true }); if (f.s != null) el.setSelectionRange(f.s, f.e); } catch (x) {} return true; }
-  function hasTyping() { for (var k in S.dirty) if (String(S.dirty[k] || '').trim()) return true; return false; }
+  // Unsaved work: typed text, or an amendment that differs from the order (chip taps included) (A4)
+  function hasTyping() { for (var k in S.dirty) if (String(S.dirty[k] || '').trim()) return true; return !!(S.sheet && S.panel === 'amend' && S.am && S.am.orig && Object.keys(amendChanges()).length); }
   // First tap warns, second tap within 5 seconds goes ahead.
   function confirmDiscard(b, msg) {
     if (b.dataset.armed === '1') return true;
@@ -248,17 +273,24 @@
   }
   function loadOrders(silent) {
     var from = addDays(today(), -45);
-    return sb.from('orders').select(ORDER_LIST).or('required_date.gte.' + from + ',order_status.in.(' + NEEDS.join(',') + ')')
+    return sb.from('orders').select(ORDER_LIST).or('required_date.gte.' + from + ',order_status.in.(' + OPEN.join(',') + ')')
       .order('required_date', { ascending: true }).order('required_time', { ascending: true }).limit(400)
       .then(withContact).then(function (r) {
         if (r.error) throw r.error;
         var before = S.orders.filter(function (o) { return NEEDS.indexOf(o.order_status) > -1; }).length;
-        S.orders = r.data || []; S.loaded = true;
+        S.orders = r.data || []; S.loaded = true; S.ordErr = null; S.ordFails = 0; S.ordAt = Date.now();
         var after = S.orders.filter(function (o) { return NEEDS.indexOf(o.order_status) > -1; }).length;
         if (silent && after > before) toast('New order waiting for review');
         refreshNav();
         if (S.tab === 'orders' || S.tab === 'today') view();
-      }).catch(function (e) { if (!silent) fail(e); });
+      }).catch(function (e) {
+        console.error(e);
+        if (errKind(e) === 'expired') return sessionExpired();
+        S.ordFails = (S.ordFails || 0) + 1;
+        if (!S.loaded) S.ordErr = errKind(e) === 'offline' ? 'No internet connection, so orders could not load.' : 'Orders could not load.';
+        if (!silent && S.loaded) loadFail(e);
+        if ((!S.loaded || S.ordFails >= 2) && (S.tab === 'orders' || S.tab === 'today')) view();
+      });
   }
   // Orders search also looks on the server for older orders (U3)
   var olderTimer;
@@ -293,6 +325,15 @@
     if (!O.rows.length) return '';
     return '<p class="ccs-day">Older orders</p><div class="ccs-list">' + O.rows.map(orderCard).join('') + '</div>';
   }
+  function clockAt(ts) { return new Date(ts).toLocaleTimeString('en-GB', { timeZone: TZ, hour: 'numeric', minute: '2-digit', hour12: true }).replace(' ', ''); }
+  // Freshness: when the list was last updated, and a warning once refreshes keep failing (A7)
+  function freshLine(at, fails, act) {
+    if (!at) return '';
+    if (fails >= 2) return '<p class="ccs-note ccs-stale" role="status"><span><b>Not up to date.</b> Last updated ' + clockAt(at) + '. Trying again every minute; changes by others since then are not shown.</span><button type="button" class="ccs-link" data-act="' + act + '">Try now</button></p>';
+    return '<p class="ccs-fresh">Updated ' + clockAt(at) + '</p>';
+  }
+  function loadErr(msg, act) { return '<div class="ccs-empty ccs-loaderr" role="alert"><b>' + esc(msg) + '</b><span>Nothing has changed. Check the connection and try again.</span><button type="button" class="ccs-btn" data-act="' + act + '">Try again</button></div>'; }
+  function isOverdue(o) { return o.required_date < today() && OPEN.indexOf(o.order_status) > -1; }
   function filtered() {
     var t = today(), q = S.q.trim().toLowerCase(), qd = digits(q);
     return S.orders.filter(function (o) {
@@ -303,7 +344,8 @@
       if (S.filter === 'action') return NEEDS.indexOf(o.order_status) > -1;
       if (S.filter === 'today') return o.required_date === t && OPEN.concat(['completed']).indexOf(o.order_status) > -1;
       if (S.filter === 'upcoming') return o.required_date >= t && OPEN.indexOf(o.order_status) > -1;
-      if (S.filter === 'deposit') return o.order_status === 'awaiting_deposit' || (o.order_status === 'confirmed' && o.payment_status !== 'paid' && o.required_date >= t);
+      if (S.filter === 'overdue') return isOverdue(o);
+      if (S.filter === 'deposit') return o.order_status === 'awaiting_deposit' || (o.order_status === 'confirmed' && o.payment_status !== 'paid');
       if (S.filter === 'day') return o.required_date === S.day && OPEN.concat(['completed']).indexOf(o.order_status) > -1;
       return true;
     }).sort(function (a, b) {
@@ -330,26 +372,30 @@
     var t = today(), counts = {
       action: S.orders.filter(function (o) { return NEEDS.indexOf(o.order_status) > -1; }).length,
       today: S.orders.filter(function (o) { return o.required_date === t && OPEN.concat(['completed']).indexOf(o.order_status) > -1; }).length,
-      upcoming: S.orders.filter(function (o) { return o.required_date >= t && OPEN.indexOf(o.order_status) > -1; }).length
+      upcoming: S.orders.filter(function (o) { return o.required_date >= t && OPEN.indexOf(o.order_status) > -1; }).length,
+      overdue: S.orders.filter(isOverdue).length
     };
-    var chips = [['action', 'Needs action', counts.action], ['today', 'Today', counts.today], ['upcoming', 'Upcoming', counts.upcoming], ['deposit', 'Money owing', null], ['recent', 'All recent', null]];
+    var chips = [['action', 'Needs action', counts.action], ['today', 'Today', counts.today], ['upcoming', 'Upcoming', counts.upcoming]];
+    if (counts.overdue || S.filter === 'overdue') chips.push(['overdue', 'Overdue', counts.overdue]);
+    chips.push(['deposit', 'Money owing', null], ['recent', 'All recent', null]);
     if (S.filter === 'day' && S.day) chips.push(['day', dayLabel(S.day), null]);
     var h = '<div class="ccs-head"><div><h1 class="ccs-title">Cake orders</h1><p class="ccs-sub">' + esc(nice(t, true)) + '</p></div>' +
       '<input class="ccs-input ccs-search" id="ccs-q" type="search" placeholder="Search name, mobile or CC-number" value="' + esc(S.q) + '"></div>' +
       '<div class="ccs-tabs" role="group" aria-label="Filter">' + chips.map(function (c) { return '<button type="button" class="ccs-tab" data-act="filter" data-v="' + c[0] + '" aria-pressed="' + (S.filter === c[0] && !S.q) + '">' + c[1] + (c[2] != null ? '<span class="ccs-n">' + c[2] + '</span>' : '') + '</button>'; }).join('') + '</div>';
-    if (!S.loaded) return h + '<p class="ccs-loading">Loading orders…</p>';
+    if (!S.loaded) return h + (S.ordErr ? loadErr(S.ordErr, 'reload-orders') : '<p class="ccs-loading">Loading orders…</p>');
+    h += freshLine(S.ordAt, S.ordFails, 'reload-orders');
     var list = filtered();
     if (S.q && !list.length && S.older && S.older.q === S.q.trim() && (S.older.loading || S.older.rows.length)) return h + '<p class="ccs-day">Recent orders</p><p class="ccs-hint">No recent orders match.</p>' + olderHtml();
     if (!list.length) {
       var msg = S.q ? ['No orders match “' + esc(S.q) + '”.', 'Try a mobile number or an order number like CC-1001.'] :
         S.filter === 'action' ? ['Nothing waiting.', 'New online orders appear here for review. Walk-in orders go in through New order.'] :
-        S.filter === 'today' ? ['No cakes due today.', ''] : ['No orders yet.', 'Orders from the website and the counter will show here.'];
+        S.filter === 'today' ? ['No cakes due today.', ''] : S.filter === 'overdue' ? ['Nothing overdue.', 'Every order past its date has been handed over, cancelled or declined.'] : ['No orders yet.', 'Orders from the website and the counter will show here.'];
       return h + '<div class="ccs-empty" style="margin-top:16px"><b>' + msg[0] + '</b><span>' + msg[1] + '</span>' + (can('manager', 'front_of_house') ? '<button type="button" class="ccs-btn ccs-new" data-tab="new">' + NAV_ICON['new'] + 'New order</button>' : '') + '</div>';
     }
     if (S.filter === 'action' && !S.q) return h + '<div class="ccs-list" style="margin-top:16px">' + list.map(orderCard).join('') + '</div>';
     var out = '', day = null, perDay = {};
-    list.forEach(function (o) { perDay[o.required_date] = (perDay[o.required_date] || 0) + 1; });
-    list.forEach(function (o) { if (o.required_date !== day) { if (day !== null) out += '</div>'; day = o.required_date; out += '<p class="ccs-day"><span>' + esc(dayLabel(day)) + '</span><em>' + perDay[day] + (perDay[day] === 1 ? ' cake' : ' cakes') + '</em></p><div class="ccs-list">'; } out += orderCard(o); });
+    list.forEach(function (o) { var p = perDay[o.required_date] = perDay[o.required_date] || { n: 0, c: 0 }; p.n++; p.c += cakesOf(o); });
+    list.forEach(function (o) { if (o.required_date !== day) { if (day !== null) out += '</div>'; day = o.required_date; var p = perDay[day]; out += '<p class="ccs-day"><span>' + esc(dayLabel(day)) + '</span><em>' + p.n + (p.n === 1 ? ' order' : ' orders') + ' · ' + p.c + (p.c === 1 ? ' cake' : ' cakes') + '</em></p><div class="ccs-list">'; } out += orderCard(o); });
     return h + out + '</div>' + olderHtml();
   }
 
@@ -365,7 +411,7 @@
     return '<button type="button" class="ccs-mini k-' + st[1] + '" data-act="open-order" data-id="' + o.id + '">' +
       '<span class="ccs-mini-t">' + (showTime ? esc(t12(o.required_time)) : esc(nice(o.required_date))) + '</span>' +
       '<span class="ccs-mini-m"><b>' + esc(cakeLine(i)) + '</b><span>' + esc(c ? c.full_name : '') + ' · ' + esc(o.reference) + '</span></span>' +
-      '<span class="ccs-mini-r">' + (o.order_status === 'confirmed' ? stagePill(o.production_status) : pill(o.order_status, o.fulfilment_method)) + (o.fulfilment_method === 'delivery' ? '<span class="ccs-pill">Delivery</span>' : '') + (o.has_dietary ? '<span class="ccs-pill s-alert">Dietary</span>' : '') + '</span></button>';
+      '<span class="ccs-mini-r">' + (o.order_status === 'confirmed' ? stagePill(o.production_status) : pill(o.order_status, o.fulfilment_method)) + ((o.order_status === 'confirmed' || o.order_status === 'awaiting_deposit') && o.payment_status !== 'paid' && can('manager', 'finance', 'front_of_house') ? payPill(o.payment_status) : '') + (o.fulfilment_method === 'delivery' ? '<span class="ccs-pill">Delivery</span>' : '') + (o.has_dietary ? '<span class="ccs-pill s-alert">Dietary</span>' : '') + '</span></button>';
   }
   function todayView() {
     var t = today(), wkEnd = addDays(t, 6), money_ = can('manager', 'finance', 'front_of_house');
@@ -373,13 +419,16 @@
     var h = '<div class="ccs-dash-head"><div><p class="ccs-eyebrow">' + esc(nice(t, true)) + '</p><h1 class="ccs-title">' + greet() + (first ? ', ' + esc(first) : '') + '</h1></div>' +
       (can('manager', 'front_of_house') ? '<button type="button" class="ccs-btn ccs-btn-hero ccs-new" data-tab="new">' + NAV_ICON['new'] + 'New order</button>' : '') + '</div>';
     if (draftHasContent() && can('manager', 'front_of_house')) h += '<div class="ccs-note ccs-draftbar"><span>Unfinished order' + (draftWho() ? ' for ' + esc(draftWho()) : '') + '.</span><button type="button" class="ccs-btn ccs-ghost" data-tab="new">Continue it</button></div>';
-    if (!S.loaded) return h + '<p class="ccs-loading">Loading today…</p>';
+    if (!S.loaded) return h + (S.ordErr ? loadErr(S.ordErr, 'reload-orders') : '<p class="ccs-loading">Loading today…</p>');
+    h += freshLine(S.ordAt, S.ordFails, 'reload-orders');
+    var overdue = S.orders.filter(isOverdue).sort(function (a, b) { return (a.required_date + a.required_time) < (b.required_date + b.required_time) ? -1 : 1; });
+    if (overdue.length && can('manager', 'front_of_house', 'finance')) h += '<section class="ccs-panel-card ccs-overdue" aria-label="Overdue"><div class="ccs-card-head"><h2>Overdue: not handed over (' + overdue.length + ')</h2>' + (overdue.length > 5 ? '<button type="button" class="ccs-link" data-act="goto" data-v="overdue">See all ' + overdue.length + '</button>' : '') + '</div><p class="ccs-hint">Past their date and still open. Hand over, cancel or change the date.</p><div class="ccs-minis">' + overdue.slice(0, 5).map(function (o) { return miniRow(o, false); }).join('') + '</div></section>';
     var live = S.orders.filter(function (o) { return o.order_status !== 'declined' && o.order_status !== 'cancelled'; });
-    var needs = S.orders.filter(function (o) { return NEEDS.indexOf(o.order_status) > -1; }).sort(function (a, b) { return a.created_at < b.created_at ? -1 : 1; });
+    var needs = S.orders.filter(function (o) { return NEEDS.indexOf(o.order_status) > -1; }).sort(function (a, b) { return (a.required_date + a.required_time) < (b.required_date + b.required_time) ? -1 : 1; });
     var todays = live.filter(function (o) { return o.required_date === t; }).sort(function (a, b) { return a.required_time < b.required_time ? -1 : 1; });
     var collected = todays.filter(function (o) { return o.order_status === 'completed'; }).length;
     var week = live.filter(function (o) { return o.required_date >= t && o.required_date <= wkEnd && OPEN.concat(['completed']).indexOf(o.order_status) > -1; });
-    var owing = live.filter(function (o) { return o.order_status === 'awaiting_deposit' || (o.order_status === 'confirmed' && o.payment_status !== 'paid' && o.required_date >= t); });
+    var owing = live.filter(function (o) { return o.order_status === 'awaiting_deposit' || (o.order_status === 'confirmed' && o.payment_status !== 'paid'); });
     var weekValue = week.filter(function (o) { return o.order_status === 'confirmed' || o.order_status === 'completed'; }).reduce(function (s, o) { return s + orderTotal(o); }, 0);
     h += '<div class="ccs-kpis">' +
       tile('goto', 'action', 'Needs action', needs.length, needs.length ? 'Review and confirm' : 'All clear', needs.length ? 'action' : '') +
@@ -430,7 +479,16 @@
         if (S.sheet && S.sheet.id === id) { S.sheet.custOrders = c.count; renderSheet(); }
       });
       renderSheet();
-    }).catch(fail);
+    }).catch(function (e) { if (errKind(e) === 'expired') return sessionExpired(); console.error(e); if (S.sheet && S.sheet.id === id) { S.sheet.err = errKind(e) === 'offline' ? 'No internet connection, so this order could not load.' : 'This order could not load.'; renderSheet(); } });
+  }
+  // Someone else changed the order: fetch the latest version but keep the open panel and the typing (A3)
+  var CONFLICT = 'Someone else updated this order a moment ago. The details are now up to date: check them, then tap again. Your typing is kept.';
+  function reloadOrderKeep(id) {
+    return sb.from('orders').select('*, customers(*), order_items(*), order_events(*), order_attachments(*), payments(*), order_amendments(*)').eq('id', id).single().then(withContact).then(function (r) {
+      if (r.error) throw r.error;
+      if (!S.sheet || S.sheet.id !== id) return;
+      S.sheet.data = r.data; renderSheet();
+    }).catch(loadFail);
   }
   function sheetOpen() {
     var s = document.getElementById('ccs-sheet'), sh = document.getElementById('ccs-shade'); if (s) { s.classList.add('ccs-open'); sh.classList.add('ccs-open'); }
@@ -503,7 +561,7 @@
 
   function orderSheet() {
     var o = S.sheet.data;
-    if (!o) return sheetHead('Loading…') + '<div class="ccs-sheet-body"><p class="ccs-loading">Loading order…</p></div>';
+    if (!o) return sheetHead(S.sheet.err ? 'Order' : 'Loading…') + '<div class="ccs-sheet-body">' + (S.sheet.err ? loadErr(S.sheet.err, 'reopen-order') : '<p class="ccs-loading">Loading order…</p>') + '</div>';
     var i = (o.order_items || [])[0] || {}, c = o.customers, paid = paidTotal(o), total = Number(o.final_total != null ? o.final_total : o.estimate_total), bal = Math.max(total - paid, 0);
     var h = sheetHead(esc(o.reference), pill(o.order_status, o.fulfilment_method) + (o.order_status === 'confirmed' || o.order_status === 'completed' ? payPill(o.payment_status) : '') + (o.revision ? '<span class="ccs-tag">Amended</span>' : '')) + '<div class="ccs-sheet-body">';
     h += actionsBox(o, total, paid, bal);
@@ -649,7 +707,7 @@
     return sb.rpc('staff_order_action', args).then(function (r) {
       S.busy = false;
       if (r.error) throw r.error;
-      if (!r.data.ok) { S.panelErr = r.data.message; if (r.data.error === 'changed') { S.panel = null; openOrder(o.id); } else renderSheet(); return; }
+      if (!r.data.ok) { if (r.data.error === 'changed') { S.panelErr = CONFLICT; reloadOrderKeep(o.id); } else { S.panelErr = r.data.message; renderSheet(); } return; }
       var msg = { confirm: r.data.status === 'awaiting_deposit' ? 'Accepted. Waiting for the deposit.' : 'Order confirmed', decline: 'Order declined', cancel: 'Order cancelled', collected: o.fulfilment_method === 'delivery' ? 'Marked as delivered' : 'Marked as collected', note: 'Note saved', waive_deposit: 'Deposit waived, order confirmed' }[action];
       if (!(S.setup && S.setup.guest_emails) && ['confirm', 'decline', 'cancel', 'waive_deposit'].indexOf(action) > -1) msg += '. Now let the customer know.';
       toast(msg); S.panel = null; openOrder(o.id); loadOrders(true);
@@ -686,6 +744,8 @@
       }).catch(function (e) { S.busy = false; fail(e); });
   }
 
+  // A required answer is missing in a panel: say so next to the button and keep the panel open (B3)
+  function panelNeed(msg) { clearBusy(); S.panelErr = msg; renderSheet(); var f = document.getElementById('ccs-note'); if (f) f.focus(); }
   function saveFulfil() {
     var o = S.sheet.data, F = S.ful; if (S.busy) return;
     if (F.method === 'delivery' && !F.zone) { S.panelErr = 'Choose a delivery area.'; return renderSheet(); }
@@ -693,7 +753,7 @@
     sb.rpc('staff_set_fulfilment', { p_order: o.id, p_version: o.version, p_method: F.method, p_zone: F.method === 'delivery' ? F.zone : null, p_address: F.method === 'delivery' ? F.address : null, p_fee: F.method === 'delivery' ? num(F.fee) : null, p_contact: F.method === 'delivery' ? F.contact : null })
       .then(function (r) {
         S.busy = false; if (r.error) throw r.error;
-        if (!r.data.ok) { S.panelErr = r.data.message; if (r.data.error === 'changed') { S.panel = null; openOrder(o.id); } else renderSheet(); return; }
+        if (!r.data.ok) { if (r.data.error === 'changed') { S.panelErr = CONFLICT; reloadOrderKeep(o.id); } else { S.panelErr = r.data.message; renderSheet(); } return; }
         toast((F.method === 'delivery' ? 'Delivery saved. New price ' : 'Set to collection. New price ') + money(r.data.total)); S.panel = null; openOrder(o.id); loadOrders(true);
       }).catch(function (e) { S.busy = false; fail(e); });
   }
@@ -705,7 +765,7 @@
       S.busy = false; if (r.error) throw r.error;
       if (!r.data.ok) { S.panelErr = r.data.message; return renderSheet(); }
       var b = r.data, paths = b.snapshot.photos || [];
-      var go = function (urls) { renderBrief(b, urls, size); toast(b.new_version ? 'Kitchen brief version ' + b.version + ' sent to the printer' : 'Reprinting version ' + b.version + ' (nothing changed)'); S.panel = null; openOrder(o.id); };
+      var go = function (urls) { renderBrief(b, urls, size); toast(b.new_version ? 'Print window opened. Brief version ' + b.version + ' recorded.' : 'Print window opened for version ' + b.version + ' again. Nothing changed since it was printed.'); S.panel = null; openOrder(o.id); };
       if (!paths.length) return go([]);
       sb.storage.from('cake-references').createSignedUrls(paths, 900).then(function (u) { go(((u && u.data) || []).map(function (x) { return x.signedUrl; }).filter(Boolean)); }, function () { go([]); });
     }).catch(function (e) { S.busy = false; fail(e); });
@@ -736,14 +796,30 @@
   }
   function renderBrief(b, urls, size) {
     var el = document.getElementById('ccs-print'); if (!el) { el = document.createElement('div'); el.id = 'ccs-print'; document.body.appendChild(el); }
-    el.innerHTML = briefHtml(b, urls, size);
+    el.innerHTML = '<div class="ccs-fit">' + briefHtml(b, urls, size) + '</div>';
     var ps = document.getElementById('ccs-page'); if (!ps) { ps = document.createElement('style'); ps.id = 'ccs-page'; document.head.appendChild(ps); }
     ps.textContent = '@page{size:' + size + ' portrait;margin:' + (size === 'A5' ? '8mm' : '12mm') + '}';
     var imgs = Array.prototype.slice.call(el.querySelectorAll('img')), started = false;
-    var fire = function () { if (started) return; started = true; document.body.classList.add('ccs-printing'); setTimeout(function () { window.print(); }, 50); };
+    var fire = function () { if (started) return; started = true; fitBrief(el, size); document.body.classList.add('ccs-printing'); setTimeout(function () { window.print(); }, 50); };
     var left = imgs.length; if (!left) return fire();
     imgs.forEach(function (im) { if (im.complete) { if (--left === 0) fire(); } else { im.onload = im.onerror = function () { if (--left === 0) fire(); }; } });
     setTimeout(fire, 4000);
+  }
+  // The brief always prints on one page: if it is too long, it is scaled down to fit. Nothing is cut off.
+  function fitBrief(el, size) {
+    var mm = 96 / 25.4, W = (size === 'A5' ? 132 : 186) * mm, H = (size === 'A5' ? 191 : 270) * mm, f = el.firstChild, sc = 1;
+    el.style.cssText = 'display:block;position:absolute;left:-10000px;top:0;visibility:hidden;width:' + W + 'px';
+    f.style.transform = ''; f.style.width = W + 'px';
+    for (var i = 0; i < 8; i++) {
+      var h = f.scrollHeight;
+      if (h * sc <= H) break;
+      sc = Math.max(0.3, sc * H / (h * sc) * 0.99);
+      f.style.width = (W / sc) + 'px';
+    }
+    f.style.transformOrigin = '0 0'; f.style.transform = sc < 1 ? 'scale(' + sc + ')' : '';
+    el.style.cssText = 'height:' + H + 'px;width:' + W + 'px;overflow:hidden';
+    el.dataset.scale = sc.toFixed(3);
+    return sc;
   }
   window.addEventListener('afterprint', function () { document.body.classList.remove('ccs-printing'); });
 
@@ -751,11 +827,19 @@
   function loadKitchen(silent) {
     return sb.rpc('kitchen_board', { p_from: null, p_days: S.kit.days }).then(function (r) {
       if (r.error) throw r.error;
-      if (!r.data.ok) throw new Error(r.data.message);
-      S.kit.data = r.data; S.kit.loaded = true;
+      if (!r.data.ok) throw userErr(r.data.message);
+      S.kit.data = r.data; S.kit.loaded = true; S.kit.err = null; S.kit.fails = 0; S.kit.at = Date.now();
       if (S.tab === 'kitchen') view();
       if (S.sheet && S.sheet.type === 'kitchen') renderSheet();
-    }).catch(function (e) { if (!silent) fail(e); });
+    }).catch(function (e) {
+      console.error(e);
+      if (errKind(e) === 'expired') return sessionExpired();
+      var K = S.kit; K.fails = (K.fails || 0) + 1;
+      if (!K.loaded) K.err = errKind(e) === 'offline' ? 'No internet connection, so the kitchen board could not load.' : 'The kitchen board could not load.';
+      if (!silent && K.loaded) loadFail(e);
+      if ((!K.loaded || K.fails >= 2) && S.tab === 'kitchen') view();
+      if (!K.loaded && S.sheet && S.sheet.type === 'kitchen') renderSheet();
+    });
   }
   function kitRow(id) { return S.kit.data ? (S.kit.data.orders || []).filter(function (r) { return r.id === id; })[0] : null; }
   function kitCake(r) { return (r.variant || r.cake || 'Cake') + ', ' + r.size + ' inch' + (r.quantity > 1 ? ' × ' + r.quantity : ''); }
@@ -789,7 +873,8 @@
     var h = '<div class="ccs-head"><div><h1 class="ccs-title">Kitchen</h1><p class="ccs-sub">' + esc(nice(t, true)) + '. Confirmed cakes only. Tap a cake to update it.</p></div>' +
       '<div class="ccs-chips" role="group" aria-label="Range">' + [[2, 'Today and tomorrow'], [7, 'Next 7 days']].map(function (c) { return '<button type="button" class="ccs-chip" data-act="k-range" data-v="' + c[0] + '" aria-pressed="' + (K.days === c[0]) + '">' + c[1] + '</button>'; }).join('') +
       '<button type="button" class="ccs-chip" data-act="k-refresh">Refresh</button></div></div>';
-    if (!K.loaded) return h + '<p class="ccs-loading">Loading the kitchen board…</p>';
+    if (!K.loaded) return h + (K.err ? loadErr(K.err, 'k-reload') : '<p class="ccs-loading">Loading the kitchen board…</p>');
+    h += freshLine(K.at, K.fails, 'k-reload');
     var rows = K.data.orders || [];
     var groups = {}; KCOLS.forEach(function (c) { groups[c[0]] = []; });
     rows.forEach(function (r) {
@@ -810,13 +895,13 @@
     }).join('') + '</div>';
     return h;
   }
-  function openKitchen(id) {
-    S.sheet = { type: 'kitchen', id: id, photos: [] }; S.panelErr = null; S.dirty = {}; sheetOpen(); renderSheet();
+  function openKitchen(id, again) {
+    if (again) { S.sheet.kerr = false; renderSheet(); } else { S.sheet = { type: 'kitchen', id: id, photos: [] }; S.panelErr = null; S.dirty = {}; sheetOpen(); renderSheet(); }
     var go = function () {
       var r = kitRow(id); renderSheet();
       if (r && r.photos && r.photos.length) sb.storage.from('cake-references').createSignedUrls(r.photos, 900).then(function (u) { if (u.data && S.sheet && S.sheet.id === id) { S.sheet.photos = u.data.map(function (x) { return x.signedUrl; }).filter(Boolean); renderSheet(); } });
     };
-    if (kitRow(id)) go(); else { var keep = S.kit.days; if (keep < 7) S.kit.days = 7; loadKitchen().then(function () { S.kit.days = keep; go(); }); }
+    if (kitRow(id)) go(); else { var keep = S.kit.days, f0 = S.kit.fails || 0; if (keep < 7) S.kit.days = 7; loadKitchen(true).then(function () { S.kit.days = keep; if (S.sheet && S.sheet.id === id) S.sheet.kerr = (S.kit.fails || 0) > f0; go(); }); }
   }
   // ---------- amend an order ----------
   function amendInit(o) {
@@ -855,17 +940,25 @@
     if (String(a.price).trim() !== '') ch.price = num(a.price);
     return ch;
   }
+  function dietMissing(diet, diets, note) {
+    if (diet !== 'yes') return null;
+    var n = (note || '').trim().length;
+    if (!diets.length && n < 3) return 'Choose the dietary need or allergy, or write the details for the kitchen.';
+    if (diets.indexOf('Other') > -1 && n < 3) return 'You chose Other: write the dietary details for the kitchen.';
+    return null;
+  }
   function amendSend(commit) {
     var o = S.sheet.data, a = S.am, ch = amendChanges();
     if (!Object.keys(ch).length) { S.panelErr = 'Nothing has changed yet.'; return renderSheet(); }
     if (!a.by) { S.panelErr = 'Choose who asked for the change.'; return renderSheet(); }
     if (a.reason.trim().length < 3) { S.panelErr = 'Add a short reason for the change.'; return renderSheet(); }
+    var dm_ = dietMissing(a.diet, a.diets, a.dietNote); if (dm_) { S.panelErr = dm_; return renderSheet(); }
     if (S.busy) return; S.busy = true; S.panelErr = null;
     sb.rpc('staff_amend_order', { p_order: o.id, p_version: o.version, p_changes: ch, p_requested_by: a.by, p_reason: a.reason.trim(), p_commit: !!commit }).then(function (r) {
       S.busy = false; if (r.error) throw r.error;
       if (!r.data.ok) {
         S.panelErr = r.data.message;
-        if (r.data.error === 'changed') { S.panel = null; S.am = null; toast(r.data.message, true); return openOrder(o.id); }
+        if (r.data.error === 'changed') { a.preview = null; S.panelErr = CONFLICT; return reloadOrderKeep(o.id); }
         return renderSheet();
       }
       if (!commit) { a.preview = r.data; renderSheet(); var bd = document.querySelector('#ccs-sheet .ccs-sheet-body'); if (bd) bd.scrollTop = 0; return; }
@@ -957,6 +1050,7 @@
   }
   function kitchenSheet() {
     var r = kitRow(S.sheet.id);
+    if (!r && S.sheet.kerr) return sheetHead('Cake') + '<div class="ccs-sheet-body">' + loadErr(S.kit.err || 'The kitchen board could not load.', 'k-reopen') + '</div>';
     if (!r) return sheetHead('Loading…') + '<div class="ccs-sheet-body"><p class="ccs-loading">' + (S.kit.loaded ? 'This cake is not on the kitchen board. Only confirmed cakes due in the next 7 days, or late ones, are shown.' : 'Loading…') + '</p></div>';
     var idx = stageIndex(r.stage), done = r.status === 'completed', err = S.panelErr ? '<p class="ccs-err">' + esc(S.panelErr) + '</p>' : '';
     var h = sheetHead(esc(r.reference), stagePill(r.stage)) + '<div class="ccs-sheet-body">';
@@ -1050,6 +1144,12 @@
   function delivOk() { if (D.method !== 'delivery') return true; var z = zoneObj(), f = num(D.fee); return !!z && D.address.trim().length >= 5 && (z.fee != null || (f != null && f >= 0)); }
   function leadDays() { var L = S.setup.location, p = prod(); return D.finish === 'custom' ? L.lead_days_custom : (p ? p.lead_days : L.lead_days_standard); }
   function minDate() { return addDays(today(), leadDays()); }
+  // Quick picks for who approved a short-notice order: the signed-in manager, then names used recently on this device
+  function rushChips() {
+    var me = S.me && S.me.full_name && can('manager') ? S.me.full_name : null, names = (me ? [me] : []).concat(recentNames().filter(function (n) { return !me || n.toLowerCase() !== me.toLowerCase(); })).slice(0, 4);
+    if (!names.length) return '';
+    return '<div class="ccs-chips ccs-namechips" aria-label="Who approved it">' + names.map(function (n) { return '<button type="button" class="ccs-chip" data-act="n-rushby" data-v="' + esc(n) + '" aria-pressed="' + (D.rushBy === n) + '">' + (n === me ? 'Me (' + esc(n) + ')' : esc(n)) + '</button>'; }).join('') + '</div>';
+  }
   function tooSoon() { return D.date && D.date < minDate(); }
   function rushOk() { return !tooSoon() || (D.rush.trim().length >= 3 && D.rushBy.trim().length >= 2); }
   var NSTEPS = [
@@ -1149,13 +1249,17 @@
     // Quick date choices from the earliest allowed day; the calendar stays for anything else (U21)
     var quick = [], dd = minDate(), guard = 0, closedL = S.setup.closed_dates || [];
     while (quick.length < 10 && guard++ < 40) { if (closedL.indexOf(dd) < 0) quick.push(dd); dd = addDays(dd, 1); }
+    // Short-notice days (today up to the normal notice) get their own marked chips (A16)
+    var soon = []; for (var sd = today(); sd < minDate() && soon.length < 3; sd = addDays(sd, 1)) if (closedL.indexOf(sd) < 0) soon.push(sd);
     var other = D.dateOther || (D.date && quick.indexOf(D.date) < 0);
     h += '<div class="ccs-field"><span class="ccs-label">' + (dl ? 'Delivery date' : 'Collection date') + '</span><div class="ccs-chips ccs-datechips">' + quick.map(function (q) { return '<button type="button" class="ccs-chip" data-act="n-date" data-v="' + q + '" aria-pressed="' + (D.date === q && !other) + '">' + esc(whenLabel(q) === 'Today' || whenLabel(q) === 'Tomorrow' ? whenLabel(q) + ' ' + new Date(q + 'T12:00:00Z').getUTCDate() : nice(q)) + '</button>'; }).join('') +
+      soon.map(function (q) { return '<button type="button" class="ccs-chip ccs-chip-soon" data-act="n-date" data-v="' + q + '" aria-pressed="' + (D.date === q && !other) + '">' + esc((whenLabel(q) === 'Today' || whenLabel(q) === 'Tomorrow' ? whenLabel(q) : nice(q)) + ', short notice') + '</button>'; }).join('') +
       '<button type="button" class="ccs-chip" data-act="n-date-other" aria-pressed="' + !!other + '">Other date</button></div><span class="ccs-hint">Normal notice: ' + leadDays() + ' days (earliest ' + esc(nice(minDate())) + ')</span></div>';
     if (other) h += '<div class="ccs-row"><div class="ccs-field"><label class="ccs-label" for="n-date">Other date</label><input class="ccs-input" id="n-date" type="date" min="' + today() + '" max="' + addDays(today(), L.max_days_ahead) + '" value="' + esc(D.date) + '" data-n="date"></div></div>';
     h += ferr('date');
     if (closed) h += '<p class="ccs-err">The café is closed for cake collections on that day.</p>';
-    if (tooSoon() && !closed) h += '<div class="ccs-panel"><b>This is short notice.</b><p class="ccs-hint">Only take it if the kitchen has agreed. Both are saved with the order.</p><div class="ccs-row"><div class="ccs-field"><label class="ccs-label" for="n-rush">Reason</label><input class="ccs-input" id="n-rush" data-n="rush" placeholder="For example: cake from today\'s batch" value="' + esc(D.rush) + '"></div><div class="ccs-field"><label class="ccs-label" for="n-rushby">Who approved it</label><input class="ccs-input" id="n-rushby" data-n="rushBy" placeholder="Manager or chef name" value="' + esc(D.rushBy) + '" autocomplete="off"></div></div></div>';
+    if (tooSoon() && !closed) h += '<div class="ccs-panel"><b>This is short notice.</b><p class="ccs-hint">Only take it if the kitchen has agreed. Both are saved with the order.</p><div class="ccs-row"><div class="ccs-field"><label class="ccs-label" for="n-rush">Reason</label><input class="ccs-input" id="n-rush" data-n="rush" placeholder="For example: cake from today\'s batch" value="' + esc(D.rush) + '">' + ferr('rush') + '</div><div class="ccs-field"><label class="ccs-label" for="n-rushby">Who approved it</label><input class="ccs-input" id="n-rushby" data-n="rushBy" placeholder="Manager or chef name" value="' + esc(D.rushBy) + '" autocomplete="off">' +
+      rushChips() + ferr('rushBy') + '</div></div></div>';
     if (D.date && !closed) {
       var nowT = new Intl.DateTimeFormat('en-GB', { timeZone: TZ, hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date());
       var wl = wlRows(D.date), at = {};
@@ -1214,15 +1318,21 @@
       S.busy = false; if (r.error) throw r.error;
       if (!r.data.ok) {
         D.err = r.data.message;
-        var map = { phone: 0, name: 0, customer: 0, product: 1, variant: 1, size: 1, finish: 2, design: 2, message: 2, diet: 2, date: 3, time: 3, full: 3, zone: 3, address: 3, fee: 3, method: 3, deposit: 4 };
+        var map = { phone: 0, name: 0, customer: 0, product: 1, variant: 1, size: 1, finish: 2, design: 2, message: 2, diet: 2, date: 3, rush: 3, rushBy: 3, time: 3, full: 3, zone: 3, address: 3, fee: 3, method: 3, deposit: 4 };
         var f = r.data.field || r.data.error, s = map[f] != null ? map[f] : 4; D.errField = r.data.field || null;
         if (s !== D.step) { var e = D.err, ef = D.errField; goStep(s); D.err = e; D.errField = ef; refreshStep(); } else refreshStep();
         return;
       }
-      S.wl = {}; loadOrders(true);
+      S.wl = {}; loadOrders(true); if (p.rush && p.rush.approved_by) rememberName(p.rush.approved_by);
       if (newInSheet()) { calSaved(r.data); return; }
       D.result = r.data; view(); toast(r.data.reference + ' saved');
-    }).catch(function (e) { S.busy = false; refreshStep(); fail(e); });
+    }).catch(function (e) {
+      S.busy = false; console.error(e); var k = errKind(e);
+      if (k === 'expired') { refreshStep(); return sessionExpired(); }
+      D.errField = null;
+      D.err = k === 'offline' ? 'Not saved: no internet connection. Everything you entered is kept. Try again when connected.' : k === 'denied' ? 'Not saved: your login cannot create orders. Ask a manager.' : 'Not saved. Everything you entered is kept. Try again.';
+      refreshStep();
+    });
   }
 
   // ---------- calendar ----------
@@ -1291,10 +1401,11 @@
       .order('required_date', { ascending: true }).order('required_time', { ascending: true }).limit(1000)
       .then(withContact).then(function (r) {
         if (seq !== c.seq) return; if (r.error) throw r.error;
-        c.rows = r.data || []; c.range = key; c.loading = false; c.err = false; calRefresh();
+        c.rows = r.data || []; c.range = key; c.loading = false; c.err = false; c.fails = 0; c.at = Date.now(); calRefresh();
       }).catch(function (e) {
         if (seq !== c.seq) return; console.error(e); c.loading = false;
         if (errKind(e) === 'expired') return sessionExpired();
+        c.fails = (c.fails || 0) + 1;
         if (c.range !== key) { c.err = true; c.rows = []; } calRefresh();
       });
   }
@@ -1334,6 +1445,7 @@
     else h += '<div class="ccs-calfilt"><label class="ccs-show" for="cal-status"><span>Show</span><select class="ccs-input" id="cal-status">' + CAL_STATUS.map(function (s) { return '<option value="' + s[0] + '"' + (c.status === s[0] ? ' selected' : '') + '>' + s[1] + '</option>'; }).join('') + '</select></label>' +
       '<label class="ccs-show" for="cal-type"><span>Type</span><select class="ccs-input" id="cal-type">' + [['all', 'Collections and deliveries'], ['collection', 'Collections only'], ['delivery', 'Deliveries only']].map(function (s) { return '<option value="' + s[0] + '"' + (c.type === s[0] ? ' selected' : '') + '>' + s[1] + '</option>'; }).join('') + '</select></label></div>';
     var body = c.view === 'year' ? calYear() : (c.err ? calErrBox('cal-retry') : (c.loading && !c.rows.length ? '<p class="ccs-loading">Loading the calendar…</p>' : (c.view === 'month' ? calMonth() : c.view === 'week' ? calWeek() : calDayView())));
+    if (c.view !== 'year' && !c.err) h += freshLine(c.at, c.fails, 'cal-retry');
     return h + '<div class="ccs-calwrap"><div class="ccs-calbody">' + body + '</div><aside class="ccs-calside" aria-label="Selected day">' + (c.view === 'day' && !c.pre ? '<div class="ccs-calhint"><b>Select an order</b><p class="ccs-hint">A short preview appears here, with Open order and Amend order.</p></div>' : dayPanel()) + '</aside></div>';
   }
 
@@ -1562,11 +1674,12 @@
   // ---------- customers ----------
   var SEGS = [['all', 'All'], ['seg_repeat', 'Repeat'], ['seg_first_time', 'First-time'], ['seg_high_value', 'High value'], ['seg_inactive', 'Inactive'], ['seg_birthday_buyer', 'Birthday buyers'], ['seg_upcoming_occasion', 'Occasion due soon'], ['seg_upcoming_order', 'Has an order coming'], ['seg_corporate', 'Corporate'], ['marketing_opt_in', 'Opted in']];
   function loadCustomers() {
-    var c = S.cust; c.loaded = false; view();
+    var c = S.cust; c.loaded = false; c.loadErr = null; view();
     var req;
     if (c.q.trim().length < 2) return clLoad();
     req = sb.rpc('staff_search_customers', { q: c.q });
-    return req.then(function (r) { if (r.error) throw r.error; c.rows = r.data || []; c.count = c.rows.length; c.loaded = true; if (S.tab === 'customers') view(); }).catch(fail);
+    return req.then(function (r) { if (r.error) throw r.error; c.rows = r.data || []; c.count = c.rows.length; c.loaded = true; if (S.tab === 'customers') view(); })
+      .catch(function (e) { var m = readErr(e, 'customers'); if (m == null) return; c.loadErr = m; if (S.tab === 'customers') view(); });
   }
   function customersView() {
     var c = clState();
@@ -1577,7 +1690,7 @@
       (can('manager', 'front_of_house') ? '<button type="button" class="ccs-btn" data-act="cust-new">Add customer</button>' : '') + '</div></div>';
     if (c.q.trim().length >= 2) h += '<p class="ccs-hint cm-gline">Search results. Clear the search to use filters and groups.</p>';
     else h += clToolbar();
-    if (!c.loaded) return h + '<p class="ccs-loading">Loading customers…</p>';
+    if (!c.loaded) return h + (c.loadErr ? loadErr(c.loadErr, 'cust-reload') : '<p class="ccs-loading">Loading customers…</p>');
     var rows = c.rows;
     if (!rows.length) return h + '<div class="ccs-empty"><b>' + (Object.keys(c.flt || {}).length || c.seg !== 'all' ? 'No customers match these filters.' : 'No customers in this group yet.') + '</b><span>' + (Object.keys(c.flt || {}).length ? 'Remove a filter to see more.' : 'Customers are added automatically when an order is placed.') + '</span></div>';
     h += '<div class="ccs-table-wrap"><table class="ccs-table"><thead><tr><th>Customer</th><th>Mobile</th><th class="ccs-num">Orders</th><th class="ccs-num">Spend</th><th>Last order</th><th>Usually orders</th><th>Marketing</th></tr></thead><tbody>' +
@@ -1624,7 +1737,11 @@
           S.sheet.data.log = S.sheet.data.log.concat(r.data || []).sort(function (a, b) { return a.recorded_at < b.recorded_at ? 1 : -1; }).slice(0, 12); renderSheet();
         });
       }
-    }).catch(fail);
+    }).catch(function (e) {
+      var m = readErr(e, 'this customer'); if (m == null || !S.sheet || S.sheet.id !== id) return;
+      if (S.sheet.data) { toast('Not up to date: ' + m.charAt(0).toLowerCase() + m.slice(1) + ' Close and open the profile again.', true); return; }
+      S.sheet.err = m; renderSheet();
+    });
   }
   function consentLine(d, ch) {
     var c = d.c;
@@ -1640,7 +1757,7 @@
   }
   function customerSheet() {
     var d = S.sheet.data;
-    if (!d) return sheetHead('Loading…') + '<div class="ccs-sheet-body"><p class="ccs-loading">Loading customer…</p></div>';
+    if (!d) return sheetHead(S.sheet.err ? 'Customer' : 'Loading…') + '<div class="ccs-sheet-body">' + (S.sheet.err ? loadErr(S.sheet.err, 'cust-reopen') : '<p class="ccs-loading">Loading customer…</p>') + '</div>';
     var s = d.sum, c = d.c, editor = can('manager', 'front_of_house');
     var segs = [['seg_repeat', 'Repeat'], ['seg_first_time', 'First-time'], ['seg_high_value', 'High value'], ['seg_inactive', 'Inactive'], ['seg_birthday_buyer', 'Birthday buyer'], ['seg_corporate', 'Corporate']].filter(function (x) { return s[x[0]]; });
     var h = sheetHead(esc(c.full_name)) + '<div class="ccs-sheet-body">';
@@ -1778,7 +1895,7 @@
   function loadCustomerHistory() {
     var id = S.sheet.id; S.sheet.hist = { loading: true, rows: [] }; renderSheet();
     sb.rpc('customer_history', { p_customer: id }).then(function (r) {
-      if (r.error) throw r.error; if (!r.data.ok) throw new Error(r.data.message);
+      if (r.error) throw r.error; if (!r.data.ok) throw userErr(r.data.message);
       if (S.sheet && S.sheet.id === id) { S.sheet.hist = { rows: r.data.changes || [] }; renderSheet(); }
     }).catch(function (e) { if (S.sheet) S.sheet.hist = null; fail(e); });
   }
@@ -1815,31 +1932,58 @@
   function setChannelConsent(ch, yes) {
     var id = S.sheet.id;
     return sb.rpc('staff_set_channel_consent', { p_customer: id, p_channels: [ch], p_granted: yes, p_note: null }).then(function (r) {
-      if (r.error) throw r.error; if (!r.data.ok) throw new Error(r.data.message);
+      if (r.error) throw r.error; if (!r.data.ok) throw userErr(r.data.message);
       clearBusy(); toast(yes ? 'Recorded: customer said yes' : 'Recorded: customer said no'); openCustomer(id, true); if (S.cust.loaded) loadCustomers();
     }).catch(function (e) { clearBusy(); fail(e); });
   }
+  // Says "copied" only when the copy actually worked (B19)
   function copyText(text, msg) {
-    var done = function () { toast(msg); };
-    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, function () { fallbackCopy(text); done(); }); else { fallbackCopy(text); done(); }
+    var no = function () { toast('Could not copy. Select the text and copy it by hand.', true); };
+    var fb = function () { if (fallbackCopy(text)) toast(msg); else no(); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function () { toast(msg); }, fb); else fb();
   }
-  function fallbackCopy(text) { var t = document.createElement('textarea'); t.value = text; document.body.appendChild(t); t.select(); try { document.execCommand('copy'); } catch (e) {} t.remove(); }
+  function fallbackCopy(text) { var t = document.createElement('textarea'), ok = false; t.value = text; t.setAttribute('readonly', ''); t.style.position = 'fixed'; t.style.opacity = '0'; document.body.appendChild(t); t.select(); try { ok = document.execCommand('copy'); } catch (e) { ok = false; } t.remove(); return !!ok; }
 
 /*@DASH@*/
   // ---------- settings ----------
   function loadSettings() {
-    S.settings = null; view();
+    S.settings = null; S.setErr = null; view();
     var reqs = [sb.from('locations').select('*').eq('code', 'corner-cafe').single(), sb.from('closed_dates').select('*').gte('closed_on', today()).order('closed_on'), sb.from('products').select('*, product_sizes(*), product_variants(*)').order('sort'), sb.from('delivery_zones').select('*').order('sort')];
     if (can('admin')) { reqs.push(sb.rpc('admin_list_users')); reqs.push(sb.rpc('admin_deleted_orders')); }
-    Promise.all(reqs).then(function (rs) { rs.forEach(function (r) { if (r.error) throw r.error; }); S.settings = { loc: rs[0].data, closed: rs[1].data || [], products: rs[2].data || [], zones: rs[3].data || [], team: rs[4] ? rs[4].data || [] : null, deleted: rs[5] && rs[5].data && rs[5].data.ok ? rs[5].data.orders : null }; if (S.tab === 'settings') view(); if (can('admin')) backupLoad(); s5SettingsLoad(); }).catch(fail);
+    Promise.all(reqs).then(function (rs) { rs.forEach(function (r) { if (r.error) throw r.error; }); S.settings = { loc: rs[0].data, closed: rs[1].data || [], products: rs[2].data || [], zones: rs[3].data || [], team: rs[4] ? rs[4].data || [] : null, deleted: rs[5] && rs[5].data && rs[5].data.ok ? rs[5].data.orders : null }; if (S.tab === 'settings') view(); if (can('admin')) backupLoad(); s5SettingsLoad(); }).catch(function (e) {
+      console.error(e); if (errKind(e) === 'expired') return sessionExpired();
+      S.setErr = errKind(e) === 'offline' ? 'No internet connection, so settings could not load.' : errKind(e) === 'denied' ? 'Your login cannot see these settings. Ask a manager.' : 'Settings could not load.';
+      if (S.tab === 'settings') view();
+    });
+  }
+  function reloadLoc() {
+    return sb.from('locations').select('*').eq('code', 'corner-cafe').single().then(function (r) {
+      if (r.error) throw r.error; if (S.settings) { S.settings.loc = r.data; if (S.tab === 'settings') view(); }
+    }).catch(function (e) { console.error(e); });
+  }
+  function onlineBox(L, st) {
+    var ask = st.onlineAsk;
+    var h = '<details open><summary>Online orders <span>' + (L.accepts_online ? 'Taking orders' : 'Paused') + '</span></summary><div class="ccs-set-body">' +
+      '<p><b>' + (L.accepts_online ? 'The website is taking cake orders.' : 'Website cake orders are paused.') + '</b></p>';
+    if (ask) {
+      h += '<div class="ccs-panel" role="group" aria-label="Confirm">' + (ask === 'off' ?
+        '<p><b>Pause website cake orders?</b></p><p class="ccs-hint">Guests will see a message asking them to call the café. Orders already placed are not changed.</p>' :
+        '<p><b>Start taking cake orders on the website again?</b></p><p class="ccs-hint">Guests can place orders straight away, within the notice and collection hours you set.</p>') +
+        (st.onlineErr ? '<p class="ccs-err" role="alert">' + esc(st.onlineErr) + '</p>' : '') +
+        '<div class="ccs-actions-row"><button type="button" class="ccs-btn' + (ask === 'off' ? ' ccs-danger' : ' ccs-good') + '" data-act="online-yes">' + (ask === 'off' ? 'Pause website orders' : 'Take website orders') + '</button><button type="button" class="ccs-btn ccs-ghost" data-act="online-no">Cancel</button></div></div>';
+    } else {
+      h += '<button type="button" class="ccs-btn ccs-ghost" data-act="online-ask" data-v="' + (L.accepts_online ? 'off' : 'on') + '">' + (L.accepts_online ? 'Pause website orders' : 'Take website orders again') + '</button>' +
+        '<p class="ccs-hint">When paused, the website asks guests to call the café.</p>';
+    }
+    return h + '</div></details>';
   }
   function settingsView() {
     var h = '<div class="ccs-head"><div><h1 class="ccs-title">Settings</h1><p class="ccs-sub">Changes apply to the website order form straight away.</p></div></div>';
-    var st = S.settings; if (!st) return h + '<p class="ccs-loading">Loading settings…</p>';
+    var st = S.settings; if (!st) return h + (S.setErr ? loadErr(S.setErr, 'reload-settings') : '<p class="ccs-loading">Loading settings…</p>');
     var L = st.loc;
     h += '<div class="ccs-set">';
     if (!L.defaults_confirmed) h += '<p class="ccs-note">The notice periods and collection hours are starting defaults. Check them, then tick “These are correct” and save.</p>';
-    h += '<details open><summary>Online orders <span>' + (L.accepts_online ? 'Taking orders' : 'Paused') + '</span></summary><div class="ccs-set-body"><label class="ccs-check"><input type="checkbox" id="st-online"' + (L.accepts_online ? ' checked' : '') + '> Take cake orders on the website</label><p class="ccs-hint">When paused, the website asks guests to call the café.</p></div></details>';
+    h += onlineBox(L, st);
     h += '<details' + (!L.defaults_confirmed ? ' open' : '') + '><summary>Notice and collection hours <span>' + L.lead_days_standard + ' days standard · ' + L.lead_days_custom + ' days custom</span></summary><div class="ccs-set-body"><div class="ccs-row">' +
       sf('st-lead-s', 'Notice for standard cakes (days)', L.lead_days_standard) + sf('st-lead-c', 'Notice for custom cakes (days)', L.lead_days_custom) + sf('st-ahead', 'Furthest ahead (days)', L.max_days_ahead) + '</div><div class="ccs-row">' +
       sf('st-open', 'First collection', L.collection_open.slice(0, 5), 'time') + sf('st-close', 'Last collection', L.collection_close.slice(0, 5), 'time') +
@@ -1990,8 +2134,8 @@
     var jobs = [];
     S.settings.zones.forEach(function (z) {
       var n = val('dz-n-' + z.id).trim(), fs = val('dz-f-' + z.id).trim(), f = fs === '' ? null : num(fs), a = document.getElementById('dz-a-' + z.id).checked;
-      if (n.length < 2) throw new Error('Each area needs a name');
-      if (f != null && (isNaN(f) || f < 0)) throw new Error('Check the fee for ' + n);
+      if (n.length < 2) throw userErr('Each delivery area needs a name. Nothing was saved.');
+      if (f != null && (isNaN(f) || f < 0)) throw userErr('Check the fee for ' + n + '. Nothing was saved.');
       if (n !== z.name || f !== (z.fee == null ? null : Number(z.fee)) || a !== z.active) jobs.push(sb.from('delivery_zones').update({ name: n, fee: f, active: a }).eq('id', z.id));
     });
     if (!jobs.length) return toast('No changes to save');
@@ -2002,19 +2146,42 @@
     if (n.length < 2) return toast('Enter the area name.', true);
     if (f != null && (isNaN(f) || f < 0)) return toast('Check the fee.', true);
     var sort = S.settings.zones.reduce(function (m, z) { return Math.max(m, z.sort); }, 0) + 1;
-    sb.from('delivery_zones').insert({ location_id: S.settings.loc.id, name: n, fee: f, sort: sort }).then(function (r) { if (r.error) throw r.error.code === '23505' ? new Error('That area already exists') : r.error; toast('Area added'); refreshSetup(); loadSettings(); }).catch(fail);
+    sb.from('delivery_zones').insert({ location_id: S.settings.loc.id, name: n, fee: f, sort: sort }).then(function (r) { if (r.error) throw r.error.code === '23505' ? userErr('That area already exists.') : r.error; toast('Area added'); refreshSetup(); loadSettings(); }).catch(fail);
   }
-  function saveProduct(id) {
-    var p = S.settings.products.filter(function (x) { return x.id === id; })[0], jobs = [];
+  // Prices: show old and new before saving, and warn on big changes (A11)
+  function fj(n) { return 'FJD ' + Number(n).toFixed(2); }
+  function saveProduct(id, b) {
+    var p = S.settings.products.filter(function (x) { return x.id === id; })[0], box = b.closest('.ccs-box'), lines = [], big = false, ups = [], bad = null;
+    var msg = box.querySelector('.ccs-pricechk');
+    function show(html) { if (!msg) { msg = document.createElement('div'); msg.className = 'ccs-pricechk'; b.parentNode.insertBefore(msg, b); } msg.innerHTML = html; }
     (p.product_sizes || []).forEach(function (s) {
-      var price = num(document.getElementById('pz-' + s.id).value), act = root.querySelector('[data-sactive="' + s.id + '"]').checked;
-      if (price == null || price < 0) throw new Error('Check the ' + s.size_inch + ' inch price');
-      if (price !== Number(s.price) || act !== s.active) jobs.push(sb.from('product_sizes').update({ price: price, active: act }).eq('id', s.id));
+      var raw = document.getElementById('pz-' + s.id).value.trim(), price = raw === '' ? null : num(raw), act = root.querySelector('[data-sactive="' + s.id + '"]').checked, old = Number(s.price);
+      if (price == null || isNaN(price) || price < 0) { bad = bad || 'Check the ' + s.size_inch + ' inch price. Nothing was saved.'; return; }
+      price = Math.round(price * 100) / 100;
+      if (price !== old) {
+        var pct = old > 0 ? Math.round((price - old) / old * 100) : null;
+        if (pct === null || Math.abs(pct) > 30) big = true;
+        lines.push(s.size_inch + ' inch: ' + fj(old) + ' to ' + fj(price) + (pct === null ? '' : ' (' + (pct > 0 ? pct + '% higher' : -pct + '% lower') + ')'));
+      }
+      if (act !== s.active) lines.push(s.size_inch + ' inch: ' + (act ? 'now offered' : 'no longer offered'));
+      if (price !== old || act !== s.active) ups.push({ id: s.id, price: price, active: act });
     });
+    if (bad) { b.dataset.sig = ''; b.textContent = 'Save ' + p.name; return show('<p class="ccs-err" role="alert">' + esc(bad) + '</p>'); }
     var on = root.querySelector('[data-pstatus="' + id + '"]').checked ? 'active' : 'hidden';
+    if (on !== p.status) lines.push(on === 'active' ? 'Back on sale on the website' : 'Taken off sale on the website');
+    if (!lines.length) { if (msg) msg.innerHTML = ''; return toast('No changes to save'); }
+    var sig = JSON.stringify([ups, on]);
+    if (b.dataset.sig !== sig) {
+      b.dataset.sig = sig; b.textContent = 'Confirm and save';
+      return show('<div class="ccs-note" role="status"><b>Check before saving ' + esc(p.name) + ':</b><ul>' + lines.map(function (l) { return '<li>' + esc(l) + '</li>'; }).join('') + '</ul>' +
+        (big ? '<p><b>This is a big change.</b> Check the amount: new website orders use it straight away.</p>' : '<p>New website orders use these prices straight away. Existing orders keep their price.</p>') + '</div>');
+    }
+    if (S.busy) return; S.busy = true; markBusy(b, 'Saving…');
+    var jobs = ups.map(function (u) { return sb.from('product_sizes').update({ price: u.price, active: u.active }).eq('id', u.id); });
     if (on !== p.status) jobs.push(sb.from('products').update({ status: on }).eq('id', id));
-    if (!jobs.length) return toast('No changes to save');
-    Promise.all(jobs).then(function (rs) { rs.forEach(function (r) { if (r.error) throw r.error; }); toast(p.name + ' saved'); refreshSetup(); loadSettings(); }).catch(fail);
+    Promise.all(jobs).then(function (rs) { S.busy = false; rs.forEach(function (r) { if (r.error) throw r.error; }); toast(p.name + ' saved'); refreshSetup(); loadSettings(); })
+      .catch(function (e) { S.busy = false; b.dataset.sig = ''; console.error(e); clearBusy(); b.textContent = 'Save ' + p.name; if (errKind(e) === 'expired') return sessionExpired();
+        show('<p class="ccs-err" role="alert">' + (errKind(e) === 'offline' ? 'No internet connection.' : 'Not saved.') + ' Some prices may not have changed. Tap Save again to check and retry.</p>'); });
   }
 
   // ---------- events ----------
@@ -2029,7 +2196,7 @@
   });
   var BUSY_ACTS = { 'do-delete': 'Deleting…', 'do-confirm': 'Saving…', 'do-decline': 'Saving…', 'do-cancel': 'Saving…', 'do-note': 'Saving…', 'do-waive': 'Saving…', 'do-collected': 'Saving…', 'do-fulfil': 'Saving…',
     'do-brief': 'Preparing…', 'do-pay': 'Saving…', 'k-stage': 'Saving…', 'k-next': 'Saving…', 'k-ready': 'Saving…', 'k-assign': 'Saving…', 'save-zones': 'Saving…', 'add-zone': 'Saving…', 'cust-save': 'Saving…', 'cn-save': 'Saving…', 'consent-ch': 'Saving…',
-    'consent': 'Saving…', 'save-loc': 'Saving…', 'add-closed': 'Saving…', 'save-prod': 'Saving…', 'save-staff': 'Saving…', 'tm-add': 'Adding…', 'tm-reset-save': 'Saving…', 'bk-link': 'Linking…', 'bk-copy': 'Copying…' };
+    'consent': 'Saving…', 'save-loc': 'Saving…', 'add-closed': 'Saving…', 'save-staff': 'Saving…', 'tm-add': 'Adding…', 'tm-reset-save': 'Saving…', 'bk-link': 'Linking…', 'bk-copy': 'Copying…' };
   root.addEventListener('click', function (e) {
     if (e.target.id === 'ccs-shade') { if (hasTyping()) { toast('Your typing is kept. Save it, or tap the cross twice to discard it.'); return; } sheetClose(); return; }
     var b = e.target.closest('[data-act],[data-tab]'); if (!b || b.disabled) return;
@@ -2050,13 +2217,39 @@
           if (draftHasContent() && !b.dataset.sure) { openMore(true); break; }
           S.sheetHist = false; sheetClose('pop'); clearDraft(); sb.auth.signOut().then(function () { S.me = null; loginView(); }); break;
         case 'filter': S.filter = v; S.q = ''; S.older = null; view(); break;
+        case 'reopen-order': openOrder(S.sheet.id); break;
+        case 'k-reopen': openKitchen(S.sheet.id, true); break;
+        case 'k-reload': S.kit.err = null; if (!S.kit.loaded) view(); loadKitchen(false); break;
+        case 'reload-settings': loadSettings(); break;
+        case 'cust-reload': loadCustomers(); break;
+        case 'cust-reopen': S.sheet.err = null; renderSheet(); openCustomer(S.sheet.id); break;
+        case 'reg-reopen': regFetch(S.sheet.k); break;
+        case 'log-reload': s5LogLoad(); break;
+        case 'dups-reload': clDupsLoad(); break;
+        case 'online-ask': S.settings.onlineAsk = v; S.settings.onlineErr = null; view(); break;
+        case 'online-no': S.settings.onlineAsk = null; S.settings.onlineErr = null; view(); break;
+        case 'online-yes':
+          if (S.busy) break; S.busy = true;
+          var onl_ = S.settings.onlineAsk === 'on';
+          sb.from('locations').update({ accepts_online: onl_ }).eq('id', S.settings.loc.id).select('accepts_online').single().then(function (r) {
+            S.busy = false; if (r.error) throw r.error;
+            if (!r.data || r.data.accepts_online !== onl_) throw new Error('not saved');
+            S.settings.onlineAsk = null; S.settings.onlineErr = null;
+            toast(onl_ ? 'The website is taking cake orders again.' : 'Website cake orders are paused. Guests are asked to call the café.');
+            refreshSetup(); reloadLoc();
+          }).catch(function (e) {
+            S.busy = false; console.error(e); if (errKind(e) === 'expired') return sessionExpired();
+            S.settings.onlineErr = errKind(e) === 'offline' ? 'No internet connection. Nothing was changed.' : errKind(e) === 'denied' ? 'Your login cannot change this. Ask a manager.' : 'Not saved. The setting shown is the current one. Try again.';
+            reloadLoc(); view();
+          }); break;
+        case 'reload-orders': S.ordErr = null; if (!S.loaded) view(); loadOrders(false); break;
         case 'goto': S.filter = v; S.q = ''; goTab('orders'); window.scrollTo(0, 0); break;
         case 'day': S.filter = 'day'; S.day = v; S.q = ''; goTab('orders'); window.scrollTo(0, 0); break;
         case 'open-order': if (b.tagName === 'A') return; openOrder(b.dataset.id); break;
         case 'close': if (hasTyping() && !confirmDiscard(b, 'Tap again to discard your changes')) break; S.dirty = {}; sheetClose(); break;
         case 'fill': var fi = document.getElementById(b.dataset.f); if (fi) { fi.value = v; S.dirty[fi.id] = v; fi.focus(); } break;
         case 'history': S.sheet.showHistory = true; renderSheet(); break;
-        case 'panel': S.panel = v || null; S.panelErr = null; S.dirty = {}; if (v === 'pay') { S.payKey = uuid(); S.payMethod = 'cash'; }
+        case 'panel': if (S.panel && S.panel !== v && hasTyping() && !confirmDiscard(b)) break; S.panel = v || null; S.panelErr = null; S.dirty = {}; if (v === 'pay') { S.payKey = uuid(); S.payMethod = 'cash'; }
           if (v === 'amend') S.am = amendInit(S.sheet.data);
           if (v === 'fulfil') { var od = S.sheet.data; S.ful = { method: od.fulfilment_method || 'collection', zone: od.delivery_zone, address: od.delivery_address || '', fee: od.delivery_fee != null ? String(Number(od.delivery_fee)) : '', contact: od.delivery_contact || '' }; }
           renderSheet(); var sb_ = document.querySelector('#ccs-sheet .ccs-sheet-body'); if (sb_ && v) sb_.scrollTop = 0; break;
@@ -2067,14 +2260,14 @@
           act('confirm', { p_final_total: price, p_deposit: dep }); break;
         }
         case 'do-decline': act('decline', { p_note: val('ccs-note').trim() || null }); break;
-        case 'do-cancel': act('cancel', { p_note: val('ccs-note').trim() }); break;
+        case 'do-cancel': if (val('ccs-note').trim().length < 3) { panelNeed('Add the reason for cancelling.'); break; } act('cancel', { p_note: val('ccs-note').trim() }); break;
         case 'do-delete': deleteOrder(); break;
         case 'del-restore':
           if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = 'Tap again to restore'; setTimeout(function () { if (b.isConnected) { b.dataset.armed = ''; b.textContent = 'Restore'; } }, 4000); break; }
           markBusy(b, 'Restoring…'); restoreOrder(b.dataset.id); break;
         case 'do-note': act('note', { p_note: val('ccs-note').trim() }); break;
-        case 'do-waive': act('waive_deposit', { p_note: val('ccs-note').trim() }); break;
-        case 'do-collected': act('collected', { p_note: val('ccs-note').trim() }); break;
+        case 'do-waive': if (val('ccs-note').trim().length < 3) { panelNeed('Add the reason for confirming without a deposit.'); break; } act('waive_deposit', { p_note: val('ccs-note').trim() }); break;
+        case 'do-collected': if (val('ccs-note').trim().length < 2) { panelNeed(S.sheet.data.fulfilment_method === 'delivery' ? 'Enter who received the cake.' : 'Enter who collected the cake.'); break; } act('collected', { p_note: val('ccs-note').trim() }); break;
         case 'do-fulfil': saveFulfil(); break;
         case 'f-method': S.ful.method = v; renderSheet(); break;
         case 'f-zone': S.ful.zone = v; renderSheet(); break;
@@ -2093,7 +2286,7 @@
         case 'am-save': amendSend(true); break;
         case 'am-edit': S.am.preview = null; S.panelErr = null; renderSheet(); break;
         case 'k-ack': kitAck(); break;
-        case 'save-zones': saveZones(); break;
+        case 'save-zones': try { saveZones(); } catch (e_) { fail(e_); } break;
         case 'add-zone': addZone(); break;
         case 'do-pay': pay(); break;
         case 'open-customer': openCustomer(b.dataset.id); break;
@@ -2115,7 +2308,7 @@
         case 'ce-orders': S.sheet.ordersChoice = v; S.panelErr = null; renderSheet(); break;
         case 'consent-ch': setChannelConsent(b.dataset.ch, v === 'true'); break;
         case 'cust-save': saveCustomer(); break;
-        case 'consent': sb.rpc('staff_set_consent', { p_customer: S.sheet.id, p_granted: v === 'true', p_note: null }).then(function (r) { if (r.error) throw r.error; if (!r.data.ok) throw new Error(r.data.message); toast(v === 'true' ? 'Marked as agreed' : 'Marked as opted out'); var id = S.sheet.id; openCustomer(id); if (S.cust.loaded) loadCustomers(); }).catch(fail); break;
+        case 'consent': sb.rpc('staff_set_consent', { p_customer: S.sheet.id, p_granted: v === 'true', p_note: null }).then(function (r) { if (r.error) throw r.error; if (!r.data.ok) throw userErr(r.data.message); toast(v === 'true' ? 'Marked as agreed' : 'Marked as opted out'); var id = S.sheet.id; openCustomer(id); if (S.cust.loaded) loadCustomers(); }).catch(fail); break;
         case 'seg': clSegChange(v); break;
         // calendar
         case 'cal-view': S.cal.view = v; if (S.cal.sel) S.cal.anchor = S.cal.sel; if (v === 'day') S.cal.sel = S.cal.anchor; S.cal.pre = null; S.cal.ask = null; if (S.sheet && S.sheet.type === 'cal') sheetClose(); calLoad(); break;
@@ -2126,7 +2319,7 @@
         case 'cal-openday': S.cal.view = 'day'; S.cal.anchor = v; S.cal.sel = v; S.cal.pre = null; if (S.sheet && S.sheet.type === 'cal') sheetClose(); calLoad(); window.scrollTo(0, 0); break;
         case 'cal-pre': S.cal.pre = b.dataset.id || null; S.cal.ask = null; if (S.cal.pre) { var po = S.cal.rows.filter(function (r) { return r.id === S.cal.pre; })[0]; if (po && S.cal.view !== 'day') S.cal.sel = po.required_date; } calPanel(); break;
         case 'cal-basis': S.cal.basis = v; view(); break;
-        case 'cal-retry': S.cal.err = false; S.cal.cErr = false; S.cal.range = null; calLoad(); break;
+        case 'cal-retry': var hadErr_ = S.cal.err || S.cal.cErr; S.cal.err = false; S.cal.cErr = false; if (hadErr_) S.cal.range = null; calLoad(); break;
         case 'cal-add': calStart(v, b.dataset.t || ''); break;
         case 'cal-add-keep': calStart(S.cal.ask.d, S.cal.ask.t, 'keep'); break;
         case 'cal-add-new': calStart(S.cal.ask.d, S.cal.ask.t, 'new'); break;
@@ -2157,13 +2350,15 @@
         case 'n-finish-next':
           if (D.finish === 'custom' && D.design.trim().length < 3) { D.err = 'Describe the design for the kitchen.'; D.errField = 'design'; refreshStep(); break; }
           if (!D.diet) { D.err = 'Ask about dietary needs and allergies.'; D.errField = 'diet'; refreshStep(); break; }
+          var dmsg = dietMissing(D.diet, D.diets, D.dietNote); if (dmsg) { D.err = dmsg; D.errField = 'diet'; refreshStep(); break; }
           goStep(nextOpen(3)); break;
+        case 'n-rushby': D.rushBy = v; if (D.errField === 'rushBy') D.errField = null; refreshStep(); break;
         case 'n-time': D.time = v;
           if (D.method === 'delivery' && !zoneObj()) { D.err = 'Choose a delivery area.'; D.errField = 'zone'; refreshStep(); break; }
           if (D.method === 'delivery' && D.address.trim().length < 5) { D.err = 'Enter the delivery address.'; D.errField = 'address'; refreshStep(); break; }
           if (!delivOk()) { D.err = 'Enter the delivery fee for this area.'; D.errField = 'fee'; refreshStep(); break; }
-          if (tooSoon() && D.rush.trim().length < 3) { D.err = 'Add a reason for the short notice first.'; D.errField = 'date'; refreshStep(); break; }
-          if (tooSoon() && D.rushBy.trim().length < 2) { D.err = 'Enter who approved the short notice.'; D.errField = 'date'; refreshStep(); break; } goStep(nextOpen(4)); break;
+          if (tooSoon() && D.rush.trim().length < 3) { D.err = 'Add a reason for the short notice first.'; D.errField = 'rush'; refreshStep(); break; }
+          if (tooSoon() && D.rushBy.trim().length < 2) { D.err = 'Enter who approved the short notice.'; D.errField = 'rushBy'; refreshStep(); break; } goStep(nextOpen(4)); break;
         case 'n-date': D.date = v; D.dateOther = false; D.errField = null; refreshStep(); var tc = document.querySelector('#ccs-nstep-3 [data-act="n-time"]'); if (tc && tc.scrollIntoView) tc.scrollIntoView({ behavior: 'smooth', block: 'center' }); break;
         case 'n-date-other': D.dateOther = true; refreshStep(); var di = document.getElementById('n-date'); if (di) di.focus(); break;
         case 'n-method': D.method = v; if (v === 'collection') { D.zone = null; } D.errField = null; refreshStep(); break;
@@ -2179,7 +2374,7 @@
         case 'del-closed':
           if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = 'Tap again to remove'; setTimeout(function () { if (b.isConnected) { b.dataset.armed = ''; b.textContent = 'Remove'; } }, 4000); break; }
           markBusy(b, 'Removing…'); sb.from('closed_dates').delete().eq('id', b.dataset.id).then(function (r) { if (r.error) throw r.error; toast('Removed'); refreshSetup(); loadSettings(); }).catch(fail); break;
-        case 'save-prod': saveProduct(b.dataset.id); break;
+        case 'save-prod': saveProduct(b.dataset.id, b); break;
         case 'my-password': S.sheet = { type: 'pw' }; S.pwErr = null; S.dirty = {}; renderSheet(); var pf = document.getElementById('ccs-pw1'); if (pf) pf.focus(); break;
         case 'tm-gen': var gid = b.dataset.for || 'tm-new-p', gi = document.getElementById(gid); if (gi) { gi.value = makePassword(); gi.focus(); } break;
         case 'tm-reset': S.settings.resetFor = b.dataset.id || null; S.settings.resetErr = null; S.settings.tmOpen = true; view(); break;
@@ -2193,7 +2388,7 @@
           if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = 'Tap again to stop the backup'; setTimeout(function () { if (b.isConnected) { b.dataset.armed = ''; b.textContent = 'Stop backup'; } }, 4000); break; }
           markBusy(b, 'Stopping…'); var ust = S.settings; sheetBackup({ op: 'unlink' }).then(function (r) { backupDone(ust, r, function () { return 'Backup stopped. The sheet keeps what it has.'; }); }).catch(fail); break;
         case 'tm-reset-save': teamReset(b.dataset.id); break;
-        case 'save-staff': var uid = b.dataset.id; sb.rpc('admin_set_staff', { p_user: uid, p_name: val('tm-n-' + uid), p_role: val('tm-r-' + uid), p_active: document.getElementById('tm-a-' + uid).checked }).then(function (r) { if (r.error) throw r.error; if (!r.data.ok) throw new Error(r.data.message); toast('Team updated'); loadSettings(); }).catch(fail); break;
+        case 'save-staff': var uid = b.dataset.id; sb.rpc('admin_set_staff', { p_user: uid, p_name: val('tm-n-' + uid), p_role: val('tm-r-' + uid), p_active: document.getElementById('tm-a-' + uid).checked }).then(function (r) { if (r.error) throw r.error; if (!r.data.ok) throw userErr(r.data.message); toast('Team updated'); loadSettings(); }).catch(fail); break;
       }
     } catch (err) { fail(err); }
   });
@@ -2223,11 +2418,12 @@
     if (e.target.id === 'ccs-seg') { clSegChange(e.target.value); return; }
     if (e.target.id === 'cal-status' || e.target.id === 'cal-type') { S.cal[e.target.id === 'cal-status' ? 'status' : 'type'] = e.target.value; S.cal.pre = null; calRefresh(); return; }
     if (e.target.id === 'am-prod' && S.am) { amendSet('product', e.target.value); return; }
-    if (e.target.id !== 'st-online') return;
-    var on = e.target.checked;
-    sb.from('locations').update({ accepts_online: on }).eq('id', S.settings.loc.id).then(function (r) { if (r.error) throw r.error; toast(on ? 'Website orders switched on' : 'Website orders paused'); refreshSetup(); loadSettings(); }).catch(fail);
   });
-  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && S.sheet && !hasTyping()) sheetClose(); });
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape' || !S.sheet) return;
+    if (hasTyping()) { toast('Save or cancel your changes first.', true); return; }
+    if (S.panel) { S.panel = null; S.panelErr = null; S.am = null; renderSheet(); } else sheetClose();
+  });
   function tick() { if (!S.me || document.visibilityState !== 'visible') return; if (S.tab === 'kitchen') loadKitchen(true); else loadOrders(true); if (S.tab === 'calendar' && !S.sheet) calLoad(true); }
   setInterval(tick, 60000);
   document.addEventListener('visibilitychange', tick);

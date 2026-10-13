@@ -150,12 +150,15 @@
   }
   // One register record with its full history, opened from the review list or the dashboard
   function regOpen(k) {
-    S.sheet = { type: 'reg', k: k, data: null }; S.panel = null; S.dirty = {}; sheetOpen(); renderSheet();
+    S.sheet = { type: 'reg', k: k, data: null }; S.panel = null; S.dirty = {}; sheetOpen(); regFetch(k);
+  }
+  function regFetch(k) {
+    S.sheet.err = null; S.sheet.retry = false; renderSheet();
     sb.rpc('register_record', { p_rec_key: k }).then(function (r) {
       if (r.error) throw r.error; if (!S.sheet || S.sheet.k !== k) return;
       if (!r.data.ok || !r.data.record) { S.sheet.err = (r.data && r.data.message) || 'That record was not found.'; } else S.sheet.data = r.data;
       renderSheet();
-    }).catch(fail);
+    }).catch(function (e) { var m = readErr(e, 'this record'); if (m == null || !S.sheet || S.sheet.k !== k) return; S.sheet.err = m; S.sheet.retry = true; renderSheet(); });
   }
   function rgChange(ch) {
     return Object.keys(ch || {}).map(function (f) {
@@ -171,7 +174,7 @@
   }
   function regSheet() {
     var x = S.sheet;
-    if (x.err) return sheetHead('Register record') + '<div class="ccs-sheet-body"><p class="ccs-err">' + esc(x.err) + '</p></div>';
+    if (x.err) return sheetHead('Register record') + '<div class="ccs-sheet-body">' + (x.retry ? loadErr(x.err, 'reg-reopen') : '<p class="ccs-err">' + esc(x.err) + '</p>') + '</div>';
     if (!x.data) return sheetHead('Loading…') + '<div class="ccs-sheet-body"><p class="ccs-loading">Loading the record…</p></div>';
     var c = x.data.record, st = { ok: 'Counted', needs_review: 'Waiting for review', duplicate: 'Left out as a copy', excluded: 'Left out' }[c.review] || c.review;
     var h = sheetHead(esc(c.reference || 'Register record'), '<span class="ccs-pill' + (c.review === 'ok' ? ' s-good' : c.review === 'needs_review' ? ' s-action' : ' s-off') + '">' + esc(st) + '</span>') + '<div class="ccs-sheet-body">';

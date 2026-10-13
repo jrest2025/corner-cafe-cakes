@@ -274,7 +274,8 @@
     if (a === 'ws-hist') {
       if (s.wsHist && s.wsHist.id === id) { s.wsHist = null; return renderSheet(); }
       s.wsHist = { id: id, data: null }; renderSheet();
-      sb.rpc('customer_note_history', { p_note: id }).then(function (r) { if (r.error) throw r.error; if (S.sheet === s && s.wsHist && s.wsHist.id === id) { s.wsHist.data = r.data; renderSheet(); } }).catch(fail);
+      sb.rpc('customer_note_history', { p_note: id }).then(function (r) { if (r.error) throw r.error; if (S.sheet === s && s.wsHist && s.wsHist.id === id) { s.wsHist.data = r.data; renderSheet(); } })
+        .catch(function (e) { var m = readErr(e, 'the note history'); if (m == null) return; if (S.sheet === s && s.wsHist && s.wsHist.id === id) { s.wsHist = null; renderSheet(); toast(m + ' Tap History again to retry.', true); } });
       return;
     }
     if (a === 'ws-repeat') { repeatOrder(id); return; }
@@ -382,13 +383,13 @@
     return f;
   }
   function clLoad() {
-    var c = clState(); c.loaded = false; c.err = null; view();
+    var c = clState(); c.loaded = false; c.err = null; c.loadErr = null; view();
     if (!c.groups) clGroupsLoad();
     return sb.rpc('customer_filter', { p_filter: clFilter(), p_limit: 500 }).then(function (r) {
       if (r.error) throw r.error;
       if (!r.data.ok) { c.rows = []; c.count = 0; c.err = r.data.message; } else { c.rows = r.data.rows || []; c.count = r.data.count; }
       c.loaded = true; if (S.tab === 'customers') view();
-    }).catch(fail);
+    }).catch(function (e) { var m = readErr(e, 'customers'); if (m == null) return; c.loadErr = m; if (S.tab === 'customers') view(); });
   }
   function clGroupsLoad() {
     var c = clState();
@@ -544,17 +545,17 @@
     sb.rpc('customer_export_preview', { p_filter: clFilter(), p_channel: ch }).then(function (r) {
       if (r.error) throw r.error;
       if (c.exp === e && e.channel === ch) { e.pre = r.data; view(); }
-    }).catch(fail);
+    }).catch(function (x) { var m = readErr(x, 'the permission check'); if (m == null) return; if (c.exp === e && e.channel === ch) { e.pre = { ok: false, message: m + ' Choose the channel again to retry.' }; view(); } });
   }
 
   // Duplicate review (managers)
   function clDupsLoad() {
-    var c = clState(); c.dups = null; c.dupErr = null; view();
+    var c = clState(); c.dups = null; c.dupErr = null; c.dupRetry = false; view();
     return sb.rpc('customer_duplicates').then(function (r) {
       if (r.error) throw r.error;
       if (!r.data.ok) c.dupErr = r.data.message; else c.dups = r.data;
       if (S.tab === 'customers') view();
-    }).catch(fail);
+    }).catch(function (e) { var m = readErr(e, 'the duplicate list'); if (m == null) return; c.dupErr = m; c.dupRetry = true; if (S.tab === 'customers') view(); });
   }
   function clCard(p, side, keep) {
     var row = function (k, v) { return v ? '<dt>' + k + '</dt><dd>' + esc(v) + '</dd>' : ''; };
@@ -608,14 +609,14 @@
     m.pre = null; view();
     sb.rpc('customer_merge_preview', { p_keep: keep.id, p_merge: other.id }).then(function (r) {
       if (r.error) throw r.error; if (c.merge === m) { m.pre = r.data; view(); }
-    }).catch(fail);
+    }).catch(function (e) { var t = readErr(e, 'the merge check'); if (t == null) return; if (c.merge === m) { m.pre = { ok: false, message: t + ' Tap Keep again to retry.' }; view(); } });
   }
   function clFindPair(key) { var c = clState(); return ((c.dups && c.dups.pairs) || []).filter(function (p) { return clPairKey(p) === key; })[0]; }
   function clDupsView() {
     var c = clState(), d = c.dups;
     var h = '<div class="ccs-head"><div><h1 class="ccs-title">Possible duplicate customers</h1><p class="ccs-sub">Profiles that share a mobile number, email or name. Check before merging: families and offices often share a number.</p></div>' +
       '<div class="ccs-headacts"><button type="button" class="ccs-btn ccs-ghost" data-act="ws-cm-list">Back to customers</button></div></div>';
-    if (c.dupErr) return h + '<div class="ccs-empty"><b>' + esc(c.dupErr) + '</b></div>';
+    if (c.dupErr) return h + (c.dupRetry ? loadErr(c.dupErr, 'dups-reload') : '<div class="ccs-empty"><b>' + esc(c.dupErr) + '</b></div>');
     if (!d) return h + '<p class="ccs-loading">Looking for duplicates…</p>';
     var strong = d.pairs.filter(function (p) { return p.strong; }), weak = d.pairs.filter(function (p) { return !p.strong; });
     h += strong.length ? '<h2 class="rg-h">Same mobile or email (' + strong.length + ')</h2>' + strong.map(clPairCard).join('') : '<p class="ccs-quiet">No profiles share a mobile number or email.</p>';
@@ -803,18 +804,18 @@
     return parts.length ? parts.join(', ') : 'All customers';
   }
   function s5LogLoad() {
-    var c = clState(); c.log = null; c.logErr = null; view();
+    var c = clState(); c.log = null; c.logErr = null; c.logRetry = false; view();
     sb.rpc('customer_exports_list', { p_limit: 300 }).then(function (r) {
       if (r.error) throw r.error;
       if (!r.data.ok) c.logErr = r.data.message; else c.log = r.data;
       if (S.tab === 'customers') view();
-    }).catch(fail);
+    }).catch(function (e) { var m = readErr(e, 'the export log'); if (m == null) return; c.logErr = m; c.logRetry = true; if (S.tab === 'customers') view(); });
   }
   function s5LogView() {
     var c = clState(), L = c.log;
     var h = '<div class="ccs-head"><div><h1 class="ccs-title">Export log</h1><p class="ccs-sub">' + (can('manager') ? 'Every contact list export and printed customer report, by everyone.' : 'Your own exports and printed reports. Managers see everyone\'s.') + '</p></div>' +
       '<div class="ccs-headacts"><button type="button" class="ccs-btn ccs-ghost" data-act="ws-cm-list">Back to customers</button></div></div>';
-    if (c.logErr) return h + '<div class="ccs-empty"><b>' + esc(c.logErr) + '</b></div>';
+    if (c.logErr) return h + (c.logRetry ? loadErr(c.logErr, 'log-reload') : '<div class="ccs-empty"><b>' + esc(c.logErr) + '</b></div>');
     if (!L) return h + '<p class="ccs-loading">Loading the export log…</p>';
     if (!L.rows.length) return h + '<div class="ccs-empty"><b>Nothing exported or printed yet.</b><span>Contact list exports and customer reports show here with who, when and what.</span></div>';
     var ex = L.rows.filter(function (x) { return x.kind === 'export'; }), rep = L.rows.filter(function (x) { return x.kind === 'report'; });

@@ -68,6 +68,8 @@ async def desktop(b, errs):
     await pg.click('.ccs-calside [data-act="cal-amend"]'); await pg.wait_for_timeout(450)
     check('desk Amend order opens the existing amendment form', await pg.locator('#ccs-sheet #am-time').count() == 1)
     await pg.keyboard.press('Escape'); await pg.wait_for_timeout(300)
+    check('desk first Escape closes only the amend panel', await pg.locator('#ccs-sheet.ccs-open').count() == 1 and await pg.locator('#ccs-sheet #am-time').count() == 0)
+    await pg.keyboard.press('Escape'); await pg.wait_for_timeout(300)
     check('desk closing the order keeps the selected date', await pg.locator(f'.ccs-mcell.is-sel .ccs-mday[data-v="{D2}"]').count() == 1)
     # week view and time slot prefill
     await pg.click('[data-act="cal-view"][data-v="week"]'); await pg.wait_for_timeout(300)
@@ -135,8 +137,8 @@ async def short_notice_and_failure(b, errs):
     # failed save keeps everything
     await pg.evaluate("window.__createFail=true")
     await pg.click('[data-act="n-submit"]'); await pg.wait_for_timeout(400)
-    toast = await pg.inner_text('#ccs-toast')
-    check('failed save says nothing was saved', 'Nothing was saved' in toast or 'not saved' in toast, toast)
+    inl = await pg.evaluate("(function(){var b=document.querySelector('#ccs-sheet [data-act=n-submit]'),p=b&&b.previousElementSibling;return p&&p.classList.contains('ccs-err')?p.textContent:''})()")
+    check('B8 failed save says Not saved right above the Save button', inl.startswith('Not saved') and 'kept' in inl, inl)
     check('failed save keeps the panel, the form and the Save button', await pg.locator('#ccs-sheet.ccs-open [data-act="n-submit"]:not([disabled])').count() == 1 and 'New Calendar Guest' in await pg.inner_text('#ccs-sheet'))
     await pg.evaluate("window.__createFail=false")
     await pg.click('[data-act="n-submit"]'); await pg.wait_for_timeout(400)

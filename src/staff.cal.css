@@ -441,3 +441,31 @@
 .s5-wrap { white-space: pre-wrap; overflow-wrap: anywhere; }
 .s5-r-note, .s5-r-foot { font-size: 8.5pt; color: #333; margin: 3pt 0 0; }
 .s5-r-foot { margin-top: 12pt; }
+/* ---------- Batch 1: phone layout, freshness and load errors ---------- */
+@media (max-width: 759px) { body.ccs-kb #cc-staff .ccs-nav { display: none; } body.ccs-kb #cc-staff .ccs-app .ccs-main { padding-bottom: 24px; } }
+#cc-staff .ccs-offline { position: fixed; top: 0; left: 0; right: 0; z-index: 60; padding: 10px 16px; font-size: 14px; line-height: 1.3; }
+body.ccs-is-off #cc-staff .ccs-app { padding-top: var(--ccs-offh, 44px); }
+body.ccs-is-off .ccs-sheet { top: var(--ccs-offh, 44px); }
+body.ccs-is-off #cc-staff .ccs-side { top: var(--ccs-offh, 44px); }
+@media (min-width: 760px) { #cc-staff .ccs-side { overflow-y: auto; overscroll-behavior: contain; } }
+@media (min-width: 760px) and (max-height: 640px) { #cc-staff .ccs-side { gap: 10px; padding-top: 12px; padding-bottom: 12px; } #cc-staff .ccs-nav-item { min-height: 40px; } }
+#cc-staff .ccs-head .ccs-tabs { flex-wrap: wrap; max-width: 100%; }
+@media (max-width: 759px) { #cc-staff .ccs-head .ccs-tabs { display: flex; width: 100%; } #cc-staff .ccs-head .ccs-tab { flex: 1 1 auto; white-space: nowrap; } }
+#cc-staff .ccs-fresh { margin: -6px 0 12px; font-size: 13px; color: #526176; }
+#cc-staff .ccs-stale { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin: 0 0 14px; border-left: 4px solid #B45309; background: #FFFBEB; color: #1F2937; }
+#cc-staff .ccs-stale .ccs-link { font-weight: 700; }
+#cc-staff .ccs-overdue { border-left: 4px solid #B91C1C; }
+#cc-staff .ccs-overdue h2 { color: #B91C1C; }
+#cc-staff .ccs-loaderr { display: grid; justify-items: start; gap: 8px; text-align: left; border: 1px solid #F1C4C4; background: #fff; border-left: 4px solid #B91C1C; }
+#cc-staff .ccs-loaderr b { color: #1F2937; }
+#cc-staff .ccs-chip-soon { border-style: dashed; }
+#cc-staff .ccs-pricechk { margin: 10px 0; }
+#cc-staff .ccs-pricechk ul { margin: 6px 0; padding-left: 18px; }
+/* Today rows on phone: labels stack under the cake, nothing is cut (A17) */
+@media (max-width: 560px) {
+  #cc-staff .ccs-mini { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  #cc-staff .ccs-mini-m b, #cc-staff .ccs-mini-m span { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; }
+  #cc-staff .ccs-mini-r { justify-content: flex-start; }
+}
+/* Kitchen brief: one page only (the page box is fixed in the script) */
+@media print { #ccs-print { page-break-after: avoid; break-after: avoid; } #ccs-print .ccs-fit { break-inside: avoid; } }

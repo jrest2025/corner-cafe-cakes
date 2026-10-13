@@ -140,9 +140,12 @@
     var b = {
       select: function (_, o) { if (o && o.head) st.head = true; return b; },
       eq: function (k, v) { st.filters.push([k, v]); return b; }, ilike: function (k, v) { st.filters.push(['ilike:' + k, v]); return b; }, in: function (k, v) { st.filters.push(['in:' + k, v]); return b; }, or: function () { return b; }, gte: function (k, v) { st.filters.push(['gte:' + k, v]); return b; }, lte: function (k, v) { st.filters.push(['lte:' + k, v]); return b; }, not: function () { return b; },
-      order: function () { return b; }, limit: function () { return b; }, update: function (u) { calls.push(['update', table, u]); return b; }, insert: function (u) { calls.push(['insert', table, u]); return b; }, delete: function () { calls.push(['delete', table]); return b; },
+      order: function () { return b; }, limit: function () { return b; }, update: function (u) { calls.push(['update', table, u]); st.upd = u; return b; }, insert: function (u) { calls.push(['insert', table, u]); return b; }, delete: function () { calls.push(['delete', table]); return b; },
       single: function () { return b; }, maybeSingle: function () { return b; },
-      then: function (ok, bad) { return Promise.resolve(result(table, st)).then(ok, bad); }
+      then: function (ok, bad) {
+        if (window.__failT && window.__failT[table]) return Promise.resolve({ error: { message: window.__failT[table] === 'denied' ? 'permission denied' : 'Failed to fetch' } }).then(ok, bad);
+        var r = result(table, st); if (st.upd && table === 'locations' && r.data) r = { data: Object.assign({}, r.data, st.upd) };
+        return Promise.resolve(r).then(ok, bad); }
     };
     return b;
   }
@@ -166,6 +169,7 @@
       }
       return Promise.resolve({ data: { ok: false, message: 'Unknown request.' } }); } },
     rpc: function (fn, args) {
+      if (window.__failR && window.__failR[fn]) { calls.push(['rpc-failed', fn, args]); return Promise.resolve({ error: { message: 'Failed to fetch' } }); }
       if (fn === 'dashboard_data') { calls.push(['rpc', fn, args]); return Promise.resolve({ data: dashFeed() }); }
       if (fn === 'dashboard_register') { calls.push(['rpc', fn, args]); return Promise.resolve({ data: regFeed() }); }
       if (fn === 'register_review_list') { calls.push(['rpc', fn, args]); var rl = window.__role || 'manager'; if (rl !== 'manager' && rl !== 'admin') return Promise.resolve({ data: { ok: false, message: 'Only managers can review register records.' } }); var rf = regFeed(); return Promise.resolve({ data: { ok: true, sync: Object.assign({}, rf.sync, { needs_review: regCards.length }), records: regCards.slice(), recent: regDecisions.slice() } }); }
