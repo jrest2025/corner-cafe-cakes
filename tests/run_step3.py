@@ -149,7 +149,7 @@ async def main():
         check('repeat opens New order with a clear note', 'Repeating CC-1001' in t and "Prices are today's" in t, t[:600])
         check('last message, occasion and dietary shown, not copied', 'Happy 30th' in t and 'Birthday' in t and 'Nut allergy' in t and d and d['message'] == '' and d['diet'] is None and d['occasion'] is None, d)
         check('customer, cake, flavour, size and quantity carried over; no date', d and d['customer']['id'] == 'c1' and d['product'] == 'chocolate-mudcake-mocha' and d['variant'] == 'Mudcake' and d['size'] == 8 and d['qty'] == 1 and d['date'] == '', d)
-        check('dietary needs are asked again on the slip', await pg.locator('#sl-diet [data-act="n-diet"]').count() == 2 and 'Dietary answer' in await pg.inner_text('#sl-bar'))
+        check('dietary needs are asked again on the slip', await pg.evaluate("(function(){try{return JSON.parse(localStorage.getItem('ccs-draft-u1')).diet}catch(e){return 'x'}})()") is None and await pg.locator('#sl-st-5').count() == 1)
         t = await pg.inner_text('#ccs-main')
         check('price comes from today\'s price list', '$' in t)
         await pg.click('[data-act="new-again"]'); await pg.wait_for_timeout(150); await pg.click('[data-act="new-clear"]'); await pg.wait_for_timeout(200)

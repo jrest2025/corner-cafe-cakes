@@ -30,12 +30,23 @@ async def show_month_of(pg, d):
 async def calls(pg, fn):
     return await pg.evaluate(f"window.__calls.filter(function(c){{return c[1]==='{fn}'}}).map(function(c){{return c[2]}})")
 
+async def js(pg, sel):
+    await pg.evaluate(f"(function(){{var e=document.querySelector({sel!r}); if(e) e.click(); return !!e}})()"); await pg.wait_for_timeout(200)
+
 async def fill_new_customer_and_cake(pg, qty='2'):
-    await pg.fill('#n-name', 'New Calendar Guest')
+    await js(pg, '[data-act="n-cell"][data-v="cheesecake|6"]')
+    await pg.fill('#n-qty', qty); await js(pg, '[data-act="sl-next"]')
+    await pg.fill('#n-name', 'New Calendar Guest'); await js(pg, '[data-act="sl-next"]')
     await pg.fill('#n-phone', '912 0099'); await pg.wait_for_timeout(450)
-    await pg.click('[data-act="n-cell"][data-v="cheesecake|6"]'); await pg.wait_for_timeout(150)
-    await pg.fill('#n-qty', qty)
-    await pg.click('[data-act="n-diet"][data-v="no"]'); await pg.wait_for_timeout(200)
+    await js(pg, '[data-act="sl-opt"][data-v="no"]'); await js(pg, '[data-act="sl-next"]')
+
+async def finish_rest(pg):
+    for _ in range(6):
+        st = await pg.inner_text('.sl-progress')
+        if 'Step 8' in st: break
+        if 'Step 4' in st or 'Step 5' in st or 'Step 7' in st: await js(pg, '[data-act="sl-skip"]') if await pg.locator('[data-act="sl-skip"]').count() else await js(pg, '[data-act="sl-next"]')
+        elif 'Step 6' in st: await js(pg, '[data-act="n-diet"][data-v="no"]'); await js(pg, '[data-act="sl-next"]')
+        else: await js(pg, '[data-act="sl-next"]')
 
 async def desktop(b, errs):
     ctx, pg = await newpage(b, {"width": 1280, "height": 900}, errs)
@@ -76,8 +87,9 @@ async def desktop(b, errs):
     check('desk time slot opens New order as a panel with date and time', await pg.locator('#ccs-sheet.ccs-open .ccs-newsheet').count() == 1 and 'Pickup date from the calendar' in note and '3:00pm' in note, note[:300])
     check('desk calendar stays on screen behind the panel', await pg.locator('#ccs-main .ccs-wgrid').count() == 1)
     await fill_new_customer_and_cake(pg)
+    await finish_rest(pg)
     main = await pg.inner_text('#ccs-sheet')
-    check('desk When step already filled from the slot', '3:00pm' in main and 'Payment' in main and 'Change date, time or delivery' in main, main[:600])
+    check('desk When step already filled from the slot', '3:00pm' in main and 'Create order' in main and 'Step 8 of 8' in main, main[:600])
     await pg.screenshot(path=str(OUT / 'desk-4-new.png'), full_page=True)
     # double tap guard
     await pg.evaluate("var b=document.querySelector('[data-act=\"n-submit\"]'); b.click(); b.click();"); await pg.wait_for_timeout(400)
@@ -130,12 +142,13 @@ async def short_notice_and_failure(b, errs):
     check('short notice needs who approved it', 'Enter who approved' in await pg.inner_text('#ccs-sheet'))
     await pg.fill('#n-rushby', 'Chef Test')
     await pg.click('[data-act="n-time"][data-v="12:00"]'); await pg.wait_for_timeout(250)
+    await finish_rest(pg)
     # failed save keeps everything
     await pg.evaluate("window.__createFail=true")
     await pg.click('[data-act="n-submit"]'); await pg.wait_for_timeout(400)
-    inl = await pg.evaluate("(function(){var e=document.querySelector('#ccs-sheet #sl-bar .ccs-err');return e?e.textContent:''})()")
+    inl = await pg.evaluate("(function(){var e=document.querySelector('#ccs-sheet #sl-st-7 .ccs-err');return e?e.textContent:''})()")
     check('B8 failed save says Not saved beside the Create order button', inl.startswith('Not saved') and 'kept' in inl, inl)
-    check('failed save keeps the panel, the form and the Save button', await pg.locator('#ccs-sheet.ccs-open [data-act="n-submit"]:not([disabled])').count() == 1 and await pg.input_value('#ccs-sheet #n-name') == 'New Calendar Guest')
+    check('failed save keeps the panel, the form and the Save button', await pg.locator('#ccs-sheet.ccs-open [data-act="n-submit"]:not([disabled])').count() == 1 and 'New Calendar Guest' in await pg.inner_text('#ccs-sheet #sl-st-1'))
     await pg.evaluate("window.__createFail=false")
     await pg.click('[data-act="n-submit"]'); await pg.wait_for_timeout(400)
     cs = await calls(pg, 'staff_create_order')
@@ -146,8 +159,9 @@ async def short_notice_and_failure(b, errs):
     # closing half way keeps the draft
     await pg.click(f'.ccs-mday[data-v="{D2}"]'); await pg.wait_for_timeout(250)
     await pg.click('.ccs-calside [data-act="cal-add"]'); await pg.wait_for_timeout(300)
-    await pg.fill('#n-phone', '912 0001'); await pg.wait_for_timeout(450)
-    await pg.click('[data-act="n-pick"][data-v="0"]'); await pg.wait_for_timeout(200)
+    await js(pg, '[data-act="n-cell"][data-v="cheesecake|6"]'); await js(pg, '[data-act="sl-next"]')
+    await pg.fill('#n-name', 'Customer A'); await pg.wait_for_timeout(700)
+    await js(pg, '[data-act="n-pick"]')
     await pg.click('#ccs-sheet [data-act="close"]'); await pg.wait_for_timeout(300)
     check('closing the panel half way keeps the order', 'Unfinished order kept' in await pg.inner_text('#ccs-toast') and await pg.locator('#ccs-sheet.ccs-open').count() == 0)
     # unfinished order prompt

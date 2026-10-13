@@ -551,3 +551,55 @@ body.ccs-is-off #cc-staff .ccs-side { top: var(--ccs-offh, 44px); }
 #cc-staff .sl-cell[aria-pressed="true"], #cc-staff .sl-cell[aria-pressed="true"]:hover { background: #111; color: #fff; font-weight: 800; box-shadow: none; }
 #cc-staff .sl-ptable tr.is-mine th { background: #111; color: #fff; text-decoration: none; }
 #cc-staff .sl-ptable tr.is-mine td { border-color: #111; }
+
+/* Staged Order Slip: paper width, larger type, one line open at a time */
+#cc-staff .sl-wrap { max-width: 600px; margin: 0 auto; font-size: 18px; }
+#cc-staff .sl-wrap .ccs-chip { font-size: 17px; min-height: 48px; padding: 0 18px; }
+#cc-staff .sl-wrap .ccs-input { font-size: 19px; min-height: 52px; }
+#cc-staff .sl-wrap .ccs-btn { font-size: 18px; min-height: 52px; }
+#cc-staff .sl-wrap .ccs-hint { font-size: 15px; }
+#cc-staff .sl-wrap .ccs-check { font-size: 17px; }
+#cc-staff .sl-k { display: block; font-size: 17px; font-weight: 700; color: var(--ccs-ink); }
+#cc-staff .sl-progress { font-size: 16px; color: var(--ccs-muted); margin: 0 0 10px; }
+#cc-staff .sl-progress b { color: var(--ccs-ink); }
+#cc-staff .sl-wrap .sl-card { border: 2px solid #111; border-radius: 6px; box-shadow: 0 10px 30px -18px rgba(0, 0, 0, .45); }
+#cc-staff .sl-band { padding: 16px 20px; }
+#cc-staff .sl-logo svg { width: 132px; }
+#cc-staff .sl-hours { text-align: center; color: #fff; font-weight: 700; font-size: 15px; letter-spacing: .03em; line-height: 1.35; }
+#cc-staff .sl-wrap .sl-cakepick { padding: 16px 16px 8px; }
+#cc-staff .sl-wrap .sl-cakepick.is-open { background: #fff; }
+#cc-staff .sl-wrap .sl-ptable { min-width: 0; }
+#cc-staff .sl-wrap .sl-ptable thead th { font-size: 16px; padding: 9px 4px; }
+#cc-staff .sl-wrap .sl-ptable tbody th { font-size: 16px; min-width: 0; padding: 10px; position: static; line-height: 1.25; }
+#cc-staff .sl-wrap .sl-cell { font-size: 15px; min-height: 52px; padding: 6px 2px; }
+#cc-staff .sl-sub { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+#cc-staff .sl-sub.sl-qty { flex-direction: row; align-items: center; gap: 14px; }
+#cc-staff .sl-sub.sl-qty .ccs-input { width: 96px; }
+#cc-staff .sl-acts { display: flex; gap: 10px; margin-top: 16px; }
+#cc-staff .sl-acts .ccs-btn { min-width: 150px; }
+#cc-staff .sl-lines2 { padding: 6px 18px 14px; }
+#cc-staff .sl-line2 { padding: 12px 0 10px; scroll-margin: 110px; }
+#cc-staff .sl-line2 .sl-l { display: flex; align-items: baseline; gap: 10px; }
+#cc-staff .sl-line2 .sl-l em { font-style: normal; font-size: 13px; font-weight: 600; color: var(--ccs-muted); }
+#cc-staff .sl-line2 .sl-v { display: flex; align-items: flex-end; gap: 12px; border-bottom: 1.5px solid #111; min-height: 34px; padding: 2px 2px 4px; }
+#cc-staff .sl-line2 .sl-v b { flex: 1; font-size: 19px; font-weight: 500; color: var(--ccs-ink); line-height: 1.3; }
+#cc-staff .sl-line2 .sl-v b small { display: block; font-size: 14px; color: var(--ccs-muted); font-weight: 500; }
+#cc-staff .sl-line2 .sl-chg { font-size: 15px; white-space: nowrap; padding: 4px 0; }
+#cc-staff .sl-line2.is-blank .sl-k { color: var(--ccs-muted); font-weight: 600; }
+#cc-staff .sl-line2.is-blank .sl-v { border-bottom-color: var(--ccs-line); }
+#cc-staff .sl-line2.is-open { margin: 8px -10px; padding: 14px 10px 16px; border: 2px solid #111; border-radius: 8px; background: #fff; }
+#cc-staff .sl-line2.is-open .sl-ed { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+#cc-staff .sl-fixed { font-size: 19px; margin: 0; }
+#cc-staff .sl-h { font-size: 20px; margin: 0 0 12px; color: var(--ccs-ink); }
+#cc-staff .sl-wrap .sl-pay { border: 2px solid #111; border-radius: 6px; padding: 18px; margin-top: 16px; }
+#cc-staff .sl-wrap .ccs-total b { font-size: 26px; }
+@media (max-width: 759px) {
+  #cc-staff .sl-wrap { font-size: 17px; }
+  #cc-staff .sl-wrap .sl-ptable tbody th { font-size: 14px; padding: 8px 6px; }
+  #cc-staff .sl-wrap .sl-cell { font-size: 13px; }
+  #cc-staff .sl-wrap .sl-ptable thead th { font-size: 14px; }
+  #cc-staff .sl-acts .ccs-btn { flex: 1; min-width: 0; }
+  #cc-staff .sl-logo svg { width: 100px; }
+  #cc-staff .sl-hours { font-size: 13px; }
+}
+#cc-staff .sl-line2 .sl-v b.sl-none { color: var(--ccs-muted); }
