@@ -340,7 +340,8 @@
       if (fn === 'staff_create_order') return Promise.resolve({ data: { ok: true, order_id: 'o9', reference: 'CC-1009', status: args.p.confirm_now ? (args.p.deposit_required ? 'awaiting_deposit' : 'confirmed') : 'awaiting_review' } });
       if (fn === 'admin_list_users') return Promise.resolve({ data: window.__teamRows.slice() });
       if (fn === 'kitchen_board') return Promise.resolve({ data: { ok: true, today: T, orders: kitchenRows } });
-      if (fn === 'staff_print_brief') { var o = orders.filter(function (x) { return x.id === args.p_order; })[0]; return Promise.resolve({ data: { ok: true, version: 2, new_version: true, changes: ['message', 'design'], snapshot: snap(o) } }); }
+      if (fn === 'staff_print_brief') { var o = orders.filter(function (x) { return x.id === args.p_order; })[0]; return Promise.resolve({ data: { ok: true, version: 2, new_version: true, changes: ['message', 'design'], snapshot: Object.assign(snap(o), window.__candles ? { candles: window.__candles } : {}), slip: { name: 'Mere Tavola', phone: '+679 912 3456', price: 68, taken_by: 'Ana Manager', ordered_at: '2026-10-12T22:15:00Z' } } }); }
+      if (fn === 'staff_set_candles') { window.__candlesSet = args; return Promise.resolve({ data: args.p_candles && args.p_candles.length > 60 ? { ok: false, error: 'candles', message: 'Keep the candles to 60 characters.' } : { ok: true, changed: true, brief_needs_reprint: true } }); }
       if (fn === 'kitchen_set_stage' && args.p_stage === 'ready' && !args.p_name) return Promise.resolve({ data: { ok: false, error: 'qc', message: 'Enter the name of the person who checked the cake.' } });
       if (fn === 'staff_set_fulfilment') return Promise.resolve({ data: { ok: true, total: 62 } });
       if (fn === 'staff_amend_order') {

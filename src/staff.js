@@ -568,7 +568,8 @@
     if (o.has_dietary) h += '<div class="ccs-alert">Dietary or allergy: ' + esc([].concat(i.dietary || [], i.dietary_note ? [i.dietary_note] : []).join(', ') || 'see notes') + '</div>';
     h += '<section class="ccs-box"><h3>Cake</h3><p class="ccs-big">' + esc(cakeLine(i)) + '</p><dl class="ccs-kv">' +
       kv('Finish', i.finish === 'custom' ? 'Custom design' : 'Standard finish') + kv('Design', i.design_description) +
-      kv('Message', i.cake_message ? '“' + i.cake_message + '”' : '') + kv('Occasion', i.occasion) + kv('Serves', i.serves_label) + kv('Notes', o.customer_notes) + '</dl>' +
+      kv('Message', i.cake_message ? '“' + i.cake_message + '”' : '') + kv('Candles', i.candles) + kv('Occasion', i.occasion) + kv('Serves', i.serves_label) + kv('Notes', o.customer_notes) + '</dl>' +
+      (can('manager', 'front_of_house') && OPEN.indexOf(o.order_status) > -1 ? '<button type="button" class="ccs-link" data-act="panel" data-v="candles">' + (i.candles ? 'Change candles' : 'Add candles') + '</button>' : '') +
       (S.sheet.photos.length ? '<div class="ccs-photos">' + S.sheet.photos.map(function (u) { return '<a href="' + esc(u) + '" target="_blank" rel="noopener"><img src="' + esc(u) + '" alt="Reference photo"></a>'; }).join('') + '</div>' : ((o.order_attachments || []).length ? '<p class="ccs-hint">Loading reference photos…</p>' : '')) + '</section>';
     var deliv = o.fulfilment_method === 'delivery', closedSt = ['completed', 'declined', 'cancelled'].indexOf(o.order_status) > -1;
     h += '<section class="ccs-box"><h3>' + (deliv ? 'Delivery' : 'Collection') + '</h3><p class="ccs-big">' + esc(nice(o.required_date, true)) + ' at ' + esc(t12(o.required_time)) + '</p>' +
@@ -607,7 +608,7 @@
       stage: 'Kitchen: ' + (STAGE_LABEL[d.to] || d.to) + (d.qc_by ? ', checked by ' + d.qc_by : ''),
       brief_printed: 'Kitchen brief version ' + d.version + (d.new_version ? ' printed' : ' reprinted') + (d.changes && d.changes.length ? ' (changed: ' + d.changes.join(', ') + ')' : ''),
       fulfilment: d.method === 'delivery' ? 'Set to delivery, ' + (d.zone || '') + ', fee ' + money(d.fee) : 'Set to collection',
-      assigned: d.to ? 'Assigned to ' + d.to : 'Assignment cleared', amended: 'Amended, revision ' + d.revision + (d.reason ? ' (' + d.reason + ')' : ''), kitchen_ack: 'Kitchen acknowledged the changes', deleted: 'Deleted', restored: 'Restored after being deleted', imported: 'Brought in from the Google Sheet', sheet_linked: 'Linked to its Google Sheet row' };
+      assigned: d.to ? 'Assigned to ' + d.to : 'Assignment cleared', amended: 'Amended, revision ' + d.revision + (d.reason ? ' (' + d.reason + ')' : ''), kitchen_ack: 'Kitchen acknowledged the changes', candles_changed: 'Candles ' + (d.to ? (d.from ? 'changed to “' + d.to + '”' : 'added: “' + d.to + '”') : 'removed'), deleted: 'Deleted', restored: 'Restored after being deleted', imported: 'Brought in from the Google Sheet', sheet_linked: 'Linked to its Google Sheet row' };
     if (e.kind === 'collected') map.collected = (d.method === 'delivery' ? 'Delivered' : 'Collected') + (d.to ? ', received by ' + d.to : '');
     return (map[e.kind] || e.kind) + (d.note ? ': ' + d.note : '') + ' · ' + who;
   }
@@ -623,6 +624,12 @@
         '<div class="ccs-field"><label class="ccs-label" for="ccs-dep">Deposit needed (FJD)</label><input class="ccs-input" id="ccs-dep" inputmode="decimal" placeholder="0 for none"></div></div>' +
         '<p class="ccs-hint">With a deposit, the order waits until it is paid. ' + (S.setup && S.setup.guest_emails ? 'The customer is emailed either way.' : 'Guest emails are off, so message or call the customer once you confirm.') + '</p>' + err +
         '<div class="ccs-actions-row"><button type="button" class="ccs-btn ccs-good" data-act="do-confirm">Confirm</button><button type="button" class="ccs-btn ccs-ghost" data-act="panel" data-v="">Back</button></div></div>';
+    }
+    if (p === 'candles') {
+      var ci = (o.order_items || [])[0] || {};
+      return '<div class="ccs-panel"><b>Candles</b><div class="ccs-field"><label class="ccs-label" for="ccs-candles">Candles for this cake (leave blank for none)</label><input class="ccs-input" id="ccs-candles" maxlength="60" data-autofocus placeholder="For example: number 30 candle, or 5 small candles" value="' + esc(ci.candles || '') + '"></div>' +
+        (o.brief_version ? '<p class="ccs-hint">A kitchen brief was printed. After saving, print the new version and throw the old one away.</p>' : '') + err +
+        '<div class="ccs-actions-row"><button type="button" class="ccs-btn" data-act="do-candles">Save candles</button><button type="button" class="ccs-btn ccs-ghost" data-act="panel" data-v="">Back</button></div></div>';
     }
     if (p === 'decline' || p === 'cancel' || p === 'note' || p === 'waive') {
       var lbl = { decline: ['Decline this order', 'Reason for the customer (optional)', 'Decline order', 'ccs-danger'], cancel: ['Cancel this order', 'Reason (required)', 'Cancel order', 'ccs-danger'], note: ['Add a team note', 'Note', 'Save note', ''], waive: ['Waive the deposit', 'Reason (required)', 'Confirm without deposit', 'ccs-good'] }[p];
@@ -653,8 +660,8 @@
         '<div class="ccs-actions-row"><button type="button" class="ccs-btn ccs-good" data-act="do-collected">' + (dl ? 'Delivered' : 'Collected') + '</button><button type="button" class="ccs-btn ccs-ghost" data-act="panel" data-v="">Back</button></div></div>';
     }
     if (p === 'brief') {
-      return '<div class="ccs-panel"><b>Print kitchen brief</b><p class="ccs-hint">' + (o.brief_version ? 'Version ' + o.brief_version + ' was printed before. If anything changed since, this prints a new version and marks what changed.' : 'This is the first brief for this order.') + ' No prices or phone numbers are printed.</p>' + err +
-        '<div class="ccs-actions-row"><button type="button" class="ccs-btn" data-act="do-brief" data-v="A4">Print A4</button><button type="button" class="ccs-btn ccs-ghost" data-act="do-brief" data-v="A5">Print A5</button><button type="button" class="ccs-btn ccs-ghost" data-act="panel" data-v="">Back</button></div></div>';
+      return '<div class="ccs-panel"><b>Print kitchen brief</b><p class="ccs-hint">' + (o.brief_version ? 'Version ' + o.brief_version + ' was printed before. If anything changed since, this prints a new version and marks what changed.' : 'This is the first brief for this order.') + ' Prints on one A5 page in the Cake Order Slip layout, with the guest name, phone number and price.</p>' + err +
+        '<div class="ccs-actions-row"><button type="button" class="ccs-btn" data-act="do-brief" data-v="A5">Print slip (A5)</button><button type="button" class="ccs-btn ccs-ghost" data-act="panel" data-v="">Back</button></div></div>';
     }
     if (p === 'pay') {
       if (!S.payKey) S.payKey = uuid();
@@ -758,6 +765,19 @@
       }).catch(function (e) { S.busy = false; fail(e); });
   }
 
+  function saveCandles() {
+    var o = S.sheet.data, v = val('ccs-candles').trim(); if (S.busy) return;
+    if (v.length > 60) { S.panelErr = 'Keep the candles to 60 characters.'; S.dirty['ccs-candles'] = v; return renderSheet(); }
+    S.busy = true; S.panelErr = null;
+    sb.rpc('staff_set_candles', { p_order: o.id, p_candles: v }).then(function (r) {
+      S.busy = false; if (r.error) throw r.error;
+      if (!r.data.ok) { S.panelErr = r.data.message; S.dirty['ccs-candles'] = v; return renderSheet(); }
+      S.dirty = {}; S.panel = null;
+      toast(!r.data.changed ? 'No change to save' : r.data.brief_needs_reprint ? 'Candles saved. Print the new kitchen brief.' : 'Candles saved');
+      openOrder(o.id); loadOrders(true);
+    }).catch(function (e) { S.busy = false; fail(e); });
+  }
+
   // ---------- kitchen brief (print) ----------
   function printBrief(size) {
     var o = S.sheet.data; if (S.busy) return; S.busy = true; S.panelErr = null;
@@ -770,29 +790,49 @@
       sb.storage.from('cake-references').createSignedUrls(paths, 900).then(function (u) { go(((u && u.data) || []).map(function (x) { return x.signedUrl; }).filter(Boolean)); }, function () { go([]); });
     }).catch(function (e) { S.busy = false; fail(e); });
   }
+  // Kitchen brief in the Cake Order Slip layout (one A5 page)
+  var SLIP_LOGO = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="364.8 277 120.3 43.8" fill="currentColor" role="img" aria-label="Corner Cafe"><path fill-rule="evenodd" d="M 477.05 282.33L477.02 288.33L477.09 294.55L468.64 294.55L468.66 293.69L468.67 290.50L468.73 284.76L468.66 278.39L468.64 277.48L477.07 277.48L477.07 280.70C478.33 279.43 479.21 278.63 479.71 278.29C480.85 277.53 481.92 277.15 482.93 277.15C483.55 277.15 484.06 277.28 484.46 277.53C484.85 277.78 485.06 278.10 485.06 278.48C485.06 278.78 484.94 279.03 484.69 279.23C484.45 279.43 484.16 279.53 483.79 279.53C483.56 279.53 483.30 279.46 483.01 279.34C482.53 279.12 482.13 279.01 481.82 279.01C481.02 279.01 480.26 279.27 479.52 279.78C478.79 280.29 477.96 281.14 477.05 282.33M459.23 285.49L459.23 280.92C459.20 279.94 459.18 279.35 459.16 279.16C459.14 278.97 459.07 278.79 458.93 278.62C458.62 278.21 458 278.01 457.05 278.01C456.08 278.01 455.48 278.25 455.24 278.71C455.08 279 455.01 279.73 455.01 280.92L455.01 285.49L457.02 285.55 ZM455.01 286.52L455.01 291.36C455.01 292.30 455.07 292.89 455.19 293.14C455.42 293.62 455.97 293.87 456.82 293.87C458.10 293.87 459.35 293.53 460.60 292.87C461.85 292.21 462.92 291.30 463.83 290.13C464.13 289.75 464.35 289.50 464.48 289.39C464.61 289.29 464.75 289.24 464.91 289.24C465.09 289.24 465.25 289.30 465.37 289.44C465.49 289.57 465.55 289.73 465.55 289.93C465.55 290.37 465.18 290.95 464.45 291.69C463.48 292.64 462.28 293.41 460.85 294.00C459.41 294.60 458.02 294.90 456.66 294.90C454.32 294.90 452.26 294.16 450.46 292.66C449.42 291.78 448.62 290.71 448.06 289.42C447.57 288.30 447.32 287.17 447.32 286.05C447.32 284.96 447.54 283.88 447.98 282.78C448.42 281.70 449.02 280.76 449.79 279.97C450.68 279.04 451.73 278.32 452.95 277.81C454.15 277.31 455.40 277.06 456.71 277.06C458.74 277.06 460.58 277.62 462.22 278.76C464.79 280.53 466.07 283.10 466.04 286.47L462.21 286.47L457.26 286.48 ZM431.44 277.48L431.44 279.65C432.73 278.79 433.98 278.14 435.21 277.71C436.45 277.27 437.64 277.06 438.80 277.06C440.36 277.06 441.68 277.39 442.76 278.07C443.57 278.58 444.11 279.21 444.39 279.97C444.67 280.73 444.82 281.96 444.82 283.67L444.78 290.91L444.83 294.55L436.45 294.55L436.51 290.21L436.57 287.02L436.55 282.20C436.54 281.09 436.53 280.42 436.51 280.21C436.49 280 436.44 279.80 436.35 279.64C436.17 279.31 435.80 279.14 435.21 279.14C434.67 279.14 434.10 279.28 433.47 279.57C432.84 279.87 432.17 280.30 431.44 280.89L431.43 281.53L431.39 285.92L431.36 289.29L431.41 293.88L431.43 294.55L423.01 294.55L423.07 288.43L423.11 284.37L423.07 280.87L423.01 277.48 ZM413.59 282.33L413.55 288.33L413.62 294.55L405.17 294.55L405.19 293.69L405.21 290.50L405.26 284.76L405.19 278.39L405.17 277.48L413.60 277.48L413.60 280.70C414.86 279.43 415.75 278.63 416.24 278.29C417.38 277.53 418.46 277.15 419.47 277.15C420.08 277.15 420.59 277.28 420.99 277.53C421.39 277.78 421.59 278.10 421.59 278.48C421.59 278.78 421.47 279.03 421.23 279.23C420.98 279.43 420.69 279.53 420.32 279.53C420.09 279.53 419.83 279.46 419.55 279.34C419.07 279.12 418.66 279.01 418.35 279.01C417.56 279.01 416.79 279.27 416.06 279.78C415.32 280.29 414.50 281.14 413.59 282.33M392.73 278.07L392.68 293.83C393.02 293.85 393.25 293.87 393.39 293.87C394.91 293.87 396.37 293.46 397.76 292.65C399.11 291.85 400.11 290.80 400.78 289.49C401.31 288.44 401.57 287.30 401.57 286.05C401.57 283.54 400.59 281.50 398.64 279.94C397.06 278.67 395.34 278.04 393.49 278.04C393.33 278.04 393.08 278.05 392.73 278.07M393.21 277.06C394.97 277.06 396.65 277.52 398.23 278.45C399.69 279.31 400.80 280.47 401.57 281.95C402.25 283.26 402.59 284.64 402.59 286.10C402.59 287.10 402.39 288.10 401.99 289.11C401.59 290.12 401.04 291.02 400.35 291.80C399.39 292.88 398.21 293.68 396.81 294.22C395.67 294.67 394.48 294.90 393.24 294.90C391.16 294.90 389.30 294.32 387.64 293.14C386.35 292.25 385.36 291.10 384.69 289.69C384.13 288.50 383.85 287.25 383.85 285.92C383.85 283.33 384.84 281.19 386.82 279.48C388.67 277.90 390.80 277.09 393.21 277.06M373.73 280.87L373.73 291.32L373.71 292.32C373.71 292.96 373.80 293.40 373.96 293.61C374.14 293.82 374.48 293.93 374.99 293.93C376.29 293.93 377.56 293.55 378.82 292.79C380.07 292.04 381.08 291.03 381.88 289.76C382.12 289.37 382.35 289.17 382.58 289.17C382.75 289.17 382.90 289.25 383.04 289.39C383.17 289.53 383.24 289.67 383.24 289.83C383.24 290.21 382.93 290.74 382.29 291.42C381.65 292.10 380.91 292.71 380.07 293.26C378.34 294.35 376.50 294.90 374.53 294.90C371.84 294.90 369.62 294.10 367.87 292.52C365.86 290.74 364.87 288.55 364.87 285.97C364.87 283.30 365.92 281.08 368.03 279.31C369.80 277.81 371.98 277.06 374.57 277.06C376.63 277.06 378.44 277.52 379.98 278.45C380.64 278.85 381.18 279.27 381.60 279.72C382.01 280.17 382.23 280.56 382.23 280.87C382.23 281.03 382.16 281.16 382.04 281.27C381.92 281.38 381.77 281.44 381.60 281.44C381.37 281.44 381.07 281.19 380.73 280.68C380.22 279.99 379.42 279.38 378.33 278.86C377.25 278.35 376.22 278.09 375.26 278.09C374.61 278.09 374.19 278.26 374.01 278.61C373.82 278.95 373.73 279.71 373.73 280.87"/><path fill-rule="evenodd" d="M 454.97 311.08L454.97 306.37C454.94 305.36 454.92 304.76 454.90 304.56C454.88 304.36 454.81 304.17 454.67 304.00C454.37 303.58 453.76 303.37 452.83 303.37C451.88 303.37 451.29 303.61 451.05 304.09C450.90 304.39 450.83 305.15 450.83 306.37L450.83 311.08L452.80 311.14 ZM450.83 312.14L450.83 317.14C450.83 318.11 450.89 318.72 451.00 318.98C451.23 319.47 451.76 319.72 452.60 319.72C453.86 319.72 455.09 319.38 456.32 318.69C457.54 318.01 458.60 317.07 459.5 315.87C459.79 315.47 460.00 315.22 460.12 315.11C460.26 315.00 460.40 314.95 460.55 314.95C460.73 314.95 460.88 315.01 461.00 315.15C461.12 315.28 461.18 315.45 461.18 315.66C461.18 316.11 460.82 316.71 460.10 317.48C459.15 318.46 457.97 319.25 456.56 319.86C455.15 320.48 453.78 320.78 452.44 320.78C450.15 320.78 448.12 320.01 446.36 318.48C445.33 317.57 444.55 316.46 444 315.14C443.51 313.98 443.27 312.82 443.27 311.66C443.27 310.54 443.49 309.42 443.92 308.29C444.35 307.17 444.94 306.20 445.69 305.39C446.57 304.43 447.61 303.69 448.80 303.16C449.98 302.65 451.21 302.39 452.5 302.39C454.49 302.39 456.29 302.97 457.91 304.14C460.44 305.97 461.69 308.62 461.67 312.09L457.89 312.09L453.04 312.11 ZM440.42 303.78L440.39 308.61L440.35 314.60L440.42 319.78L440.42 320.43L432.16 320.43L432.16 319.88L432.19 317.27L432.22 311.61L432.16 304.25L432.16 303.78L431.86 303.78L430.62 303.82C430.13 303.82 429.89 303.63 429.89 303.26C429.89 302.89 430.11 302.69 430.55 302.69L431.33 302.74L432.26 302.74C432.42 301.84 432.61 301.13 432.84 300.62C433.07 300.11 433.43 299.62 433.92 299.15C435.26 297.82 437.19 297.15 439.69 297.15C440.92 297.15 442.01 297.33 442.94 297.69C443.89 298.07 444.35 298.48 444.35 298.96C444.35 299.14 444.28 299.30 444.13 299.43C443.99 299.56 443.82 299.63 443.62 299.63C443.41 299.63 443.20 299.51 443 299.28C442.74 298.96 442.54 298.75 442.39 298.65C442.26 298.55 442.08 298.50 441.89 298.50C441.34 298.50 440.95 298.82 440.73 299.44C440.50 300.07 440.38 301.17 440.37 302.74L441.87 302.74C441.94 302.74 442.08 302.73 442.30 302.71C442.48 302.70 442.66 302.69 442.82 302.69C443.26 302.69 443.48 302.89 443.48 303.28C443.48 303.64 443.22 303.82 442.69 303.82L441.50 303.79 ZM420.03 310.85C418.67 310.17 417.62 309.83 416.88 309.83C416.25 309.83 415.84 310.08 415.65 310.58C415.54 310.85 415.49 311.62 415.49 312.92L415.49 316.77C415.50 317.62 415.53 318.13 415.57 318.32C415.67 318.81 416.04 319.06 416.67 319.06C417.16 319.06 417.71 318.91 418.33 318.61C418.94 318.32 419.49 317.93 420.00 317.44 ZM420.02 309.69L420.02 307.72C420.01 306.36 419.98 305.52 419.95 305.21C419.92 304.90 419.82 304.62 419.66 304.37C419.27 303.77 418.37 303.47 416.94 303.47C414.75 303.47 413.04 304.16 411.85 305.53C411.36 306.09 410.95 306.37 410.62 306.37C410.37 306.37 410.16 306.28 409.97 306.11C409.78 305.94 409.69 305.74 409.69 305.51C409.69 304.84 410.5 304.14 412.10 303.42C413.64 302.73 415.62 302.39 418.05 302.39C422.03 302.39 424.85 302.99 426.49 304.19C427.20 304.72 427.67 305.31 427.88 305.97C428.10 306.62 428.20 307.78 428.20 309.43L428.20 315.83C428.16 317.01 428.19 317.90 428.31 318.50C428.42 319.10 428.67 319.74 429.08 320.43L420.02 320.43L420.02 318.73C419.02 319.41 418.04 319.92 417.06 320.27C416.09 320.61 415.12 320.78 414.17 320.78C412.57 320.78 411.14 320.32 409.89 319.38C408.26 318.16 407.45 316.57 407.45 314.60C407.45 312.88 408.10 311.48 409.42 310.42C410.95 309.16 412.85 308.53 415.11 308.53C416.04 308.53 416.86 308.61 417.58 308.78C418.29 308.95 419.10 309.25 420.02 309.69M397.48 306.32L397.48 317.09L397.46 318.12C397.46 318.79 397.55 319.23 397.71 319.46C397.88 319.67 398.22 319.78 398.72 319.78C400.00 319.78 401.25 319.39 402.48 318.61C403.71 317.83 404.71 316.79 405.49 315.48C405.73 315.08 405.96 314.88 406.18 314.88C406.34 314.88 406.49 314.95 406.63 315.10C406.76 315.25 406.83 315.40 406.83 315.56C406.83 315.95 406.52 316.5 405.89 317.20C405.27 317.90 404.54 318.53 403.71 319.09C402.01 320.22 400.20 320.78 398.27 320.78C395.63 320.78 393.44 319.97 391.72 318.33C389.75 316.5 388.78 314.24 388.78 311.58C388.78 308.83 389.81 306.54 391.88 304.71C393.62 303.16 395.76 302.39 398.30 302.39C400.33 302.39 402.11 302.87 403.63 303.82C404.27 304.23 404.80 304.67 405.21 305.14C405.62 305.60 405.83 306.00 405.83 306.32C405.83 306.48 405.77 306.62 405.65 306.73C405.53 306.85 405.38 306.90 405.21 306.90C404.99 306.90 404.70 306.64 404.35 306.12C403.86 305.41 403.07 304.78 402.01 304.25C400.94 303.71 399.93 303.45 398.98 303.45C398.35 303.45 397.94 303.63 397.76 303.98C397.57 304.33 397.48 305.12 397.48 306.32"/></svg>';
   function briefHtml(b, urls, size) {
-    var s = b.snapshot, deliv = s.method === 'delivery', due = s.time, lead = deliv ? 60 : 30;
+    var s = b.snapshot, x = b.slip || {}, deliv = s.method === 'delivery', due = s.time, lead = deliv ? 60 : 30;
     var dm = Number(due.slice(0, 2)) * 60 + Number(due.slice(3, 5)) - lead, readyBy = String(Math.floor(dm / 60)).padStart(2, '0') + ':' + String(dm % 60).padStart(2, '0');
-    var NAMES = { cake: 'cake', variant: 'flavour', size: 'size', quantity: 'quantity', finish: 'finish', design: 'design', message: 'message', occasion: 'occasion', dietary: 'dietary', dietary_note: 'dietary note', has_dietary: 'dietary', date: 'date', time: 'time', method: 'collection or delivery', area: 'delivery area', photos: 'reference photos', kitchen_notes: 'kitchen notes', order_notes: 'order notes', customer: 'name', serves: 'serves', rush: 'short notice' };
+    var NAMES = { cake: 'cake', variant: 'flavour', size: 'size', quantity: 'quantity', finish: 'finish', design: 'design', message: 'inscription', occasion: 'occasion', dietary: 'dietary', dietary_note: 'dietary note', has_dietary: 'dietary', date: 'date', time: 'time', method: 'collection or delivery', area: 'delivery area', photos: 'reference photos', kitchen_notes: 'kitchen notes', order_notes: 'order notes', customer: 'name', serves: 'serves', rush: 'short notice', candles: 'candles' };
     var changed = (b.changes || []).map(function (k) { return NAMES[k] || k; }).filter(function (v, i, a) { return a.indexOf(v) === i; });
-    var diet = s.has_dietary ? [].concat(s.dietary || [], s.dietary_note ? [s.dietary_note] : []).join(', ') || 'See notes' : '';
-    var row = function (k, v) { return v ? '<tr><th>' + esc(k) + '</th><td>' + esc(v) + '</td></tr>' : ''; };
-    var box = function (t) { return '<span class="ccs-bx"></span>' + esc(t); };
-    return '<div class="ccs-brief ccs-brief-' + size + '">' +
-      '<div class="ccs-b-top"><div><div class="ccs-b-kicker">Corner Café kitchen brief</div><div class="ccs-b-ref">' + esc(s.reference) + '</div></div>' +
-      '<div class="ccs-b-ver"><b>Version ' + b.version + '</b><span>Printed ' + esc(stamp(new Date().toISOString())) + '</span>' + (s.rush ? '<span class="ccs-b-flag">Short notice</span>' : '') + '</div></div>' +
-      (b.version > 1 && changed.length ? '<div class="ccs-b-changed">Changed since version ' + (b.version - 1) + ': ' + esc(changed.join(', ')) + '. Throw away the old brief.</div>' : '') +
-      '<div class="ccs-b-due"><div><span>' + (deliv ? 'Delivery' : 'Collection') + '</span><b>' + esc(nice(s.date, true)) + ', ' + esc(t12(s.time)) + '</b>' + (deliv ? '<em>' + esc(s.area || 'Delivery') + '</em>' : '<em>From the café counter</em>') + '</div>' +
-      '<div><span>Ready by</span><b>' + esc(t12(readyBy)) + '</b><em>' + lead + ' minutes before ' + (deliv ? 'delivery' : 'collection') + '</em></div><div><span>For</span><b>' + esc(s.customer || '') + '</b><em>Order ' + esc(s.reference) + '</em></div></div>' +
-      (s.has_dietary ? '<div class="ccs-b-diet">Dietary or allergy: ' + esc(diet) + '</div>' : '<div class="ccs-b-nodiet">No dietary needs or allergies given.</div>') +
-      '<table class="ccs-b-spec">' + row('Cake', (s.variant || s.cake) + (s.variant && s.cake && s.variant !== s.cake ? ' (' + s.cake + ')' : '')) + row('Size', s.size + ' inch' + (s.quantity > 1 ? ', ' + s.quantity + ' cakes' : '')) + row('Serves', s.serves) +
-      row('Finish', s.finish === 'custom' ? 'Custom design' : 'Standard finish') + row('Design', s.design) + row('Occasion', s.occasion) + row('Order notes', s.order_notes) + row('Kitchen notes', s.kitchen_notes) + '</table>' +
-      '<div class="ccs-b-msg"><span>Written on the cake</span><b>' + (s.message ? '“' + esc(s.message) + '”' : 'No message') + '</b>' + (s.message ? '<em>Copy exactly, including spelling and capitals.</em>' : '') + '</div>' +
-      (urls.length ? '<div class="ccs-b-photos"><span>Approved reference photos (' + urls.length + ')</span><div>' + urls.map(function (u) { return '<img src="' + esc(u) + '" alt="Reference photo">'; }).join('') + '</div></div>' : '') +
-      '<div class="ccs-b-grid"><div class="ccs-b-sec"><h4>Production</h4><p>Made by: ______________________</p><p>Started: ________  Finished: ________</p></div>' +
-      '<div class="ccs-b-sec"><h4>Quality check</h4>' + ['Correct flavour and size', 'Message spelled exactly', 'Design matches the brief and photos', 'Dietary needs followed', 'Clean finish, box and board'].map(function (t) { return '<p>' + box(t) + '</p>'; }).join('') + '<p>Checked by: ________________  Time: ______</p></div>' +
-      '<div class="ccs-b-sec"><h4>Packing and handover</h4><p>' + box('Boxed, labelled with ' + esc(s.reference)) + '</p>' + (deliv ? '<p>' + box('Kept level, cool and upright in the vehicle') + '</p><p>' + box('Delivered to ' + esc(s.area || 'the address on the order screen')) + '</p>' : '<p>' + box('Name and order number checked at the counter') + '</p>') + '<p>Handed to: ________________  Time: ______</p></div></div>' +
-      '<p class="ccs-b-foot">Kitchen copy. Prices and contact details are not printed. Address and phone are on the order screen.</p></div>';
+    var diet = s.has_dietary ? [].concat(s.dietary || [], s.dietary_note ? [s.dietary_note] : []).join(', ') || 'See order notes' : '';
+    var cents = function (v) { return v == null || v === '' ? '' : '$' + Number(v).toFixed(2); };
+    // Price table from the current prices in the app; the ordered cake and size are outlined
+    var prods = ((S.setup && S.setup.products) || []), inches = [];
+    prods.forEach(function (p) { (p.sizes || []).forEach(function (z) { if (inches.indexOf(z.inch) < 0) inches.push(z.inch); }); });
+    inches.sort(function (m, n) { return m - n; });
+    var table = prods.length ? '<table class="sl-prices"><thead><tr><th>Type</th>' + inches.map(function (n) { return '<th>' + n + '”</th>'; }).join('') + '</tr></thead><tbody>' +
+      prods.map(function (p) {
+        var mine = p.name === s.cake;
+        return '<tr' + (mine ? ' class="sl-mine"' : '') + '><th>' + esc(p.name) + '</th>' + inches.map(function (n) { var z = (p.sizes || []).filter(function (q) { return q.inch === n; })[0]; return '<td' + (mine && Number(s.size) === n ? ' class="sl-pick"' : '') + '>' + (z ? cents(z.price) : '') + '</td>'; }).join('') + '</tr>';
+      }).join('') + '</tbody></table>' : '';
+    var line = function (k, v, cls) { return '<div class="sl-line' + (cls ? ' ' + cls : '') + '"><span>' + k + ':</span><b>' + (v ? esc(v) : '&nbsp;') + '</b></div>'; };
+    var pair = function (k1, v1, k2, v2) { return '<div class="sl-pair">' + line(k1, v1) + line(k2, v2) + '</div>'; };
+    var cake = (s.variant || s.cake || '') + (s.variant && s.cake && s.variant !== s.cake ? ' (' + s.cake + ')' : '') + (s.finish === 'custom' ? ' · Custom design' : '');
+    var sizeTxt = s.size ? s.size + ' inch' + (s.quantity > 1 ? ' × ' + s.quantity + ' cakes' : '') + (s.serves ? ' · ' + s.serves : '') : '';
+    var remarks = [s.finish === 'custom' && s.design ? 'Design: ' + s.design : '', s.occasion ? 'Occasion: ' + s.occasion : '', s.order_notes ? 'Order notes: ' + s.order_notes : '', s.kitchen_notes ? 'Kitchen notes: ' + s.kitchen_notes : '',
+      deliv ? 'Delivery to ' + (s.area || 'the address on the order screen') + '. Address is on the order screen.' : ''].filter(Boolean).join(' · ');
+    var at = x.ordered_at ? new Date(x.ordered_at) : null;
+    var odate = at ? at.toLocaleDateString('en-GB', { timeZone: TZ, day: 'numeric', month: 'short', year: 'numeric' }) : '';
+    var otime = at ? at.toLocaleTimeString('en-GB', { timeZone: TZ, hour: 'numeric', minute: '2-digit', hour12: true }).replace(' ', '') : '';
+    return '<div class="ccs-slip ccs-slip-' + size + '">' +
+      '<div class="sl-head"><div class="sl-logo">' + SLIP_LOGO + '</div><div class="sl-hours">MONDAY - SUNDAY<br>8AM - 9PM</div></div>' +
+      '<div class="sl-meta"><b>' + esc(s.reference) + '</b><span>Kitchen brief version ' + b.version + ' · Printed ' + esc(stamp(new Date().toISOString())) + '</span>' + (s.rush ? '<em>Short notice</em>' : '') + '</div>' +
+      (b.version > 1 && changed.length ? '<div class="sl-changed">Changed since version ' + (b.version - 1) + ': ' + esc(changed.join(', ')) + '. Throw away the old slip.</div>' : '') +
+      (s.has_dietary ? '<div class="sl-diet">Dietary or allergy: ' + esc(diet) + '</div>' : '') +
+      table +
+      '<div class="sl-lines">' +
+        line('Guest Name', x.name || s.customer) + line('Contact', x.phone) +
+        pair(deliv ? 'Delivery Date' : 'Pickup Date', nice(s.date, true), 'Time', t12(s.time) + ' (ready ' + t12(readyBy) + ')') +
+        line('Type of cake', cake) + line('Size', sizeTxt) + line('Price', cents(x.price)) + line('Candles', s.candles) +
+        line('Inscription', s.message ? '“' + s.message + '”' : '', 'sl-big') + line('Remarks', remarks + (!s.has_dietary ? (remarks ? ' · ' : '') + 'No dietary needs or allergies given.' : ''), 'sl-wrap') +
+        line('Order Taken by', x.taken_by) + pair('Date', odate, 'Time', otime) +
+      '</div>' +
+      (urls.length ? '<div class="sl-photos">' + urls.map(function (u) { return '<img src="' + esc(u) + '" alt="Reference photo">'; }).join('') + '</div>' : '') +
+      '<div class="sl-foot"><b>Phone: + 679 8922760 | Email: cornercafe@jacksfiji.com</b><small>All prices include 12.5% VAT. Note: 2% Surcharge applies for all overseas Credit card transactions. Foreign currencies are just the estimate convertible values for guests guide.</small></div>' +
+    '</div>';
   }
   function renderBrief(b, urls, size) {
     var el = document.getElementById('ccs-print'); if (!el) { el = document.createElement('div'); el.id = 'ccs-print'; document.body.appendChild(el); }
@@ -1114,7 +1154,7 @@
 
   // ---------- new order (staff guided flow) ----------
   function freshDraft() { return { key: uuid(), source: 'walk_in', step: 0, reached: 0, phone: '', matches: null, customer: null, isNew: false, name: '', email: '', whatsapp: true, optIn: false,
-    product: null, variant: null, size: null, finish: null, design: '', message: '', occasion: null, diet: null, diets: [], dietNote: '', notes: '', qty: 1,
+    product: null, variant: null, size: null, finish: null, design: '', message: '', candles: '', occasion: null, diet: null, diets: [], dietNote: '', notes: '', qty: 1,
     date: '', time: '', rush: '', rushBy: '', fromCal: false, method: 'collection', zone: null, address: '', fee: '', contact: '', confirmNow: true, askDeposit: false, deposit: '', payNow: false, payAmount: '', payMethod: 'cash', result: null, err: null, errField: null }; }
   var D = freshDraft();
   // Unfinished walk-in orders are kept on this device for 12 hours, per staff login, and cleared at sign out (U6)
@@ -1155,7 +1195,7 @@
   var NSTEPS = [
     { k: 'Customer', sum: function () { return D.customer ? D.customer.full_name + ' · ' + D.customer.phone + (D.customer.orders_count ? ' · ' + D.customer.orders_count + ' earlier orders' : '') : (D.isNew && D.name ? D.name + ' · ' + D.phone + ' (new)' : ''); } },
     { k: 'Cake', sum: function () { var p = prod(); return p && D.size && (!p.variants.length || D.variant) ? (D.variant || p.name) + ', ' + D.size + ' inch' + (D.qty > 1 ? ' × ' + D.qty : '') + ' · ' + money(dPrice()) : ''; } },
-    { k: 'Finish', sum: function () { if (!D.finish || !D.diet || (D.finish === 'custom' && D.design.trim().length < 3)) return ''; return [D.finish === 'custom' ? 'Custom design' : 'Standard finish', D.message ? '“' + D.message + '”' : '', D.occasion, D.diet === 'yes' ? (D.diets.join(', ') || 'Dietary noted') : 'No dietary needs'].filter(Boolean).join(' · '); } },
+    { k: 'Finish', sum: function () { if (!D.finish || !D.diet || (D.finish === 'custom' && D.design.trim().length < 3)) return ''; return [D.finish === 'custom' ? 'Custom design' : 'Standard finish', D.message ? '“' + D.message + '”' : '', D.candles ? 'Candles: ' + D.candles : '', D.occasion, D.diet === 'yes' ? (D.diets.join(', ') || 'Dietary noted') : 'No dietary needs'].filter(Boolean).join(' · '); } },
     { k: 'When', sum: function () { return D.date && D.time && rushOk() && delivOk() ? nice(D.date) + ' at ' + t12(D.time) + (tooSoon() ? ' (short notice)' : '') + (D.method === 'delivery' ? ' · Delivery to ' + D.zone + ' (' + money(dFee()) + ')' : ' · Collect from café') : ''; } },
     { k: 'Payment', sum: function () { return ''; } }
   ];
@@ -1228,6 +1268,7 @@
     if (!D.finish) return h;
     if (D.finish === 'custom') h += '<div class="ccs-field"><label class="ccs-label" for="n-design">Design details</label><textarea class="ccs-input" id="n-design" data-n="design" placeholder="Colours, theme, toppers, candles">' + esc(D.design) + '</textarea></div>' + ferr('design');
     if (p && p.supports_message) h += '<div class="ccs-field"><label class="ccs-label" for="n-msg">Message on the cake (optional)</label><input class="ccs-input" id="n-msg" maxlength="40" data-n="message" value="' + esc(D.message) + '"></div>' + ferr('message');
+    h += '<div class="ccs-field"><label class="ccs-label" for="n-candles">Candles (optional)</label><input class="ccs-input" id="n-candles" maxlength="60" data-n="candles" placeholder="For example: number 30 candle, or 5 small candles" value="' + esc(D.candles) + '"></div>' + ferr('candles');
     h += '<div class="ccs-field"><span class="ccs-label">Occasion (optional)</span><div class="ccs-chips">' + OCCASIONS.map(function (o) { return '<button type="button" class="ccs-chip" data-act="n-occ" data-v="' + o + '" aria-pressed="' + (D.occasion === o) + '">' + o + '</button>'; }).join('') + '</div></div>';
     h += '<div class="ccs-field"><span class="ccs-label">Any dietary needs or allergies?</span><div class="ccs-chips"><button type="button" class="ccs-chip" data-act="n-diet" data-v="no" aria-pressed="' + (D.diet === 'no') + '">No</button><button type="button" class="ccs-chip" data-act="n-diet" data-v="yes" aria-pressed="' + (D.diet === 'yes') + '">Yes</button></div>' + ferr('diet') + '</div>';
     if (D.diet === 'yes') h += '<div class="ccs-panel"><div class="ccs-chips">' + DIETS.map(function (d) { return '<button type="button" class="ccs-chip" data-act="n-diets" data-v="' + esc(d) + '" aria-pressed="' + (D.diets.indexOf(d) > -1) + '">' + esc(d) + '</button>'; }).join('') + '</div><input class="ccs-input" data-n="dietNote" id="n-dnote" placeholder="Details for the kitchen" value="' + esc(D.dietNote) + '"></div>';
@@ -1308,7 +1349,7 @@
     var payAmt = D.payNow ? num(D.payAmount) : null;
     if (D.payNow && (!payAmt || payAmt <= 0)) { D.err = 'Enter the amount the customer is paying.'; D.errField = 'payment'; return refreshStep(); }
     var p = { idempotency_key: D.key, location: 'corner-cafe', source: D.source, product_code: D.product, variant: D.variant, size_inch: D.size, quantity: D.qty,
-      finish: D.finish, design: D.design, message: D.message, occasion: D.occasion, has_dietary: D.diet, dietary: D.diet === 'yes' ? D.diets : [], dietary_note: D.dietNote, notes: D.notes,
+      finish: D.finish, design: D.design, message: D.message, candles: D.candles, occasion: D.occasion, has_dietary: D.diet, dietary: D.diet === 'yes' ? D.diets : [], dietary_note: D.dietNote, notes: D.notes,
       date: D.date, time: D.time, rush: tooSoon() ? { reason: D.rush, approved_by: D.rushBy } : null, confirm_now: D.confirmNow && !custom, deposit_required: dep,
       payment: payAmt ? { amount: payAmt, method: D.payMethod, kind: dep ? 'deposit' : (payAmt >= price ? 'full' : 'deposit') } : null,
       delivery: D.method === 'delivery' ? { method: 'delivery', zone: D.zone, address: D.address, fee: zoneObj() && zoneObj().fee == null ? num(D.fee) : null, contact: D.contact } : { method: 'collection' } };
@@ -1318,7 +1359,7 @@
       S.busy = false; if (r.error) throw r.error;
       if (!r.data.ok) {
         D.err = r.data.message;
-        var map = { phone: 0, name: 0, customer: 0, product: 1, variant: 1, size: 1, finish: 2, design: 2, message: 2, diet: 2, date: 3, rush: 3, rushBy: 3, time: 3, full: 3, zone: 3, address: 3, fee: 3, method: 3, deposit: 4 };
+        var map = { phone: 0, name: 0, customer: 0, product: 1, variant: 1, size: 1, finish: 2, design: 2, message: 2, candles: 2, diet: 2, date: 3, rush: 3, rushBy: 3, time: 3, full: 3, zone: 3, address: 3, fee: 3, method: 3, deposit: 4 };
         var f = r.data.field || r.data.error, s = map[f] != null ? map[f] : 4; D.errField = r.data.field || null;
         if (s !== D.step) { var e = D.err, ef = D.errField; goStep(s); D.err = e; D.errField = ef; refreshStep(); } else refreshStep();
         return;
@@ -2266,6 +2307,7 @@
           if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = 'Tap again to restore'; setTimeout(function () { if (b.isConnected) { b.dataset.armed = ''; b.textContent = 'Restore'; } }, 4000); break; }
           markBusy(b, 'Restoring…'); restoreOrder(b.dataset.id); break;
         case 'do-note': act('note', { p_note: val('ccs-note').trim() }); break;
+        case 'do-candles': saveCandles(); break;
         case 'do-waive': if (val('ccs-note').trim().length < 3) { panelNeed('Add the reason for confirming without a deposit.'); break; } act('waive_deposit', { p_note: val('ccs-note').trim() }); break;
         case 'do-collected': if (val('ccs-note').trim().length < 2) { panelNeed(S.sheet.data.fulfilment_method === 'delivery' ? 'Enter who received the cake.' : 'Enter who collected the cake.'); break; } act('collected', { p_note: val('ccs-note').trim() }); break;
         case 'do-fulfil': saveFulfil(); break;

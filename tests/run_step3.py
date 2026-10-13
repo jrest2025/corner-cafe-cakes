@@ -134,7 +134,7 @@ async def main():
         check('order screen shows its open follow-up and note count', 'Open follow-ups for this order' in sh and 'Call to apologise' in sh and '1 about this order' in sh, sh[-600:])
         await pg.evaluate('window.print = function(){ window.__printed = 1; }')
         await pg.click('[data-act="panel"][data-v="brief"]'); await pg.wait_for_timeout(200)
-        await pg.click('[data-act="do-brief"][data-v="A4"]'); await pg.wait_for_timeout(700)
+        await pg.click('[data-act="do-brief"][data-v="A5"]'); await pg.wait_for_timeout(700)
         brief = await pg.evaluate("(document.getElementById('ccs-print')||{}).innerText||''")
         check('kitchen brief printed without any note or feedback text', 'CC-1003' in brief and 'too sweet' not in brief and 'apologise' not in brief, brief[:300])
         await ctx.close()

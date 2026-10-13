@@ -154,7 +154,7 @@ async def main():
 
         # Kitchen brief always one page
         long = ' '.join(['Three tier design with hand-piped lace, gold leaf on every tier, sugar flowers in blush and ivory, a sugar topper and names.'] * 14)
-        for size, items in [('A4', long), ('A5', long), ('A4', None)]:
+        for size, items in [('A5', long), ('A5', None)]:
             ctx, pg = await newpage(b, {'width': 1280, 'height': 900}, errs, init="window.print=function(){};")
             if items:
                 await pg.evaluate("(function(t){var o=window.__orders.filter(function(x){return x.reference==='CC-1007'})[0]; var i=o.order_items[0]; i.design_description=t; i.kitchen_notes=t; o.customer_notes=t; o.has_dietary=true; i.dietary=['Nut allergy','Other']; i.dietary_note=t.slice(0,300);})", items)
