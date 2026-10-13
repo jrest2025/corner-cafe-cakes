@@ -48,7 +48,7 @@ def big():
 
 HTML = """<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Festive test</title>
 <style>body{margin:0;font-family:Arial}header{height:80px;background:#fff;border-bottom:1px solid #ddd}.ccfest-order-info{padding:60px 20px;background:#faf7f0}</style></head>
-<body><header></header><main><section id="collection" style="padding:40px 20px"><h2>Festive goodies to order</h2></section>
+<body><header></header><main><a id="herolink" href="#collection">Order festive goodies</a>
 <section class="ccfest-order-info"><h2>How festive ordering works</h2></section><section id="festive-order" style="height:400px"></section></main>
 <script>window.CC_CATALOGUE_CONFIG={fontBase:'https://fonts.test/',logoUrl:'https://logo.test/logo.png'};</script>
 <script src="https://code.test/catalogue.js"></script></body></html>"""
@@ -109,6 +109,7 @@ async def main():
         m = Mock(); ctx, pg, errs = await setup(b, m, {'width': 1366, 'height': 900})
         t = await pg.inner_text('#cc-catalogue')
         check('section sits before How festive ordering works', await pg.evaluate("document.getElementById('cc-catalogue').nextElementSibling.className") == 'ccfest-order-info')
+        check('links to the hidden product grid now go to the catalogue', await pg.get_attribute('#herolink', 'href') == '#cc-catalogue')
         check('heading and lead text', 'Build Your Festive Catalogue' in t and 'Choose your favourites and create a PDF to share with your team.' in t, t[:200])
         check('seven cards with TEST tags', await pg.locator('.ccc-card').count() == 7 and await pg.locator('.ccc-tag').count() == 7)
         check('Preview PDF waits until something is chosen', await pg.locator('[data-act="custom"][disabled]').count() == 1)
@@ -133,6 +134,9 @@ async def main():
         # Full catalogue
         await click(pg, '[data-act="full"]'); st = await wait_ready(pg); f, txt, pages = await save_pdf(pg, 'full.pdf')
         check('full catalogue: every product except sold out', st == 'ready' and all(i['name'] in txt.replace('\n', ' ') for i in BASE['items'][:6]) and 'Sold Out Yule Log' not in txt, txt[:400])
+        lst = subprocess.run(['pdfimages', '-list', str(f)], capture_output=True, text=True).stdout.splitlines()[2:]
+        dims = [(int(l.split()[3]), int(l.split()[4])) for l in lst if l.split()[2] == 'image' and l.split()[8] == 'jpeg']
+        check('photos cropped to the frame shape, not stretched (83 by 46)', dims and all(abs(w / h - 83 / 46) < 0.01 for w, h in dims), dims)
         check('full catalogue: page numbers and footer', 'Page 1 of %d' % pages in txt and 'cornercafefiji.com' in txt and 'FULL CATALOGUE' in txt)
         await click(pg, '[data-act="close"]')
         # Select all and persistence

@@ -312,7 +312,9 @@
   var LOGO_URL = CFG.logoUrl || 'https://cdn.prod.website-files.com/6a0afe25d2f1212db6f93a0e/6a2973404d4e9162e671b50f_Corner%20Cafe%20(2)-p-800.png';
   function buildPdf(d, items, kind) {
     var c = d.collection, ct = d.contact || {};
-    return Promise.all([Promise.all(items.map(function (it) { return photo(it.image_url, 720, 540); })), logo(LOGO_URL), fontData]).then(function (res) {
+    // Photos are cropped to the exact frame shape used in the PDF (83 by 46 mm), so nothing is stretched.
+    var FRAME_W = 83, FRAME_H = 46, PX = 12;
+    return Promise.all([Promise.all(items.map(function (it) { return photo(it.image_url, FRAME_W * PX, FRAME_H * PX); })), logo(LOGO_URL), fontData]).then(function (res) {
       var imgs = res[0], lg = res[1];
       var J = window.jspdf.jsPDF, doc = new J({ unit: 'mm', format: 'a4', compress: true });
       res[2].forEach(function (f) { doc.addFileToVFS(f[0], f[1]); doc.addFont(f[0], FONTS[f[0]][0], FONTS[f[0]][1]); });
@@ -352,7 +354,7 @@
       y += 1; doc.setDrawColor(BRAND.cream[0], BRAND.cream[1], BRAND.cream[2]); doc.setLineWidth(1.2); doc.line(M, y, M + 30, y); y += 8;
 
       // Products: two-column cards, photo on top. A row of cards never splits across pages.
-      var GAP = 8, CWD = (CW - GAP) / 2, IH = 46, FOOT = H - 19;
+      var GAP = CW - 2 * FRAME_W, CWD = FRAME_W, IH = FRAME_H, FOOT = H - 19;
       function measure(it) {
         font('Gelasio', 'normal', 14.5); var nameL = doc.splitTextToSize(it.name, CWD).slice(0, 3);
         font('Outfit', 'normal', 9.5); var desc = it.description ? doc.splitTextToSize(it.description, CWD) : [];
@@ -454,6 +456,8 @@
       if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(root, anchor); else (document.querySelector('main') || document.body).appendChild(root);
     }
     root.className = 'ccc'; root.setAttribute('aria-labelledby', 'ccc-title');
+    // The old product grid (#collection) is hidden on the festive page; send its links here instead.
+    if (!document.getElementById('collection')) [].forEach.call(document.querySelectorAll('a[href="#collection"]'), function (a) { a.setAttribute('href', '#cc-catalogue'); });
     S.root = root; S.collection = root.getAttribute('data-collection') || CFG.collection || 'festive-2026';
     S.sel = store('ccc-sel-' + S.collection) || {};
     root.addEventListener('click', onClick);
