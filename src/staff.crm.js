@@ -440,10 +440,12 @@
       (c.loaded ? '<span class="ccs-ccount"><b>' + c.count + '</b> customer' + (c.count === 1 ? '' : 's') + (c.count > c.rows.length ? ', showing the latest ' + c.rows.length : '') + '</span>' : '<span class="ccs-ccount"></span>') +
       '<span class="ccs-ctool-actions">' +
       (mayGroup && (nf || CM_SEGMAP[c.seg]) ? '<button type="button" class="ccs-btn ccs-ghost ccs-small" data-act="ws-cm-panel" data-v="save">' + (g ? 'Update group' : 'Save as group') + '</button>' : '') +
-      (mayExport && c.loaded && c.count ? '<button type="button" class="ccs-btn ccs-ghost ccs-small" data-act="ws-cm-panel" data-v="export">Export</button>' : '') +
-      (can('manager') ? '<button type="button" class="ccs-btn ccs-ghost ccs-small" data-act="ws-cm-dups">Possible duplicates</button>' : '') +
-      '<button type="button" class="ccs-btn ccs-ghost ccs-small" data-act="ws-cm-s5-log">Export log</button>' +
-      '</span></div>';
+      '<span class="ccs-tools"><button type="button" class="ccs-btn ccs-ghost ccs-small" data-act="ws-cm-tools" aria-haspopup="true" aria-expanded="' + !!c.tools + '">Tools</button>' +
+      (c.tools ? '<span class="ccs-tools-menu" role="menu">' +
+        (mayExport && c.loaded && c.count ? '<button type="button" role="menuitem" data-act="ws-cm-panel" data-v="export"><b>Export a contact list</b><span>Only guests who agreed to that channel</span></button>' : '') +
+        (can('manager') ? '<button type="button" role="menuitem" data-act="ws-cm-dups"><b>Possible duplicates</b><span>Guests entered twice</span></button>' : '') +
+        '<button type="button" role="menuitem" data-act="ws-cm-s5-log"><b>Export log</b><span>Who exported or printed what</span></button></span>' : '') +
+      '</span></span></div>';
     if (g) h += '<p class="ccs-hint cm-gline">Saved group <b>' + esc(g.name) + '</b>, made by ' + esc(g.by) + (g.updated_by ? ', last changed by ' + esc(g.updated_by) : '') + '. The list is worked out fresh each time, so new customers who match join it.</p>';
     h += clChips();
     if (c.panel === 'filter') h += clFilterPanel();

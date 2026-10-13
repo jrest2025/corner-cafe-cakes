@@ -632,3 +632,22 @@ body.ccs-is-off #cc-staff .ccs-side { top: var(--ccs-offh, 44px); }
 #cc-staff .ccs-rem-row span { display: block; font-size: 14px; color: var(--ccs-muted); }
 #cc-staff .ccs-rem-row .ccs-rem-warn { color: var(--ccs-amber); font-weight: 600; }
 #cc-staff .sl-occ2 { padding: 12px; border: 1px solid var(--ccs-line); border-radius: 8px; }
+
+/* Batch D: Tools menu, customer table at tablet width, settings, full-height menu line */
+#cc-staff .ccs-tools{position:relative;display:inline-flex}
+#cc-staff .ccs-tools-menu{position:absolute;right:0;top:calc(100% + 6px);z-index:40;display:grid;min-width:280px;padding:6px;background:#fff;border:1px solid #DCE3EB;border-radius:12px;box-shadow:0 12px 30px -12px rgba(31,35,28,.35)}
+#cc-staff .ccs-tools-menu button{appearance:none;display:grid;gap:2px;text-align:left;width:100%;min-height:52px;padding:10px 12px;border:0;border-radius:8px;background:#fff;font:inherit;color:#243247;cursor:pointer}
+#cc-staff .ccs-tools-menu button:hover,#cc-staff .ccs-tools-menu button:focus-visible{background:#f4f6ef}
+#cc-staff .ccs-tools-menu b{font-weight:600;font-size:15.5px}
+#cc-staff .ccs-tools-menu span{font-size:13.5px;color:#526176}
+#cc-staff .ccs-nowrap{white-space:nowrap}
+@media (min-width:760px) and (max-width:1279px){#cc-staff .ccs-col-wide{display:none}#cc-staff .ccs-table th,#cc-staff .ccs-table td{padding-left:12px;padding-right:12px}}
+@media (max-width:759px){#cc-staff .ccs-tools{width:auto}#cc-staff .ccs-tools-menu{right:auto;left:0;min-width:min(280px,calc(100vw - 48px))}}
+#cc-staff .ccs-unsaved{font-style:normal;font-weight:600;font-size:13px;color:#8a5a00;margin-left:8px}
+#cc-staff .ccs-rem-held{margin-top:10px}
+#cc-staff .ccs-app{position:relative}
+#cc-staff .ccs-app:not(.is-single)::before{content:"";position:absolute;top:0;bottom:0;left:0;width:248px;background:#fff;border-right:1px solid #DCE3EB;pointer-events:none}
+#cc-staff .ccs-app:not(.is-single) .ccs-side{border-right:0;z-index:1}
+#cc-staff .ccs-app:not(.is-single) .ccs-main{position:relative}
+@media (min-width:760px) and (max-width:1099px){#cc-staff .ccs-app:not(.is-single)::before{width:212px}}
+@media (max-width:759px){#cc-staff .ccs-app::before{display:none}}

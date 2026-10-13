@@ -31,6 +31,8 @@ async def main():
         f = await calls(pg, 'customer_filter')
         check('list loads through the checked filter', len(f) >= 1 and f[-1]['p_filter'] == {}, f)
         check('count shown', '2 customers' in t, t[:400])
+        check('admin tools are not on the toolbar until Tools is opened', 'Possible duplicates' not in t and 'Tools' in t, t[:500])
+        await pg.click('[data-act="ws-cm-tools"]'); await pg.wait_for_timeout(150); t = await main_text(pg)
         check('toolbar has Filters, Export and Possible duplicates for a manager', all(x in t for x in ['Filters', 'Export', 'Possible duplicates']), t[:500])
         check('old unrecorded copy and export buttons are gone', 'Copy WhatsApp numbers' not in t)
 
@@ -70,7 +72,7 @@ async def main():
         await pg.select_option('#ccs-seg', 'all'); await pg.wait_for_timeout(400)
 
         # export
-        await pg.click('[data-act="ws-cm-panel"][data-v="export"]'); await pg.wait_for_timeout(250)
+        await pg.click('[data-act="ws-cm-tools"]'); await pg.wait_for_timeout(150); await pg.click('[data-act="ws-cm-panel"][data-v="export"]'); await pg.wait_for_timeout(250)
         t = await main_text(pg)
         check('export explains the permission rule and that nothing is sent', 'Only people who said yes to that channel' in t and 'Nothing is sent from here' in t and 'recorded with your name' in t)
         await pg.click('[data-act="ws-cm-ech"][data-v="whatsapp"]'); await pg.wait_for_timeout(400)
@@ -90,7 +92,7 @@ async def main():
         await pg.screenshot(path=str(OUT / 'desk-export.png'), full_page=True)
 
         # duplicates
-        await pg.click('[data-act="ws-cm-dups"]'); await pg.wait_for_timeout(500)
+        await pg.click('[data-act="ws-cm-tools"]'); await pg.wait_for_timeout(150); await pg.click('[data-act="ws-cm-dups"]'); await pg.wait_for_timeout(500)
         t = await main_text(pg)
         check('duplicate review shows the pair side by side with reasons', 'Possible duplicate customers' in t and 'Same mobile number' in t and 'C-101' in t and 'C-102' in t and 'families and offices often share a number' in t, t[:800])
         await pg.click('[data-act="ws-cm-merge"]'); await pg.wait_for_timeout(450)
@@ -120,7 +122,7 @@ async def main():
         check('kept profile says what was merged into it', 'Merged into this profile: C-102 Test Customer B' in sh, sh[:600])
         await pg.click('#ccs-sheet [data-act="close"]'); await pg.wait_for_timeout(300)
         # undo needs a second tap
-        await pg.click('[data-act="ws-cm-dups"]'); await pg.wait_for_timeout(500)
+        await pg.click('[data-act="ws-cm-tools"]'); await pg.wait_for_timeout(150); await pg.click('[data-act="ws-cm-dups"]'); await pg.wait_for_timeout(500)
         await pg.click('[data-act="ws-cm-undo"]'); await pg.wait_for_timeout(200)
         check('undo asks for a second tap', 'Tap again to undo the merge' in await main_text(pg) and not await calls(pg, 'customer_merge_undo'))
         await pg.click('[data-act="ws-cm-undo"]'); await pg.wait_for_timeout(600)
@@ -141,10 +143,10 @@ async def main():
         await ctx.close()
 
         # roles
-        ctx, pg = await newpage(b, DESK, errs, 'marketing'); await customers(pg); t = await main_text(pg)
+        ctx, pg = await newpage(b, DESK, errs, 'marketing'); await customers(pg); await pg.click('[data-act="ws-cm-tools"]'); await pg.wait_for_timeout(150); t = await main_text(pg)
         check('marketing can export and save groups but not review duplicates', 'Export' in t and 'Possible duplicates' not in t, t[:400])
         await ctx.close()
-        ctx, pg = await newpage(b, DESK, errs, 'front_of_house'); await customers(pg); t = await main_text(pg)
+        ctx, pg = await newpage(b, DESK, errs, 'front_of_house'); await customers(pg); await pg.click('[data-act="ws-cm-tools"]'); await pg.wait_for_timeout(150); t = await main_text(pg)
         check('front of house can filter but not export or save groups', 'Filters' in t and await pg.locator('[data-act="ws-cm-panel"][data-v="export"]').count() == 0 and 'Save as group' not in t and 'Possible duplicates' not in t, t[:400])
         await pg.click('[data-act="ws-cm-panel"][data-v="filter"]'); await pg.wait_for_timeout(250)
         await pg.fill('#cm-spend-min', '100'); await pg.click('[data-act="ws-cm-apply"]'); await pg.wait_for_timeout(400)
@@ -159,7 +161,7 @@ async def main():
         ow = await pg.evaluate("document.documentElement.scrollWidth - window.innerWidth")
         check('phone: filter panel fits the screen', ow <= 1, ow)
         await pg.screenshot(path=str(OUT / 'phone-filter.png'), full_page=True)
-        await pg.click('[data-act="ws-cm-dups"]'); await pg.wait_for_timeout(500)
+        await pg.click('[data-act="ws-cm-tools"]'); await pg.wait_for_timeout(150); await pg.click('[data-act="ws-cm-dups"]'); await pg.wait_for_timeout(500)
         ow = await pg.evaluate("document.documentElement.scrollWidth - window.innerWidth")
         check('phone: duplicate review fits the screen', ow <= 1, ow)
         await pg.screenshot(path=str(OUT / 'phone-dups.png'), full_page=True)

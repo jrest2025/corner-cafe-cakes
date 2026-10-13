@@ -29,6 +29,7 @@ async def main():
         b = await p.chromium.launch()
         ctx, pg = await newpage(b, DESK, errs)
         await customers(pg)
+        await pg.click('[data-act="ws-cm-tools"]'); await pg.wait_for_timeout(150); 
         check('Export log button in the customers toolbar', await pg.locator('[data-act="ws-cm-s5-log"]').count() == 1)
         await open_c1(pg)
         sh = await pg.inner_text('#ccs-sheet')
@@ -61,14 +62,14 @@ async def main():
         await pg.click('#ccs-sheet [data-act="close"]'); await pg.wait_for_timeout(300)
 
         # export log
-        await pg.click('[data-act="ws-cm-s5-log"]'); await pg.wait_for_timeout(500)
+        await pg.click('[data-act="ws-cm-tools"]'); await pg.wait_for_timeout(150); await pg.click('[data-act="ws-cm-s5-log"]'); await pg.wait_for_timeout(500)
         t = await main_text(pg)
         check('export log lists the printed report with who and parts', 'Export log' in t and 'Customer report: C-101 Test Customer A' in t and 'By Test Manager' in t and 'contact details and summary' in t, t[:900])
         check('manager sees everyone', 'by everyone' in t)
         check('records cannot be changed line', 'cannot be changed or removed' in t)
         await pg.screenshot(path=str(OUT / 'desk-log.png'), full_page=True)
         await pg.click('[data-act="ws-cm-list"]'); await pg.wait_for_timeout(500)
-        check('back to customers', 'Possible duplicates' in await main_text(pg))
+        check('back to customers', 'Tools' in await main_text(pg) and 'Filters' in await main_text(pg))
 
         # settings: role table and backup check
         await pg.click('.ccs-nav [data-tab="settings"]'); await pg.wait_for_timeout(800)
@@ -89,7 +90,7 @@ async def main():
         # marketing: own log only, no settings role table
         ctx, pg = await newpage(b, DESK, errs, 'marketing')
         await customers(pg)
-        await pg.click('[data-act="ws-cm-s5-log"]'); await pg.wait_for_timeout(500)
+        await pg.click('[data-act="ws-cm-tools"]'); await pg.wait_for_timeout(150); await pg.click('[data-act="ws-cm-s5-log"]'); await pg.wait_for_timeout(500)
         t = await main_text(pg)
         check('marketing sees only their own log', 'Your own exports and printed reports' in t, t[:400])
         await ctx.close()
@@ -109,7 +110,7 @@ async def main():
         ctx, pg = await newpage(b, PHONE, errs)
         await pg.click('.ccs-nav [data-tab="more"]'); await pg.wait_for_timeout(300)
         await pg.click('#ccs-sheet [data-tab="customers"]'); await pg.wait_for_timeout(600)
-        await pg.click('[data-act="ws-cm-s5-log"]'); await pg.wait_for_timeout(400)
+        await pg.click('[data-act="ws-cm-tools"]'); await pg.wait_for_timeout(150); await pg.click('[data-act="ws-cm-s5-log"]'); await pg.wait_for_timeout(400)
         sw = await pg.evaluate('document.documentElement.scrollWidth')
         check('phone export log fits the width', sw <= 392, sw)
         await pg.screenshot(path=str(OUT / 'phone-log.png'), full_page=True)

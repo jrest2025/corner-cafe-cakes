@@ -66,7 +66,7 @@ async def main():
         ctx, pg, errs = await newpage(b, tab='customers'); await pg.wait_for_timeout(500)
         t = await pg.inner_text('.ccs-rem')
         check('reminders due shows the guest, occasion, date and usual cake', 'Test Customer A' in t and 'Birthday for Mia' in t and 'usually Mudcake' in t, t[:300])
-        check('a permission that needs confirming is flagged', 'Permission needs confirming' in t)
+        check('a guest whose permission needs confirming is left out, with a note saying why', 'Test Customer B' not in t and '1 more guest has an occasion coming but their permission needs confirming' in t, t[:400])
         href = await pg.get_attribute('.ccs-rem a[href*="wa.me"]', 'href')
         check('WhatsApp link has the number and a ready message for staff to send', href and 'wa.me/6799120001' in href and 'Corner%20Caf' in href and 'birthday%20for%20Mia' in href, href)
         check('nothing is sent automatically: it is a link the staff member opens', await pg.get_attribute('.ccs-rem a[href*="wa.me"]', 'target') == '_blank')

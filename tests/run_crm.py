@@ -131,7 +131,7 @@ async def main():
         ph = await pg.get_attribute('#ccs-cq', 'placeholder')
         check('search says what it finds', 'email' in ph and 'order number' in ph and 'C-number' in ph, ph)
         t = await pg.inner_text('#ccs-main')
-        check('list marks yes answers that need reconfirming', 'Yes, reconfirm' in t, t[:400])
+        check('list marks yes answers that need reconfirming', 'To confirm' in t, t[:400])
         await pg.locator('[data-act="open-customer"][data-id="c2"]').first.click(); await pg.wait_for_timeout(450)
         sh = await pg.inner_text('#ccs-sheet')
         check('possible duplicate is flagged on the profile', 'Check for a duplicate' in sh and 'Same mobile number' in sh, sh[:400])
