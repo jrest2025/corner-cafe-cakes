@@ -13,6 +13,8 @@ async def newpage(b, vp={'width': 1024, 'height': 768}, role='manager', init='',
     await pg.goto((HERE / PAGE).as_uri()); await pg.wait_for_timeout(600)
     await pg.evaluate(f"(function(){{try{{localStorage.clear()}}catch(e){{}}; var e=[].slice.call(document.querySelectorAll('[data-tab={tab}]')).pop(); if(!e){{var m=document.querySelector('[data-tab=more]'); m&&m.click(); e=[].slice.call(document.querySelectorAll('[data-tab={tab}]')).pop();}} e&&e.click()}})()"); await pg.wait_for_timeout(500)
     return ctx, pg, errs
+async def sec(pg, n, root=''):
+    return await pg.evaluate("""(a)=>{var t=[];var c=document.querySelector(a[1]+' #sl-st-'+a[0]);if(c)t.push(c.innerText);document.querySelectorAll(a[1]+' .sl-live [data-st="'+a[0]+'"]').forEach(function(e){t.push(e.innerText)});return t.join(String.fromCharCode(10))}""", [n, root])
 async def js(pg, sel):
     await pg.evaluate(f"(function(){{var e=document.querySelector({sel!r}); if(e) e.click(); return !!e}})()"); await pg.wait_for_timeout(220)
 async def nxt(pg): await js(pg, '[data-act="sl-next"]'); await pg.wait_for_timeout(120)
@@ -28,7 +30,7 @@ async def main():
         ctx, pg, errs = await newpage(b)
         await js(pg, '[data-act="n-cell"][data-v="cheesecake|8"]'); await nxt(pg); await pg.fill('#n-name', 'New Guest C'); await nxt(pg)
         await pg.fill('#n-phone', '912 0097'); await pg.wait_for_timeout(450)
-        check('new guest is asked how they heard about us (optional)', await pg.locator('[data-act="sl-heard"]').count() == 6 and 'Optional' in await pg.inner_text('#sl-st-2'))
+        check('new guest is asked how they heard about us (optional)', await pg.locator('[data-act="sl-heard"]').count() == 6 and 'Optional' in await sec(pg, 2))
         await js(pg, '[data-act="sl-opt"][data-v="yes"]'); await js(pg, '[data-act="sl-heard"][data-v="instagram"]'); await nxt(pg)
         await finish(pg)
         check('reached remarks', 'Step 7' in await stage(pg), await stage(pg))
@@ -39,7 +41,7 @@ async def main():
         pick = await pg.input_value('#n-occdate')
         check('the date starts as the pickup date', len(pick) == 10, pick)
         await pg.fill('#n-occfor', 'Mia, their daughter'); await pg.fill('#n-occdate', '2026-11-02'); await nxt(pg)
-        check('remarks line reads Birthday for Mia', 'Birthday for Mia, their daughter' in await pg.inner_text('#sl-st-6'))
+        check('remarks line reads Birthday for Mia', 'Birthday for Mia, their daughter' in await sec(pg, 6))
         await pg.screenshot(path=str(OUT / 'readover.png'), full_page=True)
         await js(pg, '[data-act="n-submit"]'); await pg.wait_for_timeout(500)
         c = await creates(pg); x = c[0] if c else {}
@@ -50,13 +52,13 @@ async def main():
         ctx, pg, errs = await newpage(b)
         await js(pg, '[data-act="n-cell"][data-v="cheesecake|8"]'); await nxt(pg)
         await pg.fill('#n-name', 'Customer A'); await pg.wait_for_timeout(700); await js(pg, '#sl-st-1 [data-act="n-pick"]'); await pg.wait_for_timeout(400)
-        t = await pg.inner_text('#sl-st-2')
+        t = await sec(pg, 2)
         check('existing guest with permission to confirm is asked at the contact step', 'Step 3' in await stage(pg) and 'needs confirming' in t, (await stage(pg), t[:200]))
         check('existing guest is not asked how they heard', await pg.locator('[data-act="sl-heard"]').count() == 0)
         await nxt(pg)
         check('the question must be answered', 'Step 3' in await stage(pg))
         await js(pg, '[data-act="sl-opt"][data-v="no"]'); await nxt(pg)
-        check('then moves on to pickup', 'Step 4' in await stage(pg) and 'No offers or reminders' in await pg.inner_text('#sl-st-2'))
+        check('then moves on to pickup', 'Step 4' in await stage(pg) and 'No offers or reminders' in await sec(pg, 2))
         await finish(pg); await js(pg, '[data-act="sl-skip"]')
         await js(pg, '[data-act="n-submit"]'); await pg.wait_for_timeout(500)
         c = await creates(pg); x = c[0] if c else {}

@@ -18,6 +18,7 @@ async def newpage(b, vp, errs, role='manager'):
     return ctx, pg
 
 async def go_cal(pg):
+    if await pg.locator('.ccs-menubtn').is_visible(): await pg.click('.ccs-menubtn'); await pg.wait_for_timeout(350)
     await pg.click('.ccs-nav [data-tab="calendar"]'); await pg.wait_for_timeout(300)
 
 async def show_month_of(pg, d):
@@ -30,6 +31,8 @@ async def show_month_of(pg, d):
 async def calls(pg, fn):
     return await pg.evaluate(f"window.__calls.filter(function(c){{return c[1]==='{fn}'}}).map(function(c){{return c[2]}})")
 
+async def sec(pg, n, root=''):
+    return await pg.evaluate("""(a)=>{var t=[];var c=document.querySelector(a[1]+' #sl-st-'+a[0]);if(c)t.push(c.innerText);document.querySelectorAll(a[1]+' .sl-live [data-st="'+a[0]+'"]').forEach(function(e){t.push(e.innerText)});return t.join(String.fromCharCode(10))}""", [n, root])
 async def js(pg, sel):
     await pg.evaluate(f"(function(){{var e=document.querySelector({sel!r}); if(e) e.click(); return !!e}})()"); await pg.wait_for_timeout(200)
 
@@ -137,6 +140,9 @@ async def short_notice_and_failure(b, errs):
     main = await pg.inner_text('#ccs-sheet')
     check('short notice: When step stays open with date set', 'This is short notice' in main, main[:500])
     check('short notice: workload box shows hours', 'Collection hours' in main)
+    side = await pg.evaluate("(function(){var m=document.querySelector('#ccs-sheet .sl-stepmain').getBoundingClientRect(),l=document.querySelector('#ccs-sheet .sl-live').getBoundingClientRect(),n=document.querySelector('#ccs-sheet [data-act=sl-next]').getBoundingClientRect();return l.width>280&&l.left>=m.right-1&&n.bottom<=innerHeight&&n.top>=0})()")
+    check('panel: the live slip sits beside the step and Next is in view', side)
+    await pg.screenshot(path=str(HERE / 'shotsStepper' / 'calendar-panel.png'))
     await pg.fill('#n-rush', 'Cake from today batch')
     await pg.click('[data-act="n-time"][data-v="12:00"]'); await pg.wait_for_timeout(200)
     check('short notice needs who approved it', 'Enter who approved' in await pg.inner_text('#ccs-sheet'))
@@ -148,7 +154,7 @@ async def short_notice_and_failure(b, errs):
     await pg.click('[data-act="n-submit"]'); await pg.wait_for_timeout(400)
     inl = await pg.evaluate("(function(){var e=document.querySelector('#ccs-sheet #sl-st-7 .ccs-err');return e?e.textContent:''})()")
     check('B8 failed save says Not saved beside the Create order button', inl.startswith('Not saved') and 'kept' in inl, inl)
-    check('failed save keeps the panel, the form and the Save button', await pg.locator('#ccs-sheet.ccs-open [data-act="n-submit"]:not([disabled])').count() == 1 and 'New Calendar Guest' in await pg.inner_text('#ccs-sheet #sl-st-1'))
+    check('failed save keeps the panel, the form and the Save button', await pg.locator('#ccs-sheet.ccs-open [data-act="n-submit"]:not([disabled])').count() == 1 and 'New Calendar Guest' in await sec(pg, 1, '#ccs-sheet'))
     await pg.evaluate("window.__createFail=false")
     await pg.click('[data-act="n-submit"]'); await pg.wait_for_timeout(400)
     cs = await calls(pg, 'staff_create_order')

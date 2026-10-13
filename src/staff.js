@@ -167,7 +167,7 @@
   }
   function shell() {
     root.innerHTML =
-      '<div class="ccs-app' + (S.me.role === 'kitchen' ? ' is-single' : '') + '"><aside class="ccs-side"><div class="ccs-brand">Corner Café<small>Cakes</small></div>' +
+      '<div class="ccs-app' + (S.me.role === 'kitchen' ? ' is-single' : '') + '">' + (S.me.role === 'kitchen' ? '' : '<div class="ccs-topbar"><button type="button" class="ccs-btn ccs-ghost ccs-menubtn" data-menu="open" aria-controls="ccs-side" aria-expanded="false">Menu</button><span class="ccs-topbrand">Corner Café <small>Cakes</small></span></div><div class="ccs-menushade" data-menu="close"></div>') + '<aside class="ccs-side" id="ccs-side"><div class="ccs-brand">Corner Café<small>Cakes</small></div>' +
       '<nav class="ccs-nav" aria-label="Sections">' + navHtml() + '</nav>' +
       '<div class="ccs-who"><span class="ccs-avatar" aria-hidden="true">' + esc((S.me.full_name || '?').trim().charAt(0).toUpperCase()) + '</span><span class="ccs-who-name">' + esc(S.me.full_name) + '<small>' + esc((ROLES.filter(function (r) { return r[0] === S.me.role; })[0] || ['', ''])[1]) + '</small></span><button type="button" class="ccs-signout" data-act="signout">Sign out</button></div></aside>' +
       '<main class="ccs-main" id="ccs-main"></main></div>' +
@@ -1238,6 +1238,7 @@
     if (D.fromCal && D.date && !D.confirmReset) h += '<div class="ccs-note ccs-calnote"><span>Pickup date from the calendar: <b>' + esc(nice(D.date, true)) + (D.time ? ' at ' + esc(t12(D.time)) : '') + '</b>. Change it on the Pickup line if needed.</span>' + (inSheet ? '' : '<button type="button" class="ccs-link" data-act="cal-back">Back to calendar</button>') + '</div>';
     if (D.repeat && !D.confirmReset) h += repeatNote();
     else if (D.restored && draftHasContent()) h += '<p class="ccs-note">Carrying on the unfinished order' + (draftWho() ? ' for ' + esc(draftWho()) : '') + ', started ' + esc(stamp(D.saved)) + '.</p>';
+    if (SLIP && STEPPER) return h + '<div class="sl-wrap is-stepper"><div id="ccs-slipform">' + slipBody() + '</div></div>';
     if (SLIP) return h + '<div class="sl-wrap"><p class="sl-k" style="margin:0 0 8px">How did they order?</p><div class="ccs-chips" role="group" aria-label="How they ordered" style="margin-bottom:16px">' + SOURCES.map(function (s) { return '<button type="button" class="ccs-chip" data-act="n-source" data-v="' + s[0] + '" aria-pressed="' + (D.source === s[0]) + '">' + s[1] + '</button>'; }).join('') + '</div>' +
       '<div id="ccs-slipform">' + slipBody() + '</div></div>';
     h += '<ol class="ccs-nprog" aria-label="Progress">' + NSTEPS.map(function (st, i) { var c = i === D.step ? 'is-now' : (i <= D.reached && st.sum() ? 'is-done' : ''); return '<li class="' + c + '"><span>' + (c === 'is-done' ? '&#10003;' : (i + 1)) + '</span>' + st.k + '</li>'; }).join('') + '</ol>';
@@ -1373,6 +1374,8 @@
   }
   // ---------- interactive Order Slip: the paper slip, filled in one stage at a time ----------
   var SLIP = true;
+  // One step on screen at a time, live slip beside it (tablet), Back and Next always in view
+  var STEPPER = true;
   var HEARD = [['facebook', 'Facebook'], ['instagram', 'Instagram'], ['google', 'Google'], ['friend', 'Friend or family'], ['walked_past', 'Walked past'], ['other', 'Other']];
   var RECUR = ['Birthday', 'Anniversary', 'Wedding'];
   var SL_STAGES = ['Cake and size', 'Guest name', 'Contact', 'Pickup date and time', 'Candles and inscription', 'Dietary or allergy', 'Remarks', 'Read over and save'];
@@ -1393,7 +1396,7 @@
   }
   function slipMissing() { var m = []; for (var s = 0; s < 7; s++) if (slNeeds(s).length) m.push([SL_STAGES[s], s]); return m; }
   function slNextStage(from) { var seen = slSeen(); for (var s = 0; s < 8; s++) if (s !== from && (!seen[s] || slNeeds(s).length)) return s; return 7; }
-  function slGo(s) { D.sl = s; D.err = null; D.errField = null; D.restored = false; refreshStep(); setTimeout(function () { var el = document.getElementById('sl-st-' + s); if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); var f = el && el.querySelector('input:not([type=checkbox]):not([type=number]),textarea'); if (f && s > 0) { try { f.focus({ preventScroll: true }); } catch (e) { f.focus(); } } }, 60); }
+  function slGo(s) { D.sl = s; D.err = null; D.errField = null; D.restored = false; D.showSlip = false; refreshStep(); if (STEPPER) { setTimeout(function () { var bd = document.querySelector('#ccs-sheet .ccs-sheet-body') || document.scrollingElement; if (bd) bd.scrollTop = 0; var m = document.querySelector('.sl-stepbody'); var f = m && m.querySelector('input:not([type=checkbox]):not([type=number]),textarea'); if (f && s > 0) { try { f.focus({ preventScroll: true }); } catch (e) { f.focus(); } } }, 40); return; } setTimeout(function () { var el = document.getElementById('sl-st-' + s); if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); var f = el && el.querySelector('input:not([type=checkbox]):not([type=number]),textarea'); if (f && s > 0) { try { f.focus({ preventScroll: true }); } catch (e) { f.focus(); } } }, 60); }
   function slNext(skip) {
     var s = slStage(), need = slNeeds(s);
     if (need.length && !skip) { D.err = need.join('. ') + '.'; D.errField = 'stage'; refreshStep(); return; }
@@ -1413,6 +1416,7 @@
       }).join('') + '</tbody></table></div>';
   }
   function slActions(s, optional) {
+    if (STEPPER) { D.slOpt = D.slOpt || {}; D.slOpt[s] = !!optional; return D.errField === 'stage' && D.err ? '<p class="ccs-err" role="alert">' + esc(D.err) + '</p>' : ''; }
     var err = D.errField === 'stage' && D.err ? '<p class="ccs-err" role="alert">' + esc(D.err) + '</p>' : (D.err && D.errField && s === slStage() ? '' : '');
     return err + '<div class="sl-acts"><button type="button" class="ccs-btn" data-act="sl-next">Next</button>' + (optional ? '<button type="button" class="ccs-btn ccs-ghost" data-act="sl-skip">Skip</button>' : '') + '</div>';
   }
@@ -1427,6 +1431,7 @@
     return h + '</div>';
   }
   function slipBody() {
+    if (STEPPER) return slipStepper();
     var p = prod(), dl = D.method === 'delivery', me = S.me || {}, now = new Date(), so = sizeObj(), cur = slStage();
     var h = '<p class="sl-progress">Step ' + (cur + 1) + ' of 8 · <b>' + SL_STAGES[cur] + '</b></p>';
     h += '<div class="sl-card"><div class="sl-band"><div class="sl-logo">' + SLIP_LOGO + '</div><div class="sl-hours">MONDAY - SUNDAY<br>8AM - 9PM</div></div>';
@@ -1493,6 +1498,83 @@
         '<button type="button" class="ccs-btn ccs-good ccs-wide" data-act="n-submit"' + (S.busy ? ' disabled' : '') + '>' + (S.busy ? 'Saving…' : 'Create order' + (dTotal() != null ? ' · ' + money(dTotal()) : '')) + '</button></section>';
     }
     return h;
+  }
+
+  // Step-by-step order slip: the current step on the left, the paper slip filling in on the right.
+  function slipStepper() {
+    var p = prod(), dl = D.method === 'delivery', me = S.me || {}, now = new Date(), so = sizeObj(), cur = slStage(), seen = slSeen();
+    var ed = '';
+    if (cur === 0) {
+      ed = '<p class="sl-k" style="margin:0 0 8px">How did they order?</p><div class="ccs-chips" role="group" aria-label="How they ordered" style="margin-bottom:14px">' + SOURCES.map(function (s) { return '<button type="button" class="ccs-chip" data-act="n-source" data-v="' + s[0] + '" aria-pressed="' + (D.source === s[0]) + '">' + s[1] + '</button>'; }).join('') + '</div>' +
+        '<p class="sl-k" style="margin:0 0 8px">Tap the price for the cake and size</p>' + slTable();
+      if (p && p.variants.length) ed += '<div class="sl-sub"><span class="sl-k">' + esc(p.choice_label || 'Which flavour?') + '</span><div class="ccs-chips">' + p.variants.map(function (v) { return '<button type="button" class="ccs-chip" data-act="n-var" data-v="' + esc(v) + '" aria-pressed="' + (D.variant === v) + '">' + esc(v) + '</button>'; }).join('') + '</div></div>';
+      if (p) ed += '<div class="sl-sub"><span class="sl-k">Finish</span><div class="ccs-chips"><button type="button" class="ccs-chip" data-act="n-finish" data-v="standard" aria-pressed="' + (D.finish !== 'custom') + '">Standard finish</button>' + (p.supports_custom ? '<button type="button" class="ccs-chip" data-act="n-finish" data-v="custom" aria-pressed="' + (D.finish === 'custom') + '">Custom design</button>' : '') + '</div></div>';
+      if (D.size) ed += '<div class="sl-sub sl-qty"><label class="sl-k" for="n-qty">How many cakes</label><input class="ccs-input" id="n-qty" type="number" min="1" max="50" value="' + D.qty + '" data-n="qty"></div>';
+      ed += ferr('product') + ferr('size') + ferr('variant') + slActions(0);
+    } else if (cur === 1) {
+      ed = D.customer ? '<p class="sl-fixed">' + esc(D.customer.full_name) + '</p><button type="button" class="ccs-link" data-act="n-unpick">A different guest</button>' + slActions(1)
+        : '<label class="sl-k" for="n-name">Guest name</label><input class="ccs-input" id="n-name" data-n="name" value="' + esc(D.name) + '" autocomplete="off" placeholder="Full name">' + ferr('name') + slMatches(D.nameMatches) + slActions(1);
+    } else if (cur === 2) {
+      if (D.customer) ed = '<p class="sl-fixed">' + esc(D.customer.phone || '') + '</p><span class="ccs-hint">' + (D.customer.orders_count ? D.customer.orders_count + ' earlier orders' + (D.customer.favourite_cake ? ', usually ' + esc(D.customer.favourite_cake) : '') : 'Existing customer') + '.</span>' +
+        (D.custConsent === undefined ? '<p class="ccs-hint">Checking their permission…</p>' : D.custConsent && D.custConsent.ok ? '<p class="ccs-hint">Already agreed to cake offers and reminders.</p>' :
+          '<div class="sl-sub"><span class="sl-k">' + (D.custConsent && D.custConsent.reconfirm ? 'Their permission needs confirming. Can we send them cake offers and reminders?' : 'Can we send them cake offers and reminders?') + '</span><div class="ccs-chips"><button type="button" class="ccs-chip" data-act="sl-opt" data-v="yes" aria-pressed="' + (D.optIn === true) + '">Yes</button><button type="button" class="ccs-chip" data-act="sl-opt" data-v="no" aria-pressed="' + (D.optIn === false) + '">No</button></div><span class="ccs-hint">Only a clear yes is recorded as permission. It is saved with the order.</span></div>') + slActions(2);
+      else ed = '<label class="sl-k" for="n-phone">Mobile number</label><input class="ccs-input" id="n-phone" type="tel" inputmode="tel" placeholder="Mobile number" value="' + esc(D.phone) + '" data-n="phone" autocomplete="off">' + ferr('phone') + slMatches(D.matches) +
+        '<label class="ccs-check"><input type="checkbox" data-nc="whatsapp"' + (D.whatsapp ? ' checked' : '') + '> This number is on WhatsApp</label>' +
+        '<input class="ccs-input" id="n-email" type="email" data-n="email" value="' + esc(D.email) + '" placeholder="Email (optional)">' +
+        '<div class="sl-sub"><span class="sl-k">Can we send them cake offers and reminders?</span><div class="ccs-chips"><button type="button" class="ccs-chip" data-act="sl-opt" data-v="yes" aria-pressed="' + (D.optIn === true) + '">Yes</button><button type="button" class="ccs-chip" data-act="sl-opt" data-v="no" aria-pressed="' + (D.optIn === false) + '">No</button></div><span class="ccs-hint">Ask every new guest. Only a clear yes is recorded as permission.</span></div>' +
+        '<div class="sl-sub"><span class="sl-k">How did they hear about us? <em class="sl-req">Optional</em></span><div class="ccs-chips">' + HEARD.map(function (x) { return '<button type="button" class="ccs-chip" data-act="sl-heard" data-v="' + x[0] + '" aria-pressed="' + (D.heard === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div></div>' + slActions(2);
+    } else if (cur === 3) {
+      ed = stepWhen(true) + slActions(3);
+    } else if (cur === 4) {
+      ed = '<label class="sl-k" for="n-candles">Candles</label><input class="ccs-input" id="n-candles" maxlength="60" data-n="candles" placeholder="For example: number 30 candle" value="' + esc(D.candles) + '">' + ferr('candles') +
+        (p && !p.supports_message ? '<span class="ccs-hint">' + esc(p.name) + ' does not take a written message.</span>' : '<label class="sl-k" for="n-msg">Inscription</label><input class="ccs-input" id="n-msg" maxlength="40" data-n="message" value="' + esc(D.message) + '" placeholder="Words written on the cake"><span class="ccs-hint">Up to 40 characters, copied exactly by the kitchen.</span>' + ferr('message')) + slActions(4, true);
+    } else if (cur === 5) {
+      ed = '<div class="ccs-chips"><button type="button" class="ccs-chip" data-act="n-diet" data-v="no" aria-pressed="' + (D.diet === 'no') + '">No dietary needs</button><button type="button" class="ccs-chip" data-act="n-diet" data-v="yes" aria-pressed="' + (D.diet === 'yes') + '">Yes, dietary need or allergy</button></div>' +
+        (D.diet === 'yes' ? '<div class="ccs-chips">' + DIETS.map(function (d) { return '<button type="button" class="ccs-chip" data-act="n-diets" data-v="' + esc(d) + '" aria-pressed="' + (D.diets.indexOf(d) > -1) + '">' + esc(d) + '</button>'; }).join('') + '</div><input class="ccs-input" data-n="dietNote" id="n-dnote" placeholder="Details for the kitchen" value="' + esc(D.dietNote) + '">' : '') + ferr('diet') + slActions(5);
+    } else if (cur === 6) {
+      ed = (D.finish === 'custom' ? '<label class="sl-k" for="n-design">Design details <em class="sl-req">Required</em></label><textarea class="ccs-input" id="n-design" data-n="design" placeholder="Colours, theme, toppers">' + esc(D.design) + '</textarea>' + ferr('design') : '') +
+        '<span class="sl-k">Occasion</span><div class="ccs-chips">' + OCCASIONS.map(function (o) { return '<button type="button" class="ccs-chip" data-act="n-occ" data-v="' + o + '" aria-pressed="' + (D.occasion === o) + '">' + o + '</button>'; }).join('') + '</div>' +
+        (RECUR.indexOf(D.occasion) > -1 ? '<div class="sl-sub sl-occ2"><label class="sl-k" for="n-occfor">Whose ' + esc(D.occasion.toLowerCase()) + '? <em class="sl-req">Optional</em></label><input class="ccs-input" id="n-occfor" data-n="occFor" maxlength="60" value="' + esc(D.occFor || '') + '" placeholder="For example: Mia, their daughter">' +
+          '<label class="sl-k" for="n-occdate">Date of the ' + esc(D.occasion.toLowerCase()) + '</label><input class="ccs-input" id="n-occdate" type="date" data-n="occDate" value="' + esc(D.occDate || D.date || '') + '"><span class="ccs-hint">Used to remind them next year, if they agreed to messages.</span></div>' : '') +
+        '<label class="sl-k" for="n-notes">Other notes</label><input class="ccs-input" id="n-notes" data-n="notes" value="' + esc(D.notes) + '" placeholder="Anything else for the order">' + slActions(6, D.finish !== 'custom');
+    } else {
+      var miss = slipMissing();
+      ed = (miss.length ? '<p class="ccs-err" role="alert">Still to finish: ' + esc(miss.map(function (x) { return x[0]; }).join(', ')) + '. Tap Change on that line of the slip.</p>' : '<p class="ccs-hint">Read the slip back to the guest, then take any payment and save.</p>') +
+        stepPay(true) + (D.err && D.errField !== 'stage' && !D.errField ? '<p class="ccs-err" role="alert">' + esc(D.err) + '</p>' : '') + (D.err && D.errField === 'stage' ? '<p class="ccs-err" role="alert">' + esc(D.err) + '</p>' : '');
+    }
+    // The live slip, in the paper order
+    var line = function (label, s, value, extra) {
+      var done = value && (seen[s] || s === 99 || s === 0 && D.size), now2 = s === cur || (extra && extra.also === cur);
+      return '<div class="sl-ll' + (now2 ? ' is-now' : '') + (value ? '' : ' is-blank') + '" data-st="' + s + '"><span class="sl-lk">' + label + '</span><span class="sl-lv">' + (value || '&nbsp;') + '</span>' +
+        (s !== 99 && s !== cur && (seen[s] || (s === 0 && D.size)) ? '<button type="button" class="ccs-link sl-chg" data-act="sl-goto" data-v="' + s + '" aria-label="Change ' + label + '">Change</button>' : '') + '</div>';
+    };
+    var nm = D.customer ? esc(D.customer.full_name) : esc(D.name.trim());
+    var ct = D.customer ? esc(D.customer.phone || '') + (D.optIn === true || D.optIn === false ? '<small>' + (D.optIn ? 'Agreed to cake offers and reminders' : 'No offers or reminders') + '</small>' : D.custConsent && D.custConsent.ok ? '<small>Agreed to cake offers and reminders</small>' : '') : esc(D.phone.trim());
+    if (ct && !D.customer && (D.optIn === true || D.optIn === false)) ct += '<small>' + (D.optIn ? 'Agreed to cake offers and reminders' : 'No offers or reminders') + '</small>';
+    var wv = D.date && D.time ? esc(nice(D.date, true)) + ', ' + esc(t12(D.time)) + '<small>' + (dl ? 'Delivery to ' + esc(D.zone || '') + (D.address ? ', ' + esc(D.address) : '') : 'Collect from café') + (tooSoon() ? ' · Short notice, approved by ' + esc(D.rushBy) : '') + '</small>' : '';
+    var dv = D.diet === 'no' ? 'No dietary needs' : D.diet === 'yes' ? esc([].concat(D.diets, D.dietNote ? [D.dietNote] : []).join(', ') || 'Yes') : '';
+    var rv = [D.finish === 'custom' && D.design ? esc(D.design) : '', D.occasion ? esc(D.occasion) + (D.occFor ? ' for ' + esc(D.occFor) : '') : '', esc(D.notes)].filter(Boolean).join(' · ');
+    var live = '<aside class="sl-live" aria-label="The order slip so far"><div class="sl-band"><div class="sl-logo">' + SLIP_LOGO + '</div><div class="sl-hours">MONDAY - SUNDAY<br>8AM - 9PM</div></div>' +
+      (D.diet === 'yes' ? '<div class="sl-ldiet">Dietary or allergy: ' + dv + '</div>' : '') +
+      '<div class="sl-llines">' +
+      line('Guest Name', 1, nm) + line('Contact', 2, ct) + line(dl ? 'Delivery' : 'Pickup', 3, wv) +
+      line('Type of cake', 0, p ? esc(D.variant || p.name) + (D.finish === 'custom' ? ' · Custom design' : '') : '') +
+      line('Size', 0, D.size ? D.size + ' inch' + (D.qty > 1 ? ' × ' + D.qty : '') + (so && so.serves ? ' · ' + esc(so.serves) : '') : '') +
+      line('Price', 0, dTotal() != null ? money(dTotal()) : '') +
+      line('Candles', 4, esc(D.candles)) + line('Inscription', 4, D.message ? '“' + esc(D.message) + '”' : '') +
+      line('Dietary', 5, dv) + line('Remarks', 6, rv) +
+      line('Order Taken by', 99, esc(me.full_name || 'You')) +
+      line('Date', 99, esc(now.toLocaleDateString('en-GB', { timeZone: TZ, day: 'numeric', month: 'short', year: 'numeric' })) + ', ' + esc(now.toLocaleTimeString('en-GB', { timeZone: TZ, hour: 'numeric', minute: '2-digit', hour12: true }).replace(' ', ''))) +
+      '</div></aside>';
+    var nx = cur < 7 ? slNextStage(cur) : 7, opt = D.slOpt && D.slOpt[cur];
+    var bar = '<div class="sl-stepbar">' + (cur > 0 ? '<button type="button" class="ccs-btn ccs-ghost" data-act="sl-back">Back</button>' : '<span></span>') +
+      '<div class="sl-stepbar-r">' + (opt && cur < 7 ? '<button type="button" class="ccs-btn ccs-ghost" data-act="sl-skip">Skip</button>' : '') +
+      (cur < 7 ? '<button type="button" class="ccs-btn" data-act="sl-next"><span class="sl-nxlong">Next: ' + esc(SL_STAGES[nx]) + '</span><span class="sl-nxshort">Next</span></button>'
+        : '<button type="button" class="ccs-btn ccs-good" data-act="n-submit"' + (S.busy ? ' disabled' : '') + '>' + (S.busy ? 'Saving…' : 'Create order' + (dTotal() != null ? ' · ' + money(dTotal()) : '')) + '</button>') + '</div></div>';
+    var head = '<div class="sl-stephead"><p class="sl-progress">Step ' + (cur + 1) + ' of 8</p><h2 class="sl-steptitle">' + SL_STAGES[cur] + '</h2>' +
+      '<ol class="sl-dots" aria-hidden="true">' + SL_STAGES.map(function (x, i) { return '<li class="' + (i === cur ? 'is-now' : seen[i] && !slNeeds(i).length ? 'is-done' : '') + '"></li>'; }).join('') + '</ol>' +
+      '<button type="button" class="ccs-link sl-viewbtn" data-act="sl-view">' + (D.showSlip ? 'Back to this step' : 'View slip') + '</button></div>';
+    return '<div class="sl-stepper' + (D.showSlip ? ' show-slip' : '') + '"><section class="sl-stepmain" id="sl-st-' + cur + '">' + head + '<div class="sl-stepbody">' + ed + '</div>' + bar + '</section>' + live + '</div>';
   }
   function slMatches(list) {
     if (!list || !list.length) return '';
@@ -1865,8 +1947,8 @@
       S.wl[d] = { loading: true, at: w && w.at, rows: w && w.rows };
       sb.from('orders').select(CAL_LIST).eq('required_date', d).limit(300).then(withContact).then(function (r) {
         if (r.error) throw r.error; S.wl[d] = { at: Date.now(), rows: r.data || [] };
-        if (newOpen() && D.step === 3 && D.date === d) refreshStep();
-      }).catch(function (e) { console.error(e); S.wl[d] = { at: Date.now(), err: true }; if (newOpen() && D.step === 3 && D.date === d) refreshStep(); });
+        if (newOpen() && (SLIP ? slStage() === 3 : D.step === 3) && D.date === d) refreshStep();
+      }).catch(function (e) { console.error(e); S.wl[d] = { at: Date.now(), err: true }; if (newOpen() && (SLIP ? slStage() === 3 : D.step === 3) && D.date === d) refreshStep(); });
       w = S.wl[d];
     }
     return w.rows ? w.rows.filter(function (o) { return o.order_status !== 'cancelled' && o.order_status !== 'declined'; }) : (w.err ? false : null);
@@ -2595,7 +2677,17 @@
   var BUSY_ACTS = { 'do-delete': 'Deleting…', 'do-confirm': 'Saving…', 'do-decline': 'Saving…', 'do-cancel': 'Saving…', 'do-note': 'Saving…', 'do-waive': 'Saving…', 'do-collected': 'Saving…', 'do-fulfil': 'Saving…',
     'do-brief': 'Preparing…', 'do-pay': 'Saving…', 'k-stage': 'Saving…', 'k-next': 'Saving…', 'k-ready': 'Saving…', 'k-assign': 'Saving…', 'save-zones': 'Saving…', 'add-zone': 'Saving…', 'cust-save': 'Saving…', 'cn-save': 'Saving…', 'consent-ch': 'Saving…',
     'consent': 'Saving…', 'save-loc': 'Saving…', 'confirm-loc': 'Saving…', 'add-closed': 'Saving…', 'save-staff': 'Saving…', 'tm-add': 'Adding…', 'tm-reset-save': 'Saving…', 'bk-link': 'Linking…', 'bk-copy': 'Copying…' };
+  // Tablets and laptops: the menu is hidden and slides in from the Menu button, so the page has the full width
+  function menuOpen() { var a = root.querySelector('.ccs-app'); return !!(a && a.classList.contains('menu-open')); }
+  function menuSet(open, quiet) {
+    var a = root.querySelector('.ccs-app'), btn = root.querySelector('.ccs-menubtn'); if (!a) return;
+    a.classList.toggle('menu-open', open); if (btn) btn.setAttribute('aria-expanded', String(open));
+    if (open) { var f = root.querySelector('.ccs-side .ccs-nav-item[aria-current="page"]') || root.querySelector('.ccs-side .ccs-nav-item'); if (f) setTimeout(function () { f.focus({ preventScroll: true }); }, 30); }
+    else if (!quiet && btn && btn.offsetParent) btn.focus({ preventScroll: true });
+  }
   root.addEventListener('click', function (e) {
+    var mb = e.target.closest('[data-menu]'); if (mb) { menuSet(mb.dataset.menu === 'open' && !menuOpen()); return; }
+    if (menuOpen() && e.target.closest('.ccs-side [data-tab], .ccs-side [data-act]')) menuSet(false, true);
     if (e.target.id === 'ccs-shade') { if (hasTyping()) { toast('Your typing is kept. Save it, or tap the cross twice to discard it.'); return; } sheetClose(); return; }
     if (S.cust && S.cust.tools && !e.target.closest('.ccs-tools')) { S.cust.tools = false; if (S.tab === 'customers') view(); }
     var b = e.target.closest('[data-act],[data-tab]'); if (!b || b.disabled) return;
@@ -2738,6 +2830,8 @@
         case 'n-pick': if (SLIP) { var pl = b.dataset.from === 'name' ? D.nameMatches : D.matches; D.customer = pl[Number(v)]; D.isNew = false; D.nameMatches = null; D.matches = null; D.optIn = null; D.custConsent = undefined; slSeen()[1] = true; slGo(2); slConsent(D.customer.id); break; }
         case 'sl-heard': D.heard = D.heard === v ? null : v; refreshStep(); break; D.customer = D.matches[Number(v)]; D.isNew = false; goStep(nextOpen(1)); break;
         case 'sl-next': slNext(false); break;
+        case 'sl-back': slGo(Math.max(0, slStage() - 1)); break;
+        case 'sl-view': D.showSlip = !D.showSlip; refreshStep(); break;
         case 'rem-reload': S.rem.err = null; S.rem.rows = null; view(); break;
         case 'rem-more': S.rem.open = !S.rem.open; view(); break;
         case 'rem-show': S.rem.show = !S.rem.show; view(); break;
@@ -2856,6 +2950,7 @@
     if (e.target.id === 'am-prod' && S.am) { amendSet('product', e.target.value); return; }
   });
   document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && menuOpen()) { menuSet(false); return; }
     if (e.key === 'Escape' && S.cust && S.cust.tools) { S.cust.tools = false; view(); var tb = document.querySelector('[data-act="ws-cm-tools"]'); if (tb) tb.focus(); return; }
     if (e.key !== 'Escape' || !S.sheet) return;
     if (hasTyping()) { toast('Save or cancel your changes first.', true); return; }

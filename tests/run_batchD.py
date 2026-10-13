@@ -82,7 +82,7 @@ async def main():
         check('no page errors on Settings', not errs, errs)
         await ctx.close()
         # Menu runs the full page height
-        ctx, pg, errs = await newpage(b, vp={'width': 1024, 'height': 600}, tab='settings'); await pg.wait_for_timeout(600)
+        ctx, pg, errs = await newpage(b, vp={'width': 1366, 'height': 600}, tab='settings'); await pg.wait_for_timeout(600)
         await pg.evaluate("document.querySelectorAll('.ccs-set details').forEach(function(d){d.open=true})")
         h = await pg.evaluate("(function(){var a=document.querySelector('.ccs-app');var cs=getComputedStyle(a,'::before');return [parseFloat(cs.height),a.getBoundingClientRect().height,cs.borderRightWidth,innerHeight]})()")
         check('menu panel line runs the full page height on a long page', h[1] > h[3] * 1.5 and abs(h[0] - h[1]) < 2 and h[2] == '1px', h)
