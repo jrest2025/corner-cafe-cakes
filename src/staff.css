@@ -539,7 +539,20 @@
 .ccs-slip .sl-meta span { font-size: 8.5pt; }
 .ccs-slip .sl-meta em { font-style: normal; font-weight: 700; border: 1.5pt solid #000; padding: 0 4pt; font-size: 8.5pt; }
 .ccs-slip .sl-changed { border: 1.5pt solid #000; padding: 3pt 5pt; font-weight: 700; margin-bottom: 4pt; }
-.ccs-slip .sl-diet { border: 2.5pt solid #000; padding: 4pt 6pt; font-weight: 800; font-size: 11pt; margin-bottom: 4pt; }
+.ccs-slip .sl-key { display: grid; grid-template-columns: 1fr 1fr; border: 2pt solid #000; margin: 2pt 0 6pt; }
+.ccs-slip .sl-k { padding: 5pt 7pt 6pt; display: flex; flex-direction: column; gap: 1pt; min-width: 0; }
+.ccs-slip .sl-k span { font-size: 8.5pt; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.ccs-slip .sl-k b { font-size: 16pt; font-weight: 800; line-height: 1.15; overflow-wrap: anywhere; }
+.ccs-slip .sl-k small { font-size: 10pt; font-weight: 600; }
+.ccs-slip .sl-key { grid-template-columns: 1fr 1fr; }
+.ccs-slip .sl-k-when { background: #000; color: #fff; }
+.ccs-slip .sl-k-ready { border-left: 1pt solid #fff; }
+.ccs-slip .sl-k-when b { font-size: 19pt; }
+.ccs-slip .sl-k-cake { border-right: 1pt solid #000; }
+.ccs-slip .sl-k.sl-diet, .ccs-slip .sl-k-none { grid-column: 1 / -1; border-top: 1pt solid #000; }
+.ccs-slip .sl-k.sl-diet { border-top-width: 2.5pt; }
+.ccs-slip .sl-k.sl-diet b { font-size: 17pt; }
+.ccs-slip .sl-k-none b { font-size: 12pt; font-weight: 600; }
 .ccs-slip .sl-prices { width: 100%; border-collapse: collapse; margin-bottom: 5pt; table-layout: fixed; }
 .ccs-slip .sl-prices th, .ccs-slip .sl-prices td { border: .75pt solid #000; text-align: center; padding: 4pt 2pt; font-size: 8.5pt; }
 .ccs-slip .sl-prices thead th { background: #000; color: #fff; font-size: 10pt; font-weight: 700; }

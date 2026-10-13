@@ -815,22 +815,20 @@
     var changed = (b.changes || []).map(function (k) { return NAMES[k] || k; }).filter(function (v, i, a) { return a.indexOf(v) === i; });
     var diet = s.has_dietary ? [].concat(s.dietary || [], s.dietary_note ? [s.dietary_note] : []).join(', ') || 'See order notes' : '';
     var cents = function (v) { return v == null || v === '' ? '' : '$' + Number(v).toFixed(2); };
-    // Price table from the current prices in the app; the ordered cake and size are outlined
-    var prods = ((S.setup && S.setup.products) || []), inches = [];
-    prods.forEach(function (p) { (p.sizes || []).forEach(function (z) { if (inches.indexOf(z.inch) < 0) inches.push(z.inch); }); });
-    inches.sort(function (m, n) { return m - n; });
-    var table = prods.length ? '<table class="sl-prices"><thead><tr><th>Type</th>' + inches.map(function (n) { return '<th>' + n + '”</th>'; }).join('') + '</tr></thead><tbody>' +
-      prods.map(function (p) {
-        var mine = p.name === s.cake;
-        return '<tr' + (mine ? ' class="sl-mine"' : '') + '><th>' + esc(p.name) + '</th>' + inches.map(function (n) { var z = (p.sizes || []).filter(function (q) { return q.inch === n; })[0]; return '<td' + (mine && Number(s.size) === n ? ' class="sl-pick"' : '') + '>' + (z ? cents(z.price) : '') + '</td>'; }).join('') + '</tr>';
-      }).join('') + '</tbody></table>' : '';
     var line = function (k, v, cls) { return '<div class="sl-line' + (cls ? ' ' + cls : '') + '"><span>' + k + ':</span><b>' + (v ? esc(v) : '&nbsp;') + '</b></div>'; };
     var pair = function (k1, v1, k2, v2) { return '<div class="sl-pair">' + line(k1, v1) + line(k2, v2) + '</div>'; };
     var cake = (s.variant || s.cake || '') + (s.variant && s.cake && s.variant !== s.cake ? ' (' + s.cake + ')' : '') + (s.finish === 'custom' ? ' · Custom design' : '');
     var sizeTxt = s.size ? s.size + ' inch' + (s.quantity > 1 ? ' × ' + s.quantity + ' cakes' : '') + (s.serves ? ' · ' + s.serves : '') : '';
     var remarks = [s.finish === 'custom' && s.design ? 'Design: ' + s.design : '', s.occasion ? 'Occasion: ' + s.occasion : '', s.order_notes ? 'Order notes: ' + s.order_notes : '', s.kitchen_notes ? 'Kitchen notes: ' + s.kitchen_notes : ''].filter(Boolean).join(' · ');
     var paidAmt = Number(x.paid || 0), due2 = x.price != null ? Math.max(Number(x.price) - paidAmt, 0) : null;
-    var priceTxt = cents(x.price) + (x.price != null ? '  ·  Paid ' + cents(paidAmt) + '  ·  To pay ' + cents(due2) : '');
+    var priceTxt = x.price != null ? cents(x.price) + '  ·  Paid ' + cents(paidAmt) + '  ·  To pay ' + cents(due2) : 'To be priced';
+    // What the kitchen needs at a glance: when, which cake, what size, any dietary need. Large type.
+    var key = function (k, v, cls, sub) { return '<div class="sl-k' + (cls ? ' ' + cls : '') + '"><span>' + k + '</span><b>' + esc(v) + '</b>' + (sub ? '<small>' + esc(sub) + '</small>' : '') + '</div>'; };
+    var keys = '<div class="sl-key">' +
+      key(deliv ? 'Delivery' : 'Pickup', nice(s.date, true) + ', ' + t12(s.time), 'sl-k-when') + key('Ready by', t12(readyBy), 'sl-k-when sl-k-ready') +
+      key('Cake', cake || 'Not given', 'sl-k-cake') + key('Size', sizeTxt || 'Not given') +
+      key('Dietary', s.has_dietary ? diet : 'None given', s.has_dietary ? 'sl-diet' : 'sl-k-none') +
+    '</div>';
     var SRC = { online: 'Website', walk_in: 'Walk-in', phone: 'Phone', whatsapp: 'WhatsApp', social: 'Social media', corporate: 'Corporate' };
     var at = x.ordered_at ? new Date(x.ordered_at) : null;
     var odate = at ? at.toLocaleDateString('en-GB', { timeZone: TZ, day: 'numeric', month: 'short', year: 'numeric' }) : '';
@@ -839,13 +837,11 @@
       '<div class="sl-head"><div class="sl-logo">' + SLIP_LOGO + '</div><div class="sl-hours">MONDAY - SUNDAY<br>8AM - 9PM</div></div>' +
       '<div class="sl-meta"><b>' + esc(s.reference) + '</b><span>Kitchen brief version ' + b.version + ' · Printed ' + esc(stamp(new Date().toISOString())) + '</span>' + (s.rush ? '<em>Short notice</em>' : '') + '</div>' +
       (b.version > 1 && changed.length ? '<div class="sl-changed">Changed since version ' + (b.version - 1) + ': ' + esc(changed.join(', ')) + '. Throw away the old slip.</div>' : '') +
-      (s.has_dietary ? '<div class="sl-diet">Dietary or allergy: ' + esc(diet) + '</div>' : '') +
-      table +
+      keys +
       '<div class="sl-lines">' +
         line('Guest Name', x.name || s.customer) + line('Contact', x.phone) +
-        pair(deliv ? 'Delivery Date' : 'Pickup Date', nice(s.date, true), 'Time', t12(s.time) + ' (ready ' + t12(readyBy) + ')') +
         (deliv ? line('Deliver to', [s.area, x.address].filter(Boolean).join(', ') + (x.receiver ? ' (for ' + x.receiver + ')' : ''), 'sl-wrap') : '') +
-        line('Type of cake', cake) + line('Size', sizeTxt) + line('Price', priceTxt) + line('Candles', s.candles) +
+        line('Price', priceTxt) + line('Candles', s.candles) +
         line('Inscription', s.message ? '“' + s.message + '”' : '', 'sl-big') + line('Remarks', remarks + (!s.has_dietary ? (remarks ? ' · ' : '') + 'No dietary needs or allergies given.' : ''), 'sl-wrap') +
         line('Order Taken by', (x.taken_by || '') + (x.source && x.source !== 'online' ? ' (' + (SRC[x.source] || x.source) + ')' : '')) + pair('Date', odate, 'Time', otime) +
       '</div>' +
