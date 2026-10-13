@@ -1,4 +1,4 @@
-"""Customer profile: one page of plain tables. Invented data only."""
+"""Customer profile: plain tables, one section at a time so it fits the screen. Invented data only."""
 import asyncio, pathlib, sys
 from playwright.async_api import async_playwright
 HERE = pathlib.Path(__file__).parent; OUT = HERE / "shotsP"; OUT.mkdir(exist_ok=True)
@@ -22,8 +22,12 @@ async def main():
             ctx, pg, errs = await newpage(b, vp=vp, tab='customers'); await pg.wait_for_timeout(500)
             await js(pg, '[data-act="open-customer"]'); await pg.wait_for_timeout(900)
             t = await pg.inner_text('#ccs-sheet')
-            check(name + ': no tabs; details, orders, notes and permission on one page', await pg.locator('#ccs-sheet .ws-tabs').count() == 0 and all(x in t.lower() for x in ['guest details', 'mobile', 'orders (', 'follow-ups', 'marketing permission']), t[:300])
+            secs = await pg.evaluate("[].map.call(document.querySelectorAll('#ccs-sheet [data-act=secgo][data-g=cust]'),function(b){return b.textContent.trim()})")
+            check(name + ': section buttons for Details, Orders, Notes and follow-ups, Permission; Details shown first', [x.split(' (')[0] for x in secs] == ['Details', 'Orders', 'Notes and follow-ups', 'Permission'] and 'guest details' in t.lower() and await pg.locator('#cp-orders').count() == 0, (secs, t[:200]))
+            body = await pg.evaluate("(function(){var b=document.querySelector('#ccs-sheet .ccs-sheet-body');return [b.scrollHeight,b.clientHeight]})()")
+            check(name + ': Details fit the panel with little or no scrolling', body[0] - body[1] < (300 if name == 'phone' else 80), body)
             check(name + ': details are a label and value table', await pg.locator('#cp-overview table.cp-table th[scope="row"]').count() >= 8)
+            await pg.evaluate("(function(v){var b=document.querySelector('#ccs-sheet [data-act=secgo][data-g=cust][data-v='+v+']');b&&b.click()})('orders')"); await pg.wait_for_timeout(300)
             check(name + ': orders are a table, newest first', await pg.evaluate("(function(){var d=[].slice.call(document.querySelectorAll('#cp-orders tbody tr.ccs-click td:first-child')).map(function(e){return e.textContent});return d.length>=2})()"))
             check(name + ': New order, WhatsApp and Call at the top', await pg.locator('.ccs-cust-acts [data-act="cust-neworder"]').count() == 1 and await pg.locator('.ccs-cust-acts a[href^="tel:"]').count() == 1)
             w = await pg.evaluate("(function(){var b=document.querySelector('#ccs-sheet .ccs-sheet-body');return [b.scrollWidth,b.clientWidth]})()")
@@ -36,7 +40,7 @@ async def main():
             await js(pg, '[data-act="open-customer"]'); await pg.wait_for_timeout(900)
             await pg.evaluate("document.querySelector('#ccs-sheet .ccs-sheet-body').scrollTop=0")
             await pg.screenshot(path=str(OUT / (name + '-top.png')))
-            await pg.evaluate("document.getElementById('cp-orders').scrollIntoView()"); await pg.wait_for_timeout(200)
+            await pg.evaluate("(function(v){var b=document.querySelector('#ccs-sheet [data-act=secgo][data-g=cust][data-v='+v+']');b&&b.click()})('orders')"); await pg.wait_for_timeout(300)
             await pg.screenshot(path=str(OUT / (name + '-orders.png')))
             await ctx.close()
         await b.close()

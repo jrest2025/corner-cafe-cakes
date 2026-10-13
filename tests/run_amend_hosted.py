@@ -47,6 +47,7 @@ async def main():
             await pg.click('[data-act="am-save"]'); await pg.wait_for_timeout(500)
             calls = await pg.evaluate("window.__calls.filter(c=>c[1]==='staff_amend_order').map(c=>c[2])")
             check(f'{name} save sends commit with version', calls[-1]['p_commit'] is True and calls[-1]['p_version'] == 1 and calls[-1]['p_requested_by'] == 'guest')
+            await pg.evaluate("(function(){var b=document.querySelector('#ccs-sheet [data-act=secgo][data-v=history]');b&&b.click()})()"); await pg.wait_for_timeout(300)
             t = await pg.inner_text('#ccs-sheet')
             check(f'{name} change history shows the amendment', 'change history' in t.lower() and 'Revision 1' in t and 'Guest increased' in t and 'Amended' in t, t[:400])
             await pg.screenshot(path=str(OUT / f'{name}-3-history.png'), full_page=False)

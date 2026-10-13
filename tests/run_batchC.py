@@ -30,6 +30,8 @@ async def main():
         ctx, pg, errs = await newpage(b)
         await js(pg, '[data-act="n-cell"][data-v="cheesecake|8"]'); await nxt(pg); await pg.fill('#n-name', 'New Guest C'); await nxt(pg)
         await pg.fill('#n-phone', '912 0097'); await pg.wait_for_timeout(450)
+        check('how they heard is offered as an optional question, folded away', await pg.locator('[data-act="sl-heardopen"]').count() == 1 and 'optional' in (await sec(pg, 2)).lower())
+        await js(pg, '[data-act="sl-heardopen"]')
         check('new guest is asked how they heard about us (optional)', await pg.locator('[data-act="sl-heard"]').count() == 6 and 'Optional' in await sec(pg, 2))
         await js(pg, '[data-act="sl-opt"][data-v="yes"]'); await js(pg, '[data-act="sl-heard"][data-v="instagram"]'); await nxt(pg)
         await finish(pg)

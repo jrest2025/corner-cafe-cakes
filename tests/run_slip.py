@@ -1,5 +1,5 @@
 """Kitchen brief in the Cake Order Slip layout, and the Candles field. Invented data only."""
-import asyncio, pathlib, sys, re, subprocess
+import re, asyncio, pathlib, sys, re, subprocess
 from playwright.async_api import async_playwright
 HERE = pathlib.Path(__file__).parent; OUT = HERE / "shotsSlip"; OUT.mkdir(exist_ok=True)
 PAGE = sys.argv[1] if len(sys.argv) > 1 else "hosted-staff.html"
@@ -33,6 +33,8 @@ async def main():
         check('print panel says name, phone and price are printed', 'guest name, phone number and price' in hint, hint)
         await jsclick(pg, '#ccs-sheet [data-act="do-brief"][data-v="A5"]'); await pg.wait_for_timeout(700)
         txt = await pg.evaluate("(document.querySelector('#ccs-print .ccs-slip')||{}).innerText||''")
+        title = await pg.evaluate("document.title")
+        check('the print or PDF file is named for the order: number, pickup, day, time, cake, size, guest, version', re.match(r'^CC-1007 (Pickup|Delivery) [A-Z][a-z]{2} \d{1,2} [A-Z][a-z]{2} \d{1,2}\.\d{2}(am|pm) .+ \d+ inch .+ Version \d+$', title) is not None and ':' not in title and '/' not in title, title)
         for lab in ['Guest Name:', 'Contact:', 'Price:', 'Candles:', 'Inscription:', 'Remarks:', 'Order Taken by:', 'Date:']:
             check('slip has the line ' + lab, lab in txt, txt[:200])
         check('slip header has the hours', 'MONDAY - SUNDAY' in txt and '8AM - 9PM' in txt)
@@ -55,6 +57,9 @@ async def main():
         pdf = await pg.pdf(path=str(OUT / 'slip-A5.pdf'), prefer_css_page_size=True, print_background=True)
         n = len(re.findall(rb'/Type\s*/Page[^s]', pdf))
         check('slip prints on exactly one page', n == 1, n)
+        await pg.emulate_media(media='screen'); await pg.evaluate("window.dispatchEvent(new Event('afterprint'))"); await pg.wait_for_timeout(100)
+        check('the page title goes back after printing', 'CC-1007' not in await pg.evaluate("document.title"))
+        await pg.evaluate("document.body.classList.add('ccs-printing')"); await pg.emulate_media(media='print')
         size = re.search(rb'/MediaBox\s*\[\s*0\s+0\s+([\d.]+)\s+([\d.]+)', pdf)
         check('page is A5 portrait', size and abs(float(size.group(1)) - 419.5) < 3 and abs(float(size.group(2)) - 595.3) < 3, size and size.groups())
         check('no page errors', not errs, errs)

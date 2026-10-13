@@ -44,7 +44,7 @@
   function wsAssignee(v) { return v === 'me' ? (S.me && S.me.user_id) : (v || null); }
 
   // Small summary on the Overview tab
-  function cpJump(v) { setTimeout(function () { var el = document.getElementById('cp-' + v); if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 30); }
+  function cpJump(v) { if (S.sheet && S.sheet.type === 'customer' && ['overview', 'orders', 'notes', 'comms'].indexOf(v) > -1) { S.sheet.sec = Object.assign(S.sheet.sec || {}, { cust: v }); renderSheet(); } setTimeout(function () { var el = document.getElementById('cp-' + v); if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 30); }
   function wsOverview(d) {
     var ws = S.sheet.ws, t = today();
     var upcoming = d.orders.filter(function (o) { return o.required_date >= t && OPEN_STATUSES.indexOf(o.order_status) > -1; }).sort(function (a, b) { return a.required_date < b.required_date ? -1 : 1; });
@@ -334,9 +334,9 @@
     if (!can('manager', 'front_of_house', 'marketing')) return '';
     if (!S.fu.loading && Date.now() - S.fu.at > 60000) setTimeout(fuLoad, 0);
     var d = S.fu.data, t = today();
-    var head = '<div class="ccs-card-head"><h2>Follow-ups</h2>' + (can('manager') ? '<button type="button" class="ccs-link" data-act="ws-fu-all">' + (S.fu.all ? 'Show only mine' : 'Show everyone\'s') + '</button>' : '') + '</div>';
-    if (S.fu.err && !d) return '<section class="ccs-panel-card ws-fu">' + head + '<p class="ccs-quiet">Could not load follow-ups. <button type="button" class="ccs-link" data-act="ws-fu-reload">Try again</button></p></section>';
-    if (!d) return '<section class="ccs-panel-card ws-fu">' + head + '<p class="ccs-loading">Loading…</p></section>';
+    var head = '<div class="ccs-card-head"><h2><span class="zone-tag">Reminders</span>Follow-ups</h2>' + (can('manager') ? '<button type="button" class="ccs-link" data-act="ws-fu-all">' + (S.fu.all ? 'Show only mine' : 'Show everyone\'s') + '</button>' : '') + '</div>';
+    if (S.fu.err && !d) return '<section class="ccs-panel-card ws-fu zone zone-neutral">' + head + '<p class="ccs-quiet">Could not load follow-ups. <button type="button" class="ccs-link" data-act="ws-fu-reload">Try again</button></p></section>';
+    if (!d) return '<section class="ccs-panel-card ws-fu zone zone-neutral">' + head + '<p class="ccs-loading">Loading…</p></section>';
     var list = d.tasks || [];
     var late = list.filter(function (x) { return x.due_on < t; }), now_ = list.filter(function (x) { return x.due_on === t; }), soon = list.filter(function (x) { return x.due_on > t; });
     var row = function (x) {
@@ -344,7 +344,7 @@
         '<span class="ccs-mini-m"><b>' + esc(x.title) + '</b><span>' + esc(x.customer + ' · ' + custNo(x.customer_no) + (x.order_ref ? ' · ' + x.order_ref : '') + ' · For ' + wsWho(x)) + '</span></span></button>';
     };
     var sub = function (label, arr) { return arr.length ? '<p class="ws-fu-h">' + label + ' (' + arr.length + ')</p><div class="ccs-minis">' + arr.slice(0, 8).map(row).join('') + '</div>' : ''; };
-    return '<section class="ccs-panel-card ws-fu">' + head + (list.length ? sub('Overdue', late) + sub('Due today', now_) + sub('Next 7 days', soon) :
+    return '<section class="ccs-panel-card ws-fu zone zone-neutral">' + head + (list.length ? sub('Overdue', late) + sub('Due today', now_) + sub('Next 7 days', soon) :
       '<p class="ccs-quiet">Nothing due this week' + (S.fu.all ? '' : ' for you') + '. Add follow-ups from a customer\'s Notes and follow-ups tab.</p>') + '</section>';
   }
 
@@ -756,7 +756,7 @@
       var ps = document.getElementById('ccs-page'); if (!ps) { ps = document.createElement('style'); ps.id = 'ccs-page'; document.head.appendChild(ps); }
       ps.textContent = '@page{size:A4 portrait;margin:12mm}';
       s.rep = null; renderSheet(); toast('Report recorded and sent to the printer');
-      document.body.classList.add('ccs-printing'); setTimeout(function () { window.print(); }, 50);
+      printNamed(('Customer report ' + (s.data.c.full_name || '') + ' ' + new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: TZ })).replace(/[\\/:*?"<>|]+/g, ' ')); document.body.classList.add('ccs-printing'); setTimeout(function () { window.print(); }, 50);
     }).catch(function (e) { clearBusy(); fail(e); });
   }
   function s5ReportHtml(s, picked, by) {

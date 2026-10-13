@@ -45,7 +45,7 @@ async def main():
         await ctx.close()
         ctx, pg, errs = await newpage(b, tab='customers'); await pg.wait_for_timeout(500)
         await js(pg, '[data-act="open-customer"]'); await pg.wait_for_timeout(700)
-        check('profile has no tabs: everything on one page', await pg.locator('#ccs-sheet .ws-tabs').count() == 0 and await pg.locator('#cp-orders').count() == 1)
+        check('profile shows one section at a time with section buttons', await pg.locator('#ccs-sheet [data-act=secgo][data-g=cust]').count() == 4 and await pg.locator('#cp-overview').count() == 1 and await pg.locator('#cp-orders').count() == 0)
         wa = await box(pg, '.ccs-cust-acts a[href*="wa.me"]')
         check('WhatsApp and Call sit beside New order, on the first screen', wa and wa[1] <= 768 and await pg.locator('.ccs-cust-acts a[href^="tel:"]').count() == 1, wa)
         check('WhatsApp is not repeated lower down', await pg.locator('#ccs-sheet a[href*="wa.me"]').count() == 1)

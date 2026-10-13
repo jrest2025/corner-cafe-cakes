@@ -21,7 +21,7 @@ async def open_backup(pg, phone=False):
     else:
         await pg.click('.ccs-nav [data-tab="settings"]')
     await pg.wait_for_timeout(500)
-    await pg.evaluate("document.querySelectorAll('.ccs-set details').forEach(function(d){ if (d.textContent.indexOf('Backup to Google Sheet') > -1) d.open = true; })")
+    await pg.evaluate("(function(){var n=[].filter.call(document.querySelectorAll('.ccs-setnav [data-setk]'),function(x){return x.dataset.setk.indexOf('Backup to Google Sheet')===0})[0]; if(n) n.click(); else document.querySelectorAll('.ccs-set details').forEach(function(d){ if (d.textContent.indexOf('Backup to Google Sheet') > -1) d.open = true; })})()"); await pg.wait_for_timeout(200)
 
 async def text(pg): return await pg.inner_text('#ccs-main')
 async def fn_calls(pg): return await pg.evaluate("window.__calls.filter(function(c){return c[0]==='fn' && c[1]==='sheet-backup'}).map(function(c){return c[2]})")

@@ -19,7 +19,9 @@ async def newpage(b, vp, errs, role='manager'):
 
 async def calls(pg, fn): return await pg.evaluate(f"(window.__calls||[]).filter(function(c){{return c[1]==='{fn}'}}).map(function(c){{return c[2]}})")
 async def sheet(pg): return await pg.inner_text('#ccs-sheet')
-async def tab(pg, v): await pg.locator(f'#cp-{v}').scroll_into_view_if_needed(); await pg.wait_for_timeout(200)
+async def tab(pg, v):
+    await pg.evaluate("(function(v){var b=document.querySelector('#ccs-sheet [data-act=secgo][data-g=cust][data-v='+v+']');b&&b.click()})('%s')" % v); await pg.wait_for_timeout(300)
+async def today_fu(pg): await pg.evaluate("(function(){[].forEach.call(document.querySelectorAll('[data-act=secgo][data-v=fu]'),function(b){if(b.offsetParent)b.click()})})()"); await pg.wait_for_timeout(300)
 async def open_c1(pg):
     await pg.click('.ccs-nav [data-tab="customers"]'); await pg.wait_for_timeout(450)
     await pg.locator('[data-act="open-customer"][data-id="c1"]').first.click(); await pg.wait_for_timeout(600)
@@ -32,7 +34,7 @@ async def main():
         b = await p.chromium.launch()
         ctx, pg = await newpage(b, DESK, errs)
         # Today: follow-ups card
-        await pg.wait_for_timeout(400)
+        await pg.wait_for_timeout(400); await today_fu(pg)
         t = await pg.inner_text('#ccs-main')
         check('Today shows a Follow-ups card with the overdue one', 'Follow-ups' in t and 'Send the two-tier quote' in t and 'Overdue' in t, t[-600:])
         await pg.screenshot(path=str(OUT / 'desk-today.png'), full_page=True)
@@ -125,11 +127,14 @@ async def main():
         # Overview summary
         await tab(pg, 'overview')
         sh = await sheet(pg)
-        sh = sh.lower(); check('one page shows orders, follow-ups and notes together', 'orders (' in sh and 'follow-ups' in sh and 'notes, enquiries and feedback' in sh, sh[:900])
+        secs = await pg.evaluate("[].map.call(document.querySelectorAll('#ccs-sheet [data-act=secgo][data-g=cust]'),function(b){return b.textContent})")
+        await tab(pg, 'notes'); shn = (await sheet(pg)).lower()
+        check('orders, follow-ups and notes each have a section button; notes open on one tap', any(x.startswith('Orders (') for x in secs) and 'Notes and follow-ups' in secs and 'notes, enquiries and feedback' in shn, (secs, shn[:300]))
 
         # Order screen shows linked follow-up; kitchen brief never shows notes
         await tab(pg, 'orders')
         await pg.locator('#ccs-sheet [data-act="open-order"][data-id="o3"]').first.click(); await pg.wait_for_timeout(700)
+        await pg.evaluate("(function(){var b=document.querySelector('#ccs-sheet [data-act=secgo][data-g=order][data-v=customer]');b&&b.click()})()"); await pg.wait_for_timeout(300)
         sh = await sheet(pg)
         check('order screen shows its open follow-up and note count', 'Open follow-ups for this order' in sh and 'Call to apologise' in sh and '1 about this order' in sh, sh[-600:])
         await pg.evaluate('window.print = function(){ window.__printed = 1; }')
@@ -194,6 +199,7 @@ async def main():
         await tab(pg, 'notes')
         check('finance: reads notes, cannot add or change', 'Asked about a two-tier cake' in await sheet(pg) and await pg.locator('[data-act="ws-save"]').count() == 0 and await pg.locator('[data-act="ws-edit"]').count() == 0 and await pg.locator('[data-act="ws-task-mode"]').count() == 0)
         await pg.click("#ccs-sheet [data-act=\"close\"]"); await pg.wait_for_timeout(200); await pg.click(".ccs-nav [data-tab=\"today\"]"); await pg.wait_for_timeout(500)
+        await today_fu(pg)
         check('finance: no Follow-ups card on Today', 'Send the two-tier quote' not in await pg.inner_text('#ccs-main'))
         await ctx.close()
         ctx, pg = await newpage(b, DESK, errs, 'kitchen')
@@ -202,7 +208,7 @@ async def main():
 
         # Phone
         ctx, pg = await newpage(b, {'width': 390, 'height': 844}, errs)
-        t = await pg.inner_text('#ccs-main')
+        await today_fu(pg); t = await pg.inner_text('#ccs-main')
         check('phone: Follow-ups card on Today', 'Send the two-tier quote' in t)
         await pg.screenshot(path=str(OUT / 'phone-today.png'), full_page=True)
         await pg.click('.ws-furow'); await pg.wait_for_timeout(700)

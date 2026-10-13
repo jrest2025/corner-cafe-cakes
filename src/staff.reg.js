@@ -68,7 +68,7 @@
     if (m.err) return h + '<p class="ccs-err">' + esc(m.err) + '</p>';
     if (!m.data) return h + '<p class="ccs-loading">Loading…</p>';
     var d = m.data;
-    h += d.pending.length ? '<p class="ccs-hint">Old sheet orders that could not be matched to a customer automatically. Linking puts the order on the customer\'s profile. A name alone is never enough: check the number, email or the order itself. Nothing on the sheet changes.</p>' + d.pending.map(cmCard).join('')
+    h += d.pending.length ? '<p class="ccs-hint">Old sheet orders that could not be matched to a customer automatically. Linking puts the order on the customer\'s profile. A name alone is never enough: check the number, email or the order itself. Nothing on the sheet changes.</p>' + pageOne('cm', d.pending, cmCard, function (x) { return x.rec_key; }, m.open)
       : '<p class="ccs-quiet">Every sheet order with a mobile number is on a customer profile or was left without one.</p>';
     if (d.no_phone) h += '<p class="ccs-hint">' + int(d.no_phone) + ' sheet order' + (d.no_phone === 1 ? ' has' : 's have') + ' no mobile number. They still count in the figures, without a customer profile.</p>';
     if (d.recent.length) h += '<details class="ccs-more"><summary>Customer matches made (' + d.recent.length + ')</summary><div class="ccs-history">' + d.recent.map(function (x) {
@@ -130,14 +130,27 @@
     var sy = d.sync || {};
     h += '<div class="ccs-kpis dx-kpis dx-kpis-s">' + dxKpi('Orders counted', int(sy.records - sy.needs_review), 'In the dashboard figures', null) + dxKpi('Waiting for review', int(sy.needs_review), sy.needs_review ? 'Not counted until decided' : 'Nothing to check', null, null, sy.needs_review ? 'action' : 'good') +
       dxKpi('Left out', int(sy.excluded), 'Tests, copies and records left out', null) + '</div>';
+    var cut = [['review', h.length]];
     h += '<h2 class="rg-h">Waiting for review</h2>';
-    h += d.records.length ? '<p class="ccs-hint">Check each one against the sheet or the order. Your decision is kept with your name and survives every later sheet update. Nothing in the sheets or orders is changed.</p>' + d.records.map(rgCard).join('') : '<p class="ccs-quiet">Nothing waiting. Every record is counted or left out with a reason.</p>';
+    h += d.records.length ? '<p class="ccs-hint">Check each one against the sheet or the order. Your decision is kept with your name and survives every later sheet update. Nothing in the sheets or orders is changed.</p>' + pageOne('rg', d.records, rgCard, function (x) { return x.rec_key; }, g.noteFor && g.noteFor[0]) : '<p class="ccs-quiet">Nothing waiting. Every record is counted or left out with a reason.</p>';
+    cut.push(['cm', h.length]);
     h += cmView();
+    cut.push(['recent', h.length]);
     if (d.recent.length) h += '<h2 class="rg-h">Recent decisions</h2><div class="ccs-history">' + d.recent.map(function (x) {
       return '<div><span>' + esc(when(x.at)) + '</span><span><b style="font-weight:600;color:var(--ccs-ink)">' + esc(x.reference || '') + '</b> ' + esc(RG_DEC[x.decision] || x.decision) + (x.note ? ': ' + esc(x.note) : '') + ' · ' + esc(x.by || 'Unknown') +
         ' <button type="button" class="ccs-link" data-act="rg-undo" data-k="' + esc(x.rec_key) + '">Undo</button></span></div>';
     }).join('') + '</div>';
-    return h;
+    var cmN = RG && RG.cm && RG.cm.data ? RG.cm.data.pending.length : null;
+    return secSplit(h, cut, 'reg', { review: 'Waiting for review (' + int(d.records.length) + ')', cm: 'Customers to match' + (cmN != null ? ' (' + int(cmN) + ')' : ''), recent: 'Recent decisions' });
+  }
+  // One record on screen at a time, with Previous and Next (fits the screen)
+  function pageOne(group, list, render, keyOf, force) {
+    if (!list.length) return '';
+    S.secs = S.secs || {}; var k = S.secs[group + '#'], i = list.map(keyOf).indexOf(force || k); if (i < 0) i = Math.min(S.secs[group + '#i'] || 0, list.length - 1);
+    S.secs[group + '#'] = keyOf(list[i]); S.secs[group + '#i'] = i;
+    if (list.length === 1) return render(list[0]);
+    return '<div class="ccs-pager"><b>' + (i + 1) + ' of ' + list.length + '</b><div class="ccs-pager-btns"><button type="button" class="ccs-btn ccs-ghost ccs-small" data-act="pgo" data-g="' + group + '" data-v="' + keyOf(list[(i - 1 + list.length) % list.length]) + '"' + (i === 0 ? ' disabled' : '') + '>Previous</button>' +
+      '<button type="button" class="ccs-btn ccs-ghost ccs-small" data-act="pgo" data-g="' + group + '" data-v="' + keyOf(list[(i + 1) % list.length]) + '"' + (i === list.length - 1 ? ' disabled' : '') + '>Next</button></div></div>' + render(list[i]);
   }
   function regDecide(k, dec, note) {
     var g = rgState(); if (S.busy) return; S.busy = true; g.err2 = null;
