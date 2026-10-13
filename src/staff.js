@@ -825,8 +825,10 @@
     var pair = function (k1, v1, k2, v2) { return '<div class="sl-pair">' + line(k1, v1) + line(k2, v2) + '</div>'; };
     var cake = (s.variant || s.cake || '') + (s.variant && s.cake && s.variant !== s.cake ? ' (' + s.cake + ')' : '') + (s.finish === 'custom' ? ' · Custom design' : '');
     var sizeTxt = s.size ? s.size + ' inch' + (s.quantity > 1 ? ' × ' + s.quantity + ' cakes' : '') + (s.serves ? ' · ' + s.serves : '') : '';
-    var remarks = [s.finish === 'custom' && s.design ? 'Design: ' + s.design : '', s.occasion ? 'Occasion: ' + s.occasion : '', s.order_notes ? 'Order notes: ' + s.order_notes : '', s.kitchen_notes ? 'Kitchen notes: ' + s.kitchen_notes : '',
-      deliv ? 'Delivery to ' + (s.area || 'the address on the order screen') + '. Address is on the order screen.' : ''].filter(Boolean).join(' · ');
+    var remarks = [s.finish === 'custom' && s.design ? 'Design: ' + s.design : '', s.occasion ? 'Occasion: ' + s.occasion : '', s.order_notes ? 'Order notes: ' + s.order_notes : '', s.kitchen_notes ? 'Kitchen notes: ' + s.kitchen_notes : ''].filter(Boolean).join(' · ');
+    var paidAmt = Number(x.paid || 0), due2 = x.price != null ? Math.max(Number(x.price) - paidAmt, 0) : null;
+    var priceTxt = cents(x.price) + (x.price != null ? '  ·  Paid ' + cents(paidAmt) + '  ·  To pay ' + cents(due2) : '');
+    var SRC = { online: 'Website', walk_in: 'Walk-in', phone: 'Phone', whatsapp: 'WhatsApp', social: 'Social media', corporate: 'Corporate' };
     var at = x.ordered_at ? new Date(x.ordered_at) : null;
     var odate = at ? at.toLocaleDateString('en-GB', { timeZone: TZ, day: 'numeric', month: 'short', year: 'numeric' }) : '';
     var otime = at ? at.toLocaleTimeString('en-GB', { timeZone: TZ, hour: 'numeric', minute: '2-digit', hour12: true }).replace(' ', '') : '';
@@ -839,9 +841,10 @@
       '<div class="sl-lines">' +
         line('Guest Name', x.name || s.customer) + line('Contact', x.phone) +
         pair(deliv ? 'Delivery Date' : 'Pickup Date', nice(s.date, true), 'Time', t12(s.time) + ' (ready ' + t12(readyBy) + ')') +
-        line('Type of cake', cake) + line('Size', sizeTxt) + line('Price', cents(x.price)) + line('Candles', s.candles) +
+        (deliv ? line('Deliver to', [s.area, x.address].filter(Boolean).join(', ') + (x.receiver ? ' (for ' + x.receiver + ')' : ''), 'sl-wrap') : '') +
+        line('Type of cake', cake) + line('Size', sizeTxt) + line('Price', priceTxt) + line('Candles', s.candles) +
         line('Inscription', s.message ? '“' + s.message + '”' : '', 'sl-big') + line('Remarks', remarks + (!s.has_dietary ? (remarks ? ' · ' : '') + 'No dietary needs or allergies given.' : ''), 'sl-wrap') +
-        line('Order Taken by', x.taken_by) + pair('Date', odate, 'Time', otime) +
+        line('Order Taken by', (x.taken_by || '') + (x.source && x.source !== 'online' ? ' (' + (SRC[x.source] || x.source) + ')' : '')) + pair('Date', odate, 'Time', otime) +
       '</div>' +
       (urls.length ? '<div class="sl-photos">' + urls.map(function (u) { return '<img src="' + esc(u) + '" alt="Reference photo">'; }).join('') + '</div>' : '') +
       '<div class="sl-foot"><b>Phone: + 679 8922760 | Email: cornercafe@jacksfiji.com</b><small>All prices include 12.5% VAT. Note: 2% Surcharge applies for all overseas Credit card transactions. Foreign currencies are just the estimate convertible values for guests guide.</small></div>' +
@@ -1218,7 +1221,7 @@
   function newInSheet() { return !!(S.sheet && S.sheet.type === 'new'); }
   function newOpen() { return S.tab === 'new' || newInSheet(); }
   function newRender() { if (newInSheet()) renderSheet(); else view(); }
-  function goStep(i) { D.restored = false; D.step = i; D.reached = Math.max(D.reached, i); D.err = null; D.errField = null; newRender(); var el = document.getElementById('ccs-nstep-' + i); if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  function goStep(i) { if (SLIP) D.whenOpen = false; D.restored = false; D.step = i; D.reached = Math.max(D.reached, i); D.err = null; D.errField = null; newRender(); var el = document.getElementById('ccs-nstep-' + i); if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
   function ferr(f) { return D.errField === f && D.err ? '<p class="ccs-err">' + esc(D.err) + '</p>' : ''; }
 
   function newView() {
@@ -1418,11 +1421,16 @@
       h += slipRow('Guest Name', true, '<input class="ccs-input" id="n-name" data-n="name" value="' + esc(D.name) + '" autocomplete="off" placeholder="Full name">' + ferr('name'), 'sl-name');
       var c = '<input class="ccs-input" id="n-phone" type="tel" inputmode="tel" placeholder="Mobile number" value="' + esc(D.phone) + '" data-n="phone" autocomplete="off">' + ferr('phone');
       if (D.matches && D.matches.length) c += '<div class="sl-matches"><span class="ccs-hint">Already a customer? Tap to use their details.</span>' + D.matches.map(function (m, k) { return '<button type="button" class="ccs-match" data-act="n-pick" data-v="' + k + '"><span><b style="color:var(--ccs-ink)">' + esc(m.full_name) + '</b><br><span class="ccs-hint">' + esc(m.phone) + (m.favourite_cake ? ' · usually ' + esc(m.favourite_cake) : '') + '</span></span><span class="ccs-hint">' + (m.orders_count ? m.orders_count + ' orders' : 'No orders yet') + '</span></button>'; }).join('') + '</div>';
-      if (digits(D.phone).length >= 7 && !(D.matches && D.matches.length)) c += '<div class="sl-newguest"><span class="ccs-hint">New customer: a profile is made when the order is saved.</span><input class="ccs-input" id="n-email" type="email" data-n="email" value="' + esc(D.email) + '" placeholder="Email (optional)">' +
-        '<label class="ccs-check"><input type="checkbox" data-nc="whatsapp"' + (D.whatsapp ? ' checked' : '') + '> This number is on WhatsApp</label><label class="ccs-check"><input type="checkbox" data-nc="optIn"' + (D.optIn ? ' checked' : '') + '> Customer agrees to receive cake specials and reminders</label></div>';
+      if (digits(D.phone).length >= 7 && !(D.matches && D.matches.length)) c += '<div class="sl-newguest"><span class="ccs-hint">New customer: a profile is made when the order is saved.</span>' + (D.moreContact || D.email ? '<input class="ccs-input" id="n-email" type="email" data-n="email" value="' + esc(D.email) + '" placeholder="Email (optional)">' +
+        '<label class="ccs-check"><input type="checkbox" data-nc="whatsapp"' + (D.whatsapp ? ' checked' : '') + '> This number is on WhatsApp</label><label class="ccs-check"><input type="checkbox" data-nc="optIn"' + (D.optIn ? ' checked' : '') + '> Customer agrees to receive cake specials and reminders</label>' : '<button type="button" class="ccs-link" data-act="sl-more-contact">More contact details (email, WhatsApp, specials)</button>') + '</div>';
       h += slipRow('Contact', true, c);
     }
-    h += slipRow(dl ? 'Delivery Date and Time' : 'Pickup Date and Time', true, stepWhen(true), 'sl-when');
+    var closedL2 = (S.setup && S.setup.closed_dates) || [], whenDone = D.date && D.time && closedL2.indexOf(D.date) < 0 && rushOk() && delivOk();
+    var whenBody;
+    if (whenDone && !D.whenOpen) whenBody = '<div class="sl-sum"><b class="sl-fixed">' + esc(nice(D.date, true)) + ', ' + esc(t12(D.time)) + '</b><span class="ccs-hint">' + (dl ? 'Delivery to ' + esc(D.zone || '') + (D.address ? ', ' + esc(D.address) : '') : 'Collect from café') + (tooSoon() ? ' · Short notice, approved by ' + esc(D.rushBy) : '') + '</span><button type="button" class="ccs-link" data-act="sl-when-open">Change date, time or delivery</button></div>';
+    else if (!D.date && !D.whenOpen) whenBody = '<button type="button" class="ccs-btn ccs-ghost sl-open" data-act="sl-when-open">Choose date and time</button><span class="ccs-hint">Collection or delivery is chosen here too.</span>';
+    else whenBody = stepWhen(true) + (whenDone ? '<button type="button" class="ccs-btn ccs-ghost sl-open" data-act="sl-when-close">Done</button>' : '');
+    h += slipRow(dl ? 'Delivery Date and Time' : 'Pickup Date and Time', true, whenBody, 'sl-when');
     // Cake, filled from the price table
     var finish = '<div class="ccs-chips"><button type="button" class="ccs-chip" data-act="n-finish" data-v="standard" aria-pressed="' + (D.finish !== 'custom') + '">Standard finish</button>' + (p && p.supports_custom ? '<button type="button" class="ccs-chip" data-act="n-finish" data-v="custom" aria-pressed="' + (D.finish === 'custom') + '">Custom design</button>' : '') + '</div>';
     h += slipRow('Type of cake', true, (p ? '<b class="sl-fixed">' + esc(D.variant || p.name) + (D.variant ? ' <span class="ccs-hint">(' + esc(p.name) + ')</span>' : '') + '</b>' : '<span class="ccs-hint">Tap a price in the table above</span>') + finish);
@@ -1434,7 +1442,8 @@
     if (D.diet === 'yes') diet += '<div class="ccs-panel"><div class="ccs-chips">' + DIETS.map(function (d) { return '<button type="button" class="ccs-chip" data-act="n-diets" data-v="' + esc(d) + '" aria-pressed="' + (D.diets.indexOf(d) > -1) + '">' + esc(d) + '</button>'; }).join('') + '</div><input class="ccs-input" data-n="dietNote" id="n-dnote" placeholder="Details for the kitchen" value="' + esc(D.dietNote) + '"></div>';
     h += slipRow('Dietary or allergy', true, diet + ferr('diet'), 'sl-diet');
     var rem = (D.finish === 'custom' ? '<label class="ccs-label" for="n-design">Design details<em class="sl-req">Required</em></label><textarea class="ccs-input" id="n-design" data-n="design" placeholder="Colours, theme, toppers">' + esc(D.design) + '</textarea>' + ferr('design') : '') +
-      '<span class="ccs-label">Occasion</span><div class="ccs-chips">' + OCCASIONS.map(function (o) { return '<button type="button" class="ccs-chip" data-act="n-occ" data-v="' + o + '" aria-pressed="' + (D.occasion === o) + '">' + o + '</button>'; }).join('') + '</div>' +
+      (D.occOpen ? '<span class="ccs-label">Occasion</span><div class="ccs-chips">' + OCCASIONS.map(function (o) { return '<button type="button" class="ccs-chip" data-act="n-occ" data-v="' + o + '" aria-pressed="' + (D.occasion === o) + '">' + o + '</button>'; }).join('') + '</div>'
+        : D.occasion ? '<span class="sl-occ">Occasion: <b>' + esc(D.occasion) + '</b> <button type="button" class="ccs-link" data-act="sl-occ-open">Change</button></span>' : '<button type="button" class="ccs-link" data-act="sl-occ-open">Add occasion</button>') +
       '<input class="ccs-input" id="n-notes" data-n="notes" value="' + esc(D.notes) + '" placeholder="Other notes for the order">';
     h += slipRow('Remarks', false, rem, 'sl-remarks');
     h += slipRow('Order Taken by', false, '<b class="sl-fixed">' + esc(me.full_name || 'You') + '</b>');
@@ -1452,6 +1461,7 @@
   function slipBarUpdate() { var b = document.getElementById('sl-bar'); if (SLIP && b && !D.result) b.outerHTML = slipBar(); }
   function slipJump() {
     var m = slipMissing(); if (!m.length) return;
+    if (m[0][1] === 'sl-when' && !D.whenOpen) { D.whenOpen = true; refreshStep(); }
     var el = document.getElementById(m[0][1]); if (!el) return;
     if (el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     var f = el.matches && el.matches('input,textarea') ? el : el.querySelector('input:not([type=checkbox]),textarea');
@@ -2500,7 +2510,7 @@
         case 'n-size': D.size = Number(v); refreshStep(); break;
         case 'n-next': goStep(nextOpen(Number(v))); break;
         case 'n-finish': D.finish = v; refreshStep(); break;
-        case 'n-occ': D.occasion = D.occasion === v ? null : v; refreshStep(); break;
+        case 'n-occ': D.occasion = D.occasion === v ? null : v; D.occOpen = false; refreshStep(); break;
         case 'n-diet': D.diet = v; if (v === 'no') { D.diets = []; D.dietNote = ''; } D.errField = null; refreshStep(); break;
         case 'n-diets': var k = D.diets.indexOf(v); if (k > -1) D.diets.splice(k, 1); else D.diets.push(v); refreshStep(); break;
         case 'n-finish-next':
@@ -2527,6 +2537,10 @@
         case 'n-cell': (function () { var pr = v.split('|'), code = pr[0], inch = Number(pr[1]); if (D.product !== code) { D.product = code; D.variant = null; } D.size = inch; D.restored = false; if (D.errField === 'product' || D.errField === 'size') { D.err = null; D.errField = null; } refreshStep(); })(); break;
         case 'n-unpick': D.customer = null; D.phone = ''; D.matches = null; D.name = ''; refreshStep(); setTimeout(function () { var f = document.getElementById('n-name'); if (f) f.focus(); }, 30); break;
         case 'sl-jump': slipJump(); break;
+        case 'sl-when-open': D.whenOpen = true; refreshStep(); (function () { var w = document.getElementById('sl-when'); if (w && w.scrollIntoView) w.scrollIntoView({ behavior: 'smooth', block: 'start' }); })(); break;
+        case 'sl-when-close': D.whenOpen = false; refreshStep(); break;
+        case 'sl-more-contact': D.moreContact = true; refreshStep(); setTimeout(function () { var f = document.getElementById('n-email'); if (f) f.focus(); }, 30); break;
+        case 'sl-occ-open': D.occOpen = true; refreshStep(); break;
         // settings
         case 'save-loc': saveLoc(); break;
         case 'add-closed': var cd = val('st-cdate'); if (!cd) { toast('Choose a date.', true); break; } sb.from('closed_dates').insert({ location_id: S.settings.loc.id, closed_on: cd, reason: val('st-creason').trim() || null }).then(function (r) { if (r.error) throw r.error.code === '23505' ? new Error('That day is already closed') : r.error; toast('Closed day added'); refreshSetup(); loadSettings(); }).catch(fail); break;

@@ -542,3 +542,8 @@ body.ccs-is-off #cc-staff .ccs-side { top: var(--ccs-offh, 44px); }
   #cc-staff .sl-ptable tbody th { min-width: 118px; font-size: 13px; padding: 8px; }
   #cc-staff .sl-band-t span { display: none; }
 }
+#cc-staff .sl-sum { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+#cc-staff .sl-sum .sl-fixed { padding-top: 6px; }
+#cc-staff .sl-open { align-self: flex-start; min-width: 220px; }
+#cc-staff .sl-occ { font-size: 15px; color: var(--ccs-text); }
+#cc-staff .sl-val > .ccs-link, #cc-staff .sl-newguest > .ccs-link { align-self: flex-start; }

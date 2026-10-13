@@ -71,6 +71,7 @@ async def main():
         check('A1 Other needs written details', 'Dietary details' in await pg.inner_text('#sl-bar'))
         await pg.fill('#n-dnote', 'No sesame seeds'); await pg.wait_for_timeout(200)
         check('A1 clears once details are written', 'Dietary' not in await pg.inner_text('#sl-bar'))
+        await jsclick(pg, '[data-act="sl-when-open"]')
         soon = await pg.eval_on_selector_all('.ccs-chip-soon', 'els=>els.map(e=>e.textContent)')
         check('A16 Today and Tomorrow chips marked short notice', len(soon) >= 2 and 'Today' in soon[0], soon)
         await pg.click('.ccs-chip-soon >> nth=1'); await pg.wait_for_timeout(250)

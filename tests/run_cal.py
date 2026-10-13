@@ -77,7 +77,7 @@ async def desktop(b, errs):
     check('desk calendar stays on screen behind the panel', await pg.locator('#ccs-main .ccs-wgrid').count() == 1)
     await fill_new_customer_and_cake(pg)
     main = await pg.inner_text('#ccs-sheet')
-    check('desk When step already filled from the slot', '3:00pm' in main and 'Payment' in main and await pg.locator('[data-act="n-time"][data-v="15:00"][aria-pressed="true"]').count() == 1, main[:600])
+    check('desk When step already filled from the slot', '3:00pm' in main and 'Payment' in main and 'Change date, time or delivery' in main, main[:600])
     await pg.screenshot(path=str(OUT / 'desk-4-new.png'), full_page=True)
     # double tap guard
     await pg.evaluate("var b=document.querySelector('[data-act=\"n-submit\"]'); b.click(); b.click();"); await pg.wait_for_timeout(400)
