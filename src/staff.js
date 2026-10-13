@@ -1188,6 +1188,7 @@
       var d = JSON.parse(raw);
       if (!d || !d.saved || Date.now() - d.saved > 12 * 3600 * 1000) { localStorage.removeItem(k); return; }
       D = Object.assign(freshDraft(), d, { matches: null, result: null, restored: true });
+      if (D.customer && D.custConsent === undefined) setTimeout(function () { if (D.customer) slConsent(D.customer.id); }, 0);
     } catch (e) {}
   }
   function clearDraft() { var k = draftKey(); try { if (k) localStorage.removeItem(k); } catch (e) {} D = freshDraft(); }
@@ -1373,6 +1374,8 @@
   }
   // ---------- interactive Order Slip: the paper slip, filled in one stage at a time ----------
   var SLIP = true;
+  var HEARD = [['facebook', 'Facebook'], ['instagram', 'Instagram'], ['google', 'Google'], ['friend', 'Friend or family'], ['walked_past', 'Walked past'], ['other', 'Other']];
+  var RECUR = ['Birthday', 'Anniversary', 'Wedding'];
   var SL_STAGES = ['Cake and size', 'Guest name', 'Contact', 'Pickup date and time', 'Candles and inscription', 'Dietary or allergy', 'Remarks', 'Read over and save'];
   function cents(v) { return v == null ? '' : '$' + Number(v).toFixed(2); }
   function slStage() { return D.sl == null ? 0 : D.sl; }
@@ -1382,7 +1385,7 @@
     var p = prod(), closedL = (S.setup && S.setup.closed_dates) || [];
     if (s === 0) return !p || !D.size ? ['Tap a price to choose the cake and size'] : p.variants.length && !D.variant ? ['Choose the flavour'] : [];
     if (s === 1) return D.customer || D.name.trim().length >= 2 ? [] : ['Write the guest name'];
-    if (s === 2) { if (D.customer) return []; var n = []; if (digits(D.phone).length < 7) n.push('Write the full mobile number'); if (D.optIn !== true && D.optIn !== false) n.push('Ask if they want cake offers and reminders'); return n; }
+    if (s === 2) { if (D.customer) { if (D.custConsent === undefined) return ['Checking their permission']; return D.custConsent && D.custConsent.ok ? [] : (D.optIn === true || D.optIn === false) ? [] : ['Ask if they want cake offers and reminders']; } var n = []; if (digits(D.phone).length < 7) n.push('Write the full mobile number'); if (D.optIn !== true && D.optIn !== false) n.push('Ask if they want cake offers and reminders'); return n; }
     if (s === 3) { if (!D.date) return ['Choose the date']; if (closedL.indexOf(D.date) > -1) return ['Choose a day the café is open']; if (!D.time) return ['Choose the time']; var w = []; if (tooSoon() && !rushOk()) w.push('Give the short-notice reason and who approved it'); if (D.method === 'delivery' && !delivOk()) w.push('Finish the delivery details'); return w; }
     if (s === 5) { if (!D.diet) return ['Ask about dietary needs and allergies']; var dm = dietMissing(D.diet, D.diets, D.dietNote); return dm ? [dm] : []; }
     if (s === 6) return D.finish === 'custom' && D.design.trim().length < 3 ? ['Describe the custom design'] : [];
@@ -1443,14 +1446,17 @@
     if (D.customer) nmEd = '<p class="sl-fixed">' + nm + '</p><button type="button" class="ccs-link" data-act="n-unpick">A different guest</button>' + slActions(1);
     h += slLine('Guest Name', 1, nm, nmEd, { req: true, id: 'sl-st-1' });
     // Stage 3: contact and permission
-    var ct = D.customer ? esc(D.customer.phone || '') : esc(D.phone.trim());
+    var ct = D.customer ? esc(D.customer.phone || '') + (D.optIn === true || D.optIn === false ? '<small>' + (D.optIn ? 'Agreed to cake offers and reminders' : 'No offers or reminders') + '</small>' : D.custConsent && D.custConsent.ok ? '<small>Agreed to cake offers and reminders</small>' : '') : esc(D.phone.trim());
     if (ct && !D.customer && (D.optIn === true || D.optIn === false)) ct += '<small>' + (D.optIn ? 'Agreed to cake offers and reminders' : 'No offers or reminders') + '</small>';
     var ctEd;
-    if (D.customer) ctEd = '<p class="sl-fixed">' + esc(D.customer.phone || '') + '</p><span class="ccs-hint">' + (D.customer.orders_count ? D.customer.orders_count + ' earlier orders' + (D.customer.favourite_cake ? ', usually ' + esc(D.customer.favourite_cake) : '') : 'Existing customer') + '. Their marketing permission is kept on their profile.</span>' + slActions(2);
+    if (D.customer) ctEd = '<p class="sl-fixed">' + esc(D.customer.phone || '') + '</p><span class="ccs-hint">' + (D.customer.orders_count ? D.customer.orders_count + ' earlier orders' + (D.customer.favourite_cake ? ', usually ' + esc(D.customer.favourite_cake) : '') : 'Existing customer') + '.</span>' +
+      (D.custConsent === undefined ? '<p class="ccs-hint">Checking their permission…</p>' : D.custConsent && D.custConsent.ok ? '<p class="ccs-hint">Already agreed to cake offers and reminders.</p>' :
+        '<div class="sl-sub"><span class="sl-k">' + (D.custConsent && D.custConsent.reconfirm ? 'Their permission needs confirming. Can we send them cake offers and reminders?' : 'Can we send them cake offers and reminders?') + '</span><div class="ccs-chips"><button type="button" class="ccs-chip" data-act="sl-opt" data-v="yes" aria-pressed="' + (D.optIn === true) + '">Yes</button><button type="button" class="ccs-chip" data-act="sl-opt" data-v="no" aria-pressed="' + (D.optIn === false) + '">No</button></div><span class="ccs-hint">Only a clear yes is recorded as permission. It is saved with the order.</span></div>') + slActions(2);
     else ctEd = '<input class="ccs-input" id="n-phone" type="tel" inputmode="tel" placeholder="Mobile number" value="' + esc(D.phone) + '" data-n="phone" autocomplete="off">' + ferr('phone') + slMatches(D.matches) +
       '<label class="ccs-check"><input type="checkbox" data-nc="whatsapp"' + (D.whatsapp ? ' checked' : '') + '> This number is on WhatsApp</label>' +
       '<input class="ccs-input" id="n-email" type="email" data-n="email" value="' + esc(D.email) + '" placeholder="Email (optional)">' +
-      '<div class="sl-sub"><span class="sl-k">Can we send them cake offers and reminders?</span><div class="ccs-chips"><button type="button" class="ccs-chip" data-act="sl-opt" data-v="yes" aria-pressed="' + (D.optIn === true) + '">Yes</button><button type="button" class="ccs-chip" data-act="sl-opt" data-v="no" aria-pressed="' + (D.optIn === false) + '">No</button></div><span class="ccs-hint">Ask every new guest. Only a clear yes is recorded as permission.</span></div>' + slActions(2);
+      '<div class="sl-sub"><span class="sl-k">Can we send them cake offers and reminders?</span><div class="ccs-chips"><button type="button" class="ccs-chip" data-act="sl-opt" data-v="yes" aria-pressed="' + (D.optIn === true) + '">Yes</button><button type="button" class="ccs-chip" data-act="sl-opt" data-v="no" aria-pressed="' + (D.optIn === false) + '">No</button></div><span class="ccs-hint">Ask every new guest. Only a clear yes is recorded as permission.</span></div>' +
+      '<div class="sl-sub"><span class="sl-k">How did they hear about us? <em class="sl-req">Optional</em></span><div class="ccs-chips">' + HEARD.map(function (x) { return '<button type="button" class="ccs-chip" data-act="sl-heard" data-v="' + x[0] + '" aria-pressed="' + (D.heard === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div></div>' + slActions(2);
     h += slLine('Contact', 2, ct, ctEd, { req: true, id: 'sl-st-2' });
     // Stage 4: pickup
     var wv = D.date && D.time ? esc(nice(D.date, true)) + ', ' + esc(t12(D.time)) + '<small>' + (dl ? 'Delivery to ' + esc(D.zone || '') + (D.address ? ', ' + esc(D.address) : '') : 'Collect from café') + (tooSoon() ? ' · Short notice, approved by ' + esc(D.rushBy) : '') + '</small>' : '';
@@ -1470,9 +1476,11 @@
       (D.diet === 'yes' ? '<div class="ccs-chips">' + DIETS.map(function (d) { return '<button type="button" class="ccs-chip" data-act="n-diets" data-v="' + esc(d) + '" aria-pressed="' + (D.diets.indexOf(d) > -1) + '">' + esc(d) + '</button>'; }).join('') + '</div><input class="ccs-input" data-n="dietNote" id="n-dnote" placeholder="Details for the kitchen" value="' + esc(D.dietNote) + '">' : '') + ferr('diet') + slActions(5);
     h += slLine('Dietary or allergy', 5, dv, dEd, { req: true, id: 'sl-st-5' });
     // Stage 7: remarks
-    var rv = [D.finish === 'custom' && D.design ? esc(D.design) : '', D.occasion ? esc(D.occasion) : '', esc(D.notes)].filter(Boolean).join(' · ');
+    var rv = [D.finish === 'custom' && D.design ? esc(D.design) : '', D.occasion ? esc(D.occasion) + (D.occFor ? ' for ' + esc(D.occFor) : '') : '', esc(D.notes)].filter(Boolean).join(' · ');
     var rEd = (D.finish === 'custom' ? '<label class="sl-k" for="n-design">Design details <em class="sl-req">Required</em></label><textarea class="ccs-input" id="n-design" data-n="design" placeholder="Colours, theme, toppers">' + esc(D.design) + '</textarea>' + ferr('design') : '') +
       '<span class="sl-k">Occasion</span><div class="ccs-chips">' + OCCASIONS.map(function (o) { return '<button type="button" class="ccs-chip" data-act="n-occ" data-v="' + o + '" aria-pressed="' + (D.occasion === o) + '">' + o + '</button>'; }).join('') + '</div>' +
+      (RECUR.indexOf(D.occasion) > -1 ? '<div class="sl-sub sl-occ2"><label class="sl-k" for="n-occfor">Whose ' + esc(D.occasion.toLowerCase()) + '? <em class="sl-req">Optional</em></label><input class="ccs-input" id="n-occfor" data-n="occFor" maxlength="60" value="' + esc(D.occFor || '') + '" placeholder="For example: Mia, their daughter">' +
+        '<label class="sl-k" for="n-occdate">Date of the ' + esc(D.occasion.toLowerCase()) + '</label><input class="ccs-input" id="n-occdate" type="date" data-n="occDate" value="' + esc(D.occDate || D.date || '') + '"><span class="ccs-hint">Used to remind them next year, if they agreed to messages.</span></div>' : '') +
       '<label class="sl-k" for="n-notes">Other notes</label><input class="ccs-input" id="n-notes" data-n="notes" value="' + esc(D.notes) + '" placeholder="Anything else for the order">' + slActions(6, D.finish !== 'custom');
     h += slLine('Remarks', 6, rv, rEd, { id: 'sl-st-6' });
     h += slLine('Order Taken by', 99, esc(me.full_name || 'You'), null, { filled: true, change: false });
@@ -1497,6 +1505,15 @@
     if (q.length < 3) { if (D.nameMatches) { D.nameMatches = null; refreshStep(); } return; }
     nameTimer = setTimeout(function () { sb.rpc('staff_search_customers', { q: q }).then(function (r) { if (r.error) throw r.error; if (q !== D.name.trim()) return; D.nameMatches = (r.data || []).slice(0, 4); refreshStep(); }).catch(function (e) { console.error(e); }); }, 350);
   }
+  // Existing guest: is their permission on record? If yes, contact is done; if not, the question is asked
+  function slConsent(id) {
+    sb.from('customer_summary').select('marketing_opt_in, consent_reconfirm').eq('id', id).single().then(function (r) {
+      if (!D.customer || D.customer.id !== id) return;
+      var x = r && !r.error && r.data ? r.data : null;
+      D.custConsent = x ? { ok: !!x.marketing_opt_in && !x.consent_reconfirm, reconfirm: !!x.consent_reconfirm } : { ok: false };
+      if (D.custConsent.ok && slStage() === 2) { slSeen()[2] = true; slGo(slNextStage(2)); } else refreshStep();
+    }, function () { D.custConsent = { ok: false }; refreshStep(); });
+  }
   function slipBar() { return ''; }
   function slipBarUpdate() {}
   function slipJump() { var m = slipMissing(); if (m.length) slGo(m[0][1]); }
@@ -1510,7 +1527,9 @@
       date: D.date, time: D.time, rush: tooSoon() ? { reason: D.rush, approved_by: D.rushBy } : null, confirm_now: D.confirmNow && !custom, deposit_required: dep,
       payment: payAmt ? { amount: payAmt, method: D.payMethod, kind: dep ? 'deposit' : (payAmt >= price ? 'full' : 'deposit') } : null,
       delivery: D.method === 'delivery' ? { method: 'delivery', zone: D.zone, address: D.address, fee: zoneObj() && zoneObj().fee == null ? num(D.fee) : null, contact: D.contact } : { method: 'collection' } };
-    if (D.customer) p.customer_id = D.customer.id; else p.customer = { name: D.name, phone: D.phone, email: D.email, whatsapp: D.whatsapp, opt_in: D.optIn === true };
+    if (D.customer) { p.customer_id = D.customer.id; if (D.optIn === true || D.optIn === false) p.consent = D.optIn ? 'yes' : 'no'; } else p.customer = { name: D.name, phone: D.phone, email: D.email, whatsapp: D.whatsapp, opt_in: D.optIn === true };
+    if (D.heard && !D.customer) p.heard_from = D.heard;
+    if (RECUR.indexOf(D.occasion) > -1) { if ((D.occFor || '').trim()) p.occasion_for = D.occFor.trim(); p.occasion_date = D.occDate || D.date; }
     S.busy = true; refreshStep();
     sb.rpc('staff_create_order', { p: p }).then(function (r) {
       S.busy = false; if (r.error) throw r.error;
@@ -1880,6 +1899,35 @@
     return req.then(function (r) { if (r.error) throw r.error; c.rows = r.data || []; c.count = c.rows.length; c.loaded = true; if (S.tab === 'customers') view(); })
       .catch(function (e) { var m = readErr(e, 'customers'); if (m == null) return; c.loadErr = m; if (S.tab === 'customers') view(); });
   }
+  // ---------- reminders due: guests who agreed to messages, occasion coming up ----------
+  S.rem = { rows: null, at: 0, err: null, open: false };
+  function loadReminders(force) {
+    if (!can('manager', 'front_of_house', 'marketing')) return;
+    if (!force && (S.rem.err || S.rem.busy || (S.rem.rows && Date.now() - S.rem.at < 300000))) return;
+    S.rem.busy = true;
+    sb.rpc('staff_reminders_due').then(function (r) {
+      if (r.error) throw r.error; if (!r.data.ok) throw userErr(r.data.message);
+      S.rem.busy = false; S.rem.rows = r.data.rows || []; S.rem.at = Date.now(); S.rem.err = null; if (S.tab === 'customers') view();
+    }).catch(function (e) { console.error(e); S.rem.busy = false; S.rem.err = 'Reminders could not load.'; if (S.tab === 'customers') view(); });
+  }
+  function remText(r) {
+    var first = String(r.name || '').trim().split(/\s+/)[0] || 'there', occ = String(r.reason || 'your celebration').replace(/ \(".*$/, '');
+    return 'Hi ' + first + ', it is Corner Café. Your ' + occ.charAt(0).toLowerCase() + occ.slice(1) + ' is coming up on ' + nice(r.date, true) + '. Would you like us to make the cake again? Reply here and we will help you order.';
+  }
+  function remindersBox() {
+    if (!can('manager', 'front_of_house', 'marketing')) return '';
+    loadReminders(false);
+    var R2 = S.rem, rows = R2.rows;
+    if (R2.err) return '<section class="ccs-box ccs-rem"><h3>Reminders due</h3><p class="ccs-err">' + esc(R2.err) + ' <button type="button" class="ccs-link" data-act="rem-reload">Try again</button></p></section>';
+    if (!rows) return '<section class="ccs-box ccs-rem"><h3>Reminders due</h3><p class="ccs-loading">Loading…</p></section>';
+    if (!rows.length) return '<section class="ccs-box ccs-rem"><h3>Reminders due</h3><p class="ccs-hint">No reminders due. Guests appear here about two weeks before an occasion, if they agreed to messages.</p></section>';
+    var show = R2.open ? rows : rows.slice(0, 3);
+    return '<section class="ccs-box ccs-rem"><h3>Reminders due <span class="ccs-count">' + rows.length + '</span></h3><p class="ccs-hint">Guests who agreed to messages, with an occasion coming up. The message opens in WhatsApp for you to check and send yourself. Nothing is sent automatically.</p>' +
+      show.map(function (r) {
+        return '<div class="ccs-rem-row"><div><b>' + esc(r.name) + '</b><span>' + esc(r.reason || 'Occasion') + ' · ' + esc(nice(r.date, true)) + (r.cake ? ' · usually ' + esc(r.cake) : '') + '</span>' + (r.reconfirm ? '<span class="ccs-rem-warn">Permission needs confirming: ask in the message if they still want reminders.</span>' : '') + '</div>' +
+          '<div class="ccs-actions-row"><a class="ccs-btn ccs-ghost" href="' + esc(waLink(r.phone) + '?text=' + encodeURIComponent(remText(r))) + '" target="_blank" rel="noopener">WhatsApp message</a><button type="button" class="ccs-btn ccs-ghost" data-act="rem-sent" data-id="' + r.id + '" data-v="' + esc(r.date) + '">Mark as sent</button></div></div>';
+      }).join('') + (rows.length > 3 ? '<button type="button" class="ccs-link" data-act="rem-more">' + (R2.open ? 'Show fewer' : 'Show all ' + rows.length) + '</button>' : '') + '</section>';
+  }
   function customersView() {
     var c = clState();
     if (c.mode === 'dups' && can('manager')) return clDupsView();
@@ -1888,7 +1936,7 @@
       '<div class="ccs-headacts"><input class="ccs-input ccs-search" id="ccs-cq" type="search" placeholder="Search name, mobile, email, company, C-number or order number" value="' + esc(c.q) + '">' +
       (can('manager', 'front_of_house') ? '<button type="button" class="ccs-btn" data-act="cust-new">Add customer</button>' : '') + '</div></div>';
     if (c.q.trim().length >= 2) h += '<p class="ccs-hint cm-gline">Search results. Clear the search to use filters and groups.</p>';
-    else h += clToolbar();
+    else h += remindersBox() + clToolbar();
     if (!c.loaded) return h + (c.loadErr ? loadErr(c.loadErr, 'cust-reload') : '<p class="ccs-loading">Loading customers…</p>');
     var rows = c.rows;
     if (!rows.length) return h + '<div class="ccs-empty"><b>' + (Object.keys(c.flt || {}).length || c.seg !== 'all' ? 'No customers match these filters.' : 'No customers in this group yet.') + '</b><span>' + (Object.keys(c.flt || {}).length ? 'Remove a filter to see more.' : 'Customers are added automatically when an order is placed.') + '</span></div>';
@@ -2655,8 +2703,12 @@
         case 'new-clear': var keepDate = newInSheet() ? [D.date, D.time] : null; clearDraft(); if (keepDate) { D.date = keepDate[0]; D.time = keepDate[1]; D.fromCal = true; } newRender(); break;
         case 'n-source': D.source = v; root.querySelectorAll('[data-act="n-source"]').forEach(function (c) { c.setAttribute('aria-pressed', c.dataset.v === v); }); break;
         case 'n-edit': goStep(Number(v)); break;
-        case 'n-pick': if (SLIP) { var pl = b.dataset.from === 'name' ? D.nameMatches : D.matches; D.customer = pl[Number(v)]; D.isNew = false; D.nameMatches = null; D.matches = null; slSeen()[1] = true; slSeen()[2] = true; slGo(slNextStage(-1)); break; } D.customer = D.matches[Number(v)]; D.isNew = false; goStep(nextOpen(1)); break;
+        case 'n-pick': if (SLIP) { var pl = b.dataset.from === 'name' ? D.nameMatches : D.matches; D.customer = pl[Number(v)]; D.isNew = false; D.nameMatches = null; D.matches = null; D.optIn = null; D.custConsent = undefined; slSeen()[1] = true; slGo(2); slConsent(D.customer.id); break; }
+        case 'sl-heard': D.heard = D.heard === v ? null : v; refreshStep(); break; D.customer = D.matches[Number(v)]; D.isNew = false; goStep(nextOpen(1)); break;
         case 'sl-next': slNext(false); break;
+        case 'rem-reload': S.rem.err = null; S.rem.rows = null; view(); break;
+        case 'rem-more': S.rem.open = !S.rem.open; view(); break;
+        case 'rem-sent': (function () { var cid = b.dataset.id, dt = v; markBusy(b, 'Saving…'); sb.rpc('staff_mark_reminded', { p_customer: cid, p_date: dt }).then(function (r) { if (r.error) throw r.error; if (!r.data.ok) throw userErr(r.data.message); S.rem.rows = (S.rem.rows || []).filter(function (x) { return !(x.id === cid && x.date === dt); }); toast('Marked as sent'); view(); }).catch(fail); })(); break;
         case 'mf-open': if (S.settings) { S.menuOpen = true; mfOpen(b.dataset.id || null); } break;
         case 'mf-status': S.mf.f.status = v; S.dirty['mf-st'] = 1; renderSheet(); break;
         case 'mf-add-size': (function () { var last = S.mf.f.sizes.map(function (s) { return parseInt(s.inch, 10) || 0; }); var nx = (last.length ? Math.max.apply(null, last) : 4) + 2; S.mf.f.sizes.push({ id: null, inch: String(nx), price: '', serves: '', active: true }); S.dirty['mf-sz'] = 1; renderSheet(); var f = document.getElementById('mf-sp-' + (S.mf.f.sizes.length - 1)); if (f) f.focus(); })(); break;

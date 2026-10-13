@@ -624,3 +624,11 @@ body.ccs-is-off #cc-staff .ccs-side { top: var(--ccs-offh, 44px); }
   #cc-staff .ccs-mf-row .ccs-mf-wide { grid-column: 1 / -1; }
   #cc-staff .ccs-menued .ccs-mf-rows .ccs-mf-row:has(> .ccs-mf-wide:first-child) { grid-template-columns: 1fr auto; }
 }
+
+/* Batch C: reminders due */
+#cc-staff .ccs-rem h3 { display: flex; align-items: center; gap: 8px; }
+#cc-staff .ccs-rem-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-top: 1px solid var(--ccs-line-soft); flex-wrap: wrap; }
+#cc-staff .ccs-rem-row b { display: block; font-size: 16px; color: var(--ccs-ink); }
+#cc-staff .ccs-rem-row span { display: block; font-size: 14px; color: var(--ccs-muted); }
+#cc-staff .ccs-rem-row .ccs-rem-warn { color: var(--ccs-amber); font-weight: 600; }
+#cc-staff .sl-occ2 { padding: 12px; border: 1px solid var(--ccs-line); border-radius: 8px; }

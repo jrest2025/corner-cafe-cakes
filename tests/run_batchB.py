@@ -94,9 +94,9 @@ async def main():
         await js(pg, '[data-act="n-cell"][data-v="cheesecake|8"]'); await nxt(pg)
         await pg.fill('#n-name', 'Customer A'); await pg.wait_for_timeout(700)
         check('typing a name finds an existing guest', await pg.locator('#sl-st-1 [data-act="n-pick"]').count() >= 1)
-        await js(pg, '#sl-st-1 [data-act="n-pick"]')
+        await js(pg, '#sl-st-1 [data-act="n-pick"]'); await pg.wait_for_timeout(400)
         s = await pg.inner_text('#ccs-slipform')
-        check('picking fills name and contact and moves to pickup', 'Test Customer A' in s and '912 0001' in s and 'Step 4 of 8' in await stage(pg))
+        check('picking fills name and contact and asks for permission (needs confirming)', 'Test Customer A' in s and '912 0001' in s and 'Step 3 of 8' in await stage(pg) and 'needs confirming' in await pg.inner_text('#sl-st-2'))
         await ctx.close()
 
         # Failed save keeps everything

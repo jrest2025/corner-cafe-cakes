@@ -63,7 +63,8 @@ async def main():
         # A16 short notice and A1 dietary detail, on the staged order slip
         await pg.click('.ccs-nav [data-tab="new"]'); await pg.wait_for_timeout(250)
         await jsclick(pg, '[data-act="n-cell"][data-v="cheesecake|6"]'); await jsclick(pg, '[data-act="sl-next"]')
-        await pg.fill('#n-name', 'Customer A'); await pg.wait_for_timeout(700); await jsclick(pg, '#sl-st-1 [data-act="n-pick"]'); await pg.wait_for_timeout(200)
+        await pg.fill('#n-name', 'Customer A'); await pg.wait_for_timeout(700); await jsclick(pg, '#sl-st-1 [data-act="n-pick"]'); await pg.wait_for_timeout(400)
+        await jsclick(pg, '[data-act="sl-opt"][data-v="yes"]'); await jsclick(pg, '[data-act="sl-next"]'); await pg.wait_for_timeout(200)
         soon = await pg.eval_on_selector_all('.ccs-chip-soon', 'els=>els.map(e=>e.textContent)')
         check('A16 Today and Tomorrow chips marked short notice', len(soon) >= 2 and 'Today' in soon[0], soon)
         await pg.click('.ccs-chip-soon >> nth=1'); await pg.wait_for_timeout(250)
