@@ -1167,13 +1167,14 @@
 
   // ---------- new order (staff guided flow) ----------
   function freshDraft() { return { key: uuid(), source: 'walk_in', step: 0, reached: 0, phone: '', matches: null, customer: null, isNew: false, name: '', email: '', whatsapp: true, optIn: false,
-    product: null, variant: null, size: null, finish: null, design: '', message: '', candles: '', occasion: null, diet: null, diets: [], dietNote: '', notes: '', qty: 1,
+    product: null, variant: null, size: null, finish: 'standard', design: '', message: '', candles: '', occasion: null, diet: null, diets: [], dietNote: '', notes: '', qty: 1,
     date: '', time: '', rush: '', rushBy: '', fromCal: false, method: 'collection', zone: null, address: '', fee: '', contact: '', confirmNow: true, askDeposit: false, deposit: '', payNow: false, payAmount: '', payMethod: 'cash', result: null, err: null, errField: null }; }
   var D = freshDraft();
   // Unfinished walk-in orders are kept on this device for 12 hours, per staff login, and cleared at sign out (U6)
   function draftKey() { return S.me ? 'ccs-draft-' + S.me.user_id : null; }
-  function draftHasContent() { return !D.result && (digits(D.phone).length >= 3 || D.reached > 0 || !!D.product); }
+  function draftHasContent() { return !D.result && (digits(D.phone).length >= 3 || D.reached > 0 || !!D.product || D.name.trim().length > 1); }
   function saveDraft() {
+    slipBarUpdate();
     var k = draftKey(); if (!k) return;
     try { if (draftHasContent()) { if (!D.saved) D.saved = Date.now(); localStorage.setItem(k, JSON.stringify(Object.assign({}, D, { matches: null, err: null, errField: null, confirmReset: false, saved: D.saved }))); } else localStorage.removeItem(k); } catch (e) {}
   }
@@ -1231,9 +1232,11 @@
     var h = inSheet ? (draftHasContent() && !D.confirmReset ? '<div class="ccs-newtop"><button type="button" class="ccs-link ccs-red" data-act="new-again">Start over</button></div>' : '')
       : '<div class="ccs-head"><div><h1 class="ccs-title">New order</h1><p class="ccs-sub">For walk-in, phone, WhatsApp and social media orders</p></div>' + (draftHasContent() && !D.confirmReset ? '<button type="button" class="ccs-link ccs-red" data-act="new-again">Start over</button>' : '') + '</div>';
     if (D.confirmReset) h += '<div class="ccs-panel ccs-confirm" role="alert"><b>Clear this order?</b><p class="ccs-hint">The customer, cake and date you have entered will be lost.</p><div class="ccs-actions-row"><button type="button" class="ccs-btn ccs-danger" data-act="new-clear">Clear order</button><button type="button" class="ccs-btn ccs-ghost" data-act="new-keep">Keep going</button></div></div>';
-    if (D.fromCal && D.date && !D.confirmReset) h += '<div class="ccs-note ccs-calnote"><span>Pickup date from the calendar: <b>' + esc(nice(D.date, true)) + (D.time ? ' at ' + esc(t12(D.time)) : '') + '</b>. Change it in the When step if needed.</span>' + (inSheet ? '' : '<button type="button" class="ccs-link" data-act="cal-back">Back to calendar</button>') + '</div>';
+    if (D.fromCal && D.date && !D.confirmReset) h += '<div class="ccs-note ccs-calnote"><span>Pickup date from the calendar: <b>' + esc(nice(D.date, true)) + (D.time ? ' at ' + esc(t12(D.time)) : '') + '</b>. Change it on the Pickup line if needed.</span>' + (inSheet ? '' : '<button type="button" class="ccs-link" data-act="cal-back">Back to calendar</button>') + '</div>';
     if (D.repeat && !D.confirmReset) h += repeatNote();
     else if (D.restored && draftHasContent()) h += '<p class="ccs-note">Carrying on the unfinished order' + (draftWho() ? ' for ' + esc(draftWho()) : '') + ', started ' + esc(stamp(D.saved)) + '.</p>';
+    if (SLIP) return h + '<p class="ccs-label" style="margin:0 0 8px">How did they order?</p><div class="ccs-chips" role="group" aria-label="How they ordered" style="margin-bottom:14px">' + SOURCES.map(function (s) { return '<button type="button" class="ccs-chip" data-act="n-source" data-v="' + s[0] + '" aria-pressed="' + (D.source === s[0]) + '">' + s[1] + '</button>'; }).join('') + '</div>' +
+      '<div id="ccs-slipform">' + slipBody() + '</div>' + slipBar();
     h += '<ol class="ccs-nprog" aria-label="Progress">' + NSTEPS.map(function (st, i) { var c = i === D.step ? 'is-now' : (i <= D.reached && st.sum() ? 'is-done' : ''); return '<li class="' + c + '"><span>' + (c === 'is-done' ? '&#10003;' : (i + 1)) + '</span>' + st.k + '</li>'; }).join('') + '</ol>';
     h += '<p class="ccs-label" style="margin:0 0 8px">How did they order?</p><div class="ccs-chips" role="group" aria-label="How they ordered" style="margin-bottom:14px">' + SOURCES.map(function (s) { return '<button type="button" class="ccs-chip" data-act="n-source" data-v="' + s[0] + '" aria-pressed="' + (D.source === s[0]) + '">' + s[1] + '</button>'; }).join('') + '</div>';
     h += '<div class="ccs-steps">';
@@ -1288,12 +1291,12 @@
     h += '<div class="ccs-field"><label class="ccs-label" for="n-notes">Other notes (optional)</label><input class="ccs-input" id="n-notes" data-n="notes" value="' + esc(D.notes) + '"></div>';
     return h + '<button type="button" class="ccs-btn" data-act="n-finish-next">Continue</button>';
   }
-  function stepWhen() {
+  function stepWhen(noHead) {
     var L = S.setup.location, slots = [], o = L.collection_open.split(':').map(Number), c = L.collection_close.split(':').map(Number);
     for (var m = o[0] * 60 + o[1]; m <= c[0] * 60 + c[1]; m += L.slot_minutes) slots.push(String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'));
     var closed = (S.setup.closed_dates || []).indexOf(D.date) > -1;
     var dl = D.method === 'delivery', zones = S.setup.delivery_zones || [], zo = zoneObj();
-    var h = '<h2 class="ccs-step-q">Collection or delivery, and when?</h2><div class="ccs-chips"><button type="button" class="ccs-chip" data-act="n-method" data-v="collection" aria-pressed="' + !dl + '">Collect from café</button><button type="button" class="ccs-chip" data-act="n-method" data-v="delivery" aria-pressed="' + dl + '">Delivery</button></div>';
+    var h = (noHead ? '' : '<h2 class="ccs-step-q">Collection or delivery, and when?</h2>') + '<div class="ccs-chips"><button type="button" class="ccs-chip" data-act="n-method" data-v="collection" aria-pressed="' + !dl + '">Collect from café</button><button type="button" class="ccs-chip" data-act="n-method" data-v="delivery" aria-pressed="' + dl + '">Delivery</button></div>';
     if (dl) {
       h += '<div class="ccs-panel"><div class="ccs-field"><span class="ccs-label">Delivery area</span><div class="ccs-chips">' + zones.map(function (z) { return '<button type="button" class="ccs-chip" data-act="n-zone" data-v="' + esc(z.name) + '" aria-pressed="' + (D.zone === z.name) + '">' + esc(z.name) + (z.fee != null ? ' · ' + money(z.fee) : ' · set fee') + '</button>'; }).join('') + '</div>' + ferr('zone') + '</div>' +
         '<div class="ccs-field"><label class="ccs-label" for="n-address">Delivery address</label><input class="ccs-input" id="n-address" data-n="address" value="' + esc(D.address) + '" placeholder="Street, resort or business name" autocomplete="off"></div>' + ferr('address') +
@@ -1323,9 +1326,9 @@
     }
     return h;
   }
-  function stepPay() {
+  function stepPay(inSlip) {
     var price = dTotal(), custom = D.finish === 'custom';
-    var h = '<h2 class="ccs-step-q">Price and payment</h2>' + (D.method === 'delivery' ? '<dl class="ccs-kv"><dt>Cake</dt><dd>' + money(dPrice()) + '</dd><dt>Delivery</dt><dd>' + money(dFee()) + ', ' + esc(D.zone || '') + '</dd></dl>' : '') +
+    var h = (inSlip ? '' : '<h2 class="ccs-step-q">Price and payment</h2>') + (D.method === 'delivery' ? '<dl class="ccs-kv"><dt>Cake</dt><dd>' + money(dPrice()) + '</dd><dt>Delivery</dt><dd>' + money(dFee()) + ', ' + esc(D.zone || '') + '</dd></dl>' : '') +
       '<div class="ccs-total"><span>' + (custom ? 'Starting price before custom design' : 'Price') + '</span><b>' + money(price) + '</b></div>';
     if (custom) h += '<p class="ccs-note">Custom cakes are saved as Needs a quote. Confirm the final price from the order once the design is priced.</p>';
     else {
@@ -1338,6 +1341,7 @@
     h += D.payNow ? '<div class="ccs-panel"><b>Payment taken now</b><div class="ccs-row"><div class="ccs-field"><label class="ccs-label" for="n-pay">Amount (FJD)</label><input class="ccs-input" id="n-pay" inputmode="decimal" data-n="payAmount" value="' + esc(D.payAmount) + '"></div></div><div class="ccs-chips">' +
       [['cash', 'Cash'], ['eftpos', 'EFTPOS'], ['bank_transfer', 'Bank transfer']].map(function (m) { return '<button type="button" class="ccs-chip" data-act="n-paym" data-v="' + m[0] + '" aria-pressed="' + (D.payMethod === m[0]) + '">' + m[1] + '</button>'; }).join('') + '</div>' + ferr('payment') + '</div>'
       : '<button type="button" class="ccs-link" data-act="n-paynow">+ Customer is paying now</button>';
+    if (inSlip) return h;
     if (D.err && !D.errField) h += '<p class="ccs-err">' + esc(D.err) + '</p>';
     return h + '<button type="button" class="ccs-btn ccs-good ccs-wide" data-act="n-submit"' + (S.busy ? ' disabled' : '') + '>' + (S.busy ? 'Saving…' : 'Save order') + '</button>';
   }
@@ -1350,11 +1354,108 @@
     }, 280);
   }
   function refreshStep() {
+    if (SLIP) {
+      var sf = document.getElementById('ccs-slipform'); if (!sf) return newRender();
+      var fid = document.activeElement && document.activeElement.id, fpos = document.activeElement && document.activeElement.selectionStart;
+      sf.innerHTML = slipBody();
+      slipBarUpdate();
+      if (fid) { var ff = document.getElementById(fid); if (ff) { ff.focus(); try { if (fpos != null) ff.setSelectionRange(fpos, fpos); } catch (e) {} } }
+      saveDraft(); return;
+    }
     var el = document.getElementById('ccs-nstep-' + D.step); if (!el) return newRender();
     var focus = document.activeElement && document.activeElement.id, pos = document.activeElement && document.activeElement.selectionStart;
     el.innerHTML = '<div class="ccs-step-body" style="animation:none">' + [stepCustomer, stepCake, stepFinish, stepWhen, stepPay][D.step]() + '</div>';
     if (focus) { var f = document.getElementById(focus); if (f) { f.focus(); try { if (pos != null) f.setSelectionRange(pos, pos); } catch (e) {} } }
     saveDraft();
+  }
+  // ---------- interactive Order Slip: the paper slip as one screen ----------
+  var SLIP = true;
+  function cents(v) { return v == null ? '' : '$' + Number(v).toFixed(2); }
+  function slipMissing() {
+    var m = [], p = prod(), closedL = (S.setup && S.setup.closed_dates) || [];
+    if (!D.customer && D.name.trim().length < 2) m.push(['Guest name', 'n-name']);
+    if (!D.customer && digits(D.phone).length < 7) m.push(['Contact', 'n-phone']);
+    if (!p || !D.size) m.push(['Cake and size', 'sl-cake']);
+    else if (p.variants.length && !D.variant) m.push(['Flavour', 'sl-cake']);
+    if (!D.date) m.push([D.method === 'delivery' ? 'Delivery date' : 'Pickup date', 'sl-when']);
+    else if (closedL.indexOf(D.date) > -1) m.push(['An open day', 'sl-when']);
+    else if (!D.time) m.push(['Time', 'sl-when']);
+    if (D.date && tooSoon() && !rushOk()) m.push(['Short-notice reason and approver', 'sl-when']);
+    if (D.method === 'delivery' && !delivOk()) m.push(['Delivery details', 'sl-when']);
+    if (D.finish === 'custom' && D.design.trim().length < 3) m.push(['Design details', 'sl-remarks']);
+    if (!D.diet) m.push(['Dietary answer', 'sl-diet']);
+    else if (dietMissing(D.diet, D.diets, D.dietNote)) m.push(['Dietary details', 'sl-diet']);
+    if (D.payNow && !(num(D.payAmount) > 0)) m.push(['Amount paid', 'sl-pay']);
+    return m;
+  }
+  function slipRow(label, req, body, id) {
+    return '<div class="sl-row"' + (id ? ' id="' + id + '"' : '') + '><div class="sl-lab">' + label + (req ? '<em>Required</em>' : '') + '</div><div class="sl-val">' + body + '</div></div>';
+  }
+  function slipTable() {
+    var ps = S.setup.products || [], inches = [];
+    ps.forEach(function (p) { p.sizes.forEach(function (z) { if (inches.indexOf(z.inch) < 0) inches.push(z.inch); }); });
+    inches.sort(function (a, b) { return a - b; });
+    return '<div class="sl-tablewrap"><table class="sl-ptable"><thead><tr><th scope="col">Type</th>' + inches.map(function (n) { return '<th scope="col">' + n + '”</th>'; }).join('') + '</tr></thead><tbody>' +
+      ps.map(function (p) {
+        return '<tr' + (D.product === p.code ? ' class="is-mine"' : '') + '><th scope="row">' + esc(p.name) + '</th>' + inches.map(function (n) {
+          var z = p.sizes.filter(function (q) { return q.inch === n; })[0]; if (!z) return '<td></td>';
+          var on = D.product === p.code && D.size === n;
+          return '<td><button type="button" class="sl-cell" data-act="n-cell" data-v="' + esc(p.code) + '|' + n + '" aria-pressed="' + on + '" aria-label="' + esc(p.name) + ', ' + n + ' inch, ' + cents(z.price) + '">' + cents(z.price) + '</button></td>';
+        }).join('') + '</tr>';
+      }).join('') + '</tbody></table></div>';
+  }
+  function slipBody() {
+    var p = prod(), dl = D.method === 'delivery', me = S.me || {}, now = new Date(), so = sizeObj();
+    var h = '<div class="sl-card"><div class="sl-band"><div class="sl-logo">' + SLIP_LOGO + '</div><div class="sl-band-t"><b>Cake Order Slip</b><span>Tap a price to choose the cake and size</span></div></div>';
+    h += '<div id="sl-cake" class="sl-cakepick">' + slipTable() + ferr('product') + ferr('size');
+    if (p && p.variants.length) h += '<div class="ccs-field"><span class="ccs-label">' + esc(p.choice_label || 'Which flavour?') + '<em class="sl-req">Required</em></span><div class="ccs-chips">' + p.variants.map(function (v) { return '<button type="button" class="ccs-chip" data-act="n-var" data-v="' + esc(v) + '" aria-pressed="' + (D.variant === v) + '">' + esc(v) + '</button>'; }).join('') + '</div>' + ferr('variant') + '</div>';
+    h += '</div><div class="sl-lines">';
+    // Guest: an existing customer is found from the mobile number; a new guest just types both
+    if (D.customer) {
+      h += slipRow('Guest Name', true, '<b class="sl-fixed">' + esc(D.customer.full_name) + '</b><button type="button" class="ccs-link" data-act="n-unpick">Change guest</button>', 'sl-name');
+      h += slipRow('Contact', true, '<b class="sl-fixed">' + esc(D.customer.phone || '') + '</b><span class="ccs-hint">' + (D.customer.orders_count ? D.customer.orders_count + ' earlier orders' + (D.customer.favourite_cake ? ', usually ' + esc(D.customer.favourite_cake) : '') : 'Existing customer') + '</span>');
+    } else {
+      h += slipRow('Guest Name', true, '<input class="ccs-input" id="n-name" data-n="name" value="' + esc(D.name) + '" autocomplete="off" placeholder="Full name">' + ferr('name'), 'sl-name');
+      var c = '<input class="ccs-input" id="n-phone" type="tel" inputmode="tel" placeholder="Mobile number" value="' + esc(D.phone) + '" data-n="phone" autocomplete="off">' + ferr('phone');
+      if (D.matches && D.matches.length) c += '<div class="sl-matches"><span class="ccs-hint">Already a customer? Tap to use their details.</span>' + D.matches.map(function (m, k) { return '<button type="button" class="ccs-match" data-act="n-pick" data-v="' + k + '"><span><b style="color:var(--ccs-ink)">' + esc(m.full_name) + '</b><br><span class="ccs-hint">' + esc(m.phone) + (m.favourite_cake ? ' · usually ' + esc(m.favourite_cake) : '') + '</span></span><span class="ccs-hint">' + (m.orders_count ? m.orders_count + ' orders' : 'No orders yet') + '</span></button>'; }).join('') + '</div>';
+      if (digits(D.phone).length >= 7 && !(D.matches && D.matches.length)) c += '<div class="sl-newguest"><span class="ccs-hint">New customer: a profile is made when the order is saved.</span><input class="ccs-input" id="n-email" type="email" data-n="email" value="' + esc(D.email) + '" placeholder="Email (optional)">' +
+        '<label class="ccs-check"><input type="checkbox" data-nc="whatsapp"' + (D.whatsapp ? ' checked' : '') + '> This number is on WhatsApp</label><label class="ccs-check"><input type="checkbox" data-nc="optIn"' + (D.optIn ? ' checked' : '') + '> Customer agrees to receive cake specials and reminders</label></div>';
+      h += slipRow('Contact', true, c);
+    }
+    h += slipRow(dl ? 'Delivery Date and Time' : 'Pickup Date and Time', true, stepWhen(true), 'sl-when');
+    // Cake, filled from the price table
+    var finish = '<div class="ccs-chips"><button type="button" class="ccs-chip" data-act="n-finish" data-v="standard" aria-pressed="' + (D.finish !== 'custom') + '">Standard finish</button>' + (p && p.supports_custom ? '<button type="button" class="ccs-chip" data-act="n-finish" data-v="custom" aria-pressed="' + (D.finish === 'custom') + '">Custom design</button>' : '') + '</div>';
+    h += slipRow('Type of cake', true, (p ? '<b class="sl-fixed">' + esc(D.variant || p.name) + (D.variant ? ' <span class="ccs-hint">(' + esc(p.name) + ')</span>' : '') + '</b>' : '<span class="ccs-hint">Tap a price in the table above</span>') + finish);
+    h += slipRow('Size', true, D.size ? '<b class="sl-fixed">' + D.size + ' inch</b>' + (so && so.serves ? '<span class="ccs-hint">' + esc(so.serves) + '</span>' : '') + '<label class="sl-qty" for="n-qty">How many cakes <input class="ccs-input" id="n-qty" type="number" min="1" max="50" value="' + D.qty + '" data-n="qty"></label>' : '<span class="ccs-hint">Tap a price in the table above</span>');
+    h += slipRow('Price', false, dTotal() != null ? '<b class="sl-fixed">' + money(dTotal()) + '</b>' + (D.qty > 1 || dFee() ? '<span class="ccs-hint">' + (D.qty > 1 ? D.qty + ' × ' + money(Number(so.price)) : 'Cake ' + money(dPrice())) + (dFee() ? ' + delivery ' + money(dFee()) : '') + '</span>' : '') + (D.finish === 'custom' ? '<span class="ccs-hint">Starting price. Custom cakes are saved as Needs a quote.</span>' : '') : '<span class="ccs-hint">Shown once the cake is chosen</span>');
+    h += slipRow('Candles', false, '<input class="ccs-input" id="n-candles" maxlength="60" data-n="candles" placeholder="For example: number 30 candle, or 5 small candles" value="' + esc(D.candles) + '">' + ferr('candles'));
+    h += slipRow('Inscription', false, p && !p.supports_message ? '<span class="ccs-hint">' + esc(p.name) + ' does not take a written message.</span>' : '<input class="ccs-input" id="n-msg" maxlength="40" data-n="message" value="' + esc(D.message) + '" placeholder="Words written on the cake"><span class="ccs-hint">Up to 40 characters, copied exactly by the kitchen.</span>' + ferr('message'));
+    var diet = '<div class="ccs-chips"><button type="button" class="ccs-chip" data-act="n-diet" data-v="no" aria-pressed="' + (D.diet === 'no') + '">No dietary needs</button><button type="button" class="ccs-chip" data-act="n-diet" data-v="yes" aria-pressed="' + (D.diet === 'yes') + '">Yes, dietary need or allergy</button></div>';
+    if (D.diet === 'yes') diet += '<div class="ccs-panel"><div class="ccs-chips">' + DIETS.map(function (d) { return '<button type="button" class="ccs-chip" data-act="n-diets" data-v="' + esc(d) + '" aria-pressed="' + (D.diets.indexOf(d) > -1) + '">' + esc(d) + '</button>'; }).join('') + '</div><input class="ccs-input" data-n="dietNote" id="n-dnote" placeholder="Details for the kitchen" value="' + esc(D.dietNote) + '"></div>';
+    h += slipRow('Dietary or allergy', true, diet + ferr('diet'), 'sl-diet');
+    var rem = (D.finish === 'custom' ? '<label class="ccs-label" for="n-design">Design details<em class="sl-req">Required</em></label><textarea class="ccs-input" id="n-design" data-n="design" placeholder="Colours, theme, toppers">' + esc(D.design) + '</textarea>' + ferr('design') : '') +
+      '<span class="ccs-label">Occasion</span><div class="ccs-chips">' + OCCASIONS.map(function (o) { return '<button type="button" class="ccs-chip" data-act="n-occ" data-v="' + o + '" aria-pressed="' + (D.occasion === o) + '">' + o + '</button>'; }).join('') + '</div>' +
+      '<input class="ccs-input" id="n-notes" data-n="notes" value="' + esc(D.notes) + '" placeholder="Other notes for the order">';
+    h += slipRow('Remarks', false, rem, 'sl-remarks');
+    h += slipRow('Order Taken by', false, '<b class="sl-fixed">' + esc(me.full_name || 'You') + '</b>');
+    h += slipRow('Date', false, '<b class="sl-fixed">' + esc(now.toLocaleDateString('en-GB', { timeZone: TZ, day: 'numeric', month: 'short', year: 'numeric' })) + ', ' + esc(now.toLocaleTimeString('en-GB', { timeZone: TZ, hour: 'numeric', minute: '2-digit', hour12: true }).replace(' ', '')) + '</b>');
+    h += '</div></div>';
+    h += '<section class="sl-pay" id="sl-pay"><h2 class="ccs-step-q">Payment</h2>' + (dTotal() != null ? stepPay(true) : '<p class="ccs-hint">Choose the cake first.</p>') + '</section>';
+    return h;
+  }
+  function slipBar() {
+    var m = slipMissing(), tot = dTotal();
+    return '<div class="sl-bar" id="sl-bar">' + (D.err && !D.errField ? '<p class="ccs-err">' + esc(D.err) + '</p>' : '') +
+      (m.length ? '<button type="button" class="sl-missing" data-act="sl-jump"><span class="sl-long">' + m.length + (m.length === 1 ? ' thing' : ' things') + ' to finish: ' + esc(m.map(function (x) { return x[0]; }).join(', ')) + '</span><span class="sl-short">' + m.length + ' to finish: ' + esc(m[0][0]) + (m.length > 1 ? '…' : '') + '</span></button>' : '<span class="sl-ready">Everything needed is filled in.</span>') +
+      '<button type="button" class="ccs-btn ccs-good" data-act="n-submit"' + (S.busy ? ' disabled' : '') + '>' + (S.busy ? 'Saving…' : 'Create order' + (tot != null ? ' · ' + money(tot) : '')) + '</button></div>';
+  }
+  function slipBarUpdate() { var b = document.getElementById('sl-bar'); if (SLIP && b && !D.result) b.outerHTML = slipBar(); }
+  function slipJump() {
+    var m = slipMissing(); if (!m.length) return;
+    var el = document.getElementById(m[0][1]); if (!el) return;
+    if (el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    var f = el.matches && el.matches('input,textarea') ? el : el.querySelector('input:not([type=checkbox]),textarea');
+    if (f) setTimeout(function () { try { f.focus({ preventScroll: true }); } catch (e) { f.focus(); } }, 250);
   }
   function submitOrder() {
     var L = S.setup.location, price = dTotal(), custom = D.finish === 'custom';
@@ -2422,7 +2523,10 @@
         case 'n-dep': D.deposit = String(v === 'full' ? dTotal() : Math.round(dTotal() / 2)); refreshStep(); break;
         case 'n-paynow': D.payNow = true; D.payAmount = D.askDeposit && D.deposit ? D.deposit : String(dTotal()); refreshStep(); break;
         case 'n-paym': D.payMethod = v; refreshStep(); break;
-        case 'n-submit': submitOrder(); break;
+        case 'n-submit': if (SLIP && slipMissing().length) { D.err = null; slipBarUpdate(); slipJump(); toast('Still to finish: ' + slipMissing().map(function (x) { return x[0]; }).join(', '), true); break; } submitOrder(); break;
+        case 'n-cell': (function () { var pr = v.split('|'), code = pr[0], inch = Number(pr[1]); if (D.product !== code) { D.product = code; D.variant = null; } D.size = inch; D.restored = false; if (D.errField === 'product' || D.errField === 'size') { D.err = null; D.errField = null; } refreshStep(); })(); break;
+        case 'n-unpick': D.customer = null; D.phone = ''; D.matches = null; D.name = ''; refreshStep(); setTimeout(function () { var f = document.getElementById('n-name'); if (f) f.focus(); }, 30); break;
+        case 'sl-jump': slipJump(); break;
         // settings
         case 'save-loc': saveLoc(); break;
         case 'add-closed': var cd = val('st-cdate'); if (!cd) { toast('Choose a date.', true); break; } sb.from('closed_dates').insert({ location_id: S.settings.loc.id, closed_on: cd, reason: val('st-creason').trim() || null }).then(function (r) { if (r.error) throw r.error.code === '23505' ? new Error('That day is already closed') : r.error; toast('Closed day added'); refreshSetup(); loadSettings(); }).catch(fail); break;

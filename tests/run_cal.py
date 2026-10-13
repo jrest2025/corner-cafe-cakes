@@ -31,15 +31,11 @@ async def calls(pg, fn):
     return await pg.evaluate(f"window.__calls.filter(function(c){{return c[1]==='{fn}'}}).map(function(c){{return c[2]}})")
 
 async def fill_new_customer_and_cake(pg, qty='2'):
+    await pg.fill('#n-name', 'New Calendar Guest')
     await pg.fill('#n-phone', '912 0099'); await pg.wait_for_timeout(450)
-    await pg.fill('#n-name', 'New Calendar Guest'); await pg.click('[data-act="n-cust-next"]'); await pg.wait_for_timeout(200)
-    await pg.click('[data-act="n-prod"][data-v="cheesecake"]'); await pg.wait_for_timeout(120)
-    await pg.click('[data-act="n-size"][data-v="6"]'); await pg.wait_for_timeout(120)
+    await pg.click('[data-act="n-cell"][data-v="cheesecake|6"]'); await pg.wait_for_timeout(150)
     await pg.fill('#n-qty', qty)
-    await pg.click('[data-act="n-next"][data-v="2"]'); await pg.wait_for_timeout(200)
-    await pg.click('[data-act="n-finish"][data-v="standard"]'); await pg.wait_for_timeout(120)
-    await pg.click('[data-act="n-diet"][data-v="no"]'); await pg.wait_for_timeout(120)
-    await pg.click('[data-act="n-finish-next"]'); await pg.wait_for_timeout(300)
+    await pg.click('[data-act="n-diet"][data-v="no"]'); await pg.wait_for_timeout(200)
 
 async def desktop(b, errs):
     ctx, pg = await newpage(b, {"width": 1280, "height": 900}, errs)
@@ -81,7 +77,7 @@ async def desktop(b, errs):
     check('desk calendar stays on screen behind the panel', await pg.locator('#ccs-main .ccs-wgrid').count() == 1)
     await fill_new_customer_and_cake(pg)
     main = await pg.inner_text('#ccs-sheet')
-    check('desk When step already filled from the slot', '3:00pm' in main and 'Price and payment' in main, main[:600])
+    check('desk When step already filled from the slot', '3:00pm' in main and 'Payment' in main and await pg.locator('[data-act="n-time"][data-v="15:00"][aria-pressed="true"]').count() == 1, main[:600])
     await pg.screenshot(path=str(OUT / 'desk-4-new.png'), full_page=True)
     # double tap guard
     await pg.evaluate("var b=document.querySelector('[data-act=\"n-submit\"]'); b.click(); b.click();"); await pg.wait_for_timeout(400)
@@ -137,9 +133,9 @@ async def short_notice_and_failure(b, errs):
     # failed save keeps everything
     await pg.evaluate("window.__createFail=true")
     await pg.click('[data-act="n-submit"]'); await pg.wait_for_timeout(400)
-    inl = await pg.evaluate("(function(){var b=document.querySelector('#ccs-sheet [data-act=n-submit]'),p=b&&b.previousElementSibling;return p&&p.classList.contains('ccs-err')?p.textContent:''})()")
-    check('B8 failed save says Not saved right above the Save button', inl.startswith('Not saved') and 'kept' in inl, inl)
-    check('failed save keeps the panel, the form and the Save button', await pg.locator('#ccs-sheet.ccs-open [data-act="n-submit"]:not([disabled])').count() == 1 and 'New Calendar Guest' in await pg.inner_text('#ccs-sheet'))
+    inl = await pg.evaluate("(function(){var e=document.querySelector('#ccs-sheet #sl-bar .ccs-err');return e?e.textContent:''})()")
+    check('B8 failed save says Not saved beside the Create order button', inl.startswith('Not saved') and 'kept' in inl, inl)
+    check('failed save keeps the panel, the form and the Save button', await pg.locator('#ccs-sheet.ccs-open [data-act="n-submit"]:not([disabled])').count() == 1 and await pg.input_value('#ccs-sheet #n-name') == 'New Calendar Guest')
     await pg.evaluate("window.__createFail=false")
     await pg.click('[data-act="n-submit"]'); await pg.wait_for_timeout(400)
     cs = await calls(pg, 'staff_create_order')
