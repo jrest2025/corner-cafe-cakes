@@ -64,6 +64,8 @@ async def main():
         await ctx.close()
         # Reminders due on Customers
         ctx, pg, errs = await newpage(b, tab='customers'); await pg.wait_for_timeout(500)
+        check('reminders start folded to one line with the count', await pg.locator('.ccs-rem-fold').count() == 1 and 'reminders due' in (await pg.inner_text('.ccs-rem')).lower() and await pg.locator('.ccs-rem a[href*="wa.me"]').count() == 0)
+        await js(pg, '[data-act="rem-show"]')
         t = await pg.inner_text('.ccs-rem')
         check('reminders due shows the guest, occasion, date and usual cake', 'Test Customer A' in t and 'Birthday for Mia' in t and 'usually Mudcake' in t, t[:300])
         check('a guest whose permission needs confirming is left out, with a note saying why', 'Test Customer B' not in t and '1 more guest has an occasion coming but their permission needs confirming' in t, t[:400])

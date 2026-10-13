@@ -677,3 +677,22 @@ body.ccs-is-off #cc-staff .ccs-side { top: var(--ccs-offh, 44px); }
 #cc-staff .ccs-kpis-row .ccs-kpi-n,#cc-staff .ccs-kpi.t-action .ccs-kpi-n,#cc-staff .ccs-kpi.t-deposit .ccs-kpi-n,#cc-staff .ccs-kpi.t-good .ccs-kpi-n{color:#243247}
 #cc-staff .ccs-pill.s-flag{border-radius:8px;white-space:normal;text-align:left}
 #cc-staff .ccs-col h2::before,#cc-staff .ccs-col-start h2::before,#cc-staff .ccs-col-prog h2::before,#cc-staff .ccs-col-qc h2::before,#cc-staff .ccs-col-ready h2::before,#cc-staff .ccs-col-done h2::before{background:#9AA6B5 !important}
+/* Round 2: kept simple */
+#cc-staff [id^="sl-st-"]{scroll-margin-top:96px;scroll-margin-bottom:110px}
+#cc-staff input,#cc-staff select,#cc-staff textarea{scroll-margin-top:110px;scroll-margin-bottom:120px}
+#cc-staff .ccs-ostrip a{display:inline-flex;align-items:center;min-height:44px}
+#cc-staff .ccs-more-row .ccs-link{min-height:44px;display:inline-flex;align-items:center}
+#cc-staff .ccs-rem-fold{display:flex;align-items:center;justify-content:space-between;gap:12px}
+#cc-staff .ccs-rem-fold h3,#cc-staff .ccs-rem-head h3{margin:0}
+#cc-staff .ccs-rem-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px}
+#cc-staff .ccs-stats div{background:#fff;border:1px solid #DCE3EB;border-radius:10px}
+#cc-staff .ccs-cust-acts{flex-wrap:wrap}
+#cc-staff .ccs-cust-acts .ccs-btn{flex:1 1 auto;width:auto}
+#cc-staff .ccs-cust-acts .ccs-new{flex:1 1 100%}
+@media (max-width:759px){#cc-staff .ccs-tabs{flex-wrap:wrap;overflow-x:visible}#cc-staff .ccs-week{grid-template-columns:repeat(4,minmax(0,1fr));overflow:visible}}
+#cc-staff .s5-no{color:#526176}
+#cc-staff .ccs-mcell.is-out .ccs-mday b{color:#526176}
+/* Light movement that keeps context; off when the device asks for reduced motion */
+@keyframes ccs-fadein{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+#cc-staff details[open]>.ccs-set-body,#cc-staff .ccs-tools-menu,#cc-staff .ccs-panel,#cc-staff .ccs-rem:not(.ccs-rem-fold),#cc-staff .ccs-amsec.is-open .ccs-ambody{animation:ccs-fadein .16s ease-out}
+@media (prefers-reduced-motion:reduce){#cc-staff *,#cc-staff *::before,#cc-staff *::after{animation:none !important;transition:none !important;scroll-behavior:auto !important}}

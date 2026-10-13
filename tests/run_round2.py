@@ -1,0 +1,75 @@
+"""Round 2 fixes: fields clear of the top bar, tap areas, folding, wrapping, labels, motion. Invented data only."""
+import asyncio, pathlib, sys
+from playwright.async_api import async_playwright
+HERE = pathlib.Path(__file__).parent; OUT = HERE / "shotsR2b"; OUT.mkdir(exist_ok=True)
+PAGE = sys.argv[1] if len(sys.argv) > 1 else "hosted-staff.html"
+R = []
+def check(n, ok, d=''):
+    R.append(bool(ok)); print(('PASS ' if ok else 'FAIL ') + n + (' -> ' + str(d)[:300] if not ok and d != '' else ''))
+async def newpage(b, vp={'width': 1024, 'height': 768}, role='manager', init='', tab='new'):
+    ctx = await b.new_context(viewport=vp, is_mobile=vp['width'] < 760, has_touch=vp['width'] < 760); pg = await ctx.new_page(); pg.set_default_timeout(8000); errs = []
+    pg.on("pageerror", lambda e: errs.append(str(e)))
+    await pg.add_init_script(f"window.__role='{role}'; {init}")
+    await pg.goto((HERE / PAGE).as_uri()); await pg.wait_for_timeout(600)
+    await pg.evaluate(f"(function(){{try{{localStorage.clear()}}catch(e){{}}; var e=[].slice.call(document.querySelectorAll('[data-tab={tab}]')).pop(); if(!e){{var m=document.querySelector('[data-tab=more]'); m&&m.click(); e=[].slice.call(document.querySelectorAll('[data-tab={tab}]')).pop();}} e&&e.click()}})()"); await pg.wait_for_timeout(500)
+    return ctx, pg, errs
+async def js(pg, sel):
+    await pg.evaluate(f"(function(){{var e=document.querySelector({sel!r}); if(e) e.click(); return !!e}})()"); await pg.wait_for_timeout(220)
+async def box(pg, sel): return await pg.evaluate("(function(){var e=document.querySelector(%r);if(!e)return null;var r=e.getBoundingClientRect();return [Math.round(r.top),Math.round(r.bottom),Math.round(r.left),Math.round(r.right),Math.round(r.height)]})()" % sel)
+async def main():
+    async with async_playwright() as p:
+        b = await p.chromium.launch()
+        for h in (500, 420):
+            ctx, pg, errs = await newpage(b, vp={'width': 390, 'height': h}, tab='new')
+            await js(pg, '[data-act="n-cell"][data-v="cheesecake|8"]'); await js(pg, '[data-act="sl-next"]'); await pg.wait_for_timeout(900)
+            await pg.fill('#n-name', 'Ann Test'); await js(pg, '[data-act="sl-next"]'); await pg.wait_for_timeout(900)
+            r = await box(pg, '#n-phone'); top = await pg.evaluate("Math.round(document.querySelector('.ccs-side').getBoundingClientRect().bottom)")
+            check('phone %d high: the next field sits below the top bar and on screen' % h, r and r[0] >= top and r[1] <= h, (r, top))
+            await ctx.close()
+        ctx, pg, errs = await newpage(b, vp={'width': 390, 'height': 844}, tab='orders'); await pg.wait_for_timeout(400)
+        clip = await pg.evaluate("[].slice.call(document.querySelectorAll('.ccs-tabs button')).filter(function(e){var r=e.getBoundingClientRect();return r.right>innerWidth+1}).length")
+        check('phone: every Orders filter is on screen', clip == 0, clip)
+        await js(pg, '.ccs-card'); await pg.wait_for_timeout(700)
+        r = await box(pg, '.ccs-ostrip a')
+        check('order screen: mobile number is a 44 pixel tap area', r and r[4] >= 44, r)
+        r = await box(pg, '.ccs-more-row .ccs-link')
+        check('order screen: Add note is a 44 pixel tap area', r and r[4] >= 44, r)
+        await ctx.close()
+        ctx, pg, errs = await newpage(b, vp={'width': 390, 'height': 844}, tab='today'); await pg.wait_for_timeout(400)
+        clip = await pg.evaluate("[].slice.call(document.querySelectorAll('.ccs-week button')).filter(function(e){var r=e.getBoundingClientRect();return r.right>innerWidth+1}).length")
+        check('phone: the whole week strip is on screen', clip == 0, clip)
+        await ctx.close()
+        ctx, pg, errs = await newpage(b, vp={'width': 390, 'height': 844}, tab='customers'); await pg.wait_for_timeout(500)
+        r = await box(pg, '.ccs-rem'); t = await box(pg, '.ccs-ctool')
+        check('phone: reminders take one line, the list tools show on the first screen', r and r[4] < 110 and t and t[0] < 844, (r, t))
+        await ctx.close()
+        ctx, pg, errs = await newpage(b, tab='customers'); await pg.wait_for_timeout(500)
+        await js(pg, '[data-act="open-customer"]'); await pg.wait_for_timeout(700)
+        rows = await pg.evaluate("[].slice.call(document.querySelectorAll('.ws-tabs .ccs-tab')).map(function(e){return Math.round(e.getBoundingClientRect().top)})")
+        check('profile tabs sit on one row at 1024 pixels', rows and len(set(rows)) == 1, rows)
+        wa = await box(pg, '.ccs-cust-acts a[href*="wa.me"]')
+        check('WhatsApp and Call sit beside New order, on the first screen', wa and wa[1] <= 768 and await pg.locator('.ccs-cust-acts a[href^="tel:"]').count() == 1, wa)
+        check('WhatsApp is not repeated lower down', await pg.locator('#ccs-sheet a[href*="wa.me"]').count() == 1)
+        await pg.screenshot(path=str(OUT / 'profile-1024.png'))
+        await ctx.close()
+        ctx, pg, errs = await newpage(b, tab='settings'); await pg.wait_for_timeout(600)
+        check('search boxes and cake Edit buttons have names for screen readers', await pg.locator('[data-act="mf-open"][aria-label^="Edit "]').count() >= 1)
+        await ctx.close()
+        for tab, sel in [('orders', '#ccs-q'), ('customers', '#ccs-cq')]:
+            ctx, pg, errs = await newpage(b, tab=tab); await pg.wait_for_timeout(400)
+            check(tab + ' search has a label', bool(await pg.get_attribute(sel, 'aria-label')))
+            await ctx.close()
+        ctx = await b.new_context(viewport={'width': 1024, 'height': 768}, reduced_motion='reduce'); pg = await ctx.new_page()
+        await pg.add_init_script("window.__role='manager'"); await pg.goto((HERE / PAGE).as_uri()); await pg.wait_for_timeout(600)
+        await js(pg, '[data-tab="customers"]'); await pg.wait_for_timeout(400); await js(pg, '[data-act="ws-cm-tools"]')
+        an = await pg.evaluate("getComputedStyle(document.querySelector('.ccs-tools-menu')).animationName")
+        check('reduced motion: menus appear with no animation', an == 'none', an)
+        await ctx.close()
+        ctx, pg, errs = await newpage(b, tab='customers'); await pg.wait_for_timeout(400); await js(pg, '[data-act="ws-cm-tools"]')
+        an = await pg.evaluate("getComputedStyle(document.querySelector('.ccs-tools-menu')).animationName")
+        check('normal motion: menus fade in briefly', an == 'ccs-fadein', an)
+        check('no page errors', not errs, errs)
+        await ctx.close()
+        await b.close()
+    print(f'{sum(R)}/{len(R)} passed')
+asyncio.run(main())

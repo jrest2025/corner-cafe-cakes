@@ -53,7 +53,7 @@ async def main():
         check('permission must be answered for a new guest', 'cake offers and reminders' in await pg.inner_text('#sl-st-2') and 'Step 3' in await stage(pg))
         await js(pg, '[data-act="sl-opt"][data-v="yes"]'); await nxt(pg)
         check('step 4 pickup opens', 'Step 4 of 8' in await stage(pg) and 'Agreed to cake offers' in await pg.inner_text('#sl-st-2'))
-        await js(pg, '#sl-st-3 .ccs-chip-soon')
+        await js(pg, '#sl-st-3 .ccs-chip-soon ~ .ccs-chip-soon')
         await js(pg, '#sl-st-3 [data-act="n-time"]:not([disabled])'); await nxt(pg)
         check('short notice needs a reason and approver before moving on', 'short-notice reason' in await pg.inner_text('#sl-st-3') and 'Step 4' in await stage(pg))
         await pg.fill('#n-rush', 'Spare base in the kitchen'); await pg.fill('#n-rushby', 'Test Manager'); await js(pg, '#sl-st-3 [data-act="n-time"]:not([disabled])'); await nxt(pg)

@@ -32,7 +32,7 @@ async def main():
         bg = await pg.evaluate("[getComputedStyle(document.querySelector('#cc-staff')).backgroundColor, getComputedStyle(document.querySelector('.ccs-app')).backgroundColor]")
         check('page background is white', all(x == 'rgb(255, 255, 255)' for x in bg), bg)
         t = await pg.inner_text('#ccs-main')
-        check('Where orders came from is no longer on Today', 'Where orders came from' not in t)
+        check('Where orders came from is back, at the bottom of Today', 'Where orders came from' in t and t.index('Where orders came from') > t.index('Due today'))
         top = await pg.evaluate("(function(){var h=[].slice.call(document.querySelectorAll('.ccs-card-head h2')).filter(function(x){return x.textContent==='Needs action'})[0];return h?h.getBoundingClientRect().top:9999})()")
         check('Needs action list starts on the first screen at 1024 px', top < 768, top)
         check('counts sit in one compact row', await pg.evaluate("(function(){var k=[].slice.call(document.querySelectorAll('.ccs-kpis-row .ccs-kpi')).map(function(e){return Math.round(e.getBoundingClientRect().top)});return k.length>1&&k.every(function(v){return v===k[0]})})()"))
