@@ -564,8 +564,12 @@
     if (!o) return sheetHead(S.sheet.err ? 'Order' : 'Loading…') + '<div class="ccs-sheet-body">' + (S.sheet.err ? loadErr(S.sheet.err, 'reopen-order') : '<p class="ccs-loading">Loading order…</p>') + '</div>';
     var i = (o.order_items || [])[0] || {}, c = o.customers, paid = paidTotal(o), total = Number(o.final_total != null ? o.final_total : o.estimate_total), bal = Math.max(total - paid, 0);
     var h = sheetHead(esc(o.reference), pill(o.order_status, o.fulfilment_method) + (o.order_status === 'confirmed' || o.order_status === 'completed' ? payPill(o.payment_status) : '') + (o.revision ? '<span class="ccs-tag">Amended</span>' : '')) + '<div class="ccs-sheet-body">';
-    h += actionsBox(o, total, paid, bal);
+    var dlv = o.fulfilment_method === 'delivery', gName = (c && c.full_name) || o.contact_name || '', gPhone = (c && c.phone) || o.contact_phone || '';
+    h += '<div class="ccs-ostrip"><div><span>' + (dlv ? 'Delivery' : 'Collection') + '</span><b>' + esc(nice(o.required_date)) + ', ' + esc(t12(o.required_time)) + '</b></div>' +
+      '<div><span>Guest</span><b>' + esc(gName) + '</b>' + (gPhone ? '<a href="tel:' + esc(digits(gPhone)) + '">' + esc(gPhone) + '</a>' : '') + '</div>' +
+      (can('manager', 'finance', 'front_of_house') ? '<div><span>Price</span><b>' + money(total) + '</b></div><div><span>Paid</span><b>' + money(paid) + '</b></div><div><span>To pay</span><b>' + money(bal) + '</b></div>' : '') + '</div>';
     if (o.has_dietary) h += '<div class="ccs-alert">Dietary or allergy: ' + esc([].concat(i.dietary || [], i.dietary_note ? [i.dietary_note] : []).join(', ') || 'see notes') + '</div>';
+    h += actionsBox(o, total, paid, bal);
     h += '<section class="ccs-box"><h3>Cake</h3><p class="ccs-big">' + esc(cakeLine(i)) + '</p><dl class="ccs-kv">' +
       kv('Finish', i.finish === 'custom' ? 'Custom design' : 'Standard finish') + kv('Design', i.design_description) +
       kv('Message', i.cake_message ? '“' + i.cake_message + '”' : '') + kv('Candles', i.candles) + kv('Occasion', i.occasion) + kv('Serves', i.serves_label) + kv('Notes', o.customer_notes) + '</dl>' +
@@ -596,7 +600,8 @@
     }
     if (o.internal_notes) h += '<section class="ccs-box"><h3>Team notes</h3><p style="white-space:pre-wrap;font-size:15px">' + esc(o.internal_notes) + '</p></section>';
     h += changeHistory(o);
-    h += '<section class="ccs-box"><h3>Activity</h3>' + (S.sheet.showHistory ? '<div class="ccs-history">' + (o.order_events || []).slice().sort(function (a, b) { return a.at < b.at ? -1 : 1; }).map(function (e) { return '<div><span>' + esc(stamp(e.at)) + '</span><span style="color:var(--ccs-ink)">' + esc(eventText(e)) + '</span></div>'; }).join('') + '</div>' : '<button type="button" class="ccs-link" data-act="history">Show history (' + (o.order_events || []).length + ')</button>') + '</section>';
+    var dz = !S.panel && S.sheet.danger && S.sheet.danger.length ? '<section class="ccs-box ccs-other"><h3>Other actions</h3><p class="ccs-hint">These change or remove the order. Each one asks before anything happens.</p><div class="ccs-actions-row ccs-more-row">' + S.sheet.danger.map(function (m) { return '<button type="button" class="ccs-link ccs-red" data-act="panel" data-v="' + m[0] + '">' + m[1] + '</button>'; }).join('') + '</div></section>' : '';
+    h += '<section class="ccs-box"><h3>Activity</h3>' + (S.sheet.showHistory ? '<div class="ccs-history">' + (o.order_events || []).slice().sort(function (a, b) { return a.at < b.at ? -1 : 1; }).map(function (e) { return '<div><span>' + esc(stamp(e.at)) + '</span><span style="color:var(--ccs-ink)">' + esc(eventText(e)) + '</span></div>'; }).join('') + '</div>' : '<button type="button" class="ccs-link" data-act="history">Show history (' + (o.order_events || []).length + ')</button>') + '</section>' + dz;
     return h + '</div>';
   }
   function kv(k, v) { return v ? '<dt>' + esc(k) + '</dt><dd>' + esc(v) + '</dd>' : ''; }
@@ -616,6 +621,7 @@
     var orderer = can('manager', 'front_of_house'), payer = can('manager', 'finance', 'front_of_house');
     if (!orderer && !payer) return '';
     var p = S.panel, err = S.panelErr ? '<p class="ccs-err">' + esc(S.panelErr) + '</p>' : '', st = o.order_status;
+    S.sheet.danger = [];
     if (p === 'amend') return amendPanel(o, total, paid);
     if (p === 'confirm') {
       var custom = o.order_type === 'custom';
@@ -671,13 +677,14 @@
         '<div class="ccs-field"><label class="ccs-label" for="ccs-ref">Receipt or transfer reference (optional)</label><input class="ccs-input" id="ccs-ref"></div>' + err +
         '<div class="ccs-actions-row"><button type="button" class="ccs-btn ccs-good" data-act="do-pay">Record payment</button><button type="button" class="ccs-btn ccs-ghost" data-act="panel" data-v="">Back</button></div></div>';
     }
-    var main = '', more = [], hint = '';
+    var main = '', more = [], hint = '', danger = [];
     if ((st === 'awaiting_review' || st === 'awaiting_quote') && orderer) {
-      main = '<button type="button" class="ccs-btn ccs-good" data-act="panel" data-v="confirm">' + (st === 'awaiting_quote' ? 'Quote and confirm' : 'Confirm order') + '</button><button type="button" class="ccs-btn ccs-danger" data-act="panel" data-v="decline">Decline</button>';
+      main = '<button type="button" class="ccs-btn ccs-good" data-act="panel" data-v="confirm">' + (st === 'awaiting_quote' ? 'Quote and confirm' : 'Confirm order') + '</button>';
+      danger.push(['decline', 'Decline order']);
     } else if (st === 'awaiting_deposit') {
       if (payer) main = '<button type="button" class="ccs-btn ccs-good" data-act="panel" data-v="pay">Record deposit</button>';
       if (can('manager')) more.push(['waive', 'Waive deposit']);
-      if (orderer) more.push(['decline', 'Decline']);
+      if (orderer) danger.push(['decline', 'Decline order']);
     } else if (st === 'confirmed') {
       if (bal > 0 && payer) main = '<button type="button" class="ccs-btn" data-act="panel" data-v="pay">Take ' + money(bal) + '</button>';
       if (orderer) {
@@ -692,13 +699,19 @@
       main = '<button type="button" class="ccs-btn ccs-ghost" data-act="panel" data-v="brief">Print kitchen brief</button>';
     }
     if (orderer && OPEN.indexOf(st) > -1 && (o.production_status !== 'ready' || can('manager'))) main += '<button type="button" class="ccs-btn ccs-ghost" data-act="panel" data-v="amend">Amend order</button>';
-    if (orderer && OPEN.indexOf(st) > -1) { more.push(['note', '+ Add note']); more.push(['cancel', 'Cancel order']); }
-    else if (orderer) more.push(['note', '+ Add note']);
+    // The kitchen brief only exists once an order is confirmed: say so instead of hiding the button
+    if (orderer && (st === 'awaiting_review' || st === 'awaiting_quote' || st === 'awaiting_approval' || st === 'awaiting_deposit')) {
+      main += '<button type="button" class="ccs-btn ccs-ghost" disabled aria-disabled="true" aria-describedby="ccs-brief-why">Print kitchen brief</button>';
+      hint = (hint ? hint + ' ' : '') + 'The kitchen brief prints once the order is confirmed.';
+    }
+    if (orderer) more.push(['note', '+ Add note']);
+    if (orderer && OPEN.indexOf(st) > -1) danger.push(['cancel', 'Cancel order']);
     // Admins can delete orders entered by mistake or for testing, but never one with money recorded
-    if (S.me.role === 'admin' && !(o.payments || []).length) more.push(['delete', 'Delete order']);
+    if (S.me.role === 'admin' && !(o.payments || []).length) danger.push(['delete', 'Delete order']);
+    S.sheet.danger = danger;
     if (!main && !more.length) return '';
-    return '<div class="ccs-actions">' + (main ? '<div class="ccs-actions-row">' + main + '</div>' : '') + (hint ? '<p class="ccs-hint">' + esc(hint) + '</p>' : '') + (S.panelErr ? '<p class="ccs-err">' + esc(S.panelErr) + '</p>' : '') +
-      (more.length ? '<div class="ccs-actions-row ccs-more-row">' + more.map(function (m) { return '<button type="button" class="ccs-link' + (m[0] === 'cancel' || m[0] === 'decline' || m[0] === 'delete' ? ' ccs-red' : '') + '" data-act="panel" data-v="' + m[0] + '">' + m[1] + '</button>'; }).join('') + '</div>' : '') + '</div>';
+    return '<div class="ccs-actions">' + (main ? '<div class="ccs-actions-row">' + main + '</div>' : '') + (hint ? '<p class="ccs-hint" id="ccs-brief-why">' + esc(hint) + '</p>' : '') + (S.panelErr ? '<p class="ccs-err">' + esc(S.panelErr) + '</p>' : '') +
+      (more.length ? '<div class="ccs-actions-row ccs-more-row">' + more.map(function (m) { return '<button type="button" class="ccs-link" data-act="panel" data-v="' + m[0] + '">' + m[1] + '</button>'; }).join('') + '</div>' : '') + '</div>';
   }
   function receiverChips(o, dl) {
     var c = o.customers, opts = [];
@@ -890,8 +903,8 @@
     if (r.has_dietary) tags += '<span class="ccs-pill s-alert">Dietary</span>';
     if (r.finish === 'custom') tags += '<span class="ccs-pill">Custom</span>';
     if (r.method === 'delivery') tags += '<span class="ccs-pill">Delivery' + (r.area ? ', ' + esc(r.area) : '') + '</span>';
-    if (r.amend_pending && r.amend_pending.length) tags += '<span class="ccs-pill s-alert">Changed, check now</span>';
-    if (r.brief_changed) tags += '<span class="ccs-pill s-action">Changed since brief</span>';
+    if (r.amend_pending && r.amend_pending.length) tags += '<span class="ccs-pill s-alert">Changed: kitchen to confirm</span>';
+    if (r.brief_changed) tags += '<span class="ccs-pill s-action">Changed after printing: print new slip</span>';
     else if (!r.brief_version && r.status === 'confirmed') tags += '<span class="ccs-pill s-off">No brief yet</span>';
     var inProg = ['preparing', 'baking', 'assembling', 'decorating'].indexOf(r.stage) > -1;
     var idx = stageIndex(r.stage), next = r.status === 'confirmed' && idx < STAGES.length - 2 ? STAGES[idx + 1] : null;

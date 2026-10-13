@@ -469,3 +469,13 @@ body.ccs-is-off #cc-staff .ccs-side { top: var(--ccs-offh, 44px); }
 }
 /* Kitchen brief: one page only (the page box is fixed in the script) */
 @media print { #ccs-print { page-break-after: avoid; break-after: avoid; } #ccs-print .ccs-fit { break-inside: avoid; } }
+
+/* Batch A: order summary beside the actions, consequential actions at the end */
+#cc-staff .ccs-ostrip { display: grid; grid-template-columns: 1.2fr 1.6fr repeat(3, minmax(0, 1fr)); gap: 6px 14px; padding: 10px 14px; margin-bottom: 12px; background: #fff; border: 1px solid var(--ccs-line-soft); border-radius: 12px; }
+#cc-staff .ccs-ostrip > div { display: flex; flex-direction: column; min-width: 0; }
+#cc-staff .ccs-ostrip span { font-size: 12px; color: var(--ccs-muted); text-transform: uppercase; letter-spacing: .04em; font-weight: 600; }
+#cc-staff .ccs-ostrip b { font-size: 15px; color: var(--ccs-ink); font-weight: 600; overflow-wrap: anywhere; }
+#cc-staff .ccs-ostrip a { font-size: 14px; color: var(--ccs-honey-ink); font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+@media (max-width: 560px) { #cc-staff .ccs-ostrip { grid-template-columns: repeat(3, minmax(0, 1fr)); } #cc-staff .ccs-ostrip > div:nth-child(-n+2) { grid-column: 1 / -1; } }
+#cc-staff .ccs-other { border-style: dashed; }
+#cc-staff .ccs-btn[disabled] { opacity: .55; cursor: not-allowed; }

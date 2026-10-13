@@ -67,7 +67,7 @@ async def main():
         await ctx.close()
         # kitchen acknowledgement
         ctx, pg = await page(b, 'kitchen', {"width": 1180, "height": 820}, errs); await pg.wait_for_timeout(300)
-        check('kitchen card flags the change', 'Changed, check now' in await pg.inner_text('#ccs-main'))
+        check('kitchen card flags the change', 'Changed: kitchen to confirm' in await pg.inner_text('#ccs-main'))
         await pg.click('[data-act="open-kitchen"][data-id="o1"]'); await pg.wait_for_timeout(400)
         t = await pg.inner_text('#ccs-sheet')
         check('kitchen sees exactly what changed', 'changed after you started' in t and 'Happy 40th Sam' in t and '10-inch' in t, t[:300])
