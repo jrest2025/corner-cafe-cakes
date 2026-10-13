@@ -114,15 +114,16 @@ async def main():
         await pg.evaluate("window.__failT=null"); await pg.click('[data-act="online-no"]'); await pg.wait_for_timeout(200)
         # A11 price change shows old and new, warns on big change
         await pg.evaluate("document.querySelectorAll('.ccs-set details').forEach(function(d){ if (d.textContent.indexOf('Cakes and prices') > -1) d.open = true; })")
-        await pg.fill('#pz-s1', '80'); await pg.click('[data-act="save-prod"][data-id="p1"]'); await pg.wait_for_timeout(200)
-        chk = await pg.locator('.ccs-pricechk').inner_text() if await pg.locator('.ccs-pricechk').count() else ''
-        check('A11 price save shows old and new price', 'FJD 54.00 to FJD 80.00' in chk and '48% higher' in chk, chk)
-        check('A11 change over 30 percent is flagged', 'big change' in chk)
-        check('A11 nothing saved before confirming', len(await calls(pg, 'update', 'product_sizes')) == 0)
+        await jsclick(pg, '[data-act="mf-open"][data-id="p1"]'); await pg.wait_for_timeout(250)
+        await pg.fill('#mf-sp-0', '80'); await jsclick(pg, '[data-act="mf-review"]')
+        chk = await pg.inner_text('#ccs-sheet')
+        check('A11 price save shows old and new price', '6 inch price: $54 to $80' in chk and '48% higher' in chk, chk[:400])
+        check('A11 change over 30 percent is flagged', 'big price change' in chk)
+        check('A11 nothing saved before confirming', await pg.evaluate("window.__menuSaved === undefined"))
         await pg.screenshot(path=str(OUT / 'desk-price-check.png'), full_page=True)
-        await pg.click('[data-act="save-prod"][data-id="p1"]'); await pg.wait_for_timeout(400)
-        ps = await calls(pg, 'update', 'product_sizes')
-        check('A11 second tap saves the new price', ps and ps[0]['price'] == 80, ps)
+        await jsclick(pg, '[data-act="mf-save"]'); await pg.wait_for_timeout(400)
+        ps = await pg.evaluate("window.__menuSaved")
+        check('A11 Save changes sends the new price', ps and ps['sizes'][0]['price'] == 80, ps)
         await ctx.close()
 
         # Order sheet checks

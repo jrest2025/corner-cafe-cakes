@@ -548,7 +548,7 @@
   }
   function renderSheet() {
     var el = document.getElementById('ccs-sheet'); if (!el || !S.sheet) return;
-    var body = S.sheet.type === 'new' ? sheetHead('New order') + '<div class="ccs-sheet-body ccs-newsheet">' + newView() + '</div>' : S.sheet.type === 'cal' ? calSheet() : S.sheet.type === 'order' ? orderSheet() : S.sheet.type === 'customer' ? customerSheet() : S.sheet.type === 'custnew' ? newCustomerSheet() : S.sheet.type === 'kitchen' ? kitchenSheet() : S.sheet.type === 'more' ? moreSheet() : S.sheet.type === 'dash' ? dashSheet() : S.sheet.type === 'reg' ? regSheet() : S.sheet.type === 'pw' ? sheetHead('Change my password') + '<div class="ccs-sheet-body"><form class="ccs-box ccs-pwform" id="ccs-pw">' + pwFields(S.pwErr) + '</form></div>' : '';
+    var body = S.sheet.type === 'new' ? sheetHead('New order') + '<div class="ccs-sheet-body ccs-newsheet">' + newView() + '</div>' : S.sheet.type === 'cal' ? calSheet() : S.sheet.type === 'order' ? orderSheet() : S.sheet.type === 'customer' ? customerSheet() : S.sheet.type === 'custnew' ? newCustomerSheet() : S.sheet.type === 'kitchen' ? kitchenSheet() : S.sheet.type === 'more' ? moreSheet() : S.sheet.type === 'dash' ? dashSheet() : S.sheet.type === 'reg' ? regSheet() : S.sheet.type === 'menu' ? menuSheet() : S.sheet.type === 'pw' ? sheetHead('Change my password') + '<div class="ccs-sheet-body"><form class="ccs-box ccs-pwform" id="ccs-pw">' + pwFields(S.pwErr) + '</form></div>' : '';
     var keep = el.querySelector('.ccs-sheet-body'), top = keep ? keep.scrollTop : 0, focus = captureFocus(el);
     el.innerHTML = body;
     // put back anything staff were typing (the screen refreshes itself every minute) (U2)
@@ -2176,6 +2176,133 @@
     }
     return h + '</div></details>';
   }
+  // ---------- cake menu editor (Settings): add and change cakes, flavours, sizes and prices ----------
+  function menuList(st) {
+    var ps = st.products.slice().sort(function (a, b) { return (a.sort || 0) - (b.sort || 0); });
+    return '<p class="ccs-hint">Changes show on the staff order slip, the printed slip and the website order form as soon as they are saved. Nothing is deleted: take a cake, flavour or size off sale instead.</p>' +
+      '<div class="ccs-menu-list">' + ps.map(function (p) {
+        var sizes = (p.product_sizes || []).filter(function (s) { return s.active; }).sort(function (a, b) { return a.size_inch - b.size_inch; });
+        var fl = (p.product_variants || []).filter(function (v) { return v.active; });
+        var lo = sizes.length ? Math.min.apply(null, sizes.map(function (s) { return Number(s.price); })) : null, hi = sizes.length ? Math.max.apply(null, sizes.map(function (s) { return Number(s.price); })) : null;
+        return '<div class="ccs-menu-row"><div><b>' + esc(p.name) + '</b><span>' + (p.status === 'active' ? 'On sale' : 'Off sale') + ' · ' + (sizes.length ? sizes.map(function (s) { return s.size_inch; }).join(', ') + ' inch' + (lo != null ? ', ' + money(lo) + (hi !== lo ? ' to ' + money(hi) : '') : '') : 'No sizes offered') + (fl.length ? ' · ' + fl.length + ' flavour' + (fl.length > 1 ? 's' : '') : '') + '</span></div>' +
+          '<button type="button" class="ccs-btn ccs-ghost" data-act="mf-open" data-id="' + p.id + '">Edit</button></div>';
+      }).join('') + '</div><button type="button" class="ccs-btn" data-act="mf-open" data-id="">Add a cake</button>';
+  }
+  function mfFrom(p) {
+    if (!p) return { id: null, name: '', choice_label: 'Which flavour?', flavours: [], sizes: [{ id: null, inch: '6', price: '', serves: '', active: true }, { id: null, inch: '8', price: '', serves: '', active: true }], lead_days: '', supports_custom: true, supports_message: true, dietary_info: '', allergen_info: '', status: 'active' };
+    return { id: p.id, name: p.name, choice_label: p.choice_label || 'Which flavour?', lead_days: p.lead_days == null ? '' : String(p.lead_days), supports_custom: !!p.supports_custom, supports_message: !!p.supports_message,
+      dietary_info: p.dietary_info || '', allergen_info: p.allergen_info || '', status: p.status,
+      flavours: (p.product_variants || []).slice().sort(function (a, b) { return (a.sort || 0) - (b.sort || 0); }).map(function (v) { return { id: v.id, name: v.name, active: v.active }; }),
+      sizes: (p.product_sizes || []).slice().sort(function (a, b) { return a.size_inch - b.size_inch; }).map(function (s) { return { id: s.id, inch: String(s.size_inch), price: String(Number(s.price)), serves: s.serves_label || '', active: s.active }; }) };
+  }
+  function mfOpen(id) {
+    var p = id ? S.settings.products.filter(function (x) { return x.id === id; })[0] : null;
+    var f = mfFrom(p);
+    S.mf = { f: f, orig: JSON.parse(JSON.stringify(f)), review: null, err: null, log: null };
+    S.sheet = { type: 'menu' }; S.dirty = {}; sheetOpen(); renderSheet();
+    if (id) sb.from('product_changes').select('changed_at, changed_by_label, summary').eq('product_id', id).order('changed_at', { ascending: false }).limit(8).then(function (r) { if (!r.error && S.mf && S.mf.f.id === id) { S.mf.log = r.data || []; if (S.sheet && S.sheet.type === 'menu') renderSheet(); } }, function () {});
+  }
+  function mfChanges() {
+    var f = S.mf.f, o = S.mf.orig, out = [], big = false, isNew = !f.id;
+    if (isNew) { out.push('New cake: ' + f.name.trim()); }
+    else if (f.name.trim() !== o.name) out.push('Name: ' + o.name + ' to ' + f.name.trim());
+    if (!isNew && f.status !== o.status) out.push(f.status === 'active' ? 'Back on sale' : 'Taken off sale');
+    f.flavours.forEach(function (x) {
+      var nm = x.name.trim(); if (!nm) return;
+      var was = x.id ? o.flavours.filter(function (y) { return y.id === x.id; })[0] : null;
+      if (!was) out.push('Flavour added: ' + nm + (x.active ? '' : ' (not offered)'));
+      else { if (was.name !== nm) out.push('Flavour renamed: ' + was.name + ' to ' + nm); if (was.active !== x.active) out.push('Flavour ' + nm + ': ' + (x.active ? 'offered again' : 'no longer offered')); }
+    });
+    f.sizes.forEach(function (x) {
+      var inch = parseInt(x.inch, 10), pr = num(x.price);
+      var was = x.id ? o.sizes.filter(function (y) { return y.id === x.id; })[0] : null;
+      if (!was) { out.push('Size added: ' + inch + ' inch at ' + (pr != null ? money(pr) : '?') + (x.active ? '' : ' (not offered)')); return; }
+      var op = Number(was.price);
+      if (pr != null && Math.round(pr * 100) !== Math.round(op * 100)) { var pc = op > 0 ? Math.round((pr - op) / op * 100) : null; if (pc === null || Math.abs(pc) > 30) big = true; out.push(inch + ' inch price: ' + money(op) + ' to ' + money(pr) + (pc === null ? '' : ' (' + (pc > 0 ? pc + '% higher' : -pc + '% lower') + ')')); }
+      if (String(was.inch) !== String(inch)) out.push('Size changed: ' + was.inch + ' inch to ' + inch + ' inch');
+      if ((was.serves || '') !== x.serves.trim()) out.push(inch + ' inch serves: ' + (x.serves.trim() || 'not shown'));
+      if (was.active !== x.active) out.push(inch + ' inch: ' + (x.active ? 'offered again' : 'no longer offered'));
+    });
+    [['choice_label', 'Flavour question'], ['lead_days', 'Notice days'], ['dietary_info', 'Dietary notes'], ['allergen_info', 'Allergen notes']].forEach(function (k) { if (!isNew && String(f[k[0]]).trim() !== String(o[k[0]]).trim()) out.push(k[1] + ': ' + (String(f[k[0]]).trim() || 'none')); });
+    if (!isNew && f.supports_custom !== o.supports_custom) out.push(f.supports_custom ? 'Custom designs allowed' : 'Custom designs not allowed');
+    if (!isNew && f.supports_message !== o.supports_message) out.push(f.supports_message ? 'Written message allowed' : 'Written message not allowed');
+    return { list: out, big: big };
+  }
+  function mfCheck() {
+    var f = S.mf.f, seen = {}, fseen = {};
+    if (f.name.trim().length < 2) return 'Give the cake a name.';
+    var live = f.sizes.filter(function (s) { return s.active; });
+    if (f.status === 'active' && !live.length) return 'A cake on sale needs at least one size offered.';
+    for (var i = 0; i < f.sizes.length; i++) {
+      var s = f.sizes[i], inch = parseInt(s.inch, 10), pr = num(s.price);
+      if (!inch || inch < 3 || inch > 24 || String(inch) !== String(s.inch).trim()) return 'Each size must be a whole number of inches between 3 and 24.';
+      if (seen[inch]) return 'The ' + inch + ' inch size is listed twice.'; seen[inch] = 1;
+      if (pr == null || pr < 0) return 'Enter the price for the ' + inch + ' inch size.';
+    }
+    for (var j = 0; j < f.flavours.length; j++) { var n = f.flavours[j].name.trim().toLowerCase(); if (!n) continue; if (fseen[n]) return 'The flavour ' + f.flavours[j].name.trim() + ' is listed twice.'; fseen[n] = 1; }
+    if (f.lead_days !== '' && (!/^\d+$/.test(String(f.lead_days).trim()) || Number(f.lead_days) > 60)) return 'Notice days must be a whole number up to 60, or blank for the usual notice.';
+    return null;
+  }
+  function menuSheet() {
+    var m = S.mf, f = m.f, isNew = !f.id;
+    var h = sheetHead(isNew ? 'Add a cake' : esc(f.name || 'Cake')) + '<div class="ccs-sheet-body ccs-menued">';
+    if (m.review) {
+      var c = m.review;
+      h += '<section class="ccs-box"><h3>Check before saving</h3>' + (c.list.length ? '<ul class="ccs-mf-changes">' + c.list.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>' : '<p class="ccs-hint">Nothing has changed.</p>') +
+        (c.big ? '<p class="ccs-note"><b>This is a big price change.</b> Check the amount: new orders use it straight away. Orders already taken keep their price.</p>' : '<p class="ccs-hint">New orders on the slip and the website use this straight away. Orders already taken keep their name and price.</p>') +
+        (m.err ? '<p class="ccs-err" role="alert">' + esc(m.err) + '</p>' : '') +
+        '<div class="ccs-actions-row">' + (c.list.length ? '<button type="button" class="ccs-btn ccs-good" data-act="mf-save"' + (S.busy ? ' disabled' : '') + '>' + (S.busy ? 'Saving…' : 'Save changes') + '</button>' : '') + '<button type="button" class="ccs-btn ccs-ghost" data-act="mf-edit">Back to editing</button></div></section>';
+      return h + '</div>';
+    }
+    h += '<section class="ccs-box"><h3>Cake</h3><div class="ccs-field"><label class="ccs-label" for="mf-name">Name, as staff and guests see it</label><input class="ccs-input" id="mf-name" data-mf="name" maxlength="60" value="' + esc(f.name) + '" placeholder="For example: Tiramisu"></div>' +
+      '<div class="ccs-chips" role="group" aria-label="On sale"><button type="button" class="ccs-chip" data-act="mf-status" data-v="active" aria-pressed="' + (f.status === 'active') + '">On sale</button><button type="button" class="ccs-chip" data-act="mf-status" data-v="hidden" aria-pressed="' + (f.status !== 'active') + '">Off sale</button></div></section>';
+    h += '<section class="ccs-box"><h3>Sizes and prices</h3><div class="ccs-mf-rows">' + f.sizes.map(function (s, i) {
+      return '<div class="ccs-mf-row"><div class="ccs-field"><label class="ccs-label" for="mf-si-' + i + '">Size (inch)</label><input class="ccs-input" id="mf-si-' + i + '" data-mfs="' + i + '|inch" inputmode="numeric" value="' + esc(s.inch) + '"' + (s.id ? ' readonly' : '') + '></div>' +
+        '<div class="ccs-field"><label class="ccs-label" for="mf-sp-' + i + '">Price (FJD)</label><input class="ccs-input" id="mf-sp-' + i + '" data-mfs="' + i + '|price" inputmode="decimal" value="' + esc(s.price) + '"></div>' +
+        '<div class="ccs-field ccs-mf-wide"><label class="ccs-label" for="mf-sv-' + i + '">Serves (optional)</label><input class="ccs-input" id="mf-sv-' + i + '" data-mfs="' + i + '|serves" value="' + esc(s.serves) + '" placeholder="About 12–16 slices"></div>' +
+        '<label class="ccs-check"><input type="checkbox" data-mfsa="' + i + '"' + (s.active ? ' checked' : '') + '> Offered</label>' + (!s.id ? '<button type="button" class="ccs-link ccs-red" data-act="mf-drop-size" data-v="' + i + '">Remove</button>' : '') + '</div>';
+    }).join('') + '</div><button type="button" class="ccs-btn ccs-ghost" data-act="mf-add-size">Add a size</button><p class="ccs-hint">A size already used by orders cannot be renamed. Untick Offered to stop selling it.</p></section>';
+    h += '<section class="ccs-box"><h3>Flavours</h3><p class="ccs-hint">Leave empty if this cake has no flavour choice.</p>' + (f.flavours.length ? '<div class="ccs-field"><label class="ccs-label" for="mf-q">Question staff and guests see</label><input class="ccs-input" id="mf-q" data-mf="choice_label" value="' + esc(f.choice_label) + '"></div>' : '') +
+      '<div class="ccs-mf-rows">' + f.flavours.map(function (v, i) {
+        return '<div class="ccs-mf-row"><div class="ccs-field ccs-mf-wide"><label class="ccs-label" for="mf-fl-' + i + '">Flavour</label><input class="ccs-input" id="mf-fl-' + i + '" data-mfv="' + i + '" maxlength="40" value="' + esc(v.name) + '"></div>' +
+          '<label class="ccs-check"><input type="checkbox" data-mfva="' + i + '"' + (v.active ? ' checked' : '') + '> Offered</label>' + (!v.id ? '<button type="button" class="ccs-link ccs-red" data-act="mf-drop-flavour" data-v="' + i + '">Remove</button>' : '') + '</div>';
+      }).join('') + '</div><button type="button" class="ccs-btn ccs-ghost" data-act="mf-add-flavour">Add a flavour</button></section>';
+    h += '<details class="ccs-box ccs-mf-more"><summary>More settings</summary>' +
+      '<div class="ccs-field"><label class="ccs-label" for="mf-lead">Notice needed (days, blank for the usual ' + S.settings.loc.lead_days_standard + ')</label><input class="ccs-input" id="mf-lead" data-mf="lead_days" inputmode="numeric" value="' + esc(f.lead_days) + '"></div>' +
+      '<label class="ccs-check"><input type="checkbox" data-mfc="supports_custom"' + (f.supports_custom ? ' checked' : '') + '> Custom designs allowed</label>' +
+      '<label class="ccs-check"><input type="checkbox" data-mfc="supports_message"' + (f.supports_message ? ' checked' : '') + '> Written message allowed</label>' +
+      '<div class="ccs-field"><label class="ccs-label" for="mf-diet">Dietary notes for guests (optional)</label><input class="ccs-input" id="mf-diet" data-mf="dietary_info" value="' + esc(f.dietary_info) + '" placeholder="For example: Contains gelatine"></div>' +
+      '<div class="ccs-field"><label class="ccs-label" for="mf-allergen">Allergen notes (optional)</label><input class="ccs-input" id="mf-allergen" data-mf="allergen_info" value="' + esc(f.allergen_info) + '" placeholder="For example: Contains nuts, dairy, eggs"></div></details>';
+    if (m.err) h += '<p class="ccs-err" role="alert">' + esc(m.err) + '</p>';
+    h += '<div class="ccs-actions-row"><button type="button" class="ccs-btn" data-act="mf-review">Review changes</button><button type="button" class="ccs-btn ccs-ghost" data-act="close">Cancel</button></div>';
+    if (m.log && m.log.length) h += '<section class="ccs-box"><h3>Recent changes</h3><div class="ccs-history">' + m.log.map(function (l) { return '<div><span>' + esc(stamp(l.changed_at)) + '</span><span>' + esc((l.summary || []).join('; ') || 'Changed') + ' · ' + esc(l.changed_by_label || 'Staff') + '</span></div>'; }).join('') + '</div></section>';
+    return h + '</div>';
+  }
+  function mfInput(t) {
+    var f = S.mf.f; S.mf.err = null;
+    if (t.dataset.mf) f[t.dataset.mf] = t.value;
+    else if (t.dataset.mfs) { var a = t.dataset.mfs.split('|'); f.sizes[Number(a[0])][a[1]] = t.value; }
+    else if (t.dataset.mfv != null) f.flavours[Number(t.dataset.mfv)].name = t.value;
+  }
+  function mfSave() {
+    var m = S.mf, f = m.f; if (S.busy) return;
+    var body = { id: f.id, name: f.name.trim(), choice_label: f.flavours.length ? f.choice_label.trim() : null, lead_days: String(f.lead_days).trim(), supports_custom: f.supports_custom, supports_message: f.supports_message,
+      dietary_info: f.dietary_info, allergen_info: f.allergen_info, status: f.status, summary: m.review.list,
+      flavours: f.flavours.filter(function (v) { return v.name.trim(); }).map(function (v) { return { id: v.id, name: v.name.trim(), active: v.active }; }),
+      sizes: f.sizes.map(function (s) { return { id: s.id, inch: parseInt(s.inch, 10), price: num(s.price), serves: s.serves.trim(), active: s.active }; }) };
+    S.busy = true; renderSheet();
+    sb.rpc('staff_save_product', { p: body }).then(function (r) {
+      S.busy = false; if (r.error) throw r.error;
+      if (!r.data.ok) { m.err = r.data.message; m.review = null; return renderSheet(); }
+      S.dirty = {}; S.mf = null; sheetClose();
+      toast(body.name + (r.data.created ? ' added to the menu' : ' saved') + '. New orders use it straight away.');
+      refreshSetup(); loadSettings();
+    }).catch(function (e) {
+      S.busy = false; console.error(e); if (errKind(e) === 'expired') return sessionExpired();
+      m.err = errKind(e) === 'offline' ? 'Not saved: no internet connection. Your changes are still here. Try again.' : errKind(e) === 'denied' ? 'Not saved: only managers can change the cake menu.' : 'Not saved. Your changes are still here. Try again.';
+      renderSheet();
+    });
+  }
   function settingsView() {
     var h = '<div class="ccs-head"><div><h1 class="ccs-title">Settings</h1><p class="ccs-sub">Changes apply to the website order form straight away.</p></div></div>';
     var st = S.settings; if (!st) return h + (S.setErr ? loadErr(S.setErr, 'reload-settings') : '<p class="ccs-loading">Loading settings…</p>');
@@ -2193,12 +2320,7 @@
     h += '<details><summary>Closed days <span>' + (st.closed.length ? st.closed.length + ' coming up' : 'None') + '</span></summary><div class="ccs-set-body">' +
       (st.closed.length ? '<div class="ccs-history">' + st.closed.map(function (c) { return '<div><span>' + esc(nice(c.closed_on)) + '</span><span>' + esc(c.reason || 'Closed') + ' <button type="button" class="ccs-link ccs-red" data-act="del-closed" data-id="' + c.id + '">Remove</button></span></div>'; }).join('') + '</div>' : '<p class="ccs-hint">No closed days set.</p>') +
       '<div class="ccs-row">' + sf('st-cdate', 'Date', '', 'date') + sf('st-creason', 'Reason (optional)', '') + '</div><button type="button" class="ccs-btn ccs-ghost" data-act="add-closed">Add closed day</button></div></details>';
-    h += '<details><summary>Cakes and prices <span>' + st.products.filter(function (p) { return p.status === 'active'; }).length + ' cakes on sale</span></summary><div class="ccs-set-body">' + st.products.map(function (p) {
-      var sizes = (p.product_sizes || []).slice().sort(function (a, b) { return a.size_inch - b.size_inch; });
-      return '<div class="ccs-box"><div class="ccs-actions-row" style="justify-content:space-between;align-items:center"><b style="color:var(--ccs-ink);font-size:17px">' + esc(p.name) + '</b><label class="ccs-check"><input type="checkbox" data-pstatus="' + p.id + '"' + (p.status === 'active' ? ' checked' : '') + '> On sale</label></div>' +
-        '<div class="ccs-prices">' + sizes.map(function (s) { return '<div class="ccs-field"><label class="ccs-label" for="pz-' + s.id + '">' + s.size_inch + ' inch (FJD)</label><input class="ccs-input" id="pz-' + s.id + '" data-size="' + s.id + '" inputmode="decimal" value="' + Number(s.price) + '"><label class="ccs-check" style="font-size:13px"><input type="checkbox" data-sactive="' + s.id + '"' + (s.active ? ' checked' : '') + '> Offered</label></div>'; }).join('') + '</div>' +
-        '<button type="button" class="ccs-btn ccs-ghost" data-act="save-prod" data-id="' + p.id + '">Save ' + esc(p.name) + '</button></div>';
-    }).join('') + '</div></details>';
+    h += '<details' + (S.menuOpen ? ' open' : '') + '><summary>Cakes and prices <span>' + st.products.filter(function (p) { return p.status === 'active'; }).length + ' cakes on sale</span></summary><div class="ccs-set-body">' + menuList(st) + '</div></details>';
     h += '<details><summary>Delivery areas <span>' + st.zones.filter(function (z) { return z.active; }).length + ' areas</span></summary><div class="ccs-set-body"><p class="ccs-hint">Leave the fee blank where staff set the fee for each order. Website guests cannot choose delivery yet.</p>' +
       st.zones.map(function (z) { return '<div class="ccs-row" style="align-items:end">' + sf('dz-n-' + z.id, 'Area', z.name, 'text') + sf('dz-f-' + z.id, 'Fee (FJD)', z.fee == null ? '' : Number(z.fee)) + '<label class="ccs-check" style="padding-bottom:14px"><input type="checkbox" id="dz-a-' + z.id + '"' + (z.active ? ' checked' : '') + '> Offered</label></div>'; }).join('') +
       '<button type="button" class="ccs-btn ccs-ghost" data-act="save-zones">Save delivery areas</button><div class="ccs-row" style="align-items:end">' + sf('dz-new-n', 'New area', '', 'text') + sf('dz-new-f', 'Fee (FJD)', '') + '<button type="button" class="ccs-btn ccs-ghost" data-act="add-zone">Add area</button></div></div></details>';
@@ -2535,6 +2657,15 @@
         case 'n-edit': goStep(Number(v)); break;
         case 'n-pick': if (SLIP) { var pl = b.dataset.from === 'name' ? D.nameMatches : D.matches; D.customer = pl[Number(v)]; D.isNew = false; D.nameMatches = null; D.matches = null; slSeen()[1] = true; slSeen()[2] = true; slGo(slNextStage(-1)); break; } D.customer = D.matches[Number(v)]; D.isNew = false; goStep(nextOpen(1)); break;
         case 'sl-next': slNext(false); break;
+        case 'mf-open': if (S.settings) { S.menuOpen = true; mfOpen(b.dataset.id || null); } break;
+        case 'mf-status': S.mf.f.status = v; S.dirty['mf-st'] = 1; renderSheet(); break;
+        case 'mf-add-size': (function () { var last = S.mf.f.sizes.map(function (s) { return parseInt(s.inch, 10) || 0; }); var nx = (last.length ? Math.max.apply(null, last) : 4) + 2; S.mf.f.sizes.push({ id: null, inch: String(nx), price: '', serves: '', active: true }); S.dirty['mf-sz'] = 1; renderSheet(); var f = document.getElementById('mf-sp-' + (S.mf.f.sizes.length - 1)); if (f) f.focus(); })(); break;
+        case 'mf-drop-size': S.mf.f.sizes.splice(Number(v), 1); renderSheet(); break;
+        case 'mf-add-flavour': S.mf.f.flavours.push({ id: null, name: '', active: true }); S.dirty['mf-fl'] = 1; renderSheet(); (function () { var f = document.getElementById('mf-fl-' + (S.mf.f.flavours.length - 1)); if (f) f.focus(); })(); break;
+        case 'mf-drop-flavour': S.mf.f.flavours.splice(Number(v), 1); renderSheet(); break;
+        case 'mf-review': (function () { var e = mfCheck(); if (e) { S.mf.err = e; return renderSheet(); } S.mf.err = null; S.mf.review = mfChanges(); renderSheet(); var d = document.querySelector('#ccs-sheet .ccs-sheet-body'); if (d) d.scrollTop = 0; })(); break;
+        case 'mf-edit': S.mf.review = null; S.mf.err = null; renderSheet(); break;
+        case 'mf-save': mfSave(); break;
         case 'sl-skip': slNext(true); break;
         case 'sl-goto': slGo(Number(v)); break;
         case 'sl-opt': D.optIn = v === 'yes'; if (D.errField === 'stage') { D.err = null; D.errField = null; } refreshStep(); break;
@@ -2608,6 +2739,7 @@
     if (t.id && t.closest && t.closest('#ccs-sheet') && t.type !== 'checkbox' && !newInSheet()) S.dirty[t.id] = t.value;
     if (t.id === 'ccs-q') { S.q = t.value; searchOlder(t.value); var m = document.getElementById('ccs-main'); var pos = t.selectionStart; view(); var n = document.getElementById('ccs-q'); n.focus(); try { n.setSelectionRange(pos, pos); } catch (x) {} return; }
     if (t.id === 'ccs-cq') { S.cust.q = t.value; clearTimeout(searchTimer); searchTimer = setTimeout(function () { loadCustomers().then(function () { var n = document.getElementById('ccs-cq'); if (n) { n.focus(); n.setSelectionRange(n.value.length, n.value.length); } }); }, 350); return; }
+    if ((t.dataset.mf || t.dataset.mfs || t.dataset.mfv != null) && S.mf) { mfInput(t); return; }
     if (t.dataset.am && S.am) { S.am[t.dataset.am] = t.value; S.am.preview = null; return; }
     if (t.dataset.f && S.ful) { S.ful[t.dataset.f] = t.value; return; }
     var k = t.dataset.n; if (!k) return;
@@ -2618,6 +2750,10 @@
     if (SLIP && D.errField === null && D.err == null) { var se = document.querySelector('#ccs-slipform .sl-ed .ccs-err'); if (se && t.closest('.sl-ed')) se.remove(); }
     if (k === 'date') refreshStep();
     saveDraft();
+  });
+  root.addEventListener('change', function (e) {
+    var d = e.target.dataset;
+    if (S.mf && (d.mfsa != null || d.mfva != null || d.mfc)) { if (d.mfsa != null) S.mf.f.sizes[Number(d.mfsa)].active = e.target.checked; else if (d.mfva != null) S.mf.f.flavours[Number(d.mfva)].active = e.target.checked; else S.mf.f[d.mfc] = e.target.checked; S.dirty['mf-ck'] = 1; return; }
   });
   root.addEventListener('change', function (e) {
     var k = e.target.dataset.nc; if (!k) return; D[k] = e.target.checked; D.restored = false;
