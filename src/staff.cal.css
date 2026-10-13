@@ -547,3 +547,7 @@ body.ccs-is-off #cc-staff .ccs-side { top: var(--ccs-offh, 44px); }
 #cc-staff .sl-open { align-self: flex-start; min-width: 220px; }
 #cc-staff .sl-occ { font-size: 15px; color: var(--ccs-text); }
 #cc-staff .sl-val > .ccs-link, #cc-staff .sl-newguest > .ccs-link { align-self: flex-start; }
+/* Selected cake and size: reversed out, white on black */
+#cc-staff .sl-cell[aria-pressed="true"], #cc-staff .sl-cell[aria-pressed="true"]:hover { background: #111; color: #fff; font-weight: 800; box-shadow: none; }
+#cc-staff .sl-ptable tr.is-mine th { background: #111; color: #fff; text-decoration: none; }
+#cc-staff .sl-ptable tr.is-mine td { border-color: #111; }
