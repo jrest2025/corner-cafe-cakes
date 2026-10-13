@@ -1,0 +1,10 @@
+/* Festive page audit fixes, 14 October 2026: white form panel, readable labels, larger touch targets */
+.ccfest-form-wrap{background:#fff!important;border:1px solid rgba(20,20,20,.14);}
+#festive-order .ccfest-label,#festive-order .ccfest-label span,#festive-order .ccfest-product-picker-title{font-size:16px!important;}
+#festive-order .ccfest-input{min-height:48px!important;font-size:17px!important;}
+#festive-order textarea.ccfest-input{min-height:120px!important;}
+#festive-product-picker .ccfest-product-row{min-height:48px;cursor:pointer;}
+#festive-product-picker input[type="checkbox"]{width:22px!important;height:22px!important;margin:0!important;accent-color:#3A271F;flex:0 0 auto;}
+#festive-product-picker .ccfest-qty-input{min-height:44px!important;width:4.5rem!important;font-size:17px!important;}
+#festive-product-picker .ccfest-selection-error{font-size:16px!important;font-weight:600;}
+#festive-order .ccfest-form-small{font-size:15px!important;}

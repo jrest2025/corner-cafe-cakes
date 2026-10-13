@@ -6,46 +6,8 @@ if(old){old.replaceWith(m)} else {const f=document.querySelector('[class*=footer
 const st=document.createElement('style'); st.textContent="#festive-product-picker .w-checkbox-label{display:none!important}\n#festive-product-picker .ccfest-product-picker-head{padding:.55rem 0 .25rem!important}\n#festive-product-picker .ccfest-product-picker-help{display:none!important}\n#festive-product-picker .ccfest-product-list{display:grid!important;grid-template-columns:1fr 1fr;gap:0 1.5rem;border-bottom:1px solid rgba(20,20,20,.14)}\n#festive-product-picker .ccfest-product-row{padding:.62rem 0!important;border-top:1px solid rgba(20,20,20,.10);gap:.75rem!important}\n#festive-product-picker .ccfest-product-check{gap:.55rem!important}\n#festive-product-picker .ccfest-qty-wrap{display:none!important;align-items:center;gap:.35rem}\n#festive-product-picker .ccfest-qty-wrap.is-active{display:flex!important}\n#festive-product-picker .ccfest-qty-input{width:3.8rem!important;min-height:2.15rem!important;padding:.25rem .4rem!important}\n#festive-product-picker .ccfest-business-check,\n#festive-product-picker .ccfest-custom-check{padding:.65rem 0!important}\n#festive-product-picker .ccfest-company-field{display:none}\n#festive-product-picker .ccfest-company-field.is-visible{display:block}\n#festive-product-picker .ccfest-selection-preview{display:none!important}\n#festive-product-picker .ccfest-selection-error{display:none;color:#8a1f11;margin-top:.55rem}\n#festive-product-picker .ccfest-selection-error.is-visible{display:block}\n@media(max-width:767px){\n  #festive-product-picker .ccfest-product-list{grid-template-columns:1fr!important;gap:0!important}\n  #festive-product-picker .ccfest-product-row{grid-template-columns:1fr auto!important}\n  #festive-product-picker .ccfest-qty-wrap{padding-left:0!important}\n}"; document.head.appendChild(st);
 document.title='Festive (draft rebuild)'; window.scrollTo(0,0);
 
-(function(){
-  const picker=document.getElementById('festive-product-picker');
-  const form=picker?.closest('form');
-  if(!picker||!form)return;
-  const items=[
-    ['festive-fruit-cake','festive-fruit-cake-qty','Christmas Fruit Cake'],
-    ['festive-yule-log','festive-yule-log-qty','Classic Gingerbread House'],
-    ['festive-gingerbread-house','festive-gingerbread-house-qty','White Chocolate Gingerbread House'],
-    ['festive-treat-box','festive-treat-box-qty','Christmas Mince Pies'],
-    ['festive-cupcakes','festive-cupcakes-qty','Decorated Christmas Cookies'],
-    ['festive-dessert-box','festive-dessert-box-qty','Festive Treat Box']
-  ];
-  const business=document.getElementById('festive-business-order');
-  const companyWrap=document.getElementById('festive-company-field');
-  const company=document.getElementById('festive-company');
-  const custom=document.getElementById('festive-custom-request');
-  const summary=document.getElementById('festive-order-summary');
-  const error=document.getElementById('festive-selection-error');
-  function sync(){
-    const lines=[];
-    items.forEach(([cid,qid,label])=>{
-      const c=document.getElementById(cid); const q=document.getElementById(qid);
-      if(!c||!q)return;
-      const wrap=q.closest('.ccfest-qty-wrap'); q.disabled=!c.checked; wrap?.classList.toggle('is-active',c.checked);
-      if(c.checked){ if(!q.value)q.value='1'; lines.push(label+' — Qty '+q.value);}else{ q.value=''; }
-    });
-    if(business?.checked){ companyWrap?.classList.add('is-visible'); const org=(company?.value||'').trim(); lines.push('Corporate / Bulk Order'+(org?' — '+org:'')); }
-    else{ companyWrap?.classList.remove('is-visible'); if(company)company.value=''; }
-    if(custom?.checked)lines.push('Other / Custom Festive Request');
-    if(summary)summary.value=lines.join('\n'); error?.classList.remove('is-visible');
-  }
-  items.forEach(([cid,qid])=>{ document.getElementById(cid)?.addEventListener('change',sync); document.getElementById(qid)?.addEventListener('input',sync); });
-  business?.addEventListener('change',sync); company?.addEventListener('input',sync); custom?.addEventListener('change',sync);
-  form.addEventListener('submit',function(e){ e.preventDefault(); window.__formSubmitBlocked=true;
-    const anyItem=items.some(([cid])=>document.getElementById(cid)?.checked);
-    const valid=anyItem||business?.checked||custom?.checked;
-    if(!valid){ if(error){ error.textContent='Please select at least one item.'; error.classList.add('is-visible'); } return; }
-    sync(); window.__formWouldSend=summary&&summary.value; });
-  sync(); window.__festiveFormReady=true;
-})();
+__FORMJS__
+
 
 window.CC_CATALOGUE_CONFIG={collection:'festive-2026'};
 await new Promise((ok,fail)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/gh/jrest2025/corner-cafe-cakes@7f450535e4464b68a7099cec4d08b73785d094a6/dist/catalogue/catalogue.js';s.integrity='sha384-tirQcDEWOa2OsZI52AdPNhibFktBhe2RQZJXsMYlNesKyelnLeZryyKSUnXqkvsA';s.crossOrigin='anonymous';s.onload=ok;s.onerror=fail;document.body.appendChild(s)});
