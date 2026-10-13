@@ -25,37 +25,24 @@ g=open('dist/guest.min.js').read().strip(); s=open('dist/staff.min.js').read().s
 for code in (g,s): assert '</script' not in code.lower() and '<!--' not in code
 open('dist/guest.head.html','w').write(FONT+'<style>'+open('dist/guest.min.css').read().strip()+'</style>')
 open('dist/guest.footer.html','w').write(SB+'<script type="text/plain" id="cco-code">'+g+'</script>\n'+loader(['cco-code'],jslen(g),fnv(g),'cc-cake-order','The cake order form did not load. Please refresh the page or call us on +679 892 2760.'))
-# split staff into three parts sized to fill each block up to 49,900 characters (limit 50,000)
-LIM = 49900
+# Staff app: one hosted file (CSS plus code), loaded from GitHub through jsDelivr, pinned to a commit and checked by fingerprint (SRI).
+import hashlib, base64, glob
 css = open('dist/staff.min.css').read().strip()
 run('npx -y csso-cli@4.0.2 staff.cal.css -o dist/staff.cal.min.css')
 calcss = open('dist/staff.cal.min.css').read().strip()
-assert '</style' not in calcss.lower()
-IDS = ['ccs-code-a','ccs-code-b','ccs-code-d','ccs-code-e','ccs-code-f','ccs-code-g','ccs-code-h','ccs-code-i','ccs-code-c']
-head_fixed = len('<meta name="robots" content="noindex, nofollow">\n' + FONT + '<style>' + css + '</style>\n<script type="text/plain" id="ccs-code-c"></script>')
-foot_fixed = len(SB + '<script type="text/plain" id="ccs-code-a"></script>\n' + loader(IDS, 999999, 4294967295, 'cc-staff', 'The staff app did not load properly. Please refresh the page.'))
-emb_fixed = len('<div id="cc-staff"></div>\n<script type="text/plain" id="ccs-code-b"></script>')
-emb2_fixed = len('<script type="text/plain" id="ccs-code-d"></script>')
-emb3_fixed = len('<style>' + calcss + '</style>\n<script type="text/plain" id="ccs-code-e"></script>')
-c1 = LIM - foot_fixed; cb = LIM - emb_fixed; c3 = LIM - head_fixed; cd = LIM - emb2_fixed
-a = s[:c1]; b = s[c1:c1+cb]; rest = s[c1+cb:]
-c = rest[-c3:] if len(rest) > c3 else rest
-mid = rest[:len(rest)-len(c)]
-ce = LIM - emb3_fixed; cf = LIM - len('<script type="text/plain" id="ccs-code-f"></script>')
-cg = LIM - len('<script type="text/plain" id="ccs-code-g"></script>')
-ch = LIM - len('<script type="text/plain" id="ccs-code-h"></script>')
-d = mid[:cd]; e = mid[cd:cd+ce]; f6 = mid[cd+ce:cd+ce+cf]; g7 = mid[cd+ce+cf:cd+ce+cf+cg]; ci = LIM - len('<script type="text/plain" id="ccs-code-i"></script>')
-h8 = mid[cd+ce+cf+cg:cd+ce+cf+cg+ch]; i9 = mid[cd+ce+cf+cg+ch:]
-assert len(i9) <= ci, ('embed 7 too big', len(i9))
-assert a + b + d + e + f6 + g7 + h8 + i9 + c == s
-open('dist/staff.head.html','w').write('<meta name="robots" content="noindex, nofollow">\n'+FONT+'<style>'+css+'</style>\n<script type="text/plain" id="ccs-code-c">'+c+'</script>')
-open('dist/staff.footer.html','w').write(SB+'<script type="text/plain" id="ccs-code-a">'+a+'</script>\n'+loader(IDS,jslen(s),fnv(s),'cc-staff','The staff app did not load properly. Please refresh the page.'))
-open('dist/staff.embed.html','w').write('<div id="cc-staff"></div>\n<script type="text/plain" id="ccs-code-b">'+b+'</script>')
-open('dist/staff.embed2.html','w').write('<script type="text/plain" id="ccs-code-d">'+d+'</script>')
-open('dist/staff.embed4.html','w').write('<script type="text/plain" id="ccs-code-f">'+f6+'</script>')
-open('dist/staff.embed5.html','w').write('<script type="text/plain" id="ccs-code-g">'+g7+'</script>')
-open('dist/staff.embed6.html','w').write('<script type="text/plain" id="ccs-code-h">'+h8+'</script>')
-open('dist/staff.embed7.html','w').write('<script type="text/plain" id="ccs-code-i">'+i9+'</script>')
-open('dist/staff.embed3.html','w').write('<style>'+calcss+'</style>\n<script type="text/plain" id="ccs-code-e">'+e+'</script>')
-for f in ['guest.head.html','guest.footer.html','staff.head.html','staff.footer.html','staff.embed.html','staff.embed2.html','staff.embed3.html','staff.embed4.html','staff.embed5.html','staff.embed6.html','staff.embed7.html']:
+app = "(function(){var s=document.createElement('style');s.id='ccs-style';s.textContent=" + json.dumps(css + calcss) + ";document.head.appendChild(s)})();\n" + s + "\n"
+raw = app.encode('utf-8')
+name = 'staff-app.' + hashlib.sha256(raw).hexdigest()[:10] + '.js'
+os.makedirs('dist/app', exist_ok=True)
+for old in glob.glob('dist/app/staff-app.*.js'):
+    if not old.endswith(name): os.remove(old)
+open('dist/app/' + name, 'wb').write(raw)
+sri = 'sha384-' + base64.b64encode(hashlib.sha384(raw).digest()).decode()
+json.dump({'file': 'dist/app/' + name, 'sri': sri, 'bytes': len(raw)}, open('dist/app/manifest.json', 'w'), indent=1)
+open('dist/staff.head.html', 'w').write('<meta name="robots" content="noindex, nofollow">\n' + FONT.strip())
+open('dist/staff.embed.html', 'w').write('<div id="cc-staff"><p style="padding:30px;font-family:Arial,sans-serif;color:#526176">Loading the staff app…</p></div>')
+for f in glob.glob('dist/staff.embed[2-9].html'): os.remove(f)
+for f in ['guest.head.html','guest.footer.html','staff.head.html','staff.embed.html']:
     print(f, len(open('dist/'+f).read()))
+print('app', name, len(raw), sri)
+print('Next: commit and push, then run build/footer.py to write dist/staff.footer.html pinned to that commit.')

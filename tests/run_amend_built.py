@@ -58,7 +58,7 @@ async def main():
         await pg.click('[data-act="am-set"][data-f="by"][data-v="staff"]'); await pg.fill('#am-reason', 'Kitchen running late')
         await pg.click('[data-act="am-review"]'); await pg.wait_for_timeout(500)
         t = await pg.inner_text('body')
-        check('two people editing: second is told to review the latest', 'Someone else updated this order' in t and await pg.locator('#am-reason').count() == 0)
+        check('two people editing: second is told to review the latest, typing kept', 'Someone else updated this order' in t and 'Your typing is kept' in t)
         await ctx.close()
         # front of house cannot change price; kitchen cannot amend
         ctx, pg = await page(b, 'front_of_house', {"width": 1280, "height": 860}, errs); await open_o1(pg, False)
