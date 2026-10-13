@@ -8,6 +8,11 @@ document.addEventListener('DOMContentLoaded',function(){
     var name=(row.querySelector('.ccfest-product-check > span:last-child')||{}).textContent||(box&&box.getAttribute('data-name'))||'';
     return {row:row,box:box,qty:qty,name:name.trim()};
   }).filter(function(r){return r.box;});
+  // Full words: "Qty" becomes "Quantity", and each quantity box says which product it is for.
+  rows.forEach(function(r){
+    var l=r.row.querySelector('.ccfest-qty-label'); if(l)l.textContent='Quantity';
+    if(r.qty)r.qty.setAttribute('aria-label','Quantity of '+r.name);
+  });
   var business=document.getElementById('festive-business-order');
   var companyWrap=document.getElementById('festive-company-field');
   var company=document.getElementById('festive-company');
