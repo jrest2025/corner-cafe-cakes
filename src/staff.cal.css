@@ -1657,3 +1657,5 @@ body.ccs-is-off #cc-staff .ccs-side { top: var(--ccs-offh, 44px); }
 #cc-staff .ccs-maillist li.is-failed { border-color: #E8B4AA; background: #FDF6F4; }
 #cc-staff .ccs-maillist li.is-failed span { color: #A2402B; font-weight: 600; }
 @media (max-width: 520px) { #cc-staff .ccs-maillist li { grid-template-columns: 1fr; } #cc-staff .ccs-maillist li small { grid-column: 1; } }
+/* Price table: the chosen price is always dark with white text (it must win over the light button style) */
+#cc-staff .sl-wrap .sl-cell[aria-pressed="true"], #cc-staff .sl-cell[aria-pressed="true"], #cc-staff .sl-wrap .sl-cell[aria-pressed="true"]:hover { background: #111; border-color: #111; color: #fff; font-weight: 700; }
