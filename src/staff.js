@@ -785,9 +785,12 @@
     // Admins can delete orders entered by mistake or for testing, but never one with money recorded
     if (S.me.role === 'admin' && !(o.payments || []).length) danger.push(['delete', 'Delete order']);
     S.sheet.danger = danger;
+    // A visible way to the Other actions box (at the end of History), so Cancel and Delete are easy to find
+    // Administrators: a visible way to Delete (it sits in Other actions at the end of History and still asks for the order number and a reason)
+    if (danger.some(function (d) { return d[0] === 'delete'; })) more.push(['go-other', 'Delete order']);
     if (!main && !more.length) return '';
     return '<div class="ccs-actions">' + (main ? '<div class="ccs-actions-row">' + main + '</div>' : '') + (hint ? '<p class="ccs-hint" id="ccs-brief-why">' + esc(hint) + '</p>' : '') + (S.panelErr ? '<p class="ccs-err">' + esc(S.panelErr) + '</p>' : '') +
-      (more.length ? '<div class="ccs-actions-row ccs-more-row">' + more.map(function (m) { return '<button type="button" class="ccs-link" data-act="panel" data-v="' + m[0] + '">' + m[1] + '</button>'; }).join('') + '</div>' : '') + '</div>';
+      (more.length ? '<div class="ccs-actions-row ccs-more-row">' + more.map(function (m) { return m[0] === 'go-other' ? '<button type="button" class="ccs-link ccs-red" data-act="go-other">' + m[1] + '</button>' : '<button type="button" class="ccs-link" data-act="panel" data-v="' + m[0] + '">' + m[1] + '</button>'; }).join('') + '</div>' : '') + '</div>';
   }
   function receiverChips(o, dl) {
     var c = o.customers, opts = [];
@@ -3157,6 +3160,7 @@
         case 'sl-heard': D.heard = D.heard === v ? null : v; refreshStep(); break; D.customer = D.matches[Number(v)]; D.isNew = false; goStep(nextOpen(1)); break;
         case 'sl-next': slNext(false); break;
         case 'pgo': S.secs = S.secs || {}; S.secs[b.dataset.g + '#'] = v; S.secs[b.dataset.g + '#i'] = 0; view(); break;
+        case 'go-other': { secStore('order').order = 'history'; renderSheet(); var ot = document.querySelector('#ccs-sheet .ccs-other'); if (ot) { ot.scrollIntoView({ block: 'center' }); var f = ot.querySelector('button'); if (f) f.focus({ preventScroll: true }); } break; }
         case 'secgo': { var st = secStore(b.dataset.g); st[b.dataset.g] = v; if (S.sheet && /^(order|cust)/.test(b.dataset.g)) { renderSheet(); var sb2 = document.querySelector('#ccs-sheet .ccs-sheet-body'); if (sb2) sb2.scrollTop = 0; } else view(); var nb = root.querySelector('[data-act="secgo"][data-g="' + b.dataset.g + '"][data-v="' + v + '"]'); if (nb) nb.focus({ preventScroll: true }); break; }
         case 'sl-back': if (slStage() === 3 && slPhone() && D.whenPart === 'time') { D.whenPart = 'date'; D.err = null; D.errField = null; refreshStep(); break; } if (slStage() === 4) D.whenPart = 'time'; slGo(Math.max(0, slStage() - 1)); break;
         case 'sl-heardopen': D.heardOpen = true; refreshStep(); break;
