@@ -1501,3 +1501,5 @@ body.ccs-is-off #cc-staff .ccs-side { top: var(--ccs-offh, 44px); }
 #cc-staff .ccs-empty b { font-size: 18px; color: #243247; }
 #cc-staff .ccs-empty span { color: #526176; }
 #cc-staff .ccs-err { color: #B42318; font-weight: 600; }
+/* Tab rows never get squeezed by a long panel (they scroll sideways, so the browser allowed them to shrink to nothing) */
+#cc-staff .ccs-tabs, #cc-staff .ccs-secbar, #cc-staff .ccs-segs { flex-shrink: 0; min-height: 54px; }

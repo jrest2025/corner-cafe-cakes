@@ -188,9 +188,11 @@ function build(kind: string, d: any): { subject: string; html: string } {
       return {
         subject: `Your cake is confirmed, ${first(c.full_name)} (${o.reference})`,
         html: layout(loc, "Your cake is confirmed",
-          p(`It's all booked in, ${esc(first(c.full_name))}. We'll have it ready for you on ${esc(longDate(o.required_date))} at ${esc(t12(o.required_time))}.`) +
-          table([...cakeRows(d, false), ["Total", money(total)], ["Paid", money(d.paid_total)], ["To pay", balance > 0 ? money(balance) + " on collection" : "Nothing, all paid"]]) +
-          p(`Collect from our counter at ${esc(loc.address)}. Need to change something? Reply to this email or call ${esc(loc.phone)}.`)),
+          (o.fulfilment_method === "delivery"
+            ? p(`It's all booked in, ${esc(first(c.full_name))}. We'll deliver it on ${esc(longDate(o.required_date))} at ${esc(t12(o.required_time))} to ${esc(o.delivery_address || "your address")}${o.delivery_zone ? ", " + esc(o.delivery_zone) : ""}.`)
+            : p(`It's all booked in, ${esc(first(c.full_name))}. We'll have it ready for you on ${esc(longDate(o.required_date))} at ${esc(t12(o.required_time))}.`)) +
+          table([...cakeRows(d, false), ...(o.fulfilment_method === "delivery" && Number(o.delivery_fee) > 0 ? [["Delivery", money(o.delivery_fee)]] : []), ["Total", money(total)], ["Paid", money(d.paid_total)], ["To pay", balance > 0 ? money(balance) + (o.fulfilment_method === "delivery" ? " on delivery" : " on collection") : "Nothing, all paid"]]) +
+          p(`${o.fulfilment_method === "delivery" ? "" : `Collect from our counter at ${esc(loc.address)}. `}Need to change something? Reply to this email or call ${esc(loc.phone)}.`)),
       };
     case "guest_declined":
       return {

@@ -804,7 +804,7 @@
     S.sheet.danger = danger;
     // A visible way to the Other actions box (at the end of History), so Cancel and Delete are easy to find
     // Administrators: a visible way to Delete (it sits in Other actions at the end of History and still asks for the order number and a reason)
-    if (danger.some(function (d) { return d[0] === 'delete'; })) more.push(['go-other', 'Delete order']);
+    if (danger.some(function (d) { return d[0] === 'delete'; }) && secStore('order').order !== 'history') more.push(['go-other', 'Delete order']);
     if (!main && !more.length) return '';
     return '<div class="ccs-actions">' + (main ? '<div class="ccs-actions-row">' + main + '</div>' : '') + (hint ? '<p class="ccs-hint" id="ccs-brief-why">' + esc(hint) + '</p>' : '') + (S.panelErr ? '<p class="ccs-err">' + esc(S.panelErr) + '</p>' : '') +
       (more.length ? '<div class="ccs-actions-row ccs-more-row">' + more.map(function (m) { return m[0] === 'go-other' ? '<button type="button" class="ccs-link ccs-red" data-act="go-other">' + m[1] + '</button>' : '<button type="button" class="ccs-link" data-act="panel" data-v="' + m[0] + '">' + m[1] + '</button>'; }).join('') + '</div>' : '') + '</div>';
