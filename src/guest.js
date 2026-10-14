@@ -8,7 +8,7 @@
   var DIETS = ['Vegetarian (eggless)', 'Gluten-free', 'Nut allergy', 'Other'];
   var MAX_PHOTOS = 5;
   var SETUP = null, KEY = uid();
-  var S = { flavour: null, variant: null, size: null, showServes: false, finish: null, design: '', photos: [], msgOpen: false, message: '', occOpen: false, occasion: null, candOpen: false, candles: '', noteOpen: false, notes: '',
+  var S = { flavour: null, variant: null, size: null, showServes: false, finish: null, design: '', photos: [], msgOpen: false, message: '', occOpen: false, occasion: null, method: 'collection', zone: null, address: '', receiver: '', candOpen: false, candles: '', noteOpen: false, notes: '',
     diet: null, diets: [], dietNote: '', date: null, time: null, name: '', phone: '', whatsapp: true, emailOpen: false, email: '', updates: false, detailsOk: false, know: true, sending: false, howOpen: false, dateNote: '' };
   var open = 0, reached = 0, errors = {}, formError = null, fresh = {}, animStep = -1;
 
@@ -30,6 +30,12 @@
   function sz() { var f = fl(); return f && S.size != null ? f.sizes.filter(function (s) { return s.inch === S.size; })[0] : null; }
   function cakeName() { var f = fl(); if (!f) return ''; return f.variants.length ? (S.variant || f.name) : f.name; }
   function price() { var s = sz(); return s ? Number(s.price) : null; }
+  // Delivery: only areas with a set fee are offered on the website; other areas call the cafe
+  function zones() { return ((SETUP && SETUP.delivery_zones) || []).filter(function (z) { return z.fee != null; }); }
+  function zoneFee() { var z = zones().filter(function (x) { return x.name === S.zone; })[0]; return z ? Number(z.fee) : null; }
+  function isDel() { return S.method === 'delivery'; }
+  function delOk() { return !isDel() || (S.zone && zoneFee() != null && S.address.trim().length >= 5); }
+  function total() { var p = price(); return p == null ? null : p + (isDel() && zoneFee() != null ? zoneFee() : 0); }
   function leadDays() { var L = SETUP.location, f = fl(); return S.finish === 'custom' ? L.lead_days_custom : (f ? f.lead_days : L.lead_days_standard); }
   function minDate() { return addDays(today(), leadDays()); }
   function maxDate() { return addDays(today(), SETUP.location.max_days_ahead); }
@@ -109,10 +115,23 @@
         if (S.diet === 'yes') h += '<div class="cco-sub' + enter('diet') + '"><span class="cco-sub-q">Which apply?</span><div class="cco-chips">' + DIETS.map(function (d) { return '<button type="button" class="cco-chip" data-act="diets" data-v="' + esc(d) + '" aria-pressed="' + (S.diets.indexOf(d) > -1) + '">' + esc(d) + '</button>'; }).join('') + '</div><div class="cco-field">' + lbl('cco-dnote', 'Anything our team should know', true) + '<input type="text" class="cco-input" data-in="dietNote" id="cco-dnote" value="' + esc(S.dietNote) + '" placeholder="For example, severe peanut allergy"></div><span class="cco-hint">Our team confirms what can be prepared before your order is confirmed.</span></div>';
         return h + '<button type="button" class="cco-primary" data-act="next2">Continue</button>';
       } },
-    { key: 'Collection', q: 'When will you collect it?', sub: function () { return 'Collect from our counter' + (SETUP.location.address ? ' at ' + SETUP.location.address : '') + '.'; },
-      summary: function () { return S.date && S.time ? nice(S.date) + ' at ' + t12(S.time) : ''; },
+    { key: 'Collection', q: 'When do you need it?', sub: function () { return isDel() ? 'Choose your area. The delivery fee is added to the price.' : 'Collect from our counter' + (SETUP.location.address ? ' at ' + SETUP.location.address : '') + ', or choose delivery.'; },
+      summary: function () { return S.date && S.time && delOk() ? (isDel() ? 'Delivery, ' + S.zone + ' · ' : '') + nice(S.date) + ' at ' + t12(S.time) : ''; },
       body: function () {
-        var h = (S.dateNote ? '<p class="cco-notice" role="status">' + esc(S.dateNote) + '</p>' : '') + '<button type="button" class="cco-date' + (errors.date ? ' cco-bad' : '') + '" data-act="cal"' + described('date') + '><span class="cco-date-l"><span class="cco-date-ico">' + ICON.cal + '</span><span>' + (S.date ? esc(longDate(S.date)) : 'Choose a date') + '</span></span><span class="cco-date-r">' + (S.date ? 'Change' : 'Open calendar') + '</span></button>' + err('date');
+        var zs = zones(), h = '';
+        if (zs.length) {
+          h += '<div class="cco-field"><div class="cco-opts cco-opts-2" role="group" aria-label="Collection or delivery">' +
+            [['collection', 'Collect from the café', 'No extra charge'], ['delivery', 'Delivery', 'From ' + money(Math.min.apply(null, zs.map(function (z) { return Number(z.fee); })))]].map(function (o) {
+              return '<button type="button" class="cco-opt" data-act="method" data-v="' + o[0] + '" aria-pressed="' + (S.method === o[0]) + '"><b>' + o[1] + '</b><span>' + o[2] + '</span></button>'; }).join('') + '</div></div>';
+          if (isDel()) {
+            h += '<div class="cco-field"><span class="cco-period">Delivery area</span><div class="cco-times" role="group" aria-label="Delivery area">' + zs.map(function (z) {
+              return '<button type="button" class="cco-chip" data-act="zone" data-v="' + esc(z.name) + '" aria-pressed="' + (S.zone === z.name) + '">' + esc(z.name) + ' · ' + money(z.fee) + '</button>'; }).join('') + '</div>' +
+              '<p class="cco-hint">Another area? Call us on ' + esc(SETUP.location.phone) + '.</p>' + err('zone') + '</div>' +
+              '<div class="cco-field"><div class="cco-lbl"><label for="cco-address">Delivery address</label></div><textarea id="cco-address" class="cco-in' + (errors.address ? ' cco-bad' : '') + '" data-in="address" rows="2" maxlength="200" placeholder="For example: Room 214, Sofitel, Denarau"' + described('address') + '>' + esc(S.address) + '</textarea>' + err('address') + '</div>' +
+              '<div class="cco-field"><div class="cco-lbl"><label for="cco-receiver">Who will receive it?</label><span class="cco-lbl-r">' + opt() + '</span></div><input id="cco-receiver" class="cco-in" data-in="receiver" maxlength="80" value="' + esc(S.receiver) + '" placeholder="For example: front desk"></div>';
+          }
+        }
+        h += (S.dateNote ? '<p class="cco-notice" role="status">' + esc(S.dateNote) + '</p>' : '') + '<button type="button" class="cco-date' + (errors.date ? ' cco-bad' : '') + '" data-act="cal"' + described('date') + '><span class="cco-date-l"><span class="cco-date-ico">' + ICON.cal + '</span><span>' + (S.date ? esc(longDate(S.date)) : 'Choose a date') + '</span></span><span class="cco-date-r">' + (S.date ? 'Change' : 'Open calendar') + '</span></button>' + err('date');
         if (S.date) {
           var L = SETUP.location, o = L.collection_open.split(':').map(Number), c = L.collection_close.split(':').map(Number), groups = [['Morning', []], ['Afternoon', []], ['Evening', []]];
           for (var m = o[0] * 60 + o[1]; m <= c[0] * 60 + c[1]; m += L.slot_minutes) { var hh = Math.floor(m / 60), t = String(hh).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); groups[hh < 12 ? 0 : hh < 17 ? 1 : 2][1].push(t); }
@@ -146,12 +165,14 @@
         d.push(S.diet === 'yes' ? '<span class="cco-rv-d cco-alert">Dietary: ' + esc([S.diets.join(', '), S.dietNote.trim()].filter(Boolean).join('. ')) + '</span>' : '<span class="cco-rv-d">No dietary needs</span>');
         if (photos.length) d.push('<span class="cco-rv-thumbs">' + photos.map(function (p) { return p.url ? '<img src="' + p.url + '" alt="' + esc(p.name) + '">' : ''; }).join('') + '</span><span class="cco-rv-d">' + photos.length + ' photo' + (photos.length > 1 ? 's' : '') + ' attached</span>');
         h += row('', 'Design and dietary', S.finish === 'custom' ? 'Custom design' : 'Standard finish', d.join(''), 2, true);
-        h += row('', 'Collection', esc(longDate(S.date)) + ' at ' + t12(S.time), SETUP.location.address ? esc('Corner Café, ' + SETUP.location.address) : 'Corner Café counter', 3);
+        h += isDel() ? row('', 'Delivery', esc(longDate(S.date)) + ' at ' + t12(S.time), esc(S.zone + ' · ' + S.address.trim() + (S.receiver.trim() ? ' · For ' + S.receiver.trim() : '')), 3)
+          : row('', 'Collection', esc(longDate(S.date)) + ' at ' + t12(S.time), SETUP.location.address ? esc('Corner Café, ' + SETUP.location.address) : 'Corner Café counter', 3);
         h += row('', 'Contact details', esc(S.name.trim()), esc([S.phone.trim() + (S.whatsapp ? ' (WhatsApp)' : ''), S.email.trim()].filter(Boolean).join(' · ')), 4);
         h += '</div>';
         h += S.finish === 'custom'
           ? '<div class="cco-total cco-total-q"><div class="cco-price"><span>Cake price<small>' + esc(S.size + ' inch ' + cakeName()) + '</small></span><strong>' + money(price()) + '</strong></div><div class="cco-price cco-pending"><span>Custom design</span><em>To be confirmed</em></div></div>'
-          : '<div class="cco-total"><span>Price<small>' + esc(S.size + ' inch ' + cakeName()) + ', standard finish</small></span><strong>' + money(price()) + '</strong></div>';
+          : '<div class="cco-total"><span>Price<small>' + esc(S.size + ' inch ' + cakeName()) + ', standard finish' + (isDel() ? ', plus delivery to ' + S.zone + ' ' + money(zoneFee()) : '') + '</small></span><strong>' + money(total()) + '</strong></div>';
+        if (S.finish === 'custom' && isDel()) h = h.replace('<div class="cco-price cco-pending">', '<div class="cco-price"><span>Delivery<small>' + esc(S.zone) + '</small></span><strong>' + money(zoneFee()) + '</strong></div><div class="cco-price cco-pending">');
         h += S.know ? '<div class="cco-know"><p><b>No payment now.</b></p><p>We confirm availability, the ' + (S.finish === 'custom' ? 'final price' : 'price') + ' and any deposit with you.</p><p>Your cake is booked once we confirm it.</p></div>' : '<button type="button" class="cco-link" data-act="know"><span class="cco-plus" aria-hidden="true">i</span>Good to know before you send</button>';
         if (formError) h += '<p class="cco-err cco-formerr" role="alert">' + esc(formError) + '</p>';
         var busy = busyPhotos();
@@ -307,7 +328,7 @@
   }
 
   // ---------- send ----------
-  var FIELD_STEP = { product: 0, variant: 0, size: 1, finish: 2, design: 2, message: 2, candles: 2, notes: 2, diet: 2, date: 3, time: 3, name: 4, phone: 4, email: 4 };
+  var FIELD_STEP = { product: 0, variant: 0, size: 1, finish: 2, design: 2, message: 2, candles: 2, notes: 2, diet: 2, date: 3, time: 3, zone: 3, address: 3, fee: 3, method: 3, name: 4, phone: 4, email: 4 };
   function checkDetails() {
     errors = {}; formError = null;
     if (S.name.trim().length < 2) errors.name = 'Enter your name.';
@@ -320,7 +341,8 @@
     S.sending = true; render();
     var p = { idempotency_key: KEY, location: 'corner-cafe', product_code: S.flavour, variant: S.variant, size_inch: S.size, finish: S.finish, design: S.design, message: S.message, occasion: S.occasion, candles: S.candles.trim(), notes: S.notes.trim(),
       has_dietary: S.diet, dietary: S.diet === 'yes' ? S.diets : [], dietary_note: S.dietNote, date: S.date, time: S.time, attachments: donePhotos().map(function (x) { return x.path; }),
-      customer: { name: S.name.trim(), phone: S.phone.trim(), email: S.email.trim(), whatsapp: S.whatsapp, opt_in: S.updates } };
+      customer: { name: S.name.trim(), phone: S.phone.trim(), email: S.email.trim(), whatsapp: S.whatsapp, opt_in: S.updates },
+      delivery: isDel() ? { method: 'delivery', zone: S.zone, address: S.address.trim(), contact: S.receiver.trim() } : { method: 'collection' } };
     sb.rpc('submit_online_order', { p: p }).then(function (r) {
       S.sending = false;
       if (r.error) { formError = 'We could not send your request. Check your connection and try again, or call us on ' + SETUP.location.phone + '.'; return render(); }
@@ -358,7 +380,8 @@
       '<ol class="cco-next">' +
         '<li data-n="1" class="cco-now"><span><b>Request received</b><span>' + (SETUP.guest_emails && S.email.trim() ? 'We have emailed the details to ' + esc(S.email.trim()) + '.' : 'Keep your reference handy.') + '</span></span></li>' +
         '<li data-n="2"><span><b>' + (quote ? 'Our team sends your price' : 'Our team reviews and confirms your cake') + '</b><span>We ' + how + ' on ' + esc(S.phone.trim()) + (quote ? ' with the final price and any deposit.' : ' to confirm availability and any deposit.') + '</span></span></li>' +
-        '<li data-n="3"><span><b>Collect your cake</b><span>At the agreed time, once confirmed, from our counter' + (L.address ? ' at ' + esc(L.address) : '') + '.</span></span></li>' +
+        (isDel() ? '<li data-n="3"><span><b>We deliver your cake</b><span>At the agreed time, once confirmed, to ' + esc(S.address.trim()) + ', ' + esc(S.zone) + '.</span></span></li>'
+          : '<li data-n="3"><span><b>Collect your cake</b><span>At the agreed time, once confirmed, from our counter' + (L.address ? ' at ' + esc(L.address) : '') + '.</span></span></li>') +
       '</ol>' +
       '<div class="cco-help-line"><p>Need to change something? Call us and quote your reference.</p><div class="cco-done-actions"><a class="cco-act" href="tel:' + esc(String(L.phone).replace(/[^\d+]/g, '')) + '">Call ' + esc(L.phone) + '</a><a class="cco-act cco-act-ghost" href="/">Back to Corner Café</a></div></div></div>';
     var box = root.querySelector('.cco-done'); box.focus({ preventScroll: true }); place(box);
@@ -402,7 +425,9 @@
       return go(nextIncomplete(3));
     }
     if (a === 'cal') return openCal();
-    if (a === 'time') { S.time = v; return go(nextIncomplete(4)); }
+    if (a === 'time') { S.time = v; if (!delOk()) { errors = {}; if (!S.zone) errors.zone = 'Choose your delivery area.'; if (S.address.trim().length < 5) errors.address = 'Enter the delivery address.'; render(); return toFirstError(); } return go(nextIncomplete(4)); }
+    if (a === 'method') { S.method = v; if (v !== 'delivery') { delete errors.zone; delete errors.address; } return render(); }
+    if (a === 'zone') { S.zone = v; delete errors.zone; return render(); }
     if (a === 'emailOpen') { S.emailOpen = true; fresh.email = true; return render('#cco-email'); }
     if (a === 'toReview') {
       if (!checkDetails()) { render(); return toFirstError(); }

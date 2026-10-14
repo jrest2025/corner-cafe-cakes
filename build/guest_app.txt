@@ -1,2 +1,2 @@
-dist/app/guest-app.9481bdea86.js
-sha384-XXaIBHKwttBo6op1RP3oZWv9ckZ38+gafyMqk3xM20OHqcFYS86lMTpogu//yJXP
+dist/app/guest-app.7b377acdd8.js
+sha384-83wjV+9WKsBxCT8zZjhTKS4l9yiQ4BllfnRja9Yw8TSubnaa2IIgRxMvjnAdu5Tn
