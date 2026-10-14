@@ -1,4 +1,4 @@
-"""Delete order: easy to find for an administrator, never offered to others or for paid orders. Invented data only."""
+"""Delete order: easy to find for an administrator, any order including paid ones (with a warning), never offered to other roles. Invented data only."""
 import asyncio, pathlib, sys
 from playwright.async_api import async_playwright
 HERE = pathlib.Path(__file__).parent; PAGE = sys.argv[1] if len(sys.argv) > 1 else "hosted-staff.html"; R = []
@@ -25,7 +25,8 @@ async def main():
         check('delete asks for the order number and a reason first', await pg.locator('#ccs-sheet [data-act="do-delete"]').count() == 1, t[:300])
         check('no page errors', not errs, errs); await ctx.close()
         ctx, pg, errs = await opn(b, 'admin', 'CC-1004')
-        check('admin: paid order offers no delete', await pg.locator('#ccs-sheet .ccs-other [data-v="delete"]').count() == 0 and 'delete' not in (await pg.inner_text('#ccs-sheet .ccs-actions')).lower())
+        await pg.click('#ccs-sheet .ccs-actions [data-act="go-other"]'); await pg.wait_for_timeout(400); await pg.click('#ccs-sheet .ccs-other [data-v="delete"]'); await pg.wait_for_timeout(400)
+        check('admin: paid order can be deleted, with a plain warning about the payment', 'has been paid on this order' in await pg.inner_text('#ccs-sheet') and await pg.locator('#ccs-sheet [data-act="do-delete"]').count() == 1, await pg.inner_text('#ccs-sheet'))
         await ctx.close()
         for role in ['manager', 'front_of_house']:
             ctx, pg, errs = await opn(b, role, 'CC-1001')

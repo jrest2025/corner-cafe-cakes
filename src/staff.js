@@ -721,7 +721,8 @@
     if (p === 'delete') {
       return '<div class="ccs-panel"><b>Delete this order</b><p class="ccs-hint">Only for test orders and orders entered by mistake. The order disappears from every list, count and figure, and no more emails go out for it. It is kept with your name and reason, and an admin can restore it from Settings.</p>' +
         '<div class="ccs-field"><label class="ccs-label" for="ccs-note">Why is it being deleted? (required)</label><textarea class="ccs-input" id="ccs-note" data-autofocus placeholder="For example: test order, or entered twice by mistake"></textarea></div>' +
-        '<div class="ccs-field"><label class="ccs-label" for="ccs-delref">Type the order number ' + esc(o.reference) + ' to confirm</label><input class="ccs-input" id="ccs-delref" autocomplete="off" autocapitalize="characters" spellcheck="false"></div>' + err +
+        '<div class="ccs-field"><label class="ccs-label" for="ccs-delref">Type the order number ' + esc(o.reference) + ' to confirm</label><input class="ccs-input" id="ccs-delref" autocomplete="off" autocapitalize="characters" spellcheck="false"></div>' +
+        (paid > 0 ? '<p class="ccs-note">' + money(paid) + ' has been paid on this order. Deleting it takes that payment out of the Dashboard and reports. The payment itself is not changed, and restoring the order brings it back.</p>' : '') + err +
         '<div class="ccs-actions-row"><button type="button" class="ccs-btn ccs-danger" data-act="do-delete">Delete order</button><button type="button" class="ccs-btn ccs-ghost" data-act="panel" data-v="">Back</button></div></div>';
     }
     if (p === 'fulfil') {
@@ -782,8 +783,8 @@
     }
     if (orderer) more.push(['note', '+ Add note']);
     if (orderer && OPEN.indexOf(st) > -1) danger.push(['cancel', 'Cancel order']);
-    // Admins can delete orders entered by mistake or for testing, but never one with money recorded
-    if (S.me.role === 'admin' && !(o.payments || []).length) danger.push(['delete', 'Delete order']);
+    // Admins can delete any order (owner decision 14 Oct); paid orders get a plain warning first
+    if (S.me.role === 'admin') danger.push(['delete', 'Delete order']);
     S.sheet.danger = danger;
     // A visible way to the Other actions box (at the end of History), so Cancel and Delete are easy to find
     // Administrators: a visible way to Delete (it sits in Other actions at the end of History and still asks for the order number and a reason)
@@ -2810,9 +2811,9 @@
     var l = st.deleted; if (!l) return '';
     return '<details><summary>Deleted orders <span>' + (l.length ? l.length + ' deleted' : 'None') + '</span></summary><div class="ccs-set-body">' +
       (l.length ? '<p class="ccs-hint">Deleted orders are hidden from every list and figure. Restore puts an order back exactly as it was.</p><div class="ccs-history">' + l.map(function (d) {
-        return '<div><span>' + esc(when(d.deleted_at)) + '</span><span><b style="font-weight:600;color:var(--ccs-ink)">' + esc(d.reference) + '</b> ' + esc(d.customer || '') + ', due ' + esc(nice(d.date)) + ' · deleted by ' + esc(d.deleted_by) + ': ' + esc(d.reason || '') +
+        return '<div><span>' + esc(when(d.deleted_at)) + '</span><span><b style="font-weight:600;color:var(--ccs-ink)">' + esc(d.reference) + '</b> ' + esc(d.customer || '') + ', due ' + esc(nice(d.date)) + ' · deleted by ' + esc(d.deleted_by) + ': ' + esc(d.reason || '') + (d.paid > 0 ? ' · ' + money(d.paid) + ' paid' : '') +
           ' <button type="button" class="ccs-link" data-act="del-restore" data-id="' + d.id + '">Restore</button></span></div>';
-      }).join('') + '</div>' : '<p class="ccs-hint">No orders have been deleted. Admins can delete a test order or one entered by mistake from the order itself, as long as no payment is recorded.</p>') + '</div></details>';
+      }).join('') + '</div>' : '<p class="ccs-hint">No orders have been deleted. Admins can delete any order from the order itself.</p>') + '</div></details>';
   }
   // ---------- backup Google Sheet (in the owner's Drive; a script inside it copies orders every minute) ----------
   var MIR_STATE = { current: 'Connected and current', delayed: 'Copy delayed', attention: 'Attention', not_set_up: 'Not set up' };
