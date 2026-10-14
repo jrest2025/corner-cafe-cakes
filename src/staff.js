@@ -686,7 +686,9 @@
     cut.forEach(function (c, k) { var html = h.slice(c[1], k + 1 < cut.length ? cut[k + 1][1] : h.length); if (html.trim()) parts.push([c[0], html]); });
     if (headOnly || !parts.length) return head;
     var cur = secCur(group, parts.map(function (p) { return p[0]; }));
-    return head + secBar(group, parts.map(function (p) { return [p[0], labels[p[0]] || p[0]]; }), cur) + '<div class="ccs-secbody" role="tabpanel">' + parts.filter(function (p) { return p[0] === cur; })[0][1] + '</div>';
+    var body = parts.filter(function (p) { return p[0] === cur; })[0][1], lab = labels[cur] || cur;
+    body = body.replace('<h3>' + lab + '</h3>', '');
+    return head + secBar(group, parts.map(function (p) { return [p[0], labels[p[0]] || p[0]]; }), cur) + '<div class="ccs-secbody" role="tabpanel">' + body + '</div>';
   }
   function kv(k, v) { return v ? '<dt>' + esc(k) + '</dt><dd>' + esc(v) + '</dd>' : ''; }
   function eventText(e) {
@@ -1086,7 +1088,7 @@
     h += '<div class="ccs-kpis ccs-kpis-k">' +
       '<div class="ccs-kpi"><span class="ccs-kpi-l">Cakes to finish</span><b class="ccs-kpi-n">' + todo + '</b><span class="ccs-kpi-s">' + (K.days === 2 ? 'Today and tomorrow' : 'Next 7 days') + '</span></div>' +
       '<div class="ccs-kpi' + (late ? ' t-late' : '') + '"><span class="ccs-kpi-l">Running late</span><b class="ccs-kpi-n">' + late + '</b><span class="ccs-kpi-s">' + (late ? 'Past due and not ready' : 'None') + '</span></div>' +
-      '<div class="ccs-kpi"><span class="ccs-kpi-l">Waiting for quality check</span><b class="ccs-kpi-n">' + groups.qc.length + '</b><span class="ccs-kpi-s">Needs a name to pass</span></div>' +
+      '<div class="ccs-kpi"><span class="ccs-kpi-l">Quality check</span><b class="ccs-kpi-n">' + groups.qc.length + '</b><span class="ccs-kpi-s">Needs a name to pass</span></div>' +
       '<div class="ccs-kpi t-good"><span class="ccs-kpi-l">Ready</span><b class="ccs-kpi-n">' + groups.ready.length + '</b><span class="ccs-kpi-s">Waiting for handover</span></div></div>';
     if (!rows.length) return h + '<div class="ccs-empty" style="margin-top:16px"><b>No confirmed cakes in this range.</b><span>Cakes appear here once the counter confirms them.</span></div>';
     // Phones: one column at a time. Tablets: four columns that each fit the screen; Handed over shows on request (always on wide screens)
@@ -2736,7 +2738,7 @@
       var tm = st.tmDraft || {};
       h += '<details' + (st.tmOpen ? ' open' : '') + '><summary>Team and access <span>' + st.team.filter(function (u) { return u.active; }).length + ' with access</span></summary><div class="ccs-set-body">';
       if (st.tmDone) h += '<div class="ccs-note" role="status"><b>' + esc(st.tmDone.name) + ' can now sign in.</b> Give them the staff page link, their email (' + esc(st.tmDone.email) + ') and the temporary password you set. They choose their own password when they first sign in.</div>';
-      h += '<div class="ccs-box ccs-tmadd"><b style="color:var(--ccs-ink);font-size:17px">Add a staff member</b><div class="ccs-row">' +
+      h += '<div class="ccs-box ccs-tmadd"><b style="color:var(--ccs-ink);font-size:18px">Add a staff member</b><div class="ccs-row">' +
         sf('tm-new-n', 'Name', tm.name || '', 'text') + sf('tm-new-e', 'Email', tm.email || '', 'email') +
         '<div class="ccs-field"><label class="ccs-label" for="tm-new-r">Role</label><select class="ccs-input" id="tm-new-r">' + ROLE_PICK.map(function (r) { return '<option value="' + r[0] + '"' + ((tm.role || 'front_of_house') === r[0] ? ' selected' : '') + '>' + r[1] + '</option>'; }).join('') + '</select></div></div>' +
         '<div class="ccs-row" style="align-items:end">' + sf('tm-new-p', 'Temporary password', tm.password || '', 'text') + '<button type="button" class="ccs-btn ccs-ghost" data-act="tm-gen">Make one for me</button></div>' +
