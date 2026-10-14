@@ -2,6 +2,12 @@
 // op "process" sends queued emails. Called by the database (trigger and 5-minute retry), protected by the cron key.
 // Test mode sends every email to the test address with a [TEST] subject prefix.
 
+// Kitchen slip PDF layout (shipped with this function); the logo is fetched from one pinned commit and is optional
+import { buildSlipPdf, slipFileName, SLIP_REF } from "./slip_pdf.js";
+const SLIP_LOGO_URL = "https://cdn.jsdelivr.net/gh/jrest2025/corner-cafe-cakes@6879294bbce62e730bdf5b1af8c2b3e931a06fb5/dist/brand/slip-logo-white.png";
+let logoCache: Uint8Array | null = null;
+async function slipLogo() { if (logoCache) return logoCache; try { const r = await fetch(SLIP_LOGO_URL); if (r.ok) logoCache = new Uint8Array(await r.arrayBuffer()); } catch (_e) { /* the slip falls back to the name in text */ } return logoCache; }
+
 const SB_URL = Deno.env.get("SUPABASE_URL")!;
 const SB_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const RESEND_KEY = Deno.env.get("RESEND_API_KEY") ?? "";
@@ -207,15 +213,51 @@ function build(kind: string, d: any): { subject: string; html: string } {
   }
 }
 
-async function send(to: string, subject: string, html: string, from: string, replyTo?: string) {
+async function send(to: string, subject: string, html: string, from: string, replyTo?: string, attachments?: { filename: string; content: string }[]) {
   const r = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${RESEND_KEY}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from, to: [to], subject, html, reply_to: replyTo || undefined }),
+    body: JSON.stringify({ from, to: [to], subject, html, reply_to: replyTo || undefined, attachments: attachments && attachments.length ? attachments : undefined }),
   });
   const t = await r.text();
   if (!r.ok) throw new Error(`Resend ${r.status}: ${t.slice(0, 300)}`);
   return JSON.parse(t).id as string;
+}
+
+// ---------- kitchen slip PDF for the printer PC ----------
+function b64(bytes: Uint8Array) { let s = ""; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000)); return btoa(s); }
+class NoRetry extends Error {}
+async function kitchenSlip(m: any, d: any) {
+  const o = d.order, c = d.customer ?? {};
+  const v = Number(((m.dedupe_key || "").match(/:v(\d+)$/) || [])[1]);
+  if (!SLIP_REF.test(String(o.reference || "").trim())) throw new NoRetry("No valid order number: slip not sent. Fix the order, then print again.");
+  if (!v) throw new NoRetry("No slip version on this email.");
+  const [br] = await db(`kitchen_briefs?order_id=eq.${m.order_id}&version=eq.${v}&select=snapshot,changes,printed_at,printed_by_label`);
+  if (!br) throw new NoRetry(`Slip v${v} not found for ${o.reference}.`);
+  const s = br.snapshot;
+  if (s.reference !== o.reference) throw new NoRetry(`Slip order number ${s.reference} does not match ${o.reference}: not sent.`);
+  let takenBy = o.source === "online" ? "Website order" : "Staff";
+  if (o.source !== "online" && o.created_by) { const [sp] = await db(`staff_profiles?user_id=eq.${o.created_by}&select=full_name`); if (sp?.full_name) takenBy = sp.full_name; }
+  const slip = { name: (o.contact_name || "").trim() || c.full_name, phone: (o.contact_phone || "").trim() || c.phone, price: o.final_total ?? o.estimate_total, paid: d.paid_total ?? 0,
+    taken_by: takenBy, ordered_at: o.created_at, source: o.source, method: o.fulfilment_method,
+    address: o.fulfilment_method === "delivery" ? o.delivery_address : null, receiver: o.fulfilment_method === "delivery" ? o.delivery_contact : null };
+  const PDFLib = await import("npm:pdf-lib@1.17.1");
+  const pdf = await buildSlipPdf(PDFLib, { snapshot: s, slip, version: v, changes: br.changes || [], printedAt: br.printed_at, logoPng: await slipLogo(), location: d.location });
+  const name = slipFileName(s, slip, v);
+  const dl = s.method === "delivery";
+  const when = `${new Date(s.date + "T12:00:00Z").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" }).replace(",", "")} ${t12(s.time)}`;
+  const diet = s.has_dietary ? ([] as string[]).concat(s.dietary || [], s.dietary_note ? [s.dietary_note] : []).join(", ") || "See the slip" : "";
+  const subject = `Kitchen slip ${o.reference} v${v} · ${dl ? "Delivery" : "Pickup"} ${when}` + (diet ? " · ALLERGY" : "") + (v > 1 ? " · REPLACES v" + (v - 1) : "");
+  const html = `<!doctype html><html><body style="margin:0;font-family:Arial,Helvetica,sans-serif;color:${INK};background:#ffffff">` +
+    `<div style="max-width:520px;padding:20px 16px"><div style="font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:${MUTED}">Kitchen slip v${v}</div>` +
+    `<div style="font-size:30px;font-weight:bold;margin:2px 0 12px">${esc(o.reference)}</div>` +
+    (diet ? `<div style="border-left:5px solid ${RED};padding:8px 12px;margin:0 0 12px;color:${RED};font-weight:bold">Allergy or dietary need: ${esc(diet)}</div>` : "") +
+    (v > 1 ? `<p style="margin:0 0 12px;font-weight:bold">This replaces v${v - 1}. Throw the old slip away.</p>` : "") +
+    `<p style="margin:0 0 6px;font-size:15px">${dl ? "Delivery" : "Pickup"}: <b>${esc(longDate(s.date))}, ${esc(t12(s.time))}</b></p>` +
+    `<p style="margin:0 0 14px;font-size:15px">Cake: <b>${esc((s.variant || s.cake) + (s.size ? `, ${s.size} inch` : ""))}</b></p>` +
+    `<p style="margin:0 0 6px;font-size:15px">Print the attached PDF: <b>${esc(name)}.pdf</b></p>` +
+    `<p style="margin:16px 0 0;font-size:12px;color:${MUTED}">Sent when ${esc(br.printed_by_label || "staff")} pressed Print in the cake staff app. Staff only.</p></div></body></html>`;
+  return { subject, html, attachments: [{ filename: name + ".pdf", content: b64(pdf) }] };
 }
 
 async function processOutbox() {
@@ -231,15 +273,17 @@ async function processOutbox() {
       const d = await rpc("email_payload", { p_order: m.order_id });
       if (!d) throw new Error("order not found");
       const cfg = d.config ?? {};
-      let { subject, html } = build(m.kind, d);
+      let att: { filename: string; content: string }[] | undefined;
+      let { subject, html } = m.kind === "kitchen_slip" ? await kitchenSlip(m, d).then((k) => { att = k.attachments; return k; }) : build(m.kind, d);
       let to = m.to_email;
       if (cfg.test_mode === "true") { subject = `[TEST, for ${to}] ${subject}`; to = cfg.test_email; }
       const guestKind = m.kind.startsWith("guest_");
-      const id = await send(to, subject, html, cfg.from_email, guestKind ? cfg.reply_to : (d.customer?.email || undefined));
+      const id = await send(to, subject, html, cfg.from_email, guestKind ? cfg.reply_to : (m.kind === "kitchen_slip" ? undefined : (d.customer?.email || undefined)), att);
       await db(`email_outbox?id=eq.${m.id}`, { method: "PATCH", body: JSON.stringify({ status: "sent", sent_at: new Date().toISOString(), provider_message_id: id, last_error: null }) });
       sent++;
     } catch (e) {
-      await db(`email_outbox?id=eq.${m.id}`, { method: "PATCH", body: JSON.stringify({ status: "failed", last_error: String(e).slice(0, 500) }) });
+      // A problem that a retry cannot fix (such as a missing order number) is not retried
+      await db(`email_outbox?id=eq.${m.id}`, { method: "PATCH", body: JSON.stringify({ status: "failed", last_error: String(e instanceof Error ? e.message : e).slice(0, 500), ...(e instanceof NoRetry ? { attempts: 5 } : {}) }) });
       failed++;
     }
   }
