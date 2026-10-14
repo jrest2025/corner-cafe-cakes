@@ -51,7 +51,7 @@ async def main():
         ctx, pg, errs = await start(b, TAB)
         await new_btn(pg)
         await js(pg, '[data-act="n-cell"][data-v="cheesecake|6"]')
-        cc = await pg.evaluate("(function(){var c=document.querySelector('[data-act=\\"n-cell\\"][aria-pressed=\\"true\\"]');var s=getComputedStyle(c);return [s.backgroundColor,s.color,c.textContent]})()")
+        cc = await pg.evaluate("(function(){var c=document.querySelector('[data-act=n-cell][aria-pressed=true]');var s=getComputedStyle(c);return [s.backgroundColor,s.color,c.textContent]})()")
         check('the chosen price stays readable: white on dark', cc[0] == 'rgb(17, 17, 17)' and cc[1] == 'rgb(255, 255, 255)' and cc[2] == '$54', cc)
         await take(pg, 'Stage One Guest', '912 0555', diet='unsure')
         t = await pg.inner_text('#ccs-sheet')
