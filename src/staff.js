@@ -273,7 +273,7 @@
   ['pointerdown', 'keydown'].forEach(function (ev) { document.addEventListener(ev, idleTouch, { passive: true, capture: true }); });
   setInterval(idleCheck, 60000);
   function boot() {
-    root.innerHTML = '<p class="ccs-loading" style="padding:40px">Loading…</p>';
+    root.innerHTML = '<p class="ccs-loading">Loading…</p>';
     sb.auth.getSession().then(function (r) {
       var sess = r.data && r.data.session;
       if (!sess) return loginView();
@@ -430,7 +430,7 @@
     chips.push(['deposit', 'Payments due', null], ['recent', 'All, 45 days back and ahead', null]);
     if (S.filter === 'day' && S.day) chips.push(['day', dayLabel(S.day), null]);
     var h = '<div class="ccs-head"><div><h1 class="ccs-title">Cake orders</h1><p class="ccs-sub">' + esc(nice(t, true)) + '</p></div>' +
-      '<input class="ccs-input ccs-search" id="ccs-q" aria-label="Search orders" type="search" placeholder="Search name, mobile or CC-number" value="' + esc(S.q) + '"></div>' +
+      '<input class="ccs-input ccs-search" id="ccs-q" aria-label="Search orders" type="search" placeholder="Name, mobile or order number" value="' + esc(S.q) + '"></div>' +
       '<div class="ccs-tabs" role="group" aria-label="Filter">' + chips.map(function (c) { return '<button type="button" class="ccs-tab" data-act="filter" data-v="' + c[0] + '" aria-pressed="' + (S.filter === c[0] && !S.q) + '">' + c[1] + (c[2] != null ? '<span class="ccs-n">' + c[2] + '</span>' : '') + '</button>'; }).join('') + '</div>';
     if (!S.loaded) return h + (S.ordErr ? loadErr(S.ordErr, 'reload-orders') : '<p class="ccs-loading">Loading orders…</p>');
     h += freshLine(S.ordAt, S.ordFails, 'reload-orders');
@@ -440,7 +440,7 @@
       var msg = S.q ? ['No orders match “' + esc(S.q) + '”.', 'Try a mobile number or an order number like CC-1001.'] :
         S.filter === 'action' ? ['Nothing waiting.', 'New online orders appear here for review. Walk-in orders go in through New order.'] :
         S.filter === 'today' ? ['No cakes due today.', ''] : S.filter === 'overdue' ? ['Nothing overdue.', 'Every order past its date has been handed over, cancelled or declined.'] : ['No orders yet.', 'Orders from the website and the counter will show here.'];
-      return h + '<div class="ccs-empty" style="margin-top:16px"><b>' + msg[0] + '</b><span>' + msg[1] + '</span>' + (can('manager', 'front_of_house') ? '<button type="button" class="ccs-btn ccs-new" data-tab="new">' + NAV_ICON['new'] + 'New order</button>' : '') + '</div>';
+      return h + '<div class="ccs-empty"><b>' + msg[0] + '</b><span>' + msg[1] + '</span>' + (can('manager', 'front_of_house') ? '<button type="button" class="ccs-btn ccs-new" data-tab="new">' + NAV_ICON['new'] + 'New order</button>' : '') + '</div>';
     }
     if (S.filter === 'action' && !S.q) return h + '<div class="ccs-list" style="margin-top:16px">' + list.map(orderCard).join('') + '</div>';
     var out = '', day = null, perDay = {};
@@ -1090,7 +1090,7 @@
       '<div class="ccs-kpi' + (late ? ' t-late' : '') + '"><span class="ccs-kpi-l">Running late</span><b class="ccs-kpi-n">' + late + '</b><span class="ccs-kpi-s">' + (late ? 'Past due and not ready' : 'None') + '</span></div>' +
       '<div class="ccs-kpi"><span class="ccs-kpi-l">Quality check</span><b class="ccs-kpi-n">' + groups.qc.length + '</b><span class="ccs-kpi-s">Needs a name to pass</span></div>' +
       '<div class="ccs-kpi t-good"><span class="ccs-kpi-l">Ready</span><b class="ccs-kpi-n">' + groups.ready.length + '</b><span class="ccs-kpi-s">Waiting for handover</span></div></div>';
-    if (!rows.length) return h + '<div class="ccs-empty" style="margin-top:16px"><b>No confirmed cakes in this range.</b><span>Cakes appear here once the counter confirms them.</span></div>';
+    if (!rows.length) return h + '<div class="ccs-empty"><b>No confirmed cakes in this range.</b><span>Cakes appear here once the counter confirms them.</span></div>';
     // Phones: one column at a time. Tablets: four columns that each fit the screen; Handed over shows on request (always on wide screens)
     var curK = secCur('kitP', KCOLS.map(function (c) { return c[0]; }), groups.qc.length ? 'qc' : groups.prog.length ? 'prog' : 'start');
     h += '<div class="kp-bar">' + secBar('kitP', KCOLS.map(function (c) { return [c[0], c[1], groups[c[0]].length]; }), curK, 'Kitchen columns') + '</div>';
@@ -1456,7 +1456,7 @@
   function stepCustomer() {
     var h = '<h2 class="ccs-step-q">Who is the cake for?</h2><div class="ccs-field"><label class="ccs-label" for="n-phone">Customer mobile</label><input class="ccs-input" id="n-phone" type="tel" inputmode="tel" placeholder="Start typing the number" value="' + esc(D.phone) + '" data-n="phone" autocomplete="off"></div>' + ferr('phone');
     if (D.matches && D.matches.length) {
-      h += '<div class="ccs-field"><span class="ccs-label">Existing customers</span>' + D.matches.map(function (m, k) { return '<button type="button" class="ccs-match" data-act="n-pick" data-v="' + k + '"><span><b style="color:var(--ccs-ink)">' + esc(m.full_name) + '</b><br><span class="ccs-hint">' + esc(m.phone) + (m.favourite_cake ? ' · usually ' + esc(m.favourite_cake) : '') + '</span></span><span class="ccs-hint">' + (m.orders_count ? m.orders_count + ' orders' : 'No orders yet') + '</span></button>'; }).join('') + '</div>';
+      h += '<div class="ccs-field"><span class="ccs-label">Existing customers</span>' + D.matches.map(function (m, k) { return '<button type="button" class="ccs-match" data-act="n-pick" data-v="' + k + '"><span><b style="color:var(--ccs-ink)">' + esc(m.full_name) + '</b><br><span class="ccs-hint">' + esc(m.phone) + (m.favourite_cake ? ' · usually ' + esc(m.favourite_cake) : '') + '</span></span><span class="ccs-hint">' + (m.orders_count ? m.orders_count + (m.orders_count === 1 ? ' order' : ' orders') : 'No orders yet') + '</span></button>'; }).join('') + '</div>';
     }
     if (D.isNew || (D.matches && !D.matches.length && digits(D.phone).length >= 7)) {
       D.isNew = true;
@@ -1798,7 +1798,7 @@
   }
   function slMatches(list) {
     if (!list || !list.length) return '';
-    return '<div class="sl-matches"><span class="ccs-hint">Already a customer? Tap to use their details.</span>' + list.map(function (m, k) { return '<button type="button" class="ccs-match" data-act="n-pick" data-v="' + k + '" data-from="' + (list === D.nameMatches ? 'name' : 'phone') + '"><span><b style="color:var(--ccs-ink)">' + esc(m.full_name) + '</b><br><span class="ccs-hint">' + esc(m.phone) + (m.favourite_cake ? ' · usually ' + esc(m.favourite_cake) : '') + '</span></span><span class="ccs-hint">' + (m.orders_count ? m.orders_count + ' orders' : 'No orders yet') + '</span></button>'; }).join('') + '</div>';
+    return '<div class="sl-matches"><span class="ccs-hint">Already a customer? Tap to use their details.</span>' + list.map(function (m, k) { return '<button type="button" class="ccs-match" data-act="n-pick" data-v="' + k + '" data-from="' + (list === D.nameMatches ? 'name' : 'phone') + '"><span><b style="color:var(--ccs-ink)">' + esc(m.full_name) + '</b><br><span class="ccs-hint">' + esc(m.phone) + (m.favourite_cake ? ' · usually ' + esc(m.favourite_cake) : '') + '</span></span><span class="ccs-hint">' + (m.orders_count ? m.orders_count + (m.orders_count === 1 ? ' order' : ' orders') : 'No orders yet') + '</span></button>'; }).join('') + '</div>';
   }
   var nameTimer;
   function nameSearch() {
@@ -1983,7 +1983,7 @@
       for (var k = 0; k < dow(first); k++) cells += '<span class="ccs-yblank"></span>';
       for (var d = 1; d <= len; d++) {
         var iso = first.slice(0, 8) + String(d).padStart(2, '0'), r = c.counts[iso], n = r ? r[c.basis] : 0; tot += r ? r[c.basis] : 0;
-        cells += '<button type="button" class="ccs-yday l' + lvl(n) + (iso === t ? ' is-today' : '') + (iso === c.sel ? ' is-sel' : '') + (r && r.attention ? ' has-need' : '') + (isClosed(iso) ? ' is-closed' : '') + '" data-act="cal-sel" data-v="' + iso + '" aria-label="' + esc(nice(iso) + ': ' + (r ? r.orders + ' orders, ' + r.cakes + ' cakes' + (r.attention ? ', ' + r.attention + ' need action' : '') : 'no orders')) + '"' + (iso === c.sel ? ' aria-pressed="true"' : '') + '>' + d + '</button>';
+        cells += '<button type="button" class="ccs-yday l' + lvl(n) + (iso === t ? ' is-today' : '') + (iso === c.sel ? ' is-sel' : '') + (r && r.attention ? ' has-need' : '') + (isClosed(iso) ? ' is-closed' : '') + '" data-act="cal-sel" data-v="' + iso + '" aria-label="' + esc(nice(iso) + ': ' + (r ? countText(r).replace(' · ', ', ') + (r.attention ? ', ' + r.attention + (r.attention === 1 ? ' needs action' : ' need action') : '') : 'no orders')) + '"' + (iso === c.sel ? ' aria-pressed="true"' : '') + '>' + d + '</button>';
       }
       h += '<section class="ccs-ymonth"><button type="button" class="ccs-ymhead" data-act="cal-month" data-v="' + first + '"><b>' + MONTHS[m - 1] + '</b><span>' + (tot ? tot + ' ' + unit : '') + '</span></button><div class="ccs-ygrid">' + WD.map(function (w) { return '<span class="ccs-ywd" aria-hidden="true">' + w.charAt(0) + '</span>'; }).join('') + cells + '</div></section>';
     }
@@ -1996,9 +1996,9 @@
     for (var d = rg[0]; d <= rg[1]; d = addDays(d, 1)) {
       var list = calDay(d), tot = dayTotals(list), need = list.filter(function (o) { return NEEDS.indexOf(o.order_status) > -1; }).length, shut = isClosed(d);
       h += '<div class="ccs-mcell' + (d.slice(0, 7) !== mo ? ' is-out' : '') + (d === t ? ' is-today' : '') + (d === c.sel ? ' is-sel' : '') + (shut ? ' is-closed' : '') + (tot.orders ? ' has-orders' : '') + '">' +
-        '<button type="button" class="ccs-mday" data-act="cal-sel" data-v="' + d + '" aria-label="' + esc(nice(d, true) + ', ' + (shut ? 'closed' : tot.orders ? countText(tot) : 'no pickups') + (need ? ', ' + need + ' need action' : '')) + '"' + (d === c.sel ? ' aria-pressed="true"' : '') + '>' +
+        '<button type="button" class="ccs-mday" data-act="cal-sel" data-v="' + d + '" aria-label="' + esc(nice(d, true) + ', ' + (shut ? 'closed' : tot.orders ? countText(tot) : 'no pickups') + (need ? ', ' + need + (need === 1 ? ' needs action' : ' need action') : '')) + '"' + (d === c.sel ? ' aria-pressed="true"' : '') + '>' +
         '<b>' + (+d.slice(8)) + '</b>' + (tot.orders ? '<span class="ccs-mcount"><span class="ccs-mlong">' + countText(tot) + '</span><span class="ccs-mshort">' + tot.orders + '</span></span>' : (shut ? '<span class="ccs-mcount">Closed</span>' : '')) +
-        (need ? '<span class="ccs-mneed"><span class="ccs-mlong">' + need + ' need action</span></span>' : '') + '</button>' +
+        (need ? '<span class="ccs-mneed"><span class="ccs-mlong">' + need + (need === 1 ? ' needs action' : ' need action') + '</span></span>' : '') + '</button>' +
         '</div>';
     }
     return h + '</div></div>';
@@ -2237,7 +2237,7 @@
     if (c.mode === 'dups' && can('manager')) return clDupsView();
     if (c.mode === 'log') return s5LogView();
     var h = '<div class="ccs-head"><div><h1 class="ccs-title">Customers</h1><p class="ccs-sub">Spend counts collected orders only.</p></div>' +
-      '<div class="ccs-headacts"><input class="ccs-input ccs-search" id="ccs-cq" aria-label="Search customers" type="search" placeholder="Search name, mobile, email, company, C-number or order number" value="' + esc(c.q) + '">' +
+      '<div class="ccs-headacts"><input class="ccs-input ccs-search" id="ccs-cq" aria-label="Search customers" type="search" placeholder="Name, mobile, email or C-number" value="' + esc(c.q) + '">' +
       (can('manager', 'front_of_house') ? '<button type="button" class="ccs-btn ccs-ghost" data-act="cust-new">Add customer</button>' : '') + '</div></div>';
     if (c.q.trim().length >= 2) h += '<p class="ccs-hint cm-gline">Search results. Clear the search to use filters and groups.</p>';
     else h += remindersBox() + clToolbar();

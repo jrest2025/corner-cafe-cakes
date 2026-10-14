@@ -17,6 +17,8 @@ async def newpage(b, vp, errs, role='manager', extra=''):
 
 async def calls(pg, fn): return await pg.evaluate(f"window.__calls.filter(function(c){{return c[1]==='{fn}'}}).map(function(c){{return c[2]}})")
 
+async def sec(pg, v):
+    await pg.evaluate("(function(v){var e=document.querySelector('#ccs-sheet [data-act=secgo][data-v='+v+']'); e&&e.click()})('%s')" % v); await pg.wait_for_timeout(250)
 async def open_customer(pg, phone=False):
     if phone:
         await pg.click('.ccs-nav [data-tab="more"]'); await pg.wait_for_timeout(250)
@@ -37,6 +39,7 @@ async def main():
         t = await pg.inner_text('#ccs-main')
         check('order list shows the name the order was placed with', 'Sam Collecting' in t, t[:300])
         await pg.locator('[data-act="open-order"][data-id="o1"]').first.click(); await pg.wait_for_timeout(450)
+        await sec(pg, 'customer')
         sh = await pg.inner_text('#ccs-sheet')
         check('order shows its contact and the profile name beside it', 'Sam Collecting' in sh and 'Profile name' in sh and 'Test Customer A' in sh, sh[:600])
         await pg.click('[data-act="panel"][data-v="amend"]'); await pg.wait_for_timeout(250)
@@ -54,9 +57,9 @@ async def main():
         await open_customer(pg)
         sh = await pg.inner_text('#ccs-sheet')
         check('profile shows the customer number', 'C-101' in sh, sh[:200])
-        check('profile opens on Overview with four sections', await pg.locator('#ccs-sheet .ws-tabs [data-act="ws-tab"]').count() == 4 and await pg.locator('#ccs-sheet [data-act="ws-tab"][data-v="overview"][aria-pressed="true"]').count() == 1)
+        check('profile shows one section at a time: details, orders, notes and permission', [x for x in ['overview', 'orders', 'notes', 'comms'] if await pg.locator('#ccs-sheet [data-act=secgo][data-v=' + x + ']').count() == 1] == ['overview', 'orders', 'notes', 'comms'] and await pg.locator('#cp-overview').count() == 1)
         check('marketing is not mixed into the overview', 'Marketing permission' not in sh)
-        await pg.click('#ccs-sheet [data-act="ws-tab"][data-v="comms"]'); await pg.wait_for_timeout(150)
+        await sec(pg, 'comms')
         sh = await pg.inner_text('#ccs-sheet')
         check('marketing shown per channel with reconfirm flag', 'WhatsApp' in sh and 'Yes, needs reconfirming' in sh and 'SMS' in sh and 'Phone call' in sh, sh)
         check('email channel not asked yet', 'Not asked' in sh)
@@ -66,10 +69,10 @@ async def main():
         c = await calls(pg, 'staff_set_channel_consent')
         check('reconfirm sends WhatsApp only', c and c[-1]['p_channels'] == ['whatsapp'] and c[-1]['p_granted'] is True, c)
         sh = await pg.inner_text('#ccs-sheet')
-        check('WhatsApp now plain Yes, SMS still needs reconfirming', sh.count('Yes, needs reconfirming') == 1, sh)
+        check('WhatsApp now plain Yes, SMS still needs reconfirming', (await pg.inner_text('#cp-comms table')).count('Yes, needs reconfirming') == 1, sh)
         check('service messages explained as separate from marketing', 'service messages' in sh)
         # history
-        await pg.click('#ccs-sheet [data-act="ws-tab"][data-v="overview"]'); await pg.wait_for_timeout(150)
+        await sec(pg, 'overview')
         await pg.click('#ccs-sheet [data-act="cust-history"]'); await pg.wait_for_timeout(400)
         sh = await pg.inner_text('#ccs-sheet')
         check('manager sees field history in plain words', 'Service notes from blank to Prefers less sweet icing' in sh, sh[-400:])
@@ -94,10 +97,10 @@ async def main():
         check('result explains orders updated and permission not moved', '2 open orders updated' in toast and 'Marketing permission stays' in toast, toast)
         sh = await pg.inner_text('#ccs-sheet')
         check('profile shows the new birthday without a year', '29 February' in sh, sh[:600])
-        await pg.click('#ccs-sheet [data-act="ws-tab"][data-v="comms"]'); await pg.wait_for_timeout(150)
+        await sec(pg, 'comms')
         sh = await pg.inner_text('#ccs-sheet')
         check('old WhatsApp yes no longer applies to the new number', 'An earlier yes was for a different one' in sh, sh)
-        await pg.click('#ccs-sheet [data-act="ws-tab"][data-v="overview"]'); await pg.wait_for_timeout(150)
+        await sec(pg, 'overview')
         await ctx.close()
 
         # ---- someone else saved first ----
@@ -117,19 +120,23 @@ async def main():
         await ctx.close()
 
         # ---- roles ----
-        for role, edit, hist, mkt in [('front_of_house', True, False, True), ('finance', False, False, False), ('marketing', False, False, True)]:
+        # Three access levels (14 Oct): the Counter (front_of_house) has no Customers screen at all
+        ctx, pg = await newpage(b, DESK, errs, 'front_of_house')
+        check('counter: no Customers screen', await pg.locator('.ccs-nav [data-tab="customers"]').count() == 0)
+        await ctx.close()
+        for role, edit, hist, mkt in [('finance', False, False, False), ('marketing', False, False, True)]:
             ctx, pg = await newpage(b, DESK, errs, role)
             await open_customer(pg)
             check(f'{role}: edit {"shown" if edit else "hidden"}', (await pg.locator('#ccs-sheet [data-act="cust-edit"]').count() > 0) == edit)
             check(f'{role}: history {"shown" if hist else "hidden"}', (await pg.locator('#ccs-sheet [data-act="cust-history"]').count() > 0) == hist)
-            check(f'{role}: marketing {"shown" if mkt else "hidden"}', (await pg.locator('#ccs-sheet [data-act="ws-tab"][data-v="comms"]').count() > 0) == mkt)
+            check(f'{role}: marketing {"shown" if mkt else "hidden"}', (await pg.locator('#ccs-sheet [data-act=secgo][data-v=comms]').count() > 0) == mkt)
             await ctx.close()
 
         # ---- duplicate flag and search wording ----
         ctx, pg = await newpage(b, DESK, errs)
         await pg.click('.ccs-nav [data-tab="customers"]'); await pg.wait_for_timeout(400)
         ph = await pg.get_attribute('#ccs-cq', 'placeholder')
-        check('search says what it finds', 'email' in ph and 'order number' in ph and 'C-number' in ph, ph)
+        check('search says what it finds (short enough to show in full)', 'email' in ph and 'C-number' in ph and len(ph) <= 34, ph)
         t = await pg.inner_text('#ccs-main')
         check('list marks yes answers that need reconfirming', 'To confirm' in t, t[:400])
         await pg.locator('[data-act="open-customer"][data-id="c2"]').first.click(); await pg.wait_for_timeout(450)
@@ -162,7 +169,7 @@ async def main():
         check('second save confirms a new person, with WhatsApp yes', len(c) == 2 and c[-1]['p_confirm_new'] is True and c[-1]['p']['consent_channels'] == ['whatsapp'] and c[0]['p_confirm_new'] is False, c)
         sh = await pg.inner_text('#ccs-sheet')
         check('new profile opens with its number and source', 'C-389' in sh and 'Added by staff' in sh and 'C-389 added' in await pg.inner_text('#ccs-toast'), sh[:400])
-        check('button reads Edit Customer', 'Edit Customer' in sh)
+        check('button reads Edit details', 'Edit details' in sh)
         await pg.click('#ccs-sheet [data-act="cust-edit"]'); await pg.wait_for_timeout(200)
         await pg.fill('#ce-prefs', 'Likes chocolate'); await pg.click('[data-act="cust-cancel"]'); await pg.wait_for_timeout(200)
         check('Cancel with typing asks first', await pg.locator('#ce-prefs').count() == 1 and 'Tap again to discard' in await pg.inner_text('#ccs-sheet'))

@@ -1489,3 +1489,15 @@ body.ccs-is-off #cc-staff .ccs-side { top: var(--ccs-offh, 44px); }
 @media (max-width: 759px) { #cc-staff .dx-ftoggle.ccs-btn { min-height: 44px; } #cc-staff .ccs-head + .dx-ftoggle, #cc-staff .ccs-head { margin-bottom: 6px; }  #cc-staff .dx-secs.dx-secs { margin-bottom: 4px; } #cc-staff .dx-period { margin: 0 0 4px; } }
 /* Batch 2: heights come from the three sizes, not from padding (two-line labels may still grow) */
 #cc-staff .ccs-btn, #cc-staff .ccs-input, #cc-staff .ccs-search { padding-top: 8px; padding-bottom: 8px; }
+/* ===== UI refinement Batch 3 (14 Oct) ===== */
+/* Messages that pop up at the bottom never block a tap: they hold text only, so taps pass through to the button underneath
+   (found by the customer test: the second "Tap again to discard" tap landed on the message, not on Cancel) */
+#cc-staff .ccs-toast, .ccs-toast { pointer-events: none; }
+/* Batch 3: one look for loading, empty and error states on every screen */
+#cc-staff .ccs-loading { display: flex; align-items: center; gap: 10px; color: #526176; font-size: 16px; padding: 24px 0; margin: 0; }
+#cc-staff .ccs-loading::before { content: ""; width: 16px; height: 16px; flex: none; border-radius: 50%; border: 2px solid #DCE3EB; border-top-color: #5f7a4a; animation: ccs-spin .8s linear infinite; }
+@keyframes ccs-spin { to { transform: rotate(360deg); } }
+#cc-staff .ccs-empty { margin: 16px 0; padding: 32px 20px; border-radius: 12px; gap: 8px; }
+#cc-staff .ccs-empty b { font-size: 18px; color: #243247; }
+#cc-staff .ccs-empty span { color: #526176; }
+#cc-staff .ccs-err { color: #B42318; font-weight: 600; }

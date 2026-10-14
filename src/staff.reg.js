@@ -131,7 +131,7 @@
       dxKpi('Left out', int(sy.excluded), 'Tests, copies and records left out', null) + '</div>';
     var cut = [['review', h.length]];
     h += '<h2 class="rg-h">Waiting for review</h2>';
-    h += d.records.length ? '<p class="ccs-hint">Check each one against the sheet or the order. Your decision is kept with your name and survives every later sheet update. Nothing in the sheets or orders is changed.</p>' + pageOne('rg', d.records, rgCard, function (x) { return x.rec_key; }, g.noteFor && g.noteFor[0]) : '<p class="ccs-quiet">Nothing waiting. Every record is counted or left out with a reason.</p>';
+    h += d.records.length ? '<p class="ccs-hint">Check each one against the sheet or order. Nothing in the sheets is changed.</p>' + pageOne('rg', d.records, rgCard, function (x) { return x.rec_key; }, g.noteFor && g.noteFor[0]) : '<p class="ccs-quiet">Nothing waiting. Every record is counted or left out with a reason.</p>';
     cut.push(['cm', h.length]);
     h += cmView();
     cut.push(['recent', h.length]);
