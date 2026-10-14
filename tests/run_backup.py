@@ -34,7 +34,7 @@ async def main():
         await open_backup(pg); t = await sec(pg)
         check('one section: Backup and business continuity', 'Backup and business continuity' in await pg.inner_text('.ccs-setnav') and 'Backup to Google Sheet' not in await pg.inner_text('#ccs-main') and 'Backup check' not in await pg.inner_text('.ccs-setnav'))
         check('not set up: says so plainly and flags it', 'Not set up' in t and 'not set up yet' in t, t[:400])
-        check('outage steps are shown', 'If the staff app is down' in t and 'M-001' in t and 'searching by phone first' in t)
+        check('one plain line on what to do if the app is down', 'If the staff app is down, open the backup Sheet' in t and 'M-001' not in t)
         check('database copies and restore tests still shown', 'Full copies inside the database' in t and 'Restore tests' in t)
         check('access code hidden until asked', 'Show access code' in t and 'ab12ab12' not in t)
         await pg.click('[data-act="mir-show"]'); await pg.wait_for_timeout(400); t = await sec(pg)

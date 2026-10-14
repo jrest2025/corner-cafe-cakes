@@ -1,4 +1,5 @@
 -- Google Sheet order mirror (business continuity).
+-- Trimmed (owner's decision, 14 Oct): one All orders tab plus a status tab; a simple record of every order.
 -- The database stays the only master. A script inside the Google Sheet (in the owner's Drive) pulls a full,
 -- read-only copy every minute through the sheet-mirror function and reports back. Additive only.
 
@@ -32,57 +33,27 @@ create or replace function public._stage_label(s text) returns text language sql
 -- Full snapshot: each tab is a header row plus rows, already sorted. Only service code can call it.
 create or replace function public.mirror_snapshot() returns jsonb
 language sql stable security definer set search_path to 'public' as $$
-with t as (select (now() at time zone 'Pacific/Fiji')::date as today),
-base as (
+with base as (
   select o.*, coalesce(nullif(trim(o.contact_name), ''), c.full_name, '') guest, coalesce(nullif(trim(o.contact_phone), ''), c.phone, '') phone,
-    coalesce(nullif(trim(o.contact_email), ''), c.email, '') email, c.preferred_contact,
-    i.product_name, i.variant, i.size_inch, i.quantity, i.finish, i.design_description, i.cake_message, i.candles, i.kitchen_notes,
+    i.product_name, i.variant, i.size_inch, i.quantity, i.cake_message,
     case when o.has_dietary then coalesce(nullif(concat_ws(', ', nullif(array_to_string(i.dietary, ', '), ''), nullif(i.dietary_note, '')), ''), 'Yes, see order') else 'None given' end diet,
-    coalesce(o.final_total, o.estimate_total) total, coalesce((select sum(amount) from public.payments p where p.order_id = o.id), 0) paid,
-    (select max(version) from public.kitchen_briefs k where k.order_id = o.id) slip_v,
-    (select k.printed_confirmed_at is not null from public.kitchen_briefs k where k.order_id = o.id order by version desc limit 1) slip_printed
+    coalesce(o.final_total, o.estimate_total) total, coalesce((select sum(amount) from public.payments p where p.order_id = o.id), 0) paid
   from public.orders o left join public.customers c on c.id = o.customer_id
   left join lateral (select * from public.order_items x where x.order_id = o.id order by x.created_at limit 1) i on true
   where o.deleted_at is null and o.reference not like 'H-%' and not coalesce(o.is_test, false)
-),
-live as (select * from base where order_status not in ('declined', 'cancelled')),
-cake as (select b.id, concat_ws(', ', coalesce(b.variant, b.product_name), b.size_inch || ' inch' || case when b.quantity > 1 then ' x ' || b.quantity else '' end) txt from base b)
+)
 select jsonb_build_object(
   'generated_at', now(),
   'generated_label', to_char(now() at time zone 'Pacific/Fiji', 'Dy DD Mon YYYY') || ', ' || public._t12((now() at time zone 'Pacific/Fiji')::time),
   'tabs', jsonb_build_object(
-    'Today', (select jsonb_build_array(jsonb_build_array('Time', 'Order', 'Status', 'Collect or deliver', 'Guest', 'Phone', 'Cake', 'Inscription', 'Allergy or dietary', 'Kitchen stage', 'Slip', 'To pay', 'Notes'))
-      || coalesce(jsonb_agg(jsonb_build_array(public._t12(b.required_time), b.reference, public._status_label(b.order_status::text), initcap(b.fulfilment_method), b.guest, b.phone, k.txt,
-        coalesce(b.cake_message, ''), b.diet, public._stage_label(b.production_status::text), coalesce('v' || b.slip_v, 'Not printed'), greatest(b.total - b.paid, 0), coalesce(b.customer_notes, ''))
-        order by b.required_time), '[]') from live b join cake k on k.id = b.id, t where b.required_date = t.today),
-    'Upcoming', (select jsonb_build_array(jsonb_build_array('Date', 'Day', 'Time', 'Order', 'Status', 'Collect or deliver', 'Guest', 'Phone', 'Cake', 'Inscription', 'Allergy or dietary', 'Kitchen stage', 'Slip', 'To pay'))
-      || coalesce(jsonb_agg(jsonb_build_array(to_char(b.required_date, 'YYYY-MM-DD'), to_char(b.required_date, 'Dy DD Mon'), public._t12(b.required_time), b.reference, public._status_label(b.order_status::text),
-        initcap(b.fulfilment_method), b.guest, b.phone, k.txt, coalesce(b.cake_message, ''), b.diet, public._stage_label(b.production_status::text), coalesce('v' || b.slip_v, 'Not printed'), greatest(b.total - b.paid, 0))
-        order by b.required_date, b.required_time), '[]') from live b join cake k on k.id = b.id, t where b.required_date > t.today and b.required_date <= t.today + 14 and b.order_status <> 'completed'),
-    'Kitchen', (select jsonb_build_array(jsonb_build_array('Date', 'Day', 'Due', 'Ready by', 'Order', 'Cake', 'Flavour', 'Size', 'Quantity', 'Finish', 'Design', 'Inscription', 'Candles', 'Allergy or dietary', 'Kitchen notes', 'Stage', 'Slip', 'Slip printed'))
-      || coalesce(jsonb_agg(jsonb_build_array(to_char(b.required_date, 'YYYY-MM-DD'), to_char(b.required_date, 'Dy DD Mon'), public._t12(b.required_time),
-        public._t12(b.required_time - case when b.fulfilment_method = 'delivery' then interval '60 minutes' else interval '30 minutes' end), b.reference, b.product_name, coalesce(b.variant, ''),
-        b.size_inch || ' inch', b.quantity, initcap(b.finish), coalesce(b.design_description, ''), coalesce(b.cake_message, ''), coalesce(b.candles, ''), b.diet, coalesce(b.kitchen_notes, ''),
-        public._stage_label(b.production_status::text), coalesce('v' || b.slip_v, 'Not printed'), case when b.slip_printed then 'Yes' else 'No' end)
-        order by b.required_date, b.required_time), '[]') from live b, t where b.order_status = 'confirmed' and b.required_date between t.today - 1 and t.today + 7),
-    'All orders', (select jsonb_build_array(jsonb_build_array('Order', 'Created', 'Source', 'Status', 'Payment', 'Collect or deliver', 'Date', 'Time', 'Guest', 'Cake', 'Allergy or dietary', 'Total', 'Paid', 'Version', 'Last updated'))
+    'All orders', (select jsonb_build_array(jsonb_build_array('Order', 'Created', 'Source', 'Status', 'Payment', 'Collect or deliver', 'Date', 'Time', 'Guest', 'Phone', 'Cake', 'Inscription', 'Allergy or dietary', 'Total', 'Paid', 'Last updated'))
       || coalesce(jsonb_agg(jsonb_build_array(b.reference, to_char(b.created_at at time zone 'Pacific/Fiji', 'YYYY-MM-DD'), case b.source::text when 'online' then 'Website' when 'walk_in' then 'Walk-in' else initcap(replace(b.source::text, '_', ' ')) end,
         public._status_label(b.order_status::text), initcap(replace(b.payment_status::text, '_', ' ')), initcap(b.fulfilment_method), to_char(b.required_date, 'YYYY-MM-DD'), public._t12(b.required_time),
-        b.guest, k.txt, b.diet, coalesce(b.total, 0), b.paid, b.version, to_char(b.updated_at at time zone 'Pacific/Fiji', 'YYYY-MM-DD') || ' ' || public._t12((b.updated_at at time zone 'Pacific/Fiji')::time))
-        order by b.required_date desc, b.required_time desc), '[]') from base b join cake k on k.id = b.id),
-    'Contacts', (select jsonb_build_array(jsonb_build_array('Order', 'Date', 'Guest', 'Phone', 'Email', 'Prefers'))
-      || coalesce(jsonb_agg(jsonb_build_array(b.reference, to_char(b.required_date, 'YYYY-MM-DD'), b.guest, b.phone, b.email, case b.preferred_contact when 'whatsapp' then 'WhatsApp' else initcap(coalesce(b.preferred_contact, '')) end)
-        order by b.required_date, b.required_time), '[]') from live b, t where b.required_date >= t.today - 7 and b.order_status <> 'completed'),
-    'Amendments', (select jsonb_build_array(jsonb_build_array('Order', 'Revision', 'When', 'By', 'Asked for by', 'Reason', 'What changed', 'Kitchen told'))
-      || coalesce(jsonb_agg(jsonb_build_array(a.reference, a.revision, to_char(a.amended_at at time zone 'Pacific/Fiji', 'YYYY-MM-DD') || ' ' || public._t12((a.amended_at at time zone 'Pacific/Fiji')::time),
-        coalesce(a.staff_label, ''), initcap(coalesce(a.requested_by, '')), coalesce(a.reason, ''),
-        coalesce((select string_agg(coalesce(ch->>'label', ch->>'field', '') || ': ' || coalesce(ch->>'from', '') || ' to ' || coalesce(ch->>'to', ''), '; ') from jsonb_array_elements(case when jsonb_typeof(a.changes) = 'array' then a.changes else '[]' end) ch), ''),
-        case when not coalesce(a.affects_kitchen, false) then 'Not needed' when a.kitchen_ack_at is not null then 'Yes, ' || coalesce(a.kitchen_ack_by, '') else 'Not yet' end)
-        order by a.amended_at desc), '[]') from public.order_amendments a join public.orders o on o.id = a.order_id
-        where o.deleted_at is null and not coalesce(o.is_test, false) and a.amended_at > now() - interval '90 days')
+        b.guest, b.phone, concat_ws(', ', coalesce(b.variant, b.product_name), b.size_inch || ' inch' || case when b.quantity > 1 then ' x ' || b.quantity else '' end),
+        coalesce(b.cake_message, ''), b.diet, coalesce(b.total, 0), b.paid, to_char(b.updated_at at time zone 'Pacific/Fiji', 'YYYY-MM-DD') || ' ' || public._t12((b.updated_at at time zone 'Pacific/Fiji')::time))
+        order by b.required_date desc, b.required_time desc), '[]') from base b)
   ),
-  'counts', jsonb_build_object('orders', (select count(*) from base), 'today', (select count(*) from live, t where required_date = t.today),
-    'emails_failed', (select count(*) from public.email_outbox where status = 'failed' and attempts >= 5 and created_at > now() - interval '7 days'))
+  'counts', jsonb_build_object('orders', (select count(*) from base))
 ) $$;
 revoke all on function public.mirror_snapshot() from public, anon, authenticated;
 

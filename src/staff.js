@@ -2757,7 +2757,7 @@
     var M = st.mir; if (!M) return '<p class="ccs-loading">Checking the backup Sheet…</p>';
     var h = '<h4 class="s5-h">Backup Google Sheet</h4><p class="ccs-mirstate is-' + esc(M.state) + '"><b>' + esc(mirLabel(M)) + '</b>' +
       (M.last_ack_at ? ' · last copy ' + esc(when(M.last_ack_at)) + ' (' + esc(mirAgo(M.minutes)) + ')' : '') + '</p>';
-    if (M.state === 'not_set_up') h += '<p class="ccs-hint">The Sheet lives in the owner\'s Google Drive. A script inside it copies every order here each minute. It cannot change orders.</p>';
+    if (M.state === 'not_set_up') h += '<p class="ccs-hint">The Sheet lives in the owner\'s Google Drive. A script inside it copies every order there each minute. It cannot change orders.</p>';
     h += '<dl class="ccs-kv">' + (M.sheet_url ? '<dt>Sheet</dt><dd><a class="ccs-link" href="' + esc(M.sheet_url) + '" target="_blank" rel="noopener">' + esc(M.sheet_title || 'Open the backup Sheet') + '</a></dd>' : '') +
       (M.rows ? '<dt>Copied</dt><dd>' + esc(Object.keys(M.rows).map(function (k) { return k + ' ' + M.rows[k]; }).join(', ')) + '</dd>' : '') +
       (M.last_error && (!M.last_ack_at || M.last_error_at > M.last_ack_at) ? '<dt>Problem</dt><dd>' + esc(M.last_error) + '</dd>' : '') +
@@ -2768,12 +2768,7 @@
           '<button type="button" class="ccs-btn ccs-ghost" data-act="mir-show">Show access code</button>') +
         '<p class="ccs-hint">If the code may have been seen by the wrong person, <button type="button" class="ccs-link ccs-red" data-act="mir-new">make a new code</button>. The Sheet stops copying until the new code is pasted in it.</p></div>';
     }
-    h += '<h4 class="s5-h">If the staff app is down</h4><ol class="s5-list">' +
-      '<li>Open the backup Sheet. Check Sync health for the time of the last copy.</li>' +
-      '<li>Collections: use the Today tab. Check the order number and name before handing over. Write each hand-over on paper with the time.</li>' +
-      '<li>Kitchen: use the Kitchen tab and read allergies aloud. Printed slips stay valid unless the Amendments tab shows a change.</li>' +
-      '<li>New or changed orders: write them in the Downtime orders tab with temporary numbers M-001, M-002. If the Sheet cannot open, use the paper form.</li>' +
-      '<li>When the app is back, a manager enters each downtime order, searching by phone first so nothing is entered twice, and writes the new order number next to it.</li></ol>';
+    h += '<p class="ccs-hint">If the staff app is down, open the backup Sheet to see every order that has come through. It is read only; manage anything new by hand until the app is back.</p>';
     return h;
   }
 
