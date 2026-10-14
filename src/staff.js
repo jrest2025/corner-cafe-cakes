@@ -380,7 +380,7 @@
   function nextHtml(o) { var n = nextStep(o); return n ? '<span class="ccs-next' + (n[1] === 'wait' ? ' is-wait' : '') + '"><em>Next:</em> ' + esc(n[0]) + '</span>' : ''; }
   function orderCard(o) {
     var i = firstItem(o), c = o.customers, st = STATUS[o.order_status] || ['', 'off'];
-    var late = isOverdue(o), tags = (late ? '<span class="ccs-pill s-alert">Overdue</span>' : '') + pill(o.order_status, o.fulfilment_method);
+    var late = isOverdue(o), tags = (validRef(o.reference) ? '' : '<span class="ccs-pill s-alert">No order number</span>') + (late ? '<span class="ccs-pill s-alert">Overdue</span>' : '') + pill(o.order_status, o.fulfilment_method);
     if (o.has_dietary) tags += '<span class="ccs-pill s-alert">Dietary or allergy</span>';
     if (o.order_type === 'custom') tags += '<span class="ccs-tag t-info">Custom</span>';
     if (o.rush_override) tags += '<span class="ccs-pill s-flag">Short notice</span>';
@@ -615,7 +615,7 @@
       (!closedSt && can('manager', 'front_of_house') ? '<button type="button" class="ccs-link" data-act="panel" data-v="fulfil">Change collection or delivery</button>' : '') + '</section>';
     cut.push(['kitchen', h.length]);
     if (o.order_status === 'confirmed' || o.order_status === 'completed') {
-      h += '<section class="ccs-box"><h3>Kitchen</h3><div class="ccs-tags">' + stagePill(o.production_status) + (o.brief_version ? '<span class="ccs-pill">Brief version ' + o.brief_version + '</span>' : '<span class="ccs-pill s-action">Brief not printed</span>') + '</div><dl class="ccs-kv">' +
+      h += '<section class="ccs-box"><h3>Kitchen</h3><div class="ccs-tags">' + stagePill(o.production_status) + (o.brief_version ? '<span class="ccs-pill">Kitchen slip v' + o.brief_version + '</span>' : '<span class="ccs-pill s-action">Brief not printed</span>') + '</div><dl class="ccs-kv">' +
         kv('Made by', o.kitchen_assignee) + kv('Checked by', o.qc_by ? o.qc_by + (o.qc_at ? ', ' + stamp(o.qc_at) : '') : '') + '</dl>' +
         (o.order_status === 'confirmed' && can('manager', 'front_of_house') ? '<button type="button" class="ccs-link" data-act="open-kitchen" data-id="' + o.id + '">Update kitchen progress</button>' : '') + '</section>';
     }
@@ -663,7 +663,7 @@
       awaiting_deposit: 'Accepted, waiting for ' + money(d.deposit_required) + ' deposit', declined: 'Declined', cancelled: 'Cancelled', collected: 'Collected',
       payment_recorded: money(d.amount) + ' ' + d.kind + ' recorded (' + String(d.method).replace('_', ' ') + ')', note: 'Note added',
       stage: 'Kitchen: ' + (STAGE_LABEL[d.to] || d.to) + (d.qc_by ? ', checked by ' + d.qc_by : ''),
-      brief_printed: 'Kitchen brief version ' + d.version + (d.new_version ? ' printed' : ' reprinted') + (d.changes && d.changes.length ? ' (changed: ' + d.changes.join(', ') + ')' : ''),
+      brief_printed: 'Kitchen slip v' + d.version + (d.new_version ? ' printed' : ' reprinted') + (d.changes && d.changes.length ? ' (changed: ' + d.changes.join(', ') + ')' : ''),
       fulfilment: d.method === 'delivery' ? 'Set to delivery, ' + (d.zone || '') + ', fee ' + money(d.fee) : 'Set to collection',
       assigned: d.to ? 'Assigned to ' + d.to : 'Assignment cleared', amended: 'Amended, revision ' + d.revision + (d.reason ? ' (' + d.reason + ')' : ''), kitchen_ack: 'Kitchen acknowledged the changes', candles_changed: 'Candles ' + (d.to ? (d.from ? 'changed to “' + d.to + '”' : 'added: “' + d.to + '”') : 'removed'), deleted: 'Deleted', restored: 'Restored after being deleted', imported: 'Brought in from the Google Sheet', sheet_linked: 'Linked to its Google Sheet row' };
     if (e.kind === 'collected') map.collected = (d.method === 'delivery' ? 'Delivered' : 'Collected') + (d.to ? ', received by ' + d.to : '');
@@ -844,13 +844,19 @@
   }
 
   // ---------- kitchen brief (print) ----------
+  // Every slip, file and record carries the order's own number; without one, nothing prints
+  function validRef(r) { return typeof r === 'string' && /^[A-Z]{1,4}-[0-9]{3,}$/.test(r.trim()); }
+  var NO_REF = 'This order has no order number, so its slip cannot print. Ask a manager to fix the order.';
   function printBrief(size) {
-    var o = S.sheet.data; if (S.busy) return; S.busy = true; S.panelErr = null;
+    var o = S.sheet.data; if (S.busy) return;
+    if (!validRef(o.reference)) { S.panelErr = NO_REF; return renderSheet(); }
+    S.busy = true; S.panelErr = null;
     sb.rpc('staff_print_brief', { p_order: o.id }).then(function (r) {
       S.busy = false; if (r.error) throw r.error;
       if (!r.data.ok) { S.panelErr = r.data.message; return renderSheet(); }
+      if (!r.data.snapshot || !validRef(r.data.snapshot.reference) || r.data.snapshot.reference !== o.reference) { S.panelErr = NO_REF; return renderSheet(); }
       var b = r.data, paths = b.snapshot.photos || [];
-      var go = function (urls) { renderBrief(b, urls, size); toast(b.new_version ? 'Print window opened. Brief version ' + b.version + ' recorded.' : 'Print window opened for version ' + b.version + ' again. Nothing changed since it was printed.'); S.panel = null; openOrder(o.id); };
+      var go = function (urls) { renderBrief(b, urls, size); toast(b.new_version ? 'Print window opened. ' + b.snapshot.reference + ' slip v' + b.version + ' recorded.' : 'Print window opened for ' + b.snapshot.reference + ' v' + b.version + ' again. Nothing changed since it was printed.'); S.panel = null; openOrder(o.id); };
       if (!paths.length) return go([]);
       sb.storage.from('cake-references').createSignedUrls(paths, 900).then(function (u) { go(((u && u.data) || []).map(function (x) { return x.signedUrl; }).filter(Boolean)); }, function () { go([]); });
     }).catch(function (e) { S.busy = false; fail(e); });
@@ -883,9 +889,10 @@
     var odate = at ? at.toLocaleDateString('en-GB', { timeZone: TZ, day: 'numeric', month: 'short', year: 'numeric' }) : '';
     var otime = at ? at.toLocaleTimeString('en-GB', { timeZone: TZ, hour: 'numeric', minute: '2-digit', hour12: true }).replace(' ', '') : '';
     return '<div class="ccs-slip ccs-slip-' + size + '">' +
+      '<div class="sl-ordno"><span>Order</span><b>' + esc(s.reference) + '</b><i>v' + b.version + '</i></div>' +
       '<div class="sl-head"><div class="sl-logo">' + SLIP_LOGO + '</div><div class="sl-hours">MONDAY - SUNDAY<br>8AM - 9PM</div></div>' +
-      '<div class="sl-meta"><b>' + esc(s.reference) + '</b><span>Kitchen brief version ' + b.version + ' · Printed ' + esc(stamp(new Date().toISOString())) + '</span>' + (s.rush ? '<em>Short notice</em>' : '') + '</div>' +
-      (b.version > 1 && changed.length ? '<div class="sl-changed">Changed since version ' + (b.version - 1) + ': ' + esc(changed.join(', ')) + '. Throw away the old slip.</div>' : '') +
+      '<div class="sl-meta"><span>Kitchen slip v' + b.version + ' · Printed ' + esc(stamp(new Date().toISOString())) + '</span>' + (s.rush ? '<em>Short notice</em>' : '') + '</div>' +
+      (b.version > 1 && changed.length ? '<div class="sl-changed">Changed since v' + (b.version - 1) + ': ' + esc(changed.join(', ')) + '. Throw away the old slip.</div>' : '') +
       keys +
       '<div class="sl-lines">' +
         line('Guest Name', x.name || s.customer) + line('Contact', x.phone) +
@@ -903,7 +910,7 @@
     var s = b.snapshot || {}, x = b.slip || {}, deliv = s.method === 'delivery', d = s.date ? new Date(s.date + 'T12:00:00Z') : null;
     var tm = s.time ? (function (t) { var hh = Number(t.slice(0, 2)), mm = t.slice(3, 5); return ((hh % 12) || 12) + '.' + mm + (hh < 12 ? 'am' : 'pm'); })(String(s.time)) : '';
     var parts = [s.reference, deliv ? 'Delivery' : 'Pickup', d ? d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }).replace(',', '') : '', tm,
-      s.variant || s.cake || '', s.size ? s.size + ' inch' : '', x.name || s.customer || '', 'Version ' + (b.version || 1)];
+      s.variant || s.cake || '', s.size ? s.size + ' inch' : '', x.name || s.customer || '', 'v' + (b.version || 1)];
     return parts.filter(Boolean).join(' ').replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim();
   }
   var titleBeforePrint = null;
@@ -1175,7 +1182,7 @@
     if (r.late) h += '<div class="ccs-alert">Running late: due ' + esc(whenLabel(r.date)) + ' at ' + esc(t12(r.time)) + '.</div>';
     if (r.has_dietary) h += '<div class="ccs-alert">Dietary or allergy: ' + esc([].concat(r.dietary || [], r.dietary_note ? [r.dietary_note] : []).join(', ') || 'see notes') + '</div>';
     if (r.amend_pending && r.amend_pending.length) h += kitAckBox(r, err);
-    if (r.brief_changed) h += '<p class="ccs-note">Details changed after brief version ' + r.brief_version + ' was printed. Ask front of house to print the new version.</p>';
+    if (r.brief_changed) h += '<p class="ccs-note">Details changed after slip v' + r.brief_version + ' was printed. Ask front of house to print v' + (r.brief_version + 1) + '.</p>';
     // progress
     h += '<section class="ccs-box"><h3>Progress</h3><ol class="ccs-kstages">' + STAGES.map(function (s, i) { return '<li class="' + (i < idx ? 'is-done' : i === idx ? 'is-now' : '') + '">' + esc(s[1]) + '</li>'; }).join('') + '</ol>';
     if (done) h += '<p class="ccs-hint">Handed over' + (r.handed_over_at ? ' ' + esc(stamp(r.handed_over_at)) : '') + '. Checked by ' + esc(r.qc_by || '—') + '.</p>';
