@@ -3,6 +3,8 @@
   'use strict';
   var SB_URL = 'https://ilbrfwxblhidtlsjgxlh.supabase.co', SB_KEY = 'sb_publishable_4c9NdubC5PYevEOSMYH0ag_mv1LJ76E', TZ = 'Pacific/Fiji';
   var root = document.getElementById('cc-cake-order'); if (!root) return;
+  // Three allergy answers (No, Yes, Not sure) sit side by side; this rule is also in guest.css for the next page-head update
+  if (!document.getElementById('cco-x1')) { var x1 = document.createElement('style'); x1.id = 'cco-x1'; x1.textContent = '.cco-yesno{grid-template-columns:repeat(3,1fr)}'; document.head.appendChild(x1); }
   var sb = window.__ccoMock || window.supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: false } });
   var OCCASIONS = ['Birthday', 'Anniversary', 'Wedding', 'Baby shower', 'Graduation', 'Office', 'Other'];
   var DIETS = ['Vegetarian (eggless)', 'Gluten-free', 'Nut allergy', 'Other'];
