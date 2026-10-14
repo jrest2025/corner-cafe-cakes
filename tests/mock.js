@@ -154,7 +154,10 @@
   window.__ccsMock = {
     auth: { getSession: function () { return Promise.resolve({ data: { session: { user: { id: 'u1', user_metadata: { must_change_password: !!window.__mustChange } } } } }); }, updateUser: function (a) { calls.push(['auth', 'updateUser', a]); if (window.__pwSame) return Promise.resolve({ error: { message: 'New password should be different from the old password.' } }); window.__mustChange = false; return Promise.resolve({ data: { user: { id: 'u1' } } }); }, signOut: function () { return Promise.resolve({}); }, signInWithPassword: function () { return Promise.resolve({}); } },
     from: builder,
-    storage: { from: function () { return { createSignedUrls: function () { return Promise.resolve({ data: [] }); } }; } },
+    storage: { from: function () { return {
+      createSignedUrls: function (paths) { return Promise.resolve({ data: (paths || []).map(function (x) { return { signedUrl: 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22/%3E' }; }) }); },
+      upload: function (path, file) { window.__uploads = window.__uploads || []; window.__uploads.push(path);
+        return new Promise(function (res) { setTimeout(function () { res(/fail/.test(file && file.name) ? { error: { message: 'Upload failed' } } : { data: { path: path } }); }, 120); }); } }; } },
     functions: { invoke: function (name, opt) { calls.push(['fn', name, opt.body]); var b = opt.body;
       if (b.op === 'create' && b.email === 'taken@example.com') return Promise.resolve({ data: { ok: false, field: 'email', message: 'A login with this email already exists. Find it in the team list and give it a role there.' } });
       if (b.op === 'create') { window.__teamRows.push({ user_id: 'u' + (window.__teamRows.length + 1), email: b.email, full_name: b.name, role: b.role, active: true }); return Promise.resolve({ data: { ok: true, user_id: 'uX', email: b.email } }); }
@@ -361,6 +364,9 @@
         orders[0].order_amendments = [{ revision: 1, amended_at: new Date().toISOString(), staff_label: 'Test Manager', requested_by: args.p_requested_by, reason: args.p_reason, time_change_cause: ch.time ? 'guest_request' : null, changes: list, excess_paid: 0, kitchen_ack_required: false, notification_status: 'Not sent: guest emails are off. Tell the customer by WhatsApp or phone.' }];
         return Promise.resolve({ data: { ok: true, revision: 1, reference: 'CC-1001', kitchen_ack_required: false, needs_reprint: false, balance_after: after, excess_paid: 0 } });
       }
+      if (fn === 'staff_add_photos') { var po = orders.filter(function (x) { return x.id === args.p_order; })[0]; if (!po) return Promise.resolve({ data: { ok: false, message: 'That order was not found.' } });
+        po.order_attachments = (po.order_attachments || []).concat(args.p_paths.map(function (x) { return { storage_path: x, file_name: x.replace(/^.*\//, '') }; }));
+        return Promise.resolve({ data: { ok: true, added: args.p_paths.length, reference: po.reference } }); }
       // Backup Google Sheet (invented data): health, access code for administrators
       if (/^mirror_/.test(fn)) {
         var RM = window.__role || 'manager', aM = RM === 'admin', mM = aM || RM === 'manager';
@@ -370,6 +376,19 @@
         if (!aM) return Promise.resolve({ data: { ok: false, message: 'Only an administrator can see the setup code.' } });
         if (fn === 'mirror_new_code') window.__mirCode = 'cd34'.repeat(12);
         return Promise.resolve({ data: { ok: true, code: window.__mirCode, url: 'https://example.invalid/sheet-mirror' } });
+      }
+      // Order alerts (invented data)
+      if (fn === 'admin_alert_settings' || fn === 'admin_alert_settings_save') {
+        var RA = window.__role || 'manager', AL = window.__al = window.__al || { new_order: ['cafe@example.com'], kitchen: 'kitchen@example.com', kitchen_copy: '', test_mode: true, test_email: 'owner@example.com' };
+        if (RA !== 'admin') return Promise.resolve({ data: { ok: false, message: 'Only an administrator can see order alerts.' } });
+        if (fn === 'admin_alert_settings_save') {
+          var v = (args.p_emails || []).map(function (x) { return String(x || '').trim().toLowerCase(); }).filter(Boolean);
+          if (!v.length) return Promise.resolve({ data: { ok: false, message: 'Add at least one email address, or nobody hears about website orders.' } });
+          var bad = v.filter(function (x) { return !/^[^@\s,]+@[^@\s,]+\.[^@\s,]+$/.test(x); })[0];
+          if (bad) return Promise.resolve({ data: { ok: false, message: bad + ' is not an email address.' } });
+          AL.new_order = v.filter(function (x, i) { return v.indexOf(x) === i; });
+        }
+        return Promise.resolve({ data: Object.assign({ ok: true }, JSON.parse(JSON.stringify(AL))) });
       }
       // Kitchen printing (invented data): settings, test slip, delivery log, resend, slip status, Printed tap
       if (/^(admin_print|admin_slip|slip_status|kitchen_confirm_printed)/.test(fn)) {

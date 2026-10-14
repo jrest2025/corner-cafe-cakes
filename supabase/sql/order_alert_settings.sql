@@ -1,0 +1,5 @@
+-- Order alerts (14 Oct, 9:19pm). Applied as migration order_alert_settings.
+-- _split_emails(text) turns the comma-separated locations.alert_email into a list.
+-- _create_order now queues one staff_new_order email per address (text replacement of the one notification line).
+-- admin_alert_settings() and admin_alert_settings_save(text[]): administrators only, 1 to 5 valid addresses, logged in audit_log.
+-- No schema change: the list lives in the existing locations.alert_email text column.

@@ -2513,7 +2513,7 @@
     S.settings = null; S.setErr = null; view();
     var reqs = [sb.from('locations').select('*').eq('code', 'corner-cafe').single(), sb.from('closed_dates').select('*').gte('closed_on', today()).order('closed_on'), sb.from('products').select('*, product_sizes(*), product_variants(*)').order('sort'), sb.from('delivery_zones').select('*').order('sort')];
     if (can('admin')) { reqs.push(sb.rpc('admin_list_users')); reqs.push(sb.rpc('admin_deleted_orders')); }
-    Promise.all(reqs).then(function (rs) { rs.forEach(function (r) { if (r.error) throw r.error; }); S.settings = { loc: rs[0].data, closed: rs[1].data || [], products: rs[2].data || [], zones: rs[3].data || [], team: rs[4] ? rs[4].data || [] : null, deleted: rs[5] && rs[5].data && rs[5].data.ok ? rs[5].data.orders : null }; if (S.tab === 'settings') view(); s5SettingsLoad(); prLoad(); mirLoad(); }).catch(function (e) {
+    Promise.all(reqs).then(function (rs) { rs.forEach(function (r) { if (r.error) throw r.error; }); S.settings = { loc: rs[0].data, closed: rs[1].data || [], products: rs[2].data || [], zones: rs[3].data || [], team: rs[4] ? rs[4].data || [] : null, deleted: rs[5] && rs[5].data && rs[5].data.ok ? rs[5].data.orders : null }; if (S.tab === 'settings') view(); s5SettingsLoad(); prLoad(); mirLoad(); alLoad(); }).catch(function (e) {
       console.error(e); if (errKind(e) === 'expired') return sessionExpired();
       S.setErr = errKind(e) === 'offline' ? 'No internet connection, so settings could not load.' : errKind(e) === 'denied' ? 'Your login cannot see these settings. Ask a manager.' : 'Settings could not load.';
       if (S.tab === 'settings') view();
@@ -2733,7 +2733,7 @@
     h += '<details><summary>Delivery areas <span>' + st.zones.filter(function (z) { return z.active; }).length + ' areas</span></summary><div class="ccs-set-body"><p class="ccs-hint">Leave the fee blank where staff set the fee for each order. Website guests cannot choose delivery yet.</p>' +
       st.zones.map(function (z) { return '<div class="ccs-row" style="align-items:end">' + sf('dz-n-' + z.id, 'Area', z.name, 'text') + sf('dz-f-' + z.id, 'Fee (FJD)', z.fee == null ? '' : Number(z.fee)) + '<label class="ccs-check" style="padding-bottom:14px"><input type="checkbox" id="dz-a-' + z.id + '"' + (z.active ? ' checked' : '') + '> Offered</label></div>'; }).join('') +
       '<button type="button" class="ccs-btn ccs-ghost" data-act="save-zones">Save delivery areas</button><div class="ccs-row" style="align-items:end">' + sf('dz-new-n', 'New area', '', 'text') + sf('dz-new-f', 'Fee (FJD)', '') + '<button type="button" class="ccs-btn ccs-ghost" data-act="add-zone">Add area</button></div></div></details>';
-    h += s5PermView(st) + s5BackupCheckView(st) + printView(st);
+    h += s5PermView(st) + s5BackupCheckView(st) + alertsView(st) + printView(st);
     if (st.team) {
       var tm = st.tmDraft || {};
       h += '<details' + (st.tmOpen ? ' open' : '') + '><summary>Team and access <span>' + st.team.filter(function (u) { return u.active; }).length + ' with access</span></summary><div class="ccs-set-body">';
@@ -2756,6 +2756,42 @@
       h += deletedView(st);
     }
     return h + '</div>';
+  }
+  // ---------- order alerts (administrators choose who is emailed about new website orders) ----------
+  function alLoad() {
+    var st = S.settings; if (!st || !can('admin')) return;
+    sb.rpc('admin_alert_settings').then(function (r) {
+      if (S.settings !== st) return; if (r.error) throw r.error; if (!r.data.ok) throw userErr(r.data.message);
+      st.al = r.data; st.alList = (r.data.new_order || []).slice(); if (!st.alList.length) st.alList.push(''); st.alErr = null;
+      if (S.tab === 'settings') view();
+    }).catch(function (e) { if (S.settings !== st) return; st.alErr = errKind(e) === 'offline' ? 'No internet connection.' : 'Order alerts could not load.'; if (S.tab === 'settings') view(); });
+  }
+  function alGrab() { var st = S.settings; if (!st || !st.alList) return; st.alList = st.alList.map(function (v, i) { var el = document.getElementById('al-e' + i); return el ? el.value : v; }); }
+  function alertsView(st) {
+    if (!can('admin')) return '';
+    var al = st.al, open = st.alOpen ? ' open' : '';
+    var tag = !al ? (st.alErr ? 'Could not load' : 'Checking…') : (al.new_order || []).length + ((al.new_order || []).length === 1 ? ' person' : ' people');
+    var h = '<details' + open + ' data-alopen="1"><summary>Order alerts <span>' + esc(tag) + '</span></summary><div class="ccs-set-body">';
+    if (!al) return h + (st.alErr ? '<p class="ccs-err" role="alert">' + esc(st.alErr) + '</p><button type="button" class="ccs-btn ccs-ghost" data-act="al-reload">Try again</button>' : '<p class="ccs-loading">Checking…</p>') + '</div></details>';
+    if (al.test_mode) h += '<p class="ccs-note">Test mode is on. Every alert currently goes only to ' + esc(al.test_email) + '. The addresses below take over when the site goes live.</p>';
+    h += '<h3 class="ccs-seth">New website order</h3><p class="ccs-hint">Emailed as soon as a guest sends a cake request. Up to 5 people.</p>';
+    h += st.alList.map(function (v, i) {
+      return '<div class="ccs-row ccs-alrow"><div class="ccs-field"><label class="ccs-label" for="al-e' + i + '">Email ' + (i + 1) + '</label><input class="ccs-input" id="al-e' + i + '" type="email" autocomplete="off" value="' + esc(v) + '"></div>' +
+        (st.alList.length > 1 ? '<button type="button" class="ccs-link ccs-red" data-act="al-del" data-v="' + i + '">Remove</button>' : '') + '</div>';
+    }).join('');
+    h += (st.alList.length < 5 ? '<button type="button" class="ccs-link" data-act="al-add">+ Add another email</button>' : '') +
+      (st.alFormErr ? '<p class="ccs-err" role="alert">' + esc(st.alFormErr) + '</p>' : '') +
+      '<div class="ccs-actions-row"><button type="button" class="ccs-btn" data-act="al-save">Save order alerts</button></div>';
+    h += '<h3 class="ccs-seth">Kitchen slip</h3><p class="ccs-hint">Sent to ' + esc(al.kitchen || 'nobody yet') + (al.kitchen_copy ? ', with a copy to ' + esc(al.kitchen_copy) : '') + '. Change it under Kitchen printing.</p>';
+    return h + '</div></details>';
+  }
+  function alSave() {
+    var st = S.settings; alGrab(); st.alOpen = true;
+    sb.rpc('admin_alert_settings_save', { p_emails: st.alList }).then(function (r) {
+      clearBusy(); if (r.error) throw r.error;
+      if (!r.data.ok) { st.alFormErr = r.data.message; view(); return; }
+      st.alFormErr = null; st.al = r.data; st.alList = (r.data.new_order || []).slice(); S.dirty = {}; setSavedOk(); toast('Order alerts saved'); view();
+    }).catch(fail);
   }
   // ---------- kitchen printing (administrators change it; managers see the delivery log) ----------
   function prLoad() {
@@ -3262,6 +3298,10 @@
         case 'tm-reset-save': teamReset(b.dataset.id); break;
         case 'pr-reload': S.settings.prOpen = true; prLoad(); break;
         case 'pr-save': prSave(); break;
+        case 'al-save': alSave(); break;
+        case 'al-add': alGrab(); S.settings.alOpen = true; if (S.settings.alList.length < 5) S.settings.alList.push(''); view(); setTimeout(function () { var el = document.getElementById('al-e' + (S.settings.alList.length - 1)); if (el) el.focus(); }, 30); break;
+        case 'al-del': alGrab(); S.settings.alOpen = true; S.settings.alList.splice(+v, 1); view(); break;
+        case 'al-reload': S.settings.alErr = null; alLoad(); view(); break;
         case 'pr-test': prCall('admin_print_test', {}, function (d) { return 'Test slip sent' + (d.test_mode ? ' to ' + d.test_email + ' (test mode)' : ' to ' + d.to) + '. Check it printed, then confirm here.'; }); setTimeout(prLoad, 8000); break;
         case 'pr-ok': prCall('admin_print_test_confirm', {}, function () { return 'Printer confirmed'; }); break;
         case 'pr-resend':

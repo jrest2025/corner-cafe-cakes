@@ -204,6 +204,14 @@
         }
       });
     });
+    // A site header that hides while scrolling down and slides back on the way up must still be allowed for,
+    // otherwise the step heading ends up under it. Count any sticky or fixed header at its full height.
+    [].forEach.call(document.querySelectorAll('header, [class*="header"]'), function (n) {
+      if (root.contains(n) || n.contains(root)) return;
+      var cs = getComputedStyle(n); if (cs.position !== 'fixed' && cs.position !== 'sticky') return;
+      var h = n.offsetHeight + Math.max(0, parseFloat(cs.top) || 0);
+      if (h > off && h < viewH() * 0.4) off = h;
+    });
     return off;
   }
   function bottomCover() { var b = document.getElementById('cco-bar'); if (!b || !b.classList.contains('cco-show')) return 0; var r = b.getBoundingClientRect(); return r.top < viewH() ? viewH() - r.top : 0; }
