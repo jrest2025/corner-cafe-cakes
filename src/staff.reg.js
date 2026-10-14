@@ -123,8 +123,7 @@
   }
   function regView() {
     var g = rgState(), d = g.data;
-    var h = '<div class="ccs-head"><div><h1 class="ccs-title">Cake register</h1><p class="ccs-sub">Every cake order from both sheets, the website and this app, in one list. The dashboard counts only what is here.</p>' + (d ? dxSync(d.sync, true) : '') + '</div>' +
-      '<div class="dx-acts"><button type="button" class="ccs-btn ccs-ghost ccs-small" data-act="rg-refresh">Refresh</button></div></div>';
+    var h = '<div class="ccs-head"><div><h1 class="ccs-title">Cake register</h1><p class="ccs-sub"><span class="ccs-subtxt">Every cake order from both sheets, the website and this app, in one list. The dashboard counts only what is here.</span> <button type="button" class="ccs-link ccs-refresh" data-act="rg-refresh">Refresh</button></p>' + (d ? dxSync(d.sync, true) : '') + '</div></div>';
     if (g.err) return h + '<div class="ccs-empty"><b>' + esc(g.err) + '</b><button type="button" class="ccs-btn" data-act="rg-refresh">Try again</button></div>';
     if (!d) return h + '<p class="ccs-loading">Loading the register…</p>';
     var sy = d.sync || {};

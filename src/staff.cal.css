@@ -1414,3 +1414,52 @@ body.ccs-is-off #cc-staff .ccs-side { top: var(--ccs-offh, 44px); }
 #cc-staff .ccs-phlink:focus-within { outline: 2px solid #5f7a4a; outline-offset: 2px; border-radius: 4px; }
 #cc-staff .dx-side .dx-plot { border: 0; padding: 0; background: none; border-radius: 0; }
 @media (max-width: 640px) { #cc-staff .dx-colv { display: block; visibility: hidden; font-size: 12px; } #cc-staff .dx-col.is-top .dx-colv { visibility: visible; } }
+/* ===== UI refinement Batch 1 (14 Oct): on tablets and small laptops the menu stays visible as a slim rail instead of hiding behind a Menu button ===== */
+@media (min-width: 760px) and (max-width: 1279px) {
+  #cc-staff .ccs-app:not(.is-single) { grid-template-columns: 96px minmax(0, 1fr); grid-template-rows: none; }
+  #cc-staff .ccs-app:not(.is-single) .ccs-topbar, #cc-staff .ccs-app:not(.is-single) .ccs-menushade { display: none !important; }
+  #cc-staff .ccs-app:not(.is-single) .ccs-side { position: sticky; top: 0; left: auto; bottom: auto; z-index: 5; width: auto; height: 100dvh; transform: none; visibility: visible; transition: none; box-shadow: none; padding: 14px 8px; gap: 10px; overflow-y: auto; }
+  #cc-staff .ccs-app:not(.is-single) .ccs-brand { font-size: 13px; line-height: 1.2; text-align: center; padding: 0 0 6px; }
+  #cc-staff .ccs-app:not(.is-single) .ccs-brand small { font-size: 10.5px; letter-spacing: .1em; }
+  #cc-staff .ccs-app:not(.is-single) .ccs-nav { gap: 4px; }
+  #cc-staff .ccs-app:not(.is-single) .ccs-nav-item { flex-direction: column; justify-content: center; gap: 4px; min-height: 64px; padding: 6px 2px; font-size: 13px; line-height: 1.15; text-align: center; position: relative; border-radius: 12px; }
+  #cc-staff .ccs-app:not(.is-single) .ccs-nav-item svg { width: 22px; height: 22px; }
+  #cc-staff .ccs-app:not(.is-single) .ccs-nav-item .ccs-count { position: absolute; top: 4px; left: 56%; margin: 0; font-size: 12.5px; padding: 0 6px; }
+  #cc-staff .ccs-app:not(.is-single) .ccs-nav-phone { display: flex; margin-top: 6px; }
+  #cc-staff .ccs-app:not(.is-single) .ccs-who { display: none; }
+  #cc-staff .ccs-app .ccs-main { padding-top: 22px; }
+  #cc-staff #ccs-main .ccs-day { top: 0; }
+  #cc-staff #ccs-main .sl-live { top: 16px; max-height: calc(100dvh - 150px); }
+  #cc-staff #ccs-main .sl-stepmain { min-height: calc(100dvh - 190px); }
+}
+/* Batch 1: one page header. Title left, New order top right, tools in a row underneath */
+#cc-staff .ccs-head { flex-wrap: nowrap; align-items: flex-start; }
+#cc-staff .ccs-head > div:first-child { min-width: 0; }
+#cc-staff .ccs-head > .ccs-head-acts { flex: none; margin-left: auto; }
+#cc-staff .ccs-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin: 0 0 12px; }
+#cc-staff .ccs-toolbar .ccs-search { flex: 1 1 280px; max-width: 460px; min-width: 0; margin: 0; }
+#cc-staff .ccs-toolbar .ccs-chips { flex-wrap: wrap; margin: 0; }
+#cc-staff .ccs-toolbar > .ccs-btn { width: auto; }
+@media (max-width: 759px) { #cc-staff .ccs-toolbar .ccs-search { flex-basis: 100%; max-width: none; } }
+/* Batch 1: one tab style everywhere (screen filters, section switches, calendar views, kitchen range) */
+#cc-staff .ccs-tabs, #cc-staff .ccs-secbar, #cc-staff .ccs-segs { display: inline-flex; flex-wrap: nowrap; align-items: center; gap: 4px; padding: 4px; margin: 0 0 12px; max-width: 100%; background: #fff; border: 1px solid #DCE3EB; border-radius: 14px; box-shadow: none; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+#cc-staff .ccs-tabs::-webkit-scrollbar, #cc-staff .ccs-secbar::-webkit-scrollbar, #cc-staff .ccs-segs::-webkit-scrollbar { display: none; }
+#cc-staff .ccs-toolbar .ccs-segs, #cc-staff .ccs-toolbar .ccs-tabs { margin: 0; }
+#cc-staff .ccs-tabs .ccs-tab, #cc-staff .ccs-secbar .ccs-secbtn, #cc-staff .ccs-segs .ccs-chip { flex: none; appearance: none; border: 0; box-shadow: none; background: transparent; color: #34425A; border-radius: 10px; min-height: 44px; padding: 0 14px; font: inherit; font-size: 16px; font-weight: 600; white-space: nowrap; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+#cc-staff .ccs-tabs .ccs-tab:hover, #cc-staff .ccs-secbar .ccs-secbtn:hover, #cc-staff .ccs-segs .ccs-chip:hover { background: #F2F4F7; color: #243247; }
+#cc-staff .ccs-tabs .ccs-tab[aria-pressed="true"], #cc-staff .ccs-secbar .ccs-secbtn[aria-selected="true"], #cc-staff .ccs-segs .ccs-chip[aria-pressed="true"] { background: #E8EFE1; color: #3F5530; box-shadow: inset 0 0 0 1px #5f7a4a; }
+#cc-staff .ccs-tabs .ccs-tab .ccs-n, #cc-staff .ccs-secbar .ccs-secbtn .ccs-n { min-width: 22px; padding: 1px 7px; border-radius: 99px; background: #EEF2F6; color: #34425A; font-size: 14px; font-weight: 700; text-align: center; }
+#cc-staff .ccs-tabs .ccs-tab[aria-pressed="true"] .ccs-n, #cc-staff .ccs-secbar .ccs-secbtn[aria-selected="true"] .ccs-n { background: #fff; color: #3F5530; }
+#cc-staff .ccs-tabs .ccs-tab:focus-visible, #cc-staff .ccs-secbar .ccs-secbtn:focus-visible, #cc-staff .ccs-segs .ccs-chip:focus-visible { outline: 2px solid #5f7a4a; outline-offset: 2px; }
+/* Refresh sits beside the Updated time as a small link */
+#cc-staff .ccs-fresh .ccs-refresh { min-height: 32px; padding: 0 2px; font-size: inherit; vertical-align: baseline; }
+#cc-staff .ccs-toolbar .ccs-refresh { min-height: 44px; padding: 0 6px; }
+/* Phones: tab rows stay on one line and scroll sideways, with a soft fade at the edge so it is clear there is more */
+@media (max-width: 759px) {
+  #cc-staff .ccs-tabs, #cc-staff .ccs-secbar, #cc-staff .ccs-segs { display: flex; width: 100%; -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); padding-right: 28px; }
+  #cc-staff .ccs-head .ccs-tabs .ccs-tab, #cc-staff .ccs-tabs .ccs-tab { flex: none; }
+  #cc-staff .ccs-tabs .ccs-tab, #cc-staff .ccs-secbar .ccs-secbtn, #cc-staff .ccs-segs .ccs-chip { min-height: 44px; padding: 0 12px; font-size: 15px; }
+}
+#cc-staff .ccs-sub .ccs-refresh { min-height: 32px; padding: 0 2px; font-size: inherit; vertical-align: baseline; }
+/* Phones hide page subtitles to save space, but keep the Refresh link where a screen has one */
+@media (max-width: 759px) { #cc-staff .ccs-head .ccs-sub:has(.ccs-refresh) { display: block; margin: 2px 0 0; } #cc-staff .ccs-head .ccs-sub .ccs-subtxt { display: none; } }

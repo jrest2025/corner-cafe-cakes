@@ -198,13 +198,19 @@
     var keepFocus = captureFocus(m);
     viewInner(m); restoreFocus(keepFocus); saveDraft();
   }
-  // One New order button, always top right of the page header (phones use the bottom bar)
+  // One page header on every screen (UI refinement Batch 1): title on the left, New order alone at the top right,
+  // and any search, filters or tools in one toolbar row underneath. Phones use the New order button in the bottom bar.
   function newTop(m) {
-    if (!can('manager', 'front_of_house') || ['orders', 'calendar', 'kitchen', 'customers', 'dash'].indexOf(S.tab) < 0) return;
-    var hd = m.querySelector('.ccs-head'); if (!hd || hd.querySelector('.ccs-newtop')) return;
-    var acts = hd.querySelector(':scope > .ccs-head-acts');
-    if (!acts) { acts = document.createElement('div'); acts.className = 'ccs-head-acts'; [].slice.call(hd.children).slice(1).forEach(function (c) { acts.appendChild(c); }); hd.appendChild(acts); }
-    acts.insertAdjacentHTML('beforeend', '<button type="button" class="ccs-btn ccs-new ccs-newtop" data-tab="new">' + NAV_ICON['new'] + 'New order</button>');
+    var hd = m.querySelector('.ccs-head'); if (!hd || hd.dataset.laid) return;
+    hd.dataset.laid = '1';
+    var old = hd.querySelector(':scope > .ccs-head-acts, :scope > .ccs-headacts'), extras = [].slice.call(hd.children).slice(1);
+    if (old) extras = [].slice.call(old.children).concat(extras.filter(function (c) { return c !== old; }));
+    extras = extras.filter(function (c) { return !c.classList.contains('ccs-newtop') && !c.classList.contains('ccs-new'); });
+    if (extras.length) { var tb = document.createElement('div'); tb.className = 'ccs-toolbar'; extras.forEach(function (c) { tb.appendChild(c); }); hd.insertAdjacentElement('afterend', tb); }
+    if (old && old.parentNode === hd) hd.removeChild(old);
+    [].slice.call(hd.querySelectorAll(':scope > .ccs-new')).forEach(function (c) { hd.removeChild(c); });
+    if (can('manager', 'front_of_house') && ['orders', 'calendar', 'kitchen', 'customers', 'dash'].indexOf(S.tab) > -1)
+      hd.insertAdjacentHTML('beforeend', '<div class="ccs-head-acts"><button type="button" class="ccs-btn ccs-new ccs-newtop" data-tab="new">' + NAV_ICON['new'] + 'New order</button></div>');
   }
   function viewInner(m) {
     if (S.tab === 'today') m.innerHTML = todayView();
@@ -361,7 +367,7 @@
   function freshLine(at, fails, act) {
     if (!at) return '';
     if (fails >= 2) return '<p class="ccs-note ccs-stale" role="status"><span><b>Not up to date.</b> Last updated ' + clockAt(at) + '. Trying again every minute; changes by others since then are not shown.</span><button type="button" class="ccs-link" data-act="' + act + '">Try now</button></p>';
-    return '<p class="ccs-fresh">Updated ' + clockAt(at) + '</p>';
+    return '<p class="ccs-fresh">Updated ' + clockAt(at) + (act ? ' · <button type="button" class="ccs-link ccs-refresh" data-act="' + act + '">Refresh</button>' : '') + '</p>';
   }
   function loadErr(msg, act) { return '<div class="ccs-empty ccs-loaderr" role="alert"><b>' + esc(msg) + '</b><span>Nothing has changed. Check the connection and try again.</span><button type="button" class="ccs-btn" data-act="' + act + '">Try again</button></div>'; }
   function isOverdue(o) { return o.required_date < today() && OPEN.indexOf(o.order_status) > -1; }
@@ -1065,9 +1071,8 @@
   function kitchenView() {
     var K = S.kit, t = today();
     var h = '<div class="ccs-head"><div><h1 class="ccs-title">Kitchen</h1><p class="ccs-sub">' + esc(nice(t, true)) + '. Confirmed cakes only.</p></div>' +
-      '<div class="ccs-chips" role="group" aria-label="Range">' + [[2, 'Today and tomorrow'], [7, 'Next 7 days']].map(function (c) { return '<button type="button" class="ccs-chip" data-act="k-range" data-v="' + c[0] + '" aria-pressed="' + (K.days === c[0]) + '">' + c[1] + '</button>'; }).join('') +
-      '<button type="button" class="ccs-chip ccs-kdone-chip" data-act="k-done" aria-pressed="' + !!K.showDone + '">Handed over</button>' +
-      '<button type="button" class="ccs-chip" data-act="k-refresh">Refresh</button></div></div>';
+      '<div class="ccs-chips ccs-segs" role="group" aria-label="Range">' + [[2, 'Today and tomorrow'], [7, 'Next 7 days']].map(function (c) { return '<button type="button" class="ccs-chip" data-act="k-range" data-v="' + c[0] + '" aria-pressed="' + (K.days === c[0]) + '">' + c[1] + '</button>'; }).join('') + '</div>' +
+      '<button type="button" class="ccs-chip ccs-kdone-chip" data-act="k-done" aria-pressed="' + !!K.showDone + '">Show handed over</button></div>';
     if (!K.loaded) return h + (K.err ? loadErr(K.err, 'k-reload') : '<p class="ccs-loading">Loading the kitchen board…</p>');
     h += freshLine(K.at, K.fails, 'k-reload');
     var rows = K.data.orders || [];
@@ -2231,7 +2236,7 @@
     if (c.mode === 'log') return s5LogView();
     var h = '<div class="ccs-head"><div><h1 class="ccs-title">Customers</h1><p class="ccs-sub">Spend counts collected orders only.</p></div>' +
       '<div class="ccs-headacts"><input class="ccs-input ccs-search" id="ccs-cq" aria-label="Search customers" type="search" placeholder="Search name, mobile, email, company, C-number or order number" value="' + esc(c.q) + '">' +
-      (can('manager', 'front_of_house') ? '<button type="button" class="ccs-btn" data-act="cust-new">Add customer</button>' : '') + '</div></div>';
+      (can('manager', 'front_of_house') ? '<button type="button" class="ccs-btn ccs-ghost" data-act="cust-new">Add customer</button>' : '') + '</div></div>';
     if (c.q.trim().length >= 2) h += '<p class="ccs-hint cm-gline">Search results. Clear the search to use filters and groups.</p>';
     else h += remindersBox() + clToolbar();
     if (!c.loaded) return h + (c.loadErr ? loadErr(c.loadErr, 'cust-reload') : '<p class="ccs-loading">Loading customers…</p>');

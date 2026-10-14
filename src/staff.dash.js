@@ -113,8 +113,7 @@
   }
   function dashView() {
     var d = dxState(); d.drills = {};
-    var h = '<div class="ccs-head"><div><h1 class="ccs-title">Dashboard</h1><p class="ccs-sub">' + (d.data ? 'Figures as of ' + esc(stamp(d.data.generated_at)) + '. ' : '') + 'View only.</p>' + (d.data ? dxSync(d.data.sync) : '') + '</div>' +
-      '<div class="dx-acts"><button type="button" class="ccs-btn ccs-ghost ccs-small" data-act="dx-refresh">Refresh</button>' + (d.data ? '<button type="button" class="ccs-btn ccs-ghost ccs-small" data-act="dx-export">Export summary</button>' : '') + '</div></div>';
+    var h = '<div class="ccs-head"><div><h1 class="ccs-title">Dashboard</h1><p class="ccs-sub"><span class="ccs-subtxt">' + (d.data ? 'Figures as of ' + esc(stamp(d.data.generated_at)) + '. ' : '') + 'View only.</span> <button type="button" class="ccs-link ccs-refresh" data-act="dx-refresh">Refresh</button>' + (d.data ? ' · <button type="button" class="ccs-link ccs-refresh" data-act="dx-export">Export summary</button>' : '') + '</p>' + (d.data ? dxSync(d.data.sync) : '') + '</div></div>';
     if (d.err) return h + '<div class="ccs-empty"><b>' + esc(d.err) + '</b><button type="button" class="ccs-btn" data-act="dx-refresh">Try again</button></div>';
     if (!d.data) return h + '<p class="ccs-loading">Loading the dashboard…</p>';
     var f = d.f, r = dxRange(), data = d.data, byOrder = f.b === 'o';
