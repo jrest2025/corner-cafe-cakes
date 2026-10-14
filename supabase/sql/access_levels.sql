@@ -1,4 +1,4 @@
--- DRAFT: not applied to the database yet (the apply was cancelled on 15 October). Apply only after the owner says go.
+-- Applied on 15 October 2026 (run by the owner in the Supabase SQL Editor), plus: grant execute on function public._staff_mark_removed(uuid, uuid) to service_role;
 -- Access levels an admin can add, change and delete, and removing staff from the team.
 -- Additive only: a new table, two new nullable columns, new functions, and has_role() rewritten with the same signature.
 --

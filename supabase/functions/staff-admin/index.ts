@@ -1,4 +1,4 @@
-// staff-admin: lets an admin add a staff login, or set a new temporary password, from the staff app.
+// staff-admin: lets an admin add a staff login, set a new temporary password, or remove someone from the team, from the staff app.
 // The caller must be signed in and hold an active admin profile. Uses the service key only on the server.
 // New logins are flagged must_change_password, so the staff app asks the person to set their own password on first sign-in.
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
@@ -40,10 +40,19 @@ Deno.serve(async (req) => {
   if (b.op === "create") {
     const name = String(b.name ?? "").trim();
     const email = String(b.email ?? "").trim().toLowerCase();
-    const role = String(b.role ?? "");
+    let role = String(b.role ?? "");
+    let levelId: string | null = null;
     if (name.length < 2) return no("name", "Enter the staff member's name.");
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return no("email", "Check the email address.");
-    if (!ROLES.includes(role)) return no("role", "Choose a role.");
+    if (b.level_id) {
+      // Access level chosen in Team and access: the main ability goes in role, the level in level_id
+      const { data: lv } = await db.from("access_levels").select("id, grants").eq("id", String(b.level_id)).maybeSingle();
+      if (!lv) return no("role", "Choose an access level.");
+      const order = ["admin", "manager", "front_of_house", "marketing", "finance", "kitchen"];
+      role = order.find((r) => (lv.grants as string[]).includes(r)) || "";
+      levelId = lv.id;
+    }
+    if (!ROLES.includes(role)) return no("role", "Choose an access level.");
     if (pwProblem) return no("password", pwProblem);
 
     const { data: made, error } = await db.auth.admin.createUser({
@@ -54,7 +63,7 @@ Deno.serve(async (req) => {
       return no("email", exists ? "A login with this email already exists. Find it in the team list and give it a role there." : "The login could not be created. Try again.");
     }
     const { data: loc } = await db.from("locations").select("id").eq("code", "corner-cafe").maybeSingle();
-    const { error: pErr } = await db.from("staff_profiles").insert({ user_id: made.user.id, full_name: name, role, location_id: loc?.id ?? null, active: true });
+    const { error: pErr } = await db.from("staff_profiles").insert({ user_id: made.user.id, full_name: name, role, level_id: levelId, location_id: loc?.id ?? null, active: true });
     if (pErr) {
       await db.auth.admin.deleteUser(made.user.id); // keep it all-or-nothing
       return out({ ok: false, message: "The login could not be set up. Nothing was saved. Try again." });
@@ -71,6 +80,21 @@ Deno.serve(async (req) => {
     if (!cur?.user) return out({ ok: false, message: "That login was not found." });
     const { error } = await db.auth.admin.updateUserById(id, { password, user_metadata: { ...(cur.user.user_metadata || {}), must_change_password: true } });
     if (error) return out({ ok: false, message: "The password could not be changed. Try again." });
+    return out({ ok: true });
+  }
+
+  if (b.op === "remove") {
+    // Remove someone from the team: their login is blocked for good and they leave the team list.
+    // Their profile is kept so names in order history stay readable. Not your own login.
+    const id = String(b.user_id ?? "");
+    if (!/^[0-9a-f-]{36}$/i.test(id)) return out({ ok: false, message: "That login was not found." });
+    if (id === who.user.id) return out({ ok: false, message: "You cannot remove yourself." });
+    const { data: cur } = await db.auth.admin.getUserById(id);
+    if (!cur?.user) return out({ ok: false, message: "That login was not found." });
+    const { error } = await db.auth.admin.deleteUser(id, true);
+    if (error) return out({ ok: false, message: "This person could not be removed. Nothing has changed. Try again." });
+    const { error: mErr } = await db.rpc("_staff_mark_removed", { p_user: id, p_by: who.user.id });
+    if (mErr) return out({ ok: false, message: "The login is blocked, but the team list did not update. Refresh and try again." });
     return out({ ok: true });
   }
 

@@ -1617,3 +1617,22 @@ body.ccs-is-off #cc-staff .ccs-side { top: var(--ccs-offh, 44px); }
   #cc-staff .ccs-ctool .ccs-ctool-actions { justify-self: end; }
 }
 @media (max-width: 759px) { #cc-staff .ccs-ctool .ccs-tools-menu { left: auto; right: 0; } }
+
+/* Access levels (Settings, admins) */
+#cc-staff .ccs-lvlist { display: grid; gap: 8px; margin: 0 0 16px; }
+#cc-staff .ccs-lv { display: grid; gap: 4px; padding: 12px 16px; }
+#cc-staff .ccs-lv-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; }
+#cc-staff .ccs-lv-head b { font-size: 17px; color: var(--ccs-ink); }
+#cc-staff .ccs-lv-can { margin: 0; font-size: 15px; color: #34425A; }
+#cc-staff .ccs-lv .ccs-actions-row { margin-top: 4px; align-items: center; }
+#cc-staff .ccs-lvform { display: grid; gap: 12px; }
+#cc-staff .ccs-lvticks { border: 0; margin: 0; padding: 0; display: grid; gap: 8px; }
+#cc-staff .ccs-lvticks legend { margin-bottom: 8px; }
+#cc-staff .ccs-lvtick { display: flex; align-items: flex-start; gap: 12px; padding: 12px; border: 1px solid #DCE3EB; border-radius: 8px; background: #fff; min-height: 48px; cursor: pointer; }
+#cc-staff .ccs-lvtick input { width: 22px; height: 22px; margin: 2px 0 0; flex: none; }
+#cc-staff .ccs-lvtick span { display: grid; gap: 2px; }
+#cc-staff .ccs-lvtick b { color: var(--ccs-ink); font-size: 16px; }
+#cc-staff .ccs-lvtick small { color: #526176; font-size: 14px; line-height: 1.4; }
+#cc-staff .ccs-lvtick:has(input:checked) { border-color: #5f7a4a; background: #F4F7F1; }
+#cc-staff .ccs-rmbox { display: grid; gap: 8px; margin-top: 8px; border-color: #E8B4AA; background: #FDF6F4; }
+#cc-staff .ccs-rmbox p { margin: 0; }

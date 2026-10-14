@@ -850,20 +850,22 @@
   function s5PermView(st) {
     if (!can('manager')) return '';
     var P = st.perm, open = st.s5PermOpen ? ' open' : '';
-    var h = '<details' + open + ' data-s5open="perm"><summary>What each role can do <span>Read from the database rules</span></summary><div class="ccs-set-body">';
+    var h = '<details' + open + ' data-s5open="perm"><summary>What each level can do <span>Read from the database rules</span></summary><div class="ccs-set-body">';
     if (st.permErr) return h + '<p class="ccs-err" role="alert">' + esc(st.permErr) + '</p><button type="button" class="ccs-btn ccs-ghost" data-act="ws-cm-s5-settings" data-v="perm">Try again</button></div></details>';
     if (!P) return h + '<p class="ccs-loading">Loading…</p></div></details>';
-    // Only the three levels in use (Counter, Kitchen, then Admin)
-    var roles = ['front_of_house', 'kitchen', 'admin'].filter(function (r) { return P.roles.indexOf(r) > -1; });
+    // One column per access level (admins see the levels they added too); a level can do what any of its abilities can do
+    var LV = (st.levels || [{ name: 'Counter', grants: ['front_of_house'] }, { name: 'Kitchen', grants: ['kitchen'] }, { name: 'Admin', grants: ['admin'] }]).slice()
+      .sort(function (a, b) { return (a.grants.indexOf('admin') > -1) - (b.grants.indexOf('admin') > -1); });
+    var RANK = { no: 0, partly: 1, yes: 2 }, levelCell = function (x, l) { if (l.grants.indexOf('admin') > -1) return x.cells.admin || 'yes'; var best = 'no'; l.grants.forEach(function (g) { var v = x.cells[g] || 'no'; if (RANK[v] > RANK[best]) best = v; }); return best; };
     var area = '', cell = function (v) { return v === 'yes' ? '<td class="s5-yes">Yes</td>' : v === 'partly' ? '<td class="s5-part">Partly</td>' : '<td class="s5-no">No</td>'; };
     h += '<p class="ccs-hint">Worked out from the checks the database actually runs, so it cannot drift from what people can really do. Checked ' + esc(stamp(P.checked_at)) + '.</p>' +
-      '<div class="s5-perm-wrap"><table class="s5-perm"><thead><tr><th scope="col">Can</th>' + roles.map(function (r) { return '<th scope="col">' + esc(S5_ROLE_NAME[r] || r) + '</th>'; }).join('') + '</tr></thead><tbody>';
+      '<div class="s5-perm-wrap"><table class="s5-perm"><thead><tr><th scope="col">Can</th>' + LV.map(function (l) { return '<th scope="col">' + esc(l.name) + '</th>'; }).join('') + '</tr></thead><tbody>';
     P.rows.forEach(function (x) {
-      if (x.area !== area) { area = x.area; h += '<tr class="s5-area"><th colspan="' + (roles.length + 1) + '" scope="rowgroup">' + esc(area) + '</th></tr>'; }
-      h += '<tr><th scope="row">' + esc(x.label) + (x.found ? '' : ' <span class="ccs-hint">(rule not found)</span>') + '</th>' + roles.map(function (r) { return cell(x.cells[r]); }).join('') + '</tr>';
+      if (x.area !== area) { area = x.area; h += '<tr class="s5-area"><th colspan="' + (LV.length + 1) + '" scope="rowgroup">' + esc(area) + '</th></tr>'; }
+      h += '<tr><th scope="row">' + esc(x.label) + (x.found ? '' : ' <span class="ccs-hint">(rule not found)</span>') + '</th>' + LV.map(function (l) { return cell(levelCell(x, l)); }).join('') + '</tr>';
     });
     h += '</tbody></table></div><ul class="ccs-plain">' + P.notes.map(function (n) { return '<li>' + esc(n) + '</li>'; }).join('') + '</ul>' +
-      '<p class="ccs-hint">To change what a role can do, ask for the rule to be changed. Changing someone\'s role is in Team and access (admins).</p></div></details>';
+      '<p class="ccs-hint">To change what a level can do, use Access levels. To change someone\'s level, use Team and access. Both are for admins.</p></div></details>';
     return h;
   }
   function s5BackupCheckView(st) {

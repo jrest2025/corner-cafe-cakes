@@ -24,7 +24,7 @@ async def open_team(pg, phone=False):
     else:
         await pg.click('.ccs-nav [data-tab="settings"]')
     await pg.wait_for_timeout(400)
-    await pg.evaluate("document.querySelectorAll('.ccs-set details').forEach(function(d){ if (d.textContent.indexOf('Team and access') > -1) d.open = true; })")
+    await pg.evaluate("(function(){var n=[].filter.call(document.querySelectorAll('.ccs-setnav [data-setk]'),function(x){return x.dataset.setk==='Team and access'})[0]; if(n) n.click(); document.querySelectorAll('.ccs-set details').forEach(function(d){ if (d.querySelector('summary').textContent.indexOf('Team and access') === 0) d.open = true; });})()"); await pg.wait_for_timeout(300)
 
 async def main():
     errs = []
@@ -68,7 +68,7 @@ async def main():
         main = await pg.inner_text('#ccs-main')
         check('team section has add form', 'Add a staff member' in main and await pg.locator('#tm-new-n').count() == 1)
         check('login without role is flagged', 'No role yet' in main)
-        check('unassigned login defaults to front of house, not admin', await pg.input_value('#tm-r-u2') == 'front_of_house')
+        check('unassigned login defaults to front of house, not admin', await pg.input_value('#tm-r-u2') == 'lv-counter')
         await pg.click('[data-act="tm-add"]'); await pg.wait_for_timeout(250)
         check('empty add refused with name message', "Enter the staff member's name." in (await pg.inner_text('#ccs-main')))
         await pg.fill('#tm-new-n', 'Mere Tuilagi'); await pg.fill('#tm-new-e', 'not-an-email'); await pg.click('[data-act="tm-add"]'); await pg.wait_for_timeout(250)
@@ -76,11 +76,11 @@ async def main():
         await pg.fill('#tm-new-e', 'mere@example.com'); await pg.click('[data-act="tm-gen"]'); await pg.wait_for_timeout(100)
         gen = await pg.input_value('#tm-new-p')
         check('make-one gives a 14-character password', len(gen) == 14 and gen.count('-') == 2, gen)
-        await pg.select_option('#tm-new-r', 'front_of_house')
+        await pg.select_option('#tm-new-r', 'lv-counter')
         await pg.screenshot(path=str(OUT / 'team-form.png'), full_page=True)
         await pg.click('[data-act="tm-add"]'); await pg.wait_for_timeout(500)
         fc = await calls(pg, 'fn')
-        check('create sent once with the right fields', len(fc) == 1 and fc[0]['op'] == 'create' and fc[0]['email'] == 'mere@example.com' and fc[0]['role'] == 'front_of_house' and fc[0]['password'] == gen, fc)
+        check('create sent once with the right fields', len(fc) == 1 and fc[0]['op'] == 'create' and fc[0]['email'] == 'mere@example.com' and fc[0].get('level_id') == 'lv-counter' and fc[0]['password'] == gen, fc)
         main = await pg.inner_text('#ccs-main')
         check('success note and new member listed', 'Mere Tuilagi can now sign in' in main and 'mere@example.com' in main, main[-600:])
         check('form cleared after success', await pg.input_value('#tm-new-n') == '')
