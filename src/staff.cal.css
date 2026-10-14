@@ -1545,3 +1545,39 @@ body.ccs-is-off #cc-staff .ccs-side { top: var(--ccs-offh, 44px); }
 @media (max-width: 759px) { #cc-staff .ccs-mini-t small { display: inline; margin: 0; font-size: inherit; } #cc-staff .ccs-mini-t small::before { content: " · "; } }
 @media (min-width: 760px) { #cc-staff .ccs-calfilt { margin-bottom: 12px; } }
 @media (min-width: 760px) { #cc-staff .sl-cell, #cc-staff .sl-wrap .sl-cell { min-height: 64px; } }
+
+/* ===== Cockpit refinement, Pass Two: polish (8 px rhythm, one padding per component, calm movement) ===== */
+@media (min-width: 760px) {
+  /* Rhythm: 8 between related controls, 16 between groups */
+  #cc-staff .ccs-head { margin-bottom: 8px; }
+  #cc-staff .ccs-toolbar { margin: 0 0 8px; gap: 8px; }
+  #cc-staff .ccs-tabs + .ccs-list { margin-top: 4px !important; }
+  #cc-staff .ccs-calbar { margin-bottom: 8px; }
+  #cc-staff .ccs-calfilt { margin-bottom: 16px; }
+  #cc-staff .ccs-dash-head { margin-bottom: 16px; }
+  /* One padding per component */
+  #cc-staff .ccs-kpis-row .ccs-kpi, #cc-staff .ccs-kpis-k .ccs-kpi { padding: 12px 16px; }
+  #cc-staff .ccs-today .tp-card .ccs-mini { padding: 8px 12px 8px 16px; }
+  #cc-staff .ccs-kcard { padding: 16px; }
+  #cc-staff .ccs-kpis-k { margin-bottom: 16px; }
+}
+@media (max-width: 759px) {
+  #cc-staff .ccs-kpis-k .ccs-kpi { padding: 8px 12px; }
+  #cc-staff .ccs-panel-card.tp-card { padding: 12px; }
+}
+/* Calm, consistent movement: colour and shadow ease in 150 ms; nothing jumps or slides */
+#cc-staff .ccs-btn, #cc-staff .ccs-chip, #cc-staff .ccs-tab, #cc-staff .ccs-secbtn, #cc-staff .ccs-card, #cc-staff .ccs-mini, #cc-staff .ccs-kpi, #cc-staff .ccs-kcard, #cc-staff .ccs-daycell, #cc-staff .sl-cell, #cc-staff .ccs-nav-item {
+  transition: background-color .15s ease, border-color .15s ease, box-shadow .15s ease, color .15s ease;
+}
+#cc-staff .ccs-mini:hover, #cc-staff .ccs-kpi:hover, #cc-staff .ccs-daycell:hover { border-color: #B8C4B0; }
+@media (prefers-reduced-motion: reduce) { #cc-staff *, #cc-staff *::before, #cc-staff *::after { transition: none !important; animation: none !important; } }
+@media (max-width: 759px) {
+  #cc-staff .ccs-head:has(+ .ccs-toolbar), #cc-staff .ccs-head:has(+ .ccs-calbar) { margin-bottom: 8px; }
+  #cc-staff .ccs-toolbar { margin: 0 0 8px; gap: 8px; }
+  #cc-staff .ccs-calbar { margin-bottom: 8px; }
+  #cc-staff .ccs-calfilt { margin-bottom: 16px; }
+  #cc-staff .ccs-kpis-row .ccs-kpi { padding: 8px 12px; }
+  #cc-staff .ccs-kpis-k { margin-bottom: 8px; }
+  #cc-staff .kp-bar .ccs-secbar { margin-bottom: 8px; }
+  #cc-staff .ccs-kcard { padding: 12px; }
+}
