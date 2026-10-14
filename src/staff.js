@@ -196,7 +196,13 @@
   function view() {
     var m = document.getElementById('ccs-main'); if (!m) return;
     var keepFocus = captureFocus(m);
-    viewInner(m); restoreFocus(keepFocus); saveDraft();
+    viewInner(m); restoreFocus(keepFocus); saveDraft(); markMore(m);
+  }
+  // Tab rows that scroll sideways get a soft fade at the edge that still has more to show
+  function moreState(el) { var r = el.scrollWidth - el.clientWidth - el.scrollLeft > 4; el.classList.toggle('has-more', r); }
+  function markMore(m) {
+    [].slice.call(m.querySelectorAll('.ccs-tabs, .ccs-secbar, .ccs-segs')).forEach(moreState);
+    if (!markMore.on) { markMore.on = 1; document.addEventListener('scroll', function (e) { var t = e.target; if (t && t.classList && (t.classList.contains('ccs-tabs') || t.classList.contains('ccs-secbar') || t.classList.contains('ccs-segs'))) moreState(t); }, true); window.addEventListener('resize', function () { var mm = document.getElementById('ccs-main'); if (mm) markMore(mm); }); }
   }
   // One page header on every screen (UI refinement Batch 1): title on the left, New order alone at the top right,
   // and any search, filters or tools in one toolbar row underneath. Phones use the New order button in the bottom bar.
@@ -429,11 +435,10 @@
     if (counts.overdue || S.filter === 'overdue') chips.push(['overdue', 'Overdue', counts.overdue]);
     chips.push(['deposit', 'Payments due', null], ['recent', 'All, 45 days back and ahead', null]);
     if (S.filter === 'day' && S.day) chips.push(['day', dayLabel(S.day), null]);
-    var h = '<div class="ccs-head"><div><h1 class="ccs-title">Cake orders</h1><p class="ccs-sub">' + esc(nice(t, true)) + '</p></div>' +
+    var h = '<div class="ccs-head"><div><h1 class="ccs-title">Cake orders</h1><p class="ccs-sub">' + esc(nice(t, true)) + '</p>' + (S.loaded ? freshLine(S.ordAt, S.ordFails, 'reload-orders') : '') + '</div>' +
       '<input class="ccs-input ccs-search" id="ccs-q" aria-label="Search orders" type="search" placeholder="Name, mobile or order number" value="' + esc(S.q) + '"></div>' +
       '<div class="ccs-tabs" role="group" aria-label="Filter">' + chips.map(function (c) { return '<button type="button" class="ccs-tab" data-act="filter" data-v="' + c[0] + '" aria-pressed="' + (S.filter === c[0] && !S.q) + '">' + c[1] + (c[2] != null ? '<span class="ccs-n">' + c[2] + '</span>' : '') + '</button>'; }).join('') + '</div>';
     if (!S.loaded) return h + (S.ordErr ? loadErr(S.ordErr, 'reload-orders') : '<p class="ccs-loading">Loading orders…</p>');
-    h += freshLine(S.ordAt, S.ordFails, 'reload-orders');
     var list = filtered();
     if (S.q && !list.length && S.older && S.older.q === S.q.trim() && (S.older.loading || S.older.rows.length)) return h + '<p class="ccs-day">Recent orders</p><p class="ccs-hint">No recent orders match.</p>' + olderHtml();
     if (!list.length) {
@@ -460,18 +465,17 @@
   function miniRow(o, showTime) {
     var i = firstItem(o), c = o.customers, st = STATUS[o.order_status] || ['', 'off'];
     return '<button type="button" class="ccs-mini k-' + st[1] + (isOverdue(o) || o.has_dietary ? ' is-red' : '') + '" data-act="open-order" data-id="' + o.id + '">' +
-      '<span class="ccs-mini-t">' + (showTime ? esc(t12(o.required_time)) : esc(nice(o.required_date))) + '</span>' +
+      '<span class="ccs-mini-t">' + (showTime ? esc(t12(o.required_time)) : esc(nice(o.required_date)) + '<small>' + esc(t12(o.required_time)) + '</small>') + '</span>' +
       '<span class="ccs-mini-m"><b>' + esc(cakeLine(i)) + '</b><span>' + esc(c ? c.full_name : '') + ' · ' + esc(o.reference) + '</span>' + nextHtml(o) + '</span>' +
       '<span class="ccs-mini-r">' + (o.order_status === 'confirmed' ? stagePill(o.production_status) : pill(o.order_status, o.fulfilment_method)) + ((o.order_status === 'confirmed' || o.order_status === 'awaiting_deposit') && o.payment_status !== 'paid' && can('manager', 'finance', 'front_of_house') ? payPill(o.payment_status) : '') + (o.fulfilment_method === 'delivery' ? '<span class="ccs-pill s-info">Delivery</span>' : '') + (o.has_dietary ? '<span class="ccs-pill s-alert">Dietary or allergy</span>' : '') + '</span></button>';
   }
   function todayView() {
     var t = today(), wkEnd = addDays(t, 6), money_ = can('manager', 'finance', 'front_of_house');
     var first = ((S.me && S.me.full_name) || '').trim().split(' ')[0];
-    var h = '<div class="ccs-dash-head"><div><p class="ccs-eyebrow">' + esc(nice(t, true)) + '</p><h1 class="ccs-title">' + greet() + (first ? ', ' + esc(first) : '') + '</h1></div>' +
+    var h = '<div class="ccs-dash-head"><div><p class="ccs-eyebrow">' + esc(nice(t, true)) + '</p><h1 class="ccs-title">' + greet() + (first ? ', ' + esc(first) : '') + '</h1>' + (S.loaded ? freshLine(S.ordAt, S.ordFails, 'reload-orders') : '') + '</div>' +
       (can('manager', 'front_of_house') ? '<button type="button" class="ccs-btn ccs-btn-hero ccs-new" data-tab="new">' + NAV_ICON['new'] + 'New order</button>' : '') + '</div>';
     if (draftHasContent() && can('manager', 'front_of_house')) h += '<div class="ccs-note ccs-draftbar"><span>Unfinished order' + (draftWho() ? ' for ' + esc(draftWho()) : '') + '.</span><button type="button" class="ccs-btn ccs-ghost" data-tab="new">Continue it</button></div>';
     if (!S.loaded) return h + (S.ordErr ? loadErr(S.ordErr, 'reload-orders') : '<p class="ccs-loading">Loading today…</p>');
-    h += freshLine(S.ordAt, S.ordFails, 'reload-orders');
     if (S.mir && can('manager') && (S.mir.state === 'attention' || S.mir.state === 'not_set_up')) h += '<p class="ccs-note ccs-mirnote">' + (S.mir.state === 'not_set_up' ? 'The backup Google Sheet is not set up yet.' : 'The backup Google Sheet has not updated since ' + esc(when(S.mir.last_ack_at) || 'it was set up') + '.') + ' <button type="button" class="ccs-link" data-tab="settings">Check backup</button></p>';
     var overdue = S.orders.filter(isOverdue).sort(function (a, b) { return (a.required_date + a.required_time) < (b.required_date + b.required_time) ? -1 : 1; });
     if (overdue.length && can('manager', 'front_of_house', 'finance')) h += '<section class="ccs-panel-card ccs-overdue tp-card" aria-label="Overdue"><div class="ccs-card-head"><h2>Overdue (' + overdue.length + ')</h2>' + (overdue.length > 3 ? '<button type="button" class="ccs-link" data-act="goto" data-v="overdue">See all ' + overdue.length + '</button>' : '') + '</div><p class="ccs-hint">Hand over, cancel or change the date.</p><div class="ccs-minis">' + overdue.slice(0, 3).map(function (o) { return miniRow(o, false); }).join('') + '</div></section>';
@@ -1072,11 +1076,10 @@
   }
   function kitchenView() {
     var K = S.kit, t = today();
-    var h = '<div class="ccs-head"><div><h1 class="ccs-title">Kitchen</h1><p class="ccs-sub">' + esc(nice(t, true)) + '. Confirmed cakes only.</p></div>' +
+    var h = '<div class="ccs-head"><div><h1 class="ccs-title">Kitchen</h1><p class="ccs-sub">' + esc(nice(t, true)) + '. Confirmed cakes only.</p>' + (K.loaded ? freshLine(K.at, K.fails, 'k-reload') : '') + '</div>' +
       '<div class="ccs-chips ccs-segs" role="group" aria-label="Range">' + [[2, 'Today and tomorrow'], [7, 'Next 7 days']].map(function (c) { return '<button type="button" class="ccs-chip" data-act="k-range" data-v="' + c[0] + '" aria-pressed="' + (K.days === c[0]) + '">' + c[1] + '</button>'; }).join('') + '</div>' +
       '<button type="button" class="ccs-chip ccs-kdone-chip" data-act="k-done" aria-pressed="' + !!K.showDone + '">Show handed over</button></div>';
     if (!K.loaded) return h + (K.err ? loadErr(K.err, 'k-reload') : '<p class="ccs-loading">Loading the kitchen board…</p>');
-    h += freshLine(K.at, K.fails, 'k-reload');
     var rows = K.data.orders || [];
     var groups = {}; KCOLS.forEach(function (c) { groups[c[0]] = []; });
     rows.forEach(function (r) {
@@ -1088,8 +1091,7 @@
     h += '<div class="ccs-kpis ccs-kpis-k">' +
       '<div class="ccs-kpi"><span class="ccs-kpi-l">Cakes to finish</span><b class="ccs-kpi-n">' + todo + '</b><span class="ccs-kpi-s">' + (K.days === 2 ? 'Today and tomorrow' : 'Next 7 days') + '</span></div>' +
       '<div class="ccs-kpi' + (late ? ' t-late' : '') + '"><span class="ccs-kpi-l">Running late</span><b class="ccs-kpi-n">' + late + '</b><span class="ccs-kpi-s">' + (late ? 'Past due and not ready' : 'None') + '</span></div>' +
-      '<div class="ccs-kpi"><span class="ccs-kpi-l">Quality check</span><b class="ccs-kpi-n">' + groups.qc.length + '</b><span class="ccs-kpi-s">Needs a name to pass</span></div>' +
-      '<div class="ccs-kpi t-good"><span class="ccs-kpi-l">Ready</span><b class="ccs-kpi-n">' + groups.ready.length + '</b><span class="ccs-kpi-s">Waiting for handover</span></div></div>';
+      '</div>';
     if (!rows.length) return h + '<div class="ccs-empty"><b>No confirmed cakes in this range.</b><span>Cakes appear here once the counter confirms them.</span></div>';
     // Phones: one column at a time. Tablets: four columns that each fit the screen; Handed over shows on request (always on wide screens)
     var curK = secCur('kitP', KCOLS.map(function (c) { return c[0]; }), groups.qc.length ? 'qc' : groups.prog.length ? 'prog' : 'start');
@@ -1617,7 +1619,7 @@
         return '<tr' + (D.product === p.code ? ' class="is-mine"' : '') + '><th scope="row">' + esc(p.name) + '</th>' + inches.map(function (n) {
           var z = p.sizes.filter(function (q) { return q.inch === n; })[0]; if (!z) return '<td></td>';
           var on = D.product === p.code && D.size === n;
-          return '<td><button type="button" class="sl-cell" data-act="n-cell" data-v="' + esc(p.code) + '|' + n + '" aria-pressed="' + on + '" aria-label="' + esc(p.name) + ', ' + n + ' inch, ' + cents(z.price) + '">' + cents(z.price) + '</button></td>';
+          return '<td><button type="button" class="sl-cell" data-act="n-cell" data-v="' + esc(p.code) + '|' + n + '" aria-pressed="' + on + '" aria-label="' + esc(p.name) + ', ' + n + ' inch, ' + cents(z.price) + '">' + cents(z.price).replace(/\.00$/, '') + '</button></td>';
         }).join('') + '</tr>';
       }).join('') + '</tbody></table></div>';
   }
@@ -1955,7 +1957,7 @@
 
   function calendarView() {
     var c = S.cal;
-    var h = '<div class="ccs-head"><div><h1 class="ccs-title">Calendar</h1><p class="ccs-sub">By pickup or delivery date. Cancelled orders are left out.</p></div></div>';
+    var h = '<div class="ccs-head"><div><h1 class="ccs-title">Calendar</h1><p class="ccs-sub">By pickup or delivery date. Cancelled orders are left out.</p>' + (c.view !== 'year' && !c.err ? freshLine(c.at, c.fails, 'cal-retry') : '') + '</div></div>';
     h += '<div class="ccs-calbar"><div class="ccs-calnav"><button type="button" class="ccs-btn ccs-ghost ccs-small" data-act="cal-today">Today</button>' +
       '<button type="button" class="ccs-calarrow" data-act="cal-move" data-v="-1" aria-label="Previous ' + c.view + '"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.4 5.4 14 4l-8 8 8 8 1.4-1.4L8.8 12z"/></svg></button>' +
       '<button type="button" class="ccs-calarrow" data-act="cal-move" data-v="1" aria-label="Next ' + c.view + '"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.6 18.6 10 20l8-8-8-8-1.4 1.4 6.6 6.6z"/></svg></button>' +
@@ -1965,7 +1967,6 @@
     else h += '<div class="ccs-calfilt"><label class="ccs-show" for="cal-status"><span>Show</span><select class="ccs-input" id="cal-status">' + CAL_STATUS.map(function (s) { return '<option value="' + s[0] + '"' + (c.status === s[0] ? ' selected' : '') + '>' + s[1] + '</option>'; }).join('') + '</select></label>' +
       '<label class="ccs-show" for="cal-type"><span>Type</span><select class="ccs-input" id="cal-type">' + [['all', 'Collections and deliveries'], ['collection', 'Collections only'], ['delivery', 'Deliveries only']].map(function (s) { return '<option value="' + s[0] + '"' + (c.type === s[0] ? ' selected' : '') + '>' + s[1] + '</option>'; }).join('') + '</select></label></div>';
     var body = c.view === 'year' ? calYear() : (c.err ? calErrBox('cal-retry') : (c.loading && !c.rows.length ? '<p class="ccs-loading">Loading the calendar…</p>' : (c.view === 'month' ? calMonth() : c.view === 'week' ? calWeek() : calDayView())));
-    if (c.view !== 'year' && !c.err) h += freshLine(c.at, c.fails, 'cal-retry');
     return h + '<div class="ccs-calwrap"><div class="ccs-calbody">' + body + '</div><aside class="ccs-calside" aria-label="Selected day">' + (c.view === 'day' && !c.pre ? '<div class="ccs-calhint"><b>Select an order</b><p class="ccs-hint">A short preview appears here, with Open order and Amend order.</p></div>' : dayPanel()) + '</aside></div>';
   }
 

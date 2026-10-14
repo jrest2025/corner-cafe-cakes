@@ -1503,3 +1503,45 @@ body.ccs-is-off #cc-staff .ccs-side { top: var(--ccs-offh, 44px); }
 #cc-staff .ccs-err { color: #B42318; font-weight: 600; }
 /* Tab rows never get squeezed by a long panel (they scroll sideways, so the browser allowed them to shrink to nothing) */
 #cc-staff .ccs-tabs, #cc-staff .ccs-secbar, #cc-staff .ccs-segs { flex-shrink: 0; min-height: 54px; }
+
+/* ===== Cockpit refinement, Pass One: structure (counter screens) ===== */
+/* Status line: "Updated · Refresh" sits under the page title on every screen */
+#cc-staff .ccs-head .ccs-fresh, #cc-staff .ccs-dash-head .ccs-fresh { margin: 4px 0 0; }
+/* Today: three bands with clear gaps (summary, the work, the week ahead) */
+@media (min-width: 760px) {
+  #cc-staff .ccs-kpis-row { margin-bottom: 16px; }
+  #cc-staff .ccs-today .tp-top { gap: 16px; }
+  #cc-staff .ccs-today .tp-lower { margin-top: 24px; }
+  #cc-staff .ccs-today .tp-barB .ccs-secbar { margin-bottom: 8px; }
+}
+/* The Next line is the instruction staff act on: it wraps, never cut short */
+#cc-staff .ccs-mini-m .ccs-next { white-space: normal; overflow: visible; text-overflow: clip; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+/* Needs attention: date with the time underneath */
+#cc-staff .ccs-mini-t small { display: block; font-size: 14px; font-weight: 500; color: #526176; margin-top: 2px; }
+/* New order: the slip preview is supporting information, the form is the work */
+@media (min-width: 760px) {
+  #cc-staff .sl-live { border: 1px solid #C9D1DB; box-shadow: 0 1px 2px rgba(31,35,28,.05); font-size: 16px; }
+  #cc-staff .sl-live::before { content: "Slip preview"; display: block; padding: 8px 14px; font-size: 13px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: #526176; background: #F7F9FB; border-bottom: 1px solid #E6EBF1; }
+  #cc-staff .sl-live .sl-band { padding: 8px 12px; }
+  #cc-staff .sl-live .sl-logo svg { width: 80px; }
+}
+/* Price table: each price is a clear button with room around it */
+#cc-staff .sl-ptable td { padding: 4px; }
+#cc-staff .sl-cell, #cc-staff .sl-wrap .sl-cell { min-height: 52px; border-radius: 8px; background: #F4F7F1; border: 1px solid #DCE6D3; font-variant-numeric: tabular-nums; }
+#cc-staff .sl-cell:hover { background: #E8F0E1; }
+@media (max-width: 759px) { #cc-staff .sl-ptable td { padding: 3px; } #cc-staff .sl-cell, #cc-staff .sl-wrap .sl-cell { min-height: 48px; font-size: 16px; padding: 4px 2px; } }
+/* Kitchen: two summary tiles only (to finish, running late); the columns carry their own counts */
+@media (min-width: 760px) { #cc-staff .ccs-kpis-k { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 560px; } }
+/* Calendar: filters in one compact row */
+#cc-staff .ccs-calfilt .ccs-show select { min-width: 0; width: auto; min-height: 44px; }
+@media (max-width: 759px) { #cc-staff .ccs-calfilt .ccs-show select { width: 100%; } }
+/* Tab rows that scroll: a fade at the edge that still has more */
+#cc-staff .ccs-tabs.has-more, #cc-staff .ccs-secbar.has-more, #cc-staff .ccs-segs.has-more { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent); }
+#cc-staff .ccs-dash-head { align-items: flex-start; }
+#cc-staff .sl-wrap .sl-ptable, #cc-staff .sl-ptable { table-layout: fixed; }
+#cc-staff .sl-ptable thead th:first-child, #cc-staff .sl-ptable tbody th { width: 34%; }
+@media (max-width: 759px) { #cc-staff .sl-ptable thead th:first-child, #cc-staff .sl-ptable tbody th { width: 30%; } }
+#cc-staff .ccs-kpis-k { margin-bottom: 12px; }
+@media (max-width: 759px) { #cc-staff .ccs-mini-t small { display: inline; margin: 0; font-size: inherit; } #cc-staff .ccs-mini-t small::before { content: " · "; } }
+@media (min-width: 760px) { #cc-staff .ccs-calfilt { margin-bottom: 12px; } }
+@media (min-width: 760px) { #cc-staff .sl-cell, #cc-staff .sl-wrap .sl-cell { min-height: 64px; } }
