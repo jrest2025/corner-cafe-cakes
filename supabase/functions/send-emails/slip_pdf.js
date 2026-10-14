@@ -96,8 +96,10 @@ async function renderSlip(PDFLib, { snapshot: s, slip, version, changes, printed
   };
   const when = `${longDate(s.date)}, ${t12(s.time)}`, h1 = Math.max(cellH(half, when, 14), cellH(half, readyBy, 14));
   cell(M, y, half, dl ? "DELIVERY" : "PICKUP", when, 14, true, h1); cell(M + half, y, half, "READY BY", readyBy, 14, true, h1); y -= h1;
-  const cake = (s.variant || s.cake || "") + (s.variant && s.cake && s.variant !== s.cake ? ` (${s.cake})` : "") + (s.finish === "custom" ? " · Custom design" : "");
-  const sizeTxt = s.size ? `${s.size} inch` + (s.quantity > 1 ? ` × ${s.quantity} cakes` : "") : "";
+  // A custom cake that is not on the menu has no tin size: show its flavour and the size or servings agreed
+  const req = !s.size && s.cake === "Custom cake";
+  const cake = req ? "Custom cake" + (s.variant ? `, ${s.variant}` : "") : (s.variant || s.cake || "") + (s.variant && s.cake && s.variant !== s.cake ? ` (${s.cake})` : "") + (s.finish === "custom" ? " · Custom design" : "");
+  const sizeTxt = s.size ? `${s.size} inch` + (s.quantity > 1 ? ` × ${s.quantity} cakes` : "") : req ? (s.serves || "") + (s.quantity > 1 ? ` × ${s.quantity} cakes` : "") : "";
   const h2 = Math.max(cellH(half, cake, 13), cellH(half, sizeTxt, 13));
   cell(M, y, half, "CAKE", cake, 13, false, h2); cell(M + half, y, half, "SIZE", sizeTxt, 13, false, h2); y -= h2;
   const diet = s.has_dietary ? [].concat(s.dietary || [], s.dietary_note ? [s.dietary_note] : []).join(", ") || "See order notes" : "None given";

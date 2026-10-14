@@ -45,6 +45,7 @@
         else if (a === 'note') { o.internal_notes = (o.internal_notes ? o.internal_notes + '\n' : '') + args.p_note; ev(o, 'note', { note: args.p_note }); }
         return ok({ status: o.order_status, version: o.version });
       }
+      if (fn === 'staff_set_quote') { o.final_total = Number(args.p_price); o.estimate_total = o.final_total; o.order_status = 'awaiting_approval'; o.version++; ev(o, 'quoted', { price: Number(args.p_price), total: Number(args.p_price) }); return ok({ status: o.order_status, version: o.version, total: o.final_total, can_email: false }); }
       if (fn === 'staff_record_payment') {
         o.payments.push({ amount: Number(args.p_amount), method: args.p_method, kind: args.p_kind, paid_at: now(), reference: args.p_reference || null }); o.version++;
         var bal = Math.max(total(o) - paid(o), 0); o.payment_status = bal <= 0 ? 'paid' : 'deposit_paid';

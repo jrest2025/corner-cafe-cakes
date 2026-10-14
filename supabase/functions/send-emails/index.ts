@@ -131,7 +131,12 @@ function staffNewOrder(d: any): { subject: string; html: string } {
   return { subject, html };
 }
 
-function cakeLine(i: any) { return `${i.variant || i.product_name}, ${i.size_inch} inch${i.quantity > 1 ? ` × ${i.quantity}` : ""}`; }
+// A custom cake that is not on the menu has no product and no tin size: it shows its flavour and the size or servings agreed
+function isRequest(i: any) { return !i.product_id && !i.size_inch; }
+function cakeLine(i: any) {
+  if (isRequest(i)) return ["Custom cake", i.variant, i.serves_label].filter(Boolean).join(", ") + (i.quantity > 1 ? ` × ${i.quantity}` : "");
+  return `${i.variant || i.product_name}, ${i.size_inch} inch${i.quantity > 1 ? ` × ${i.quantity}` : ""}`;
+}
 function cakeRows(d: any, staff: boolean): [string, string][] {
   const o = d.order, i = d.item ?? {}, c = d.customer;
   const rows: [string, string][] = [
@@ -171,8 +176,19 @@ function build(kind: string, d: any): { subject: string; html: string } {
             : `Your cake order is with our cake team. We'll check availability and confirm it with you shortly.`) +
           p(`<strong>Your order isn't confirmed yet.</strong> We'll ${c.preferred_contact === "whatsapp" ? "message you on WhatsApp or " : ""}email you once it is.`) +
           table(cakeRows(d, false)) +
-          p(`${custom ? "Starting price" : "Price"}: <strong>${money(o.estimate_total)}</strong>${custom ? " before your custom design." : "."}`) +
+          (isRequest(i) ? "" : p(`${custom ? "Starting price" : "Price"}: <strong>${money(o.estimate_total)}</strong>${custom ? " before your custom design." : "."}`)) +
           p(`Questions or changes? Reply to this email or call ${esc(loc.phone)} and quote ${esc(o.reference)}.`)),
+      };
+    }
+    case "guest_quote": {
+      const dl = o.fulfilment_method === "delivery";
+      return {
+        subject: `The price for your cake, ${first(c.full_name)} (${o.reference})`,
+        html: layout(loc, "Here's the price for your cake",
+          p(`Thanks for your patience, ${esc(first(c.full_name))}. Here are the details and the price for your cake.`) +
+          table([...cakeRows(d, false), ...(dl && Number(o.delivery_fee) > 0 ? [["Delivery", money(o.delivery_fee)] as [string, string]] : []), ["Price", money(total)]]) +
+          p(`<strong>Your cake isn't booked yet.</strong> To go ahead, reply to this email or call ${esc(loc.phone)} and let us know. We'll confirm it with you once we hear back.`) +
+          p(`Want to change something? Just tell us and we'll update the details and the price.`)),
       };
     }
     case "guest_deposit_needed":

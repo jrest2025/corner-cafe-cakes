@@ -30,7 +30,7 @@ async def main():
         cards = await pg.evaluate("[].slice.call(document.querySelectorAll('.ccs-card')).map(function(c){var n=c.querySelector('.ccs-next');return n?n.textContent:''})")
         check('every order needing action shows a Next line', cards and all(c.startswith('Next:') for c in cards), cards)
         check('review order: check it, then confirm', any('Check it, then confirm' in c for c in cards), cards)
-        check('quote order: give a price, then confirm', any('Give a price, then confirm' in c for c in cards), cards)
+        check('quote order: add the price', any('Add the price' in c for c in cards), cards)
         nx = await pg.evaluate("(function(){var n=document.querySelector('.ccs-card .ccs-next');return n?[n.tagName, n.className]:null})()")
         check('Next line is text, separate from the status pills', nx and nx[0] == 'SPAN' and 'ccs-pill' not in nx[1], nx)
         await js(pg, '[data-act="filter"][data-v="upcoming"]')

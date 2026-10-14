@@ -1662,3 +1662,74 @@ body.ccs-is-off #cc-staff .ccs-side { top: var(--ccs-offh, 44px); }
 /* New order: what to ask the customer about the look */
 #cc-staff .ccs-asklist { margin: 4px 0 6px; padding-left: 20px; line-height: 1.5; }
 #cc-staff .ccs-asklist li { margin: 0; }
+/* Cake design references: tidy thumbnails on the order and the kitchen board */
+#cc-staff .ccs-refs h3 { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+#cc-staff .ccs-refs-n { font-size: 13px; font-weight: 500; color: #526176; }
+#cc-staff .ccs-refgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px; margin: 6px 0 8px; }
+#cc-staff .ccs-ref { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+#cc-staff .ccs-refbtn { position: relative; display: block; width: 100%; aspect-ratio: 1 / 1; padding: 0; border: 1px solid #d7dde5; border-radius: 10px; background: #f3f5f8; overflow: hidden; cursor: zoom-in; }
+#cc-staff .ccs-refbtn img { width: 100%; height: 100%; object-fit: contain; display: block; }
+#cc-staff .ccs-refbtn:hover, #cc-staff .ccs-refbtn:focus-visible { border-color: #111; box-shadow: 0 0 0 2px #111; outline: none; }
+#cc-staff .ccs-ref-bad { display: none; position: absolute; inset: 0; align-items: center; justify-content: center; padding: 8px; font-size: 12px; color: #526176; text-align: center; }
+#cc-staff .ccs-refbtn.is-broken img { display: none; }
+#cc-staff .ccs-refbtn.is-broken .ccs-ref-bad { display: flex; }
+#cc-staff .ccs-ref-rm { align-self: flex-start; font-size: 14px; min-height: 40px; padding: 0 2px; }
+#cc-staff .ccs-ph-view { display: block; width: 100%; height: 100%; padding: 0; border: 0; background: none; cursor: zoom-in; }
+#cc-staff .ccs-ph-view img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* Cake photo viewer */
+.ccs-lb { position: fixed; inset: 0; z-index: 2147483000; display: none; flex-direction: column; background: #0e0f11; color: #fff; font-family: Figtree, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
+.ccs-lb.is-open { display: flex; }
+.ccs-lb .lb-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: max(10px, env(safe-area-inset-top)) 14px 10px; }
+.ccs-lb .lb-count { font-size: 16px; font-weight: 600; letter-spacing: 0.2px; min-width: 64px; }
+.ccs-lb .lb-tools { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.ccs-lb .lb-btn { min-height: 44px; padding: 0 16px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.28); background: rgba(255, 255, 255, 0.08); color: #fff; font: 600 15px/1 Figtree, Arial, sans-serif; cursor: pointer; }
+.ccs-lb .lb-btn:hover:not(:disabled) { background: rgba(255, 255, 255, 0.18); }
+.ccs-lb .lb-btn:disabled { opacity: 0.38; cursor: default; }
+.ccs-lb .lb-btn:focus-visible, .ccs-lb .lb-nav:focus-visible, .ccs-lb .lb-thumb:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+.ccs-lb .lb-close { background: #fff; color: #111; border-color: #fff; min-width: 96px; }
+.ccs-lb .lb-close:hover { background: #e9ecef !important; }
+.ccs-lb .lb-stage { position: relative; flex: 1 1 auto; min-height: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; }
+.ccs-lb .lb-img { max-width: calc(100% - 24px); max-height: calc(100% - 16px); width: auto; height: auto; object-fit: contain; transform-origin: center center; will-change: transform; cursor: zoom-in; }
+.ccs-lb.is-zoomed .lb-img { cursor: grab; }
+.ccs-lb .lb-img.lb-anim { transition: transform 0.18s ease-out; }
+.ccs-lb.is-loading .lb-img { opacity: 0; }
+.ccs-lb .lb-load { display: none; position: absolute; margin: 0; font-size: 16px; color: rgba(255, 255, 255, 0.8); }
+.ccs-lb.is-loading .lb-load { display: block; }
+.ccs-lb .lb-err { position: absolute; display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; padding: 20px; }
+.ccs-lb .lb-err[hidden] { display: none; }
+.ccs-lb .lb-err p { margin: 0; font-size: 16px; }
+.ccs-lb .lb-nav { position: absolute; top: 50%; transform: translateY(-50%); width: 56px; height: 56px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.3); background: rgba(20, 22, 25, 0.7); color: #fff; font: 400 34px/1 Arial, sans-serif; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0 0 4px; }
+.ccs-lb .lb-prev { left: 12px; }
+.ccs-lb .lb-next { right: 12px; }
+.ccs-lb.is-single .lb-nav, .ccs-lb.is-single .lb-strip { display: none; }
+.ccs-lb .lb-zoom { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); padding: 4px 10px; border-radius: 999px; background: rgba(0, 0, 0, 0.6); font-size: 13px; opacity: 0; transition: opacity 0.2s; pointer-events: none; }
+.ccs-lb.is-zoomed .lb-zoom { opacity: 1; }
+.ccs-lb .lb-strip { display: flex; gap: 8px; overflow-x: auto; padding: 10px 14px max(12px, env(safe-area-inset-bottom)); justify-content: safe center; scrollbar-width: thin; }
+.ccs-lb .lb-thumb { flex: 0 0 auto; width: 64px; height: 64px; padding: 0; border-radius: 8px; border: 2px solid transparent; background: rgba(255, 255, 255, 0.08); overflow: hidden; cursor: pointer; opacity: 0.6; }
+.ccs-lb .lb-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ccs-lb .lb-thumb[aria-current="true"] { border-color: #fff; opacity: 1; }
+.ccs-lb .lb-thumb:hover { opacity: 1; }
+@media (max-width: 640px) {
+  .ccs-lb .lb-top { padding-left: 10px; padding-right: 10px; }
+  .ccs-lb .lb-tools { gap: 6px; }
+  .ccs-lb .lb-btn { min-height: 44px; padding: 0 12px; font-size: 14px; }
+  .ccs-lb [data-lb="in"], .ccs-lb [data-lb="out"] { display: none; }
+  .ccs-lb .lb-nav { width: 48px; height: 48px; font-size: 30px; }
+  .ccs-lb .lb-prev { left: 6px; }
+  .ccs-lb .lb-next { right: 6px; }
+  .ccs-lb .lb-thumb { width: 54px; height: 54px; }
+}
+@media (prefers-reduced-motion: reduce) { .ccs-lb .lb-img.lb-anim { transition: none; } }
+/* New order: the custom cake choice sits beside the price table heading */
+#cc-staff .sl-pickhead { display: flex; align-items: center; justify-content: space-between; gap: 8px 12px; flex-wrap: wrap; margin: 0 0 8px; }
+#cc-staff .sl-pickhead .sl-k { margin: 0; }
+#cc-staff .ccs-reqbtn { font-weight: 600; }
+#cc-staff p.sl-ask { margin: 10px 0 4px; padding: 10px 12px; border-left: 3px solid #111; background: #f6f7f9; border-radius: 6px; font-size: 14px; line-height: 1.45; color: #2b3542; }
+/* Wide screens: the custom cake choice sits beside the step title, so step 1 still fits without scrolling. Narrow: beside the table heading. */
+#cc-staff .sl-headreq { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
+#cc-staff .sl-bodyreq { display: none; }
+@container (max-width: 760px) {
+  #cc-staff .sl-headreq { display: none; }
+  #cc-staff .sl-bodyreq { display: inline-flex; }
+}

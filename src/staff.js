@@ -20,7 +20,9 @@
   function uuid() { return (crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) { var r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 3 | 8)).toString(16); })); }
   function digits(s) { return String(s || '').replace(/\D/g, ''); }
   function waLink(phone) { var d = digits(phone); if (d.length === 7) d = '679' + d; return 'https://wa.me/' + d; }
-  function cakeLine(i) { if (!i) return 'Cake'; return (i.variant || i.product_name) + ', ' + i.size_inch + ' inch' + (i.quantity > 1 ? ' × ' + i.quantity : ''); }
+  // A custom cake that is not on the menu has no product and no tin size: it shows its flavour and the size or servings
+  function isReq(i) { return !!i && !i.product_id && !i.size_inch && i.product_name === 'Custom cake'; }
+  function cakeLine(i) { if (!i) return 'Cake'; if (isReq(i)) return ['Custom cake', i.variant, i.serves_label].filter(Boolean).join(', ') + (i.quantity > 1 ? ' × ' + i.quantity : ''); return (i.variant || i.product_name) + ', ' + i.size_inch + ' inch' + (i.quantity > 1 ? ' × ' + i.quantity : ''); }
   function firstItem(o) { return (o.order_items && o.order_items[0]) || null; }
   function $(s) { return root.querySelector(s); }
   function val(id) { var el = document.getElementById(id); return el ? el.value : ''; }
@@ -412,8 +414,8 @@
   function nextStep(o) {
     var st = o.order_status, owing = o.payment_status !== 'paid', dl = o.fulfilment_method === 'delivery';
     if (st === 'awaiting_review') return ['Check it, then confirm', 'you'];
-    if (st === 'awaiting_quote') return ['Give a price, then confirm', 'you'];
-    if (st === 'awaiting_approval') return ['Waiting for the guest to reply', 'wait'];
+    if (st === 'awaiting_quote') return ['Add the price', 'you'];
+    if (st === 'awaiting_approval') return ['Waiting for the customer to agree the price, then Confirm order', 'wait'];
     if (st === 'awaiting_deposit') return ['Record the deposit', 'you'];
     if (st !== 'confirmed') return null;
     if (o.production_status !== 'ready') return ['Kitchen: ' + (STAGE_LABEL[o.production_status] || 'Not started').toLowerCase() + (owing ? '. Balance still owing' : ''), 'wait'];
@@ -435,7 +437,8 @@
     return '<button type="button" class="ccs-card k-' + st[1] + (late || o.has_dietary ? ' is-red' : '') + '" data-act="open-order" data-id="' + o.id + '">' +
       '<span class="ccs-when"><b>' + esc(nice(o.required_date) + (String(o.required_date).slice(0, 4) !== today().slice(0, 4) ? ' ' + String(o.required_date).slice(0, 4) : '')) + '</b><span>' + esc(t12(o.required_time)) + '</span></span>' +
       '<span class="ccs-what"><b>' + esc(cakeLine(i)) + '</b><span class="ccs-meta">' + esc(c ? c.full_name : 'Customer details hidden') + ' · ' + esc(o.reference) + ' · ' + esc(SOURCE_LABEL[o.source]) + (receivedAgo(o) ? ' · ' + esc(receivedAgo(o)) : '') + '</span><span class="ccs-tags">' + tags + '</span>' + nextHtml(o) + '</span>' +
-      '<span class="ccs-price">' + money(o.final_total != null ? o.final_total : o.estimate_total) + '<small>' + (o.final_total != null ? 'agreed' : (o.order_type === 'custom' ? 'from' : 'price')) + '</small></span></button>';
+      (o.order_type === 'custom' && o.final_total == null && !Number(o.estimate_total) ? '<span class="ccs-price">To price<small>custom cake</small></span></button>' :
+      '<span class="ccs-price">' + money(o.final_total != null ? o.final_total : o.estimate_total) + '<small>' + (o.final_total != null ? 'agreed' : (o.order_type === 'custom' ? 'from' : 'price')) + '</small></span></button>');
   }
   function ordersView() {
     var t = today(), counts = {
@@ -547,8 +550,9 @@
       if (r.data.customer_id) orderFuLoad(id);
       if (r.data.brief_version) slipLoad([id]);
       var att = r.data.order_attachments || [];
-      if (att.length) sb.storage.from('cake-references').createSignedUrls(att.map(function (a) { return a.storage_path; }), 900).then(function (u) {
-        if (u.data && S.sheet && S.sheet.id === id) { S.sheet.photos = u.data.map(function (x) { return x.signedUrl; }).filter(Boolean); renderSheet(); }
+      att = att.filter(function (a) { return !a.removed_at; }).sort(function (a, b) { return a.created_at < b.created_at ? -1 : 1; });
+      if (att.length) sb.storage.from('cake-references').createSignedUrls(att.map(function (a) { return a.storage_path; }), 3600).then(function (u) {
+        if (u.data && S.sheet && S.sheet.id === id) { S.sheet.photoIds = []; S.sheet.photos = []; u.data.forEach(function (x, k) { if (x.signedUrl) { S.sheet.photos.push(x.signedUrl); S.sheet.photoIds.push(att[k].id); } }); renderSheet(); }
       });
       if (r.data.customers) sb.from('orders').select('id', { count: 'exact', head: true }).eq('customer_id', r.data.customer_id).not('order_status', 'in', '(declined,cancelled)').then(function (c) {
         if (S.sheet && S.sheet.id === id) { S.sheet.custOrders = c.count; renderSheet(); }
@@ -643,7 +647,7 @@
     var dlv = o.fulfilment_method === 'delivery', gName = (c && c.full_name) || o.contact_name || '', gPhone = (c && c.phone) || o.contact_phone || '';
     h += '<div class="ccs-ostrip"><div><span>' + (dlv ? 'Delivery' : 'Collection') + '</span><b>' + esc(nice(o.required_date)) + ', ' + esc(t12(o.required_time)) + '</b></div>' +
       '<div><span>Guest</span><b>' + esc(gName) + '</b>' + (gPhone ? '<a href="tel:' + esc(digits(gPhone)) + '">' + esc(gPhone) + '</a>' : '') + '</div>' +
-      (can('manager', 'finance', 'front_of_house') ? '<div><span>Price</span><b>' + money(total) + '</b></div><div><span>Paid</span><b>' + money(paid) + '</b></div><div><span>To pay</span><b>' + money(bal) + '</b></div>' : '') + '</div>';
+      (can('manager', 'finance', 'front_of_house') ? '<div><span>Price</span><b>' + (o.order_type === 'custom' && o.final_total == null && !total ? 'To price' : money(total)) + '</b></div><div><span>Paid</span><b>' + money(paid) + '</b></div><div><span>To pay</span><b>' + money(bal) + '</b></div>' : '') + '</div>';
     if (o.has_dietary) h += '<div class="ccs-alert">Dietary or allergy: ' + esc([].concat(i.dietary || [], i.dietary_note ? [i.dietary_note] : []).join(', ') || 'see notes') + '</div>';
     var sst = o.order_status === 'confirmed' ? slipState(o.id) : null;
     if (sst && sst.failed) h += '<div class="ccs-alert" role="alert">' + esc(SLIP_FAIL) + ' Press Print kitchen slip to print slip v' + sst.v + ' here.</div>';
@@ -653,10 +657,13 @@
       kv('Finish', i.finish === 'custom' ? 'Custom design' : 'Standard finish') + kv('Design', i.design_description) +
       kv('Message', i.cake_message ? '“' + i.cake_message + '”' : '') + kv('Candles', i.candles) + kv('Occasion', i.occasion) + kv('Serves', i.serves_label) + kv('Notes', o.customer_notes) + '</dl>' +
       (can('manager', 'front_of_house') && OPEN.indexOf(o.order_status) > -1 ? '<button type="button" class="ccs-link" data-act="panel" data-v="candles">' + (i.candles ? 'Change candles' : 'Add candles') + '</button>' : '') +
-      (S.sheet.photos.length ? '<div class="ccs-photos">' + S.sheet.photos.map(function (u) { return '<a href="' + esc(u) + '" target="_blank" rel="noopener"><img src="' + esc(u) + '" alt="Reference photo"></a>'; }).join('') + '</div>' : ((o.order_attachments || []).length ? '<p class="ccs-hint">Loading reference photos…</p>' : '')) +
-      (can('manager', 'front_of_house') && OPEN.indexOf(o.order_status) > -1 ? phThumbs(S.sheet.addPh || [], 'o-phx') + (S.sheet.phErr ? '<p class="ccs-err" role="alert">' + esc(S.sheet.phErr) + '</p>' : '') +
-        ((i.finish === 'custom' || (o.order_attachments || []).length) && (o.order_attachments || []).length + phLive(S.sheet.addPh || []).length < 10 ? phPicker('o-photos', (o.order_attachments || []).length ? 'Add more photos' : 'Add inspiration photos', true) : '') +
-        (o.brief_version && (phLive(S.sheet.addPh || []).length || (S.phAdded || {})[o.id]) ? '<p class="ccs-hint">Slip v' + o.brief_version + ' was printed. After adding photos, print a new slip so the kitchen sees them.</p>' : '') : '') + '</section>';
+      '</section>';
+    var curAtt = (o.order_attachments || []).filter(function (a) { return !a.removed_at; }).length, phEdit = can('manager', 'front_of_house') && OPEN.indexOf(o.order_status) > -1;
+    var phAdd = phEdit ? phThumbs(S.sheet.addPh || [], 'o-phx') + (S.sheet.phErr ? '<p class="ccs-err" role="alert">' + esc(S.sheet.phErr) + '</p>' : '') +
+        ((i.finish === 'custom' || curAtt) && curAtt + phLive(S.sheet.addPh || []).length < 10 ? phPicker('o-photos', curAtt ? 'Add more photos' : 'Add inspiration photos', true) : '') +
+        (o.brief_version && (phLive(S.sheet.addPh || []).length || (S.phAdded || {})[o.id]) ? '<p class="ccs-hint">Slip v' + o.brief_version + ' was printed. After changing photos, print a new slip so the kitchen sees them.</p>' : '') : '';
+    h += refGallery(S.sheet.photos, { loading: curAtt > 0, remove: phEdit, extra: phAdd, note: phEdit ? 'Remove a photo the customer has replaced, so the kitchen only sees current ones.' : '',
+      empty: phAdd ? '<section class="ccs-box ccs-refs"><h3>Cake design references</h3><p class="ccs-hint">No photos on this order.</p>' + phAdd + '</section>' : '' });
     var deliv = o.fulfilment_method === 'delivery', closedSt = ['completed', 'declined', 'cancelled'].indexOf(o.order_status) > -1;
     cut.push(['when', h.length]);
     h += '<section class="ccs-box"><h3>' + (deliv ? 'Delivery' : 'Collection') + '</h3><p class="ccs-big">' + esc(nice(o.required_date, true)) + ' at ' + esc(t12(o.required_time)) + '</p>' +
@@ -712,7 +719,7 @@
   }
   function kv(k, v) { return v ? '<dt>' + esc(k) + '</dt><dd>' + esc(v) + '</dd>' : ''; }
   // ---------- customer emails on an order (status only) ----------
-  var MAIL_KIND = { guest_received: 'Order received', guest_confirmed: 'Order confirmed', guest_deposit_needed: 'Deposit needed', guest_declined: 'Order declined', guest_cancelled: 'Order cancelled', guest_thanks: 'Thank you and review' };
+  var MAIL_KIND = { guest_received: 'Order received', guest_quote: 'Price for the cake', guest_confirmed: 'Order confirmed', guest_deposit_needed: 'Deposit needed', guest_declined: 'Order declined', guest_cancelled: 'Order cancelled', guest_thanks: 'Thank you and review' };
   function mailLoad(id) {
     var sh = S.sheet; sh.mail = { loading: true };
     sb.rpc('staff_order_emails', { p_order: id }).then(function (r) {
@@ -778,6 +785,9 @@
       brief_printed: 'Kitchen slip v' + d.version + (d.new_version ? ' printed' : ' reprinted') + (d.changes && d.changes.length ? ' (changed: ' + d.changes.join(', ') + ')' : ''),
       fulfilment: d.method === 'delivery' ? 'Set to delivery, ' + (d.zone || '') + ', fee ' + money(d.fee) : 'Set to collection',
       assigned: d.to ? 'Assigned to ' + d.to : 'Assignment cleared', amended: 'Amended, revision ' + d.revision + (d.reason ? ' (' + d.reason + ')' : ''), kitchen_ack: 'Kitchen acknowledged the changes', candles_changed: 'Candles ' + (d.to ? (d.from ? 'changed to “' + d.to + '”' : 'added: “' + d.to + '”') : 'removed'), deleted: 'Deleted', restored: 'Restored after being deleted', imported: 'Brought in from the Google Sheet', sheet_linked: 'Linked to its Google Sheet row' };
+    map.quoted = 'Price set to ' + money(d.price) + (d.total != null && Number(d.total) !== Number(d.price) ? ' (total ' + money(d.total) + ' with delivery)' : '') + (d.size ? ', size: ' + d.size : '') + (d.flavour ? ', flavour: ' + d.flavour : '');
+    map.photo_removed = 'Photo removed from the order' + (d.file ? ' (' + d.file + ')' : '');
+    map.quote_sent = 'Price emailed to ' + (d.to || 'the customer');
     map.email_resent = 'Customer email sent again (' + (MAIL_KIND[d.kind] || d.kind || 'latest') + ') to ' + (d.to || '');
     if (e.kind === 'collected') map.collected = (d.method === 'delivery' ? 'Delivered' : 'Collected') + (d.to ? ', received by ' + d.to : '');
     return (map[e.kind] || e.kind) + (d.note ? ': ' + d.note : '') + ' · ' + who;
@@ -788,6 +798,26 @@
     var p = S.panel, err = S.panelErr ? '<p class="ccs-err">' + esc(S.panelErr) + '</p>' : '', st = o.order_status;
     S.sheet.danger = [];
     if (p === 'amend') return amendPanel(o, total, paid);
+    if (p === 'quote') {
+      var qi = (o.order_items || [])[0] || {}, qreq = isReq(qi), cakeOnly = o.final_total != null ? Number(o.final_total) - Number(o.delivery_fee || 0) : null;
+      return '<div class="ccs-panel ccs-quote"><b>' + (o.final_total != null ? 'Change the price' : 'Add the price') + '</b>' +
+        (qreq ? '<div class="ccs-row"><div class="ccs-field"><label class="ccs-label" for="q-flav">Flavour</label><input class="ccs-input" id="q-flav" maxlength="80" value="' + esc(qi.variant || '') + '"></div>' +
+          '<div class="ccs-field"><label class="ccs-label" for="q-size">Size or servings</label><input class="ccs-input" id="q-size" maxlength="80" value="' + esc(qi.serves_label || '') + '"></div></div>' : '') +
+        '<div class="ccs-field"><label class="ccs-label" for="q-price">Cake price agreed with the kitchen (FJD)</label><input class="ccs-input" id="q-price" inputmode="decimal" data-autofocus style="max-width:240px" value="' + (cakeOnly != null ? cakeOnly : '') + '"></div>' +
+        (Number(o.delivery_fee) > 0 ? '<p class="ccs-hint">The delivery fee of ' + money(o.delivery_fee) + ' is added on top.</p>' : '') +
+        '<p class="ccs-hint">Saving moves the order to Waiting for customer. Then email the price or tell the customer, and press Confirm order once they agree.</p>' + err +
+        '<div class="ccs-actions-row"><button type="button" class="ccs-btn ccs-good" data-act="do-quote">Save price</button><button type="button" class="ccs-btn ccs-ghost" data-act="panel" data-v="">Back</button></div></div>';
+    }
+    if (p === 'confirm' && o.order_type === 'custom' && o.final_total != null) {
+      var how = S.cfmHow;
+      return '<div class="ccs-panel"><b>Confirm this custom cake</b><dl class="ccs-kv">' + kv('Cake', cakeLine((o.order_items || [])[0])) + kv('Price', money(o.final_total)) + '</dl>' +
+        '<div class="ccs-field"><span class="ccs-label">How did the customer agree? <em class="sl-req">Required</em></span><div class="ccs-chips">' +
+          [['email', 'Accepted by email'], ['verbal', 'Confirmed verbally']].map(function (x) { return '<button type="button" class="ccs-chip" data-act="cfm-how" data-v="' + x[0] + '" aria-pressed="' + (how === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div>' +
+          '<span class="ccs-hint">Emailing the price is not agreement. Only confirm once the customer has said yes to these details and this price.</span></div>' +
+        '<div class="ccs-field"><label class="ccs-label" for="ccs-dep">Deposit needed (FJD)</label><input class="ccs-input" id="ccs-dep" inputmode="decimal" placeholder="0 for none" style="max-width:240px"></div>' +
+        '<p class="ccs-hint">Without a deposit, Confirm sends the cake to the kitchen straight away: the kitchen slip is emailed to the admin and counter inboxes. With a deposit, it goes once the deposit is paid.</p>' + err +
+        '<div class="ccs-actions-row"><button type="button" class="ccs-btn ccs-good" data-act="do-confirm">Confirm order</button><button type="button" class="ccs-btn ccs-ghost" data-act="panel" data-v="quote">Change the price</button><button type="button" class="ccs-btn ccs-ghost" data-act="panel" data-v="">Back</button></div></div>';
+    }
     if (p === 'confirm') {
       var custom = o.order_type === 'custom';
       return '<div class="ccs-panel"><b>' + (custom ? 'Quote and confirm this custom cake' : 'Confirm this order') + '</b>' +
@@ -859,7 +889,19 @@
         '<div class="ccs-actions-row"><button type="button" class="ccs-btn ccs-good" data-act="do-pay">Record payment</button><button type="button" class="ccs-btn ccs-ghost" data-act="panel" data-v="">Back</button></div></div>';
     }
     var main = '', more = [], hint = '', danger = [];
-    if ((st === 'awaiting_review' || st === 'awaiting_quote') && orderer) {
+    var isCustom = o.order_type === 'custom';
+    if (isCustom && (st === 'awaiting_review' || st === 'awaiting_quote') && orderer) {
+      main = '<button type="button" class="ccs-btn ccs-good" data-act="panel" data-v="quote">Add the price</button>';
+      hint = 'Add the price once the kitchen has priced the design. Nothing goes to the kitchen until you press Confirm order.';
+      danger.push(['decline', 'Decline order']);
+    } else if (st === 'awaiting_approval' && orderer) {
+      var canMail = !!(S.setup && S.setup.guest_emails) && !!o.contact_email;
+      main = '<button type="button" class="ccs-btn ccs-good" data-act="panel" data-v="confirm">Confirm order</button>' +
+        '<button type="button" class="ccs-btn ccs-ghost" data-act="send-quote"' + (canMail ? '' : ' disabled aria-disabled="true"') + '>Email the price to the customer</button>';
+      if (isCustom) more.push(['quote', 'Change the price']);
+      hint = canMail ? 'Waiting for the customer to agree the price. Press Confirm order once they say yes.' : (!o.contact_email ? 'No email address on this order: tell the customer the price by phone or WhatsApp, then press Confirm order once they agree.' : 'Customer emails are off: tell the customer the price yourself, then press Confirm order once they agree.');
+      danger.push(['decline', 'Decline order']);
+    } else if ((st === 'awaiting_review' || st === 'awaiting_quote') && orderer) {
       main = '<button type="button" class="ccs-btn ccs-good" data-act="panel" data-v="confirm">' + (st === 'awaiting_quote' ? 'Quote and confirm' : 'Confirm order') + '</button>';
       danger.push(['decline', 'Decline order']);
     } else if (st === 'awaiting_deposit') {
@@ -883,7 +925,7 @@
     // The kitchen slip only exists once an order is confirmed: say so instead of hiding the button
     if (orderer && (st === 'awaiting_review' || st === 'awaiting_quote' || st === 'awaiting_approval' || st === 'awaiting_deposit')) {
       main += '<button type="button" class="ccs-btn ccs-ghost" disabled aria-disabled="true" aria-describedby="ccs-brief-why">Print kitchen slip</button>';
-      hint = (hint ? hint + ' ' : '') + 'The kitchen slip prints once the order is confirmed.';
+      if (!isCustom || st === 'awaiting_deposit') hint = (hint ? hint + ' ' : '') + 'The kitchen slip prints once the order is confirmed.';
     }
     if (orderer) more.push(['note', '+ Add note']);
     // Counter can cancel only unpaid orders; with money paid, an Admin cancels (the server enforces this too)
@@ -915,8 +957,32 @@
       if (!r.data.ok) { if (r.data.error === 'changed') { S.panelErr = CONFLICT; reloadOrderKeep(o.id); } else { S.panelErr = r.data.message; renderSheet(); } return; }
       var msg = { confirm: r.data.status === 'awaiting_deposit' ? 'Accepted. Waiting for the deposit.' : 'Order confirmed', decline: 'Order declined', cancel: 'Order cancelled', collected: o.fulfilment_method === 'delivery' ? 'Marked as delivered' : 'Marked as collected', note: 'Note saved', waive_deposit: 'Deposit waived, order confirmed' }[action];
       if (!(S.setup && S.setup.guest_emails) && ['confirm', 'decline', 'cancel', 'waive_deposit'].indexOf(action) > -1) msg += '. Now let the customer know.';
-      toast(msg); S.panel = null; openOrder(o.id); loadOrders(true);
+      toast(msg); S.panel = null; loadOrders(true);
+      var toKitchen = action === 'confirm' && o.order_type === 'custom' && r.data.status === 'confirmed';
+      openOrder(o.id).then(function () { if (toKitchen && S.sheet && S.sheet.id === o.id && S.sheet.data) printBrief(S.slip.paper); });
     }).catch(function (e) { S.busy = false; fail(e); });
+  }
+  // Custom cakes: add or change the price (and, for a cake not on the menu, its flavour and size)
+  function saveQuote() {
+    var o = S.sheet.data; if (S.busy) return;
+    var price = num(val('q-price')), req = isReq((o.order_items || [])[0]);
+    if (!(price > 0)) { S.panelErr = 'Enter the cake price.'; S.dirty['q-price'] = val('q-price'); return renderSheet(); }
+    if (req && val('q-size').trim().length < 2) { S.panelErr = 'Enter the size or how many people it should serve.'; return renderSheet(); }
+    S.busy = true; S.panelErr = null;
+    sb.rpc('staff_set_quote', { p_order: o.id, p_version: o.version, p_price: price, p_flavour: req ? val('q-flav') : null, p_size_note: req ? val('q-size') : null }).then(function (r) {
+      S.busy = false; if (r.error) throw r.error;
+      if (!r.data.ok) { if (r.data.error === 'changed') { S.panelErr = CONFLICT; reloadOrderKeep(o.id); } else { S.panelErr = r.data.message; renderSheet(); } return; }
+      toast('Price saved: ' + money(r.data.total) + '. Now ' + (r.data.can_email ? 'email it to the customer' : 'tell the customer') + '.');
+      S.panel = null; S.dirty = {}; openOrder(o.id); loadOrders(true);
+    }).catch(function (e) { S.busy = false; fail(e); });
+  }
+  function sendQuote(b) {
+    var o = S.sheet.data; if (S.busy) return; S.busy = true; S.panelErr = null; if (b) markBusy(b, 'Sending…');
+    sb.rpc('staff_send_quote', { p_order: o.id }).then(function (r) {
+      S.busy = false; clearBusy(); if (r.error) throw r.error;
+      if (!r.data.ok) { S.panelErr = r.data.message; return renderSheet(); }
+      toast('Price emailed to ' + r.data.to + '. Press Confirm order once they agree.'); mailLoad(o.id);
+    }).catch(function (e) { S.busy = false; clearBusy(); fail(e); });
   }
   function deleteOrder() {
     var o = S.sheet.data, reason = val('ccs-note').trim(), ref = val('ccs-delref').trim();
@@ -963,6 +1029,17 @@
       }).catch(function (e) { S.busy = false; fail(e); });
   }
 
+  // Take an out-of-date photo off the order. It is hidden, not deleted, and the order history records it.
+  function removePhoto(k, b) {
+    var o = S.sheet.data, aid = (S.sheet.photoIds || [])[k]; if (!aid || S.busy) return;
+    S.busy = true; markBusy(b, 'Removing…');
+    sb.rpc('staff_remove_photo', { p_attachment: aid }).then(function (r) {
+      S.busy = false; clearBusy(); if (r.error) throw r.error;
+      if (!r.data.ok) { S.panelErr = r.data.message; return renderSheet(); }
+      toast(r.data.brief_needs_reprint ? 'Photo removed. Print a new kitchen slip so the kitchen has the current photos.' : 'Photo removed from ' + r.data.reference);
+      openOrder(o.id);
+    }).catch(function (e) { S.busy = false; clearBusy(); fail(e); });
+  }
   function saveCandles() {
     var o = S.sheet.data, v = val('ccs-candles').trim(); if (S.busy) return;
     if (v.length > 60) { S.panelErr = 'Keep the candles to 60 characters.'; S.dirty['ccs-candles'] = v; return renderSheet(); }
@@ -1046,7 +1123,8 @@
     var line = function (k, v, cls) { return '<div class="sl-line' + (cls ? ' ' + cls : '') + '"><span>' + k + ':</span><b>' + (v ? esc(v) : '&nbsp;') + '</b></div>'; };
     var pair = function (k1, v1, k2, v2) { return '<div class="sl-pair">' + line(k1, v1) + line(k2, v2) + '</div>'; };
     var cake = (s.variant || s.cake || '') + (s.variant && s.cake && s.variant !== s.cake ? ' (' + s.cake + ')' : '') + (s.finish === 'custom' ? ' · Custom design' : '');
-    var sizeTxt = s.size ? s.size + ' inch' + (s.quantity > 1 ? ' × ' + s.quantity + ' cakes' : '') + (s.serves ? ' · ' + s.serves : '') : '';
+    var sizeTxt = s.size ? s.size + ' inch' + (s.quantity > 1 ? ' × ' + s.quantity + ' cakes' : '') + (s.serves ? ' · ' + s.serves : '') : (s.serves || '') + (s.quantity > 1 ? ' × ' + s.quantity + ' cakes' : '');
+    if (!s.size && s.cake === 'Custom cake') cake = 'Custom cake' + (s.variant ? ', ' + s.variant : '');
     var remarks = [s.finish === 'custom' && s.design ? 'Design: ' + s.design : '', s.occasion ? 'Occasion: ' + s.occasion : '', s.order_notes ? 'Order notes: ' + s.order_notes : '', s.kitchen_notes ? 'Kitchen notes: ' + s.kitchen_notes : ''].filter(Boolean).join(' · ');
     var paidAmt = Number(x.paid || 0), due2 = x.price != null ? Math.max(Number(x.price) - paidAmt, 0) : null;
     var priceTxt = x.price != null ? cents(x.price) + '  ·  Paid ' + cents(paidAmt) + '  ·  To pay ' + cents(due2) : 'To be priced';
@@ -1173,7 +1251,7 @@
     });
   }
   function kitRow(id) { return S.kit.data ? (S.kit.data.orders || []).filter(function (r) { return r.id === id; })[0] : null; }
-  function kitCake(r) { return (r.variant || r.cake || 'Cake') + ', ' + r.size + ' inch' + (r.quantity > 1 ? ' × ' + r.quantity : ''); }
+  function kitCake(r) { if (!r.size && r.cake === 'Custom cake') return ['Custom cake', r.variant, r.serves].filter(Boolean).join(', ') + (r.quantity > 1 ? ' × ' + r.quantity : ''); return (r.variant || r.cake || 'Cake') + ', ' + r.size + ' inch' + (r.quantity > 1 ? ' × ' + r.quantity : ''); }
   var KCOLS = [['start', 'To start', ['not_started', 'scheduled']], ['prog', 'In progress', ['preparing', 'baking', 'assembling', 'decorating', 'in_production']], ['qc', 'Quality check', ['quality_check']], ['ready', 'Ready', ['ready']], ['done', 'Handed over', []]];
   function kitCard(r) {
     var tags = '';
@@ -1231,7 +1309,7 @@
     if (again) { S.sheet.kerr = false; renderSheet(); } else { S.sheet = { type: 'kitchen', id: id, photos: [] }; S.panelErr = null; S.dirty = {}; sheetOpen(); renderSheet(); }
     var go = function () {
       var r = kitRow(id); renderSheet();
-      if (r && r.photos && r.photos.length) sb.storage.from('cake-references').createSignedUrls(r.photos, 900).then(function (u) { if (u.data && S.sheet && S.sheet.id === id) { S.sheet.photos = u.data.map(function (x) { return x.signedUrl; }).filter(Boolean); renderSheet(); } });
+      if (r && r.photos && r.photos.length) sb.storage.from('cake-references').createSignedUrls(r.photos, 3600).then(function (u) { if (u.data && S.sheet && S.sheet.id === id) { S.sheet.photos = u.data.map(function (x) { return x.signedUrl; }).filter(Boolean); renderSheet(); } });
     };
     if (kitRow(id)) go(); else { var keep = S.kit.days, f0 = S.kit.fails || 0; if (keep < 7) S.kit.days = 7; loadKitchen(true).then(function () { S.kit.days = keep; if (S.sheet && S.sheet.id === id) S.sheet.kerr = (S.kit.fails || 0) > f0; go(); }); }
   }
@@ -1315,11 +1393,14 @@
     h += sec('when', 'Date and time', nice(a.date) + ', ' + t12(a.time),
       '<div class="ccs-row"><div class="ccs-field"><label class="ccs-label" for="am-date">Date</label><input class="ccs-input" type="date" id="am-date" data-am="date" value="' + esc(a.date) + '"></div>' +
       '<div class="ccs-field"><label class="ccs-label" for="am-time">Time</label><select class="ccs-input" id="am-time" data-am="time">' + slots.map(function (x) { return '<option value="' + x + '"' + (x === a.time ? ' selected' : '') + '>' + t12(x) + '</option>'; }).join('') + '</select></div></div>');
+    if (isReq((o.order_items || [])[0])) h += '<p class="ccs-hint">Custom cake: change its flavour, size or price with Change the price on the order' + (OPEN.indexOf(o.order_status) > -1 && ['awaiting_review','awaiting_quote','awaiting_approval'].indexOf(o.order_status) > -1 ? '' : ' (before it is confirmed)') + '.</p>';
+    else {
     h += sec('cake', 'Cake, size and quantity', (a.variant || (p ? p.name : 'Cake')) + ', ' + (a.size || '?') + ' inch' + (a.qty !== '1' ? ' × ' + a.qty : ''),
       '<div class="ccs-field"><label class="ccs-label" for="am-prod">Cake</label><select class="ccs-input" id="am-prod" data-act-change="product">' + (p ? '' : '<option value="">Choose a cake</option>') + (S.setup.products || []).map(function (x) { return '<option value="' + esc(x.code) + '"' + (x.code === a.product ? ' selected' : '') + '>' + esc(x.name) + '</option>'; }).join('') + '</select></div>' +
       (p && p.variants.length ? '<div class="ccs-field"><span class="ccs-label">' + esc(p.choice_label || 'Which one?') + '</span><div class="ccs-chips">' + p.variants.map(function (x) { return chip('variant', x, x, a.variant === x); }).join('') + '</div></div>' : '') +
       (p ? '<div class="ccs-field"><span class="ccs-label">Size</span><div class="ccs-chips">' + p.sizes.map(function (z) { return chip('size', String(z.inch), z.inch + ' inch · ' + money(z.price), a.size === String(z.inch)); }).join('') + '</div></div>' : '') +
       fld('am-qty', 'qty', 'Quantity', a.qty, ' type="number" min="1" max="50" inputmode="numeric" style="max-width:140px"'));
+    }
     h += sec('look', 'Design and message', (a.finish === 'custom' ? 'Custom design' : 'Standard finish') + (a.message ? ' · “' + a.message + '”' : ''),
       '<div class="ccs-chips">' + chip('finish', 'standard', 'Standard finish', a.finish === 'standard') + (!p || p.supports_custom ? chip('finish', 'custom', 'Custom design', a.finish === 'custom') : '') + '</div>' +
       (a.finish === 'custom' || a.design ? area('am-design', 'design', 'Design', a.design) : '') +
@@ -1408,7 +1489,7 @@
     // the cake
     h += '<section class="ccs-box"><h3>Cake</h3><p class="ccs-big">' + esc(kitCake(r)) + '</p>' + (r.message ? '<p class="ccs-kmsg">“' + esc(r.message) + '”</p>' : '') + '<dl class="ccs-kv">' +
       kv('Finish', r.finish === 'custom' ? 'Custom design' : 'Standard finish') + kv('Design', r.design) + kv('Occasion', r.occasion) + kv('Serves', r.serves) + kv('Order notes', r.order_notes) + kv('Kitchen notes', r.kitchen_notes) + '</dl>' +
-      (S.sheet.photos.length ? '<div class="ccs-photos">' + S.sheet.photos.map(function (u) { return '<a href="' + esc(u) + '" target="_blank" rel="noopener"><img src="' + esc(u) + '" alt="Reference photo"></a>'; }).join('') + '</div>' : (r.photos && r.photos.length ? '<p class="ccs-hint">Loading reference photos…</p>' : '')) + '</section>';
+      '</section>' + refGallery(S.sheet.photos, { loading: !!(r.photos && r.photos.length) });
     h += '<section class="ccs-box"><h3>' + (r.method === 'delivery' ? 'Delivery' : 'Collection') + '</h3><p class="ccs-big">' + esc(nice(r.date, true)) + ' at ' + esc(t12(r.time)) + '</p><dl class="ccs-kv">' + kv('For', r.customer) + kv('Area', r.method === 'delivery' ? r.area : 'Café counter') + kv('Short notice', r.rush ? 'Yes' : '') + '</dl></section>';
     return h + '</div>';
   }
@@ -1466,6 +1547,147 @@
     });
     renderSheet();
   }
+
+  // ---------- cake photo viewer: a large viewer over the order, so nothing typed on the order is lost ----------
+  // Zoom (buttons, mouse wheel, pinch, double tap), drag to pan when zoomed, swipe or arrow keys between photos, Escape closes.
+  // Photos keep their own proportions (never stretched or cropped). It sits outside the app's screens, so they are not redrawn.
+  var LB = null;
+  function lbEl() { return document.getElementById('ccs-lb'); }
+  function lbBuild() {
+    var el = document.createElement('div'); el.id = 'ccs-lb'; el.className = 'ccs-lb'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-label', 'Cake design references');
+    var fs = !!(document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen);
+    el.innerHTML = '<div class="lb-top"><span class="lb-count" aria-live="polite"></span><div class="lb-tools">' +
+      '<button type="button" class="lb-btn" data-lb="out" aria-label="Zoom out">Zoom out</button><button type="button" class="lb-btn" data-lb="in" aria-label="Zoom in">Zoom in</button>' +
+      '<button type="button" class="lb-btn" data-lb="fit">Fit to screen</button>' + (fs ? '<button type="button" class="lb-btn lb-fsbtn" data-lb="fs">Full screen</button>' : '') +
+      '<button type="button" class="lb-btn lb-close" data-lb="close">Close</button></div></div>' +
+      '<div class="lb-stage"><img class="lb-img" alt="" draggable="false"><p class="lb-load" role="status">Loading photo…</p>' +
+      '<div class="lb-err" hidden><p>This photo could not load. Check the connection.</p><button type="button" class="lb-btn" data-lb="retry">Try again</button></div>' +
+      '<button type="button" class="lb-nav lb-prev" data-lb="prev" aria-label="Previous photo">‹</button><button type="button" class="lb-nav lb-next" data-lb="next" aria-label="Next photo">›</button>' +
+      '<span class="lb-zoom" aria-hidden="true"></span></div><div class="lb-strip" role="group" aria-label="All photos"></div>';
+    document.body.appendChild(el);
+    el.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-lb]'); if (!b || !LB) return;
+      var a = b.dataset.lb;
+      if (a === 'close') lbClose(); else if (a === 'prev') lbGo(LB.i - 1); else if (a === 'next') lbGo(LB.i + 1);
+      else if (a === 'in') lbZoomBy(1.5); else if (a === 'out') lbZoomBy(1 / 1.5); else if (a === 'fit') lbSet(1, 0, 0, true);
+      else if (a === 'fs') lbFull(); else if (a === 'retry') lbShow(true); else if (a === 'thumb') lbGo(Number(b.dataset.i));
+    });
+    var st = el.querySelector('.lb-stage');
+    st.addEventListener('wheel', function (e) { if (!LB) return; e.preventDefault(); var q = lbPoint(e); lbZoomAt(LB.s * (e.deltaY < 0 ? 1.2 : 1 / 1.2), q); }, { passive: false });
+    st.addEventListener('pointerdown', lbDown); st.addEventListener('pointermove', lbMove); st.addEventListener('pointerup', lbUp); st.addEventListener('pointercancel', lbUp);
+    st.addEventListener('dblclick', function (e) { if (!LB || e.target.closest('button')) return; if (LB.s > 1.05) lbSet(1, 0, 0, true); else lbZoomAt(2.5, lbPoint(e)); });
+    el.querySelector('.lb-img').addEventListener('load', function () { if (!LB) return; LB.loaded = true; el.classList.remove('is-loading'); lbApply(); });
+    el.querySelector('.lb-img').addEventListener('error', function () { if (!LB) return; el.classList.remove('is-loading'); el.querySelector('.lb-err').hidden = false; });
+    return el;
+  }
+  function lbOpen(urls, i, opener) {
+    urls = (urls || []).filter(Boolean); if (!urls.length) return;
+    var el = lbEl() || lbBuild();
+    LB = { urls: urls, i: Math.max(0, Math.min(urls.length - 1, i || 0)), s: 1, x: 0, y: 0, ptrs: {}, opener: opener || document.activeElement, htmlOv: document.documentElement.style.overflow };
+    document.documentElement.style.overflow = 'hidden';
+    el.querySelector('.lb-strip').innerHTML = urls.length > 1 ? urls.map(function (u, k) { return '<button type="button" class="lb-thumb" data-lb="thumb" data-i="' + k + '" aria-label="Photo ' + (k + 1) + ' of ' + urls.length + '"><img src="' + esc(u) + '" alt="" loading="lazy" decoding="async"></button>'; }).join('') : '';
+    el.classList.toggle('is-single', urls.length < 2);
+    el.classList.add('is-open'); lbShow(false);
+    setTimeout(function () { var c = el.querySelector('.lb-close'); if (c) c.focus(); }, 30);
+  }
+  function lbClose() {
+    var el = lbEl(); if (!el || !LB) return;
+    if (document.fullscreenElement && document.exitFullscreen) { try { document.exitFullscreen(); } catch (e) {} }
+    el.classList.remove('is-open', 'is-loading'); document.documentElement.style.overflow = LB.htmlOv || '';
+    var back = LB.opener; LB = null;
+    if (back && back.isConnected && back.focus) back.focus();
+  }
+  function lbGo(i) { if (!LB) return; var n = LB.urls.length; LB.i = (i + n) % n; lbShow(false); }
+  function lbShow(retry) {
+    var el = lbEl(), img = el.querySelector('.lb-img'), u = LB.urls[LB.i];
+    LB.s = 1; LB.x = 0; LB.y = 0; LB.loaded = false;
+    el.querySelector('.lb-err').hidden = true; el.classList.add('is-loading');
+    img.style.transform = '';
+    img.alt = 'Cake design reference ' + (LB.i + 1) + ' of ' + LB.urls.length;
+    if (retry) { img.removeAttribute('src'); setTimeout(function () { img.src = u; }, 30); } else img.src = u;
+    if (img.complete && img.naturalWidth) { LB.loaded = true; el.classList.remove('is-loading'); }
+    el.querySelector('.lb-count').textContent = LB.urls.length > 1 ? (LB.i + 1) + ' of ' + LB.urls.length : '1 photo';
+    [].slice.call(el.querySelectorAll('.lb-thumb')).forEach(function (b, k) { if (k === LB.i) { b.setAttribute('aria-current', 'true'); if (b.scrollIntoView) b.scrollIntoView({ block: 'nearest', inline: 'center' }); } else b.removeAttribute('aria-current'); });
+    // load the neighbours early so Next and Previous feel instant
+    [LB.i + 1, LB.i - 1].forEach(function (k) { var v = LB.urls[(k + LB.urls.length) % LB.urls.length]; if (v && v !== u) { var pre = new Image(); pre.decoding = 'async'; pre.src = v; } });
+    lbApply();
+  }
+  // Largest useful zoom: at least 4 times, and enough to see the photo at twice its real pixel size
+  function lbMax() { var img = lbEl().querySelector('.lb-img'); var fitW = img.offsetWidth || 1; return Math.max(4, Math.min(12, (img.naturalWidth || fitW) / fitW * 2)); }
+  function lbPoint(e) { var r = lbEl().querySelector('.lb-stage').getBoundingClientRect(); return { x: e.clientX - r.left - r.width / 2, y: e.clientY - r.top - r.height / 2 }; }
+  function lbZoomAt(s2, q) { if (!LB) return; s2 = Math.max(1, Math.min(lbMax(), s2)); var k = s2 / LB.s; lbSet(s2, q.x - (q.x - LB.x) * k, q.y - (q.y - LB.y) * k); }
+  function lbZoomBy(f) { lbZoomAt(LB.s * f, { x: 0, y: 0 }); }
+  function lbSet(s, x, y, anim) {
+    var el = lbEl(), img = el.querySelector('.lb-img'), st = el.querySelector('.lb-stage');
+    var mx = Math.max(0, (img.offsetWidth * s - st.clientWidth) / 2), my = Math.max(0, (img.offsetHeight * s - st.clientHeight) / 2);
+    LB.s = s; LB.x = s <= 1 ? 0 : Math.max(-mx, Math.min(mx, x)); LB.y = s <= 1 ? 0 : Math.max(-my, Math.min(my, y));
+    img.classList.toggle('lb-anim', !!anim); lbApply();
+  }
+  function lbApply() {
+    var el = lbEl(); if (!el || !LB) return;
+    el.querySelector('.lb-img').style.transform = 'translate(' + LB.x + 'px,' + LB.y + 'px) scale(' + LB.s + ')';
+    el.classList.toggle('is-zoomed', LB.s > 1.01);
+    el.querySelector('.lb-zoom').textContent = Math.round(LB.s * 100) + '%';
+    var zi = el.querySelector('[data-lb="in"]'), zo = el.querySelector('[data-lb="out"]'), ft = el.querySelector('[data-lb="fit"]');
+    if (zi) zi.disabled = LB.s >= lbMax() - 0.01; if (zo) zo.disabled = LB.s <= 1.01; if (ft) ft.disabled = LB.s <= 1.01;
+  }
+  function lbDown(e) {
+    if (!LB || e.target.closest('button')) return;
+    try { if (e.currentTarget.setPointerCapture) e.currentTarget.setPointerCapture(e.pointerId); } catch (x) {}
+    LB.ptrs[e.pointerId] = { x: e.clientX, y: e.clientY };
+    var ids = Object.keys(LB.ptrs);
+    if (ids.length === 1) LB.drag = { sx: e.clientX, sy: e.clientY, ox: LB.x, oy: LB.y, t: Date.now() };
+    if (ids.length === 2) { var a = LB.ptrs[ids[0]], b = LB.ptrs[ids[1]]; LB.pinch = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, s: LB.s }; LB.drag = null; }
+  }
+  function lbMove(e) {
+    if (!LB || !LB.ptrs[e.pointerId]) return;
+    LB.ptrs[e.pointerId] = { x: e.clientX, y: e.clientY };
+    var ids = Object.keys(LB.ptrs);
+    if (ids.length === 2 && LB.pinch) {
+      var a = LB.ptrs[ids[0]], b = LB.ptrs[ids[1]], d = Math.hypot(a.x - b.x, a.y - b.y);
+      lbZoomAt(LB.pinch.s * d / LB.pinch.d, lbPoint({ clientX: (a.x + b.x) / 2, clientY: (a.y + b.y) / 2 }));
+    } else if (LB.drag && LB.s > 1.01) lbSet(LB.s, LB.drag.ox + e.clientX - LB.drag.sx, LB.drag.oy + e.clientY - LB.drag.sy);
+  }
+  function lbUp(e) {
+    if (!LB || !LB.ptrs[e.pointerId]) return;
+    var d = LB.drag; delete LB.ptrs[e.pointerId];
+    if (Object.keys(LB.ptrs).length < 2) LB.pinch = null;
+    if (d && LB.s <= 1.01 && !Object.keys(LB.ptrs).length && LB.urls.length > 1) {
+      var dx = e.clientX - d.sx, dy = e.clientY - d.sy;
+      if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) lbGo(LB.i + (dx < 0 ? 1 : -1));
+    }
+    if (!Object.keys(LB.ptrs).length) LB.drag = null;
+  }
+  function lbFull() {
+    var el = lbEl(), on = document.fullscreenElement || document.webkitFullscreenElement;
+    try {
+      if (on) (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+      else (el.requestFullscreen || el.webkitRequestFullscreen).call(el);
+    } catch (e) {}
+  }
+  document.addEventListener('fullscreenchange', function () { var el = lbEl(); if (!el) return; var b = el.querySelector('.lb-fsbtn'); if (b) b.textContent = document.fullscreenElement ? 'Exit full screen' : 'Full screen'; if (LB) setTimeout(function () { lbSet(LB.s, LB.x, LB.y); }, 60); });
+  window.addEventListener('resize', function () { if (LB) lbSet(LB.s, LB.x, LB.y); });
+  // Keys work only while the viewer is open, and never reach the order behind it
+  document.addEventListener('keydown', function (e) {
+    if (!LB) return;
+    var k = e.key, used = true;
+    if (k === 'Escape') lbClose(); else if (k === 'ArrowRight') lbGo(LB.i + 1); else if (k === 'ArrowLeft') lbGo(LB.i - 1);
+    else if (k === '+' || k === '=') lbZoomBy(1.5); else if (k === '-' || k === '_') lbZoomBy(1 / 1.5); else if (k === '0') lbSet(1, 0, 0, true);
+    else if (k === 'Tab') { var f = [].slice.call(lbEl().querySelectorAll('button:not([disabled])')).filter(function (b) { return b.offsetParent; }); if (f.length) { var at = f.indexOf(document.activeElement); var nx = e.shiftKey ? (at <= 0 ? f.length - 1 : at - 1) : (at === f.length - 1 ? 0 : at + 1); f[nx].focus(); } }
+    else used = false;
+    if (used) { e.preventDefault(); e.stopImmediatePropagation(); }
+  }, true);
+  // The "Cake design references" gallery: tidy thumbnails; tap one to open the viewer
+  function refGallery(urls, opts) {
+    opts = opts || {};
+    var n = urls.length;
+    if (!n) return opts.loading ? '<section class="ccs-box ccs-refs"><h3>Cake design references</h3><p class="ccs-hint">Loading photos…</p></section>' : (opts.empty || '');
+    return '<section class="ccs-box ccs-refs"><h3>Cake design references <span class="ccs-refs-n">' + n + (n === 1 ? ' photo' : ' photos') + '</span></h3><div class="ccs-refgrid">' + urls.map(function (u, k) {
+      return '<div class="ccs-ref"><button type="button" class="ccs-refbtn" data-act="lb-open" data-src="' + (opts.src || 'sheet') + '" data-v="' + k + '" aria-label="Open photo ' + (k + 1) + ' of ' + n + ' full size"><img src="' + esc(u) + '" alt="" loading="lazy" decoding="async" onerror="this.parentNode.classList.add(\'is-broken\')"><span class="ccs-ref-bad">Photo not available</span></button>' +
+        (opts.remove ? '<button type="button" class="ccs-link ccs-ref-rm" data-act="ph-rm" data-v="' + k + '">Remove</button>' : '') + '</div>';
+    }).join('') + '</div><p class="ccs-hint">Tap a photo to see it full size and zoom in.' + (opts.note ? ' ' + opts.note : '') + '</p>' + (opts.extra || '') + '</section>';
+  }
+
   // ---------- inspiration photos: same rules as the website form (photos only, 5 MB each) ----------
   var PH_TYPES = /^image\/(jpeg|png|webp|heic|heif)$/;
   function phLive(list) { return list.filter(function (x) { return x.status !== 'failed'; }); }
@@ -1487,19 +1709,19 @@
   function phThumbs(list, act) {
     if (!list.length) return '';
     return '<div class="ccs-phlist">' + list.map(function (x, i) {
-      return '<div class="ccs-ph' + (x.status === 'failed' ? ' is-failed' : '') + '">' + (x.url ? '<img src="' + esc(x.url) + '" alt="">' : '<span class="ccs-ph-name">' + esc(x.name) + '</span>') +
+      return '<div class="ccs-ph' + (x.status === 'failed' ? ' is-failed' : '') + '">' + (x.url ? '<button type="button" class="ccs-ph-view" data-act="lb-open" data-src="' + (act === 'o-phx' ? 'addph' : 'draft') + '" data-v="' + i + '" aria-label="See ' + esc(x.name) + ' full size"><img src="' + esc(x.url) + '" alt=""></button>' : '<span class="ccs-ph-name">' + esc(x.name) + '</span>') +
         '<span class="ccs-ph-st">' + (x.status === 'busy' ? 'Uploading…' : x.status === 'failed' ? 'Upload failed' : 'Added') + '</span>' +
         '<button type="button" class="ccs-ph-x" data-act="' + act + '" data-v="' + i + '" aria-label="Remove ' + esc(x.name) + '">×</button></div>';
     }).join('') + '</div>';
   }
   function phPicker(id, label, link) { return '<label class="' + (link ? 'ccs-link ccs-phlink' : 'ccs-btn ccs-ghost ccs-phadd') + '"><input type="file" id="' + id + '" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" multiple class="ccs-sr">' + label + '</label>'; }
   function freshDraft() { return { key: uuid(), source: 'walk_in', step: 0, reached: 0, phone: '', matches: null, customer: null, isNew: false, name: '', email: '', whatsapp: true, optIn: null,
-    product: null, variant: null, size: null, finish: 'standard', design: '', photos: [], phErr: null, message: '', candles: '', occasion: null, diet: null, diets: [], dietNote: '', notes: '', qty: 1,
+    product: null, req: false, sizeNote: '', reqPrice: '', variant: null, size: null, finish: 'standard', design: '', photos: [], phErr: null, message: '', candles: '', occasion: null, diet: null, diets: [], dietNote: '', notes: '', qty: 1,
     date: '', time: '', rush: '', rushBy: '', fromCal: false, method: 'collection', zone: null, address: '', fee: '', contact: '', confirmNow: false, askDeposit: false, deposit: '', payNow: false, payAmount: '', payMethod: 'cash', result: null, err: null, errField: null }; }
   var D = freshDraft();
   // Unfinished walk-in orders are kept on this device for 12 hours, per staff login, and cleared at sign out (U6)
   function draftKey() { return S.me ? 'ccs-draft-' + S.me.user_id : null; }
-  function draftHasContent() { return !D.result && (digits(D.phone).length >= 3 || D.reached > 0 || !!D.product || D.name.trim().length > 1); }
+  function draftHasContent() { return !D.result && (digits(D.phone).length >= 3 || D.reached > 0 || !!D.product || !!D.req || D.name.trim().length > 1); }
   function saveDraft() {
     slipBarUpdate();
     var k = draftKey(); if (!k) return;
@@ -1520,7 +1742,7 @@
   function draftWho() { return D.customer ? D.customer.full_name : (D.name || D.phone || ''); }
   function prod() { if (!S.setup || !D.product) return null; return S.setup.products.filter(function (p) { return p.code === D.product; })[0] || null; }
   function sizeObj() { var p = prod(); return p && D.size ? p.sizes.filter(function (s) { return s.inch === D.size; })[0] : null; }
-  function dPrice() { var s = sizeObj(); return s ? Number(s.price) * (D.qty || 1) : null; }
+  function dPrice() { if (D.req) { var rp = num(D.reqPrice); return rp != null && rp > 0 ? rp : null; } var s = sizeObj(); return s ? Number(s.price) * (D.qty || 1) : null; }
   function zoneObj() { return ((S.setup && S.setup.delivery_zones) || []).filter(function (z) { return z.name === D.zone; })[0] || null; }
   function dFee() { if (D.method !== 'delivery') return 0; var z = zoneObj(); if (!z) return 0; return z.fee != null ? Number(z.fee) : (num(D.fee) || 0); }
   function dTotal() { var p = dPrice(); return p == null ? null : p + dFee(); }
@@ -1659,9 +1881,10 @@
   }
   function stepPay(inSlip) {
     var price = dTotal(), custom = D.finish === 'custom';
-    var h = (inSlip ? '' : '<h2 class="ccs-step-q">Price and payment</h2>') + (D.method === 'delivery' ? '<dl class="ccs-kv"><dt>Cake</dt><dd>' + money(dPrice()) + '</dd><dt>Delivery</dt><dd>' + money(dFee()) + ', ' + esc(D.zone || '') + '</dd></dl>' : '') +
-      '<div class="ccs-total"><span>' + (custom ? 'Starting price before custom design' : 'Price') + '</span><b>' + money(price) + '</b></div>';
-    if (custom) h += '<p class="ccs-note">Custom cakes are saved as Needs a quote. Confirm the final price from the order once the design is priced.</p>';
+    var h = (inSlip ? '' : '<h2 class="ccs-step-q">Price and payment</h2>') + (D.method === 'delivery' && !(D.req && price == null) ? '<dl class="ccs-kv"><dt>Cake</dt><dd>' + money(dPrice()) + '</dd><dt>Delivery</dt><dd>' + money(dFee()) + ', ' + esc(D.zone || '') + '</dd></dl>' : '') +
+      (D.req ? '<div class="ccs-total"><span>' + (price == null ? 'Price' : 'Agreed price') + '</span><b>' + (price == null ? 'To be priced' : money(price)) + '</b></div>' : '<div class="ccs-total"><span>' + (custom ? 'Starting price before custom design' : 'Price') + '</span><b>' + money(price) + '</b></div>');
+    if (D.req) h += '<p class="ccs-note">' + (price == null ? 'Saved as Needs a price. Add the price from the order when it is ready.' : 'Saved as Waiting for customer. Press Confirm order on the order once the customer agrees.') + ' The kitchen gets it only after Confirm order.</p>';
+    else if (custom) h += '<p class="ccs-note">Custom cakes are saved as Needs a quote. Confirm the final price from the order once the design is priced.</p>';
     else {
       h += '<label class="ccs-check"><input type="checkbox" data-nc="confirmNow"' + (D.confirmNow ? ' checked' : '') + '> The customer is here and has agreed the price: confirm it now</label>' + (D.confirmNow ? '' : '<p class="ccs-hint">Otherwise it is saved as received and waits in Needs attention for review.</p>');
       if (D.confirmNow) {
@@ -1712,6 +1935,7 @@
   // What each stage still needs, in words (empty = stage complete)
   function slNeeds(s) {
     var p = prod(), closedL = (S.setup && S.setup.closed_dates) || [];
+    if (s === 0 && D.req) return D.design.trim().length < 3 ? ['Describe how the cake should look'] : (D.sizeNote || '').trim().length < 2 ? ['Write the size or how many people it serves'] : D.reqPrice && !(num(D.reqPrice) > 0) ? ['Check the price, or leave it empty'] : [];
     if (s === 0) return !p || !D.size ? ['Tap a price to choose the cake and size'] : p.variants.length && !D.variant ? ['Choose the flavour'] : D.finish === 'custom' && D.design.trim().length < 3 ? ['Describe the custom design'] : [];
     if (s === 1) return D.customer || D.name.trim().length >= 2 ? [] : ['Write the guest name'];
     if (s === 2) { if (D.customer) { if (D.custConsent === undefined) return ['Checking their permission']; return D.custConsent && D.custConsent.ok ? [] : (D.optIn === true || D.optIn === false) ? [] : ['Ask if they want cake offers and reminders']; } var n = []; if (digits(D.phone).length < 7) n.push('Write the full mobile number'); if (D.optIn !== true && D.optIn !== false) n.push('Ask if they want cake offers and reminders'); return n; }
@@ -1734,6 +1958,24 @@
     var s = slStage(), need = slNeeds(s);
     if (need.length && !skip) { D.err = need.join('. ') + '.'; D.errField = 'stage'; refreshStep(); return; }
     slSeen()[s] = true; slGo(slNextStage(s));
+  }
+  // Custom cake not on the menu: one button under the price table, then its own short set of fields
+  function reqFlavours() { var out = []; ((S.setup && S.setup.products) || []).forEach(function (p) { (p.variants.length ? p.variants : [p.name]).forEach(function (v) { if (out.indexOf(v) < 0) out.push(v); }); }); return out; }
+  function reqButton(cls) {
+    return '<button type="button" class="ccs-chip ccs-reqbtn ' + (cls || '') + '" data-act="n-req" aria-pressed="' + !!D.req + '" title="For a cake not on the menu: any size, shape, flavour or design. The price can be added later.">Custom cake (not on the list)</button>';
+  }
+  function reqFields() {
+    var fl = reqFlavours();
+    return '<div class="sl-sub"><label class="sl-k" for="n-design">What should it look like? <em class="sl-req">Required</em></label><textarea class="ccs-input sl-design" id="n-design" data-n="design" rows="3" placeholder="Shape, colours, theme, toppers, writing style">' + esc(D.design) + '</textarea>' + ferr('design') + '</div>' +
+      '<div class="sl-sub"><label class="sl-k" for="n-sizenote">Size or servings <em class="sl-req">Required</em></label><input class="ccs-input" id="n-sizenote" data-n="sizeNote" maxlength="80" value="' + esc(D.sizeNote || '') + '" placeholder="For example: 10 inch, or about 30 people, two tiers">' + ferr('size_note') + '</div>' +
+      '<div class="sl-sub"><span class="sl-k">Flavour</span><div class="ccs-chips">' + fl.map(function (f) { return '<button type="button" class="ccs-chip" data-act="n-reqflav" data-v="' + esc(f) + '" aria-pressed="' + (D.variant === f) + '">' + esc(f) + '</button>'; }).join('') + '</div>' +
+        '<input class="ccs-input sl-flavother" id="n-flav" data-n="variant" maxlength="80" value="' + esc(fl.indexOf(D.variant) > -1 ? '' : (D.variant || '')) + '" placeholder="Or write another flavour" aria-label="Another flavour">' + ferr('variant') + '</div>' +
+      '<div class="sl-sub"><span class="sl-k">Inspiration photos <em class="sl-opt">Optional</em></span>' + phThumbs(D.photos, 'sl-phx') +
+        (phLive(D.photos).length < 5 ? phPicker('n-photos', D.photos.length ? 'Add more photos' : 'Add photos') : '') +
+        (D.phErr ? '<p class="ccs-err" role="alert">' + esc(D.phErr) + '</p>' : '') + '<span class="ccs-hint">Up to 5 photos, 5 MB each. They go on the order and the kitchen slip.</span></div>' +
+      '<div class="sl-sub sl-qty"><label class="sl-k" for="n-qty">How many cakes</label><input class="ccs-input" id="n-qty" type="number" min="1" max="50" value="' + D.qty + '" data-n="qty"></div>' +
+      '<div class="sl-sub"><label class="sl-k" for="n-reqprice">Price (FJD) <em class="sl-opt">Optional</em></label><input class="ccs-input" id="n-reqprice" data-n="reqPrice" inputmode="decimal" value="' + esc(D.reqPrice || '') + '" placeholder="Leave empty if it still needs pricing" style="max-width:260px">' + ferr('price') +
+        '<span class="ccs-hint">Without a price it is saved as Needs a price. With a price it waits for the customer to agree. It goes to the kitchen only when you press Confirm order.</span></div>';
   }
   function slTable() {
     var ps = S.setup.products || [], inches = [];
@@ -1773,7 +2015,7 @@
     if (cur === 0) {
       if (p && p.variants.length) h += '<div class="sl-sub"><span class="sl-k">' + esc(p.choice_label || 'Which flavour?') + '</span><div class="ccs-chips">' + p.variants.map(function (v) { return '<button type="button" class="ccs-chip" data-act="n-var" data-v="' + esc(v) + '" aria-pressed="' + (D.variant === v) + '">' + esc(v) + '</button>'; }).join('') + '</div></div>';
       if (p) h += '<div class="sl-sub"><span class="sl-k">Finish</span><div class="ccs-chips"><button type="button" class="ccs-chip" data-act="n-finish" data-v="standard" aria-pressed="' + (D.finish !== 'custom') + '">Standard finish</button>' + (p.supports_custom ? '<button type="button" class="ccs-chip" data-act="n-finish" data-v="custom" aria-pressed="' + (D.finish === 'custom') + '">Custom design</button>' : '') + '</div></div>';
-      if (p) h += '<div class="sl-sub sl-ask"><span class="sl-k">Ask the customer</span><ul class="ccs-asklist"><li>Who is the cake for?</li><li>Any colours or theme they want?</li><li>Do they have a photo of the look?</li></ul><span class="ccs-hint">' + (D.finish === 'custom' ? 'Write their answers in Design details so the kitchen has them.' : 'Colours, a theme or a photo make it a custom cake: choose Custom design.') + '</span></div>';
+      if (p) h += '<p class="sl-ask"><b>Ask the customer:</b> who is the cake for, any colours or theme, and do they have a photo? ' + (D.finish === 'custom' ? 'Write the answers in Design details.' : 'Colours, a theme or a photo make it a custom design.') + '</p>';
       if (D.size) h += '<div class="sl-sub sl-qty"><label class="sl-k" for="n-qty">How many cakes</label><input class="ccs-input" id="n-qty" type="number" min="1" max="50" value="' + D.qty + '" data-n="qty"></div>';
       h += ferr('product') + ferr('size') + ferr('variant') + slActions(0);
     }
@@ -1829,7 +2071,7 @@
       var miss = slipMissing();
       h += '<section class="sl-pay" id="sl-st-7"><h2 class="sl-h">Read over the slip, then save</h2>' + (miss.length ? '<p class="ccs-err" role="alert">Still to finish: ' + esc(miss.map(function (x) { return x[0]; }).join(', ')) + '. Tap Change on that line.</p>' : '') +
         stepPay(true) + (D.err && !D.errField ? '<p class="ccs-err" role="alert">' + esc(D.err) + '</p>' : '') + (D.err && D.errField === 'stage' ? '<p class="ccs-err" role="alert">' + esc(D.err) + '</p>' : '') +
-        '<button type="button" class="ccs-btn ccs-good ccs-wide" data-act="n-submit"' + (S.busy ? ' disabled' : '') + '>' + (S.busy ? 'Saving…' : (D.confirmNow && D.finish !== 'custom' ? 'Save and confirm' : 'Save cake order') + (dTotal() != null ? ' · ' + money(dTotal()) : '')) + '</button></section>';
+        '<button type="button" class="ccs-btn ccs-good ccs-wide" data-act="n-submit"' + (S.busy ? ' disabled' : '') + '>' + (S.busy ? 'Saving…' : (D.req ? 'Save custom cake' : D.confirmNow && D.finish !== 'custom' ? 'Save and confirm' : 'Save cake order') + (dTotal() != null ? ' · ' + money(dTotal()) : '')) + '</button></section>';
     }
     return h;
   }
@@ -1840,10 +2082,11 @@
     var ed = '';
     if (cur === 0) {
       ed = '<p class="sl-k" style="margin:0 0 8px">How did they order?</p><div class="ccs-chips" role="group" aria-label="How they ordered" style="margin-bottom:14px">' + SOURCES.map(function (s) { return '<button type="button" class="ccs-chip" data-act="n-source" data-v="' + s[0] + '" aria-pressed="' + (D.source === s[0]) + '">' + s[1] + '</button>'; }).join('') + '</div>' +
-        '<p class="sl-k" style="margin:0 0 8px">Tap the price for the cake and size</p>' + slTable();
+        '<div class="sl-pickhead"><p class="sl-k">Tap the price for the cake and size</p>' + reqButton('sl-bodyreq') + '</div>' + slTable();
+      if (D.req) ed += '<p class="sl-ask"><b>Ask the customer:</b> who is the cake for, any colours or theme, and do they have a photo? Write the answers in What should it look like.</p>' + reqFields();
       if (p && p.variants.length) ed += '<div class="sl-sub"><span class="sl-k">' + esc(p.choice_label || 'Which flavour?') + '</span><div class="ccs-chips">' + p.variants.map(function (v) { return '<button type="button" class="ccs-chip" data-act="n-var" data-v="' + esc(v) + '" aria-pressed="' + (D.variant === v) + '">' + esc(v) + '</button>'; }).join('') + '</div></div>';
       if (p) ed += '<div class="sl-sub"><span class="sl-k">Finish</span><div class="ccs-chips"><button type="button" class="ccs-chip" data-act="n-finish" data-v="standard" aria-pressed="' + (D.finish !== 'custom') + '">Standard finish</button>' + (p.supports_custom ? '<button type="button" class="ccs-chip" data-act="n-finish" data-v="custom" aria-pressed="' + (D.finish === 'custom') + '">Custom design</button>' : '') + '</div></div>';
-      if (p) ed += '<div class="sl-sub sl-ask"><span class="sl-k">Ask the customer</span><ul class="ccs-asklist"><li>Who is the cake for?</li><li>Any colours or theme they want?</li><li>Do they have a photo of the look?</li></ul><span class="ccs-hint">' + (D.finish === 'custom' ? 'Write their answers in Design details so the kitchen has them.' : 'Colours, a theme or a photo make it a custom cake: choose Custom design.') + '</span></div>';
+      if (p) ed += '<p class="sl-ask"><b>Ask the customer:</b> who is the cake for, any colours or theme, and do they have a photo? ' + (D.finish === 'custom' ? 'Write the answers in Design details.' : 'Colours, a theme or a photo make it a custom design.') + '</p>';
       if (p && D.finish === 'custom') ed += '<div class="sl-sub"><label class="sl-k" for="n-design">Design details <em class="sl-req">Required</em></label><textarea class="ccs-input sl-design" id="n-design" data-n="design" rows="3" placeholder="Who it is for, colours, theme, toppers, writing style">' + esc(D.design) + '</textarea>' + ferr('design') + '<span class="ccs-hint">A custom cake is priced by the team after the order is placed.</span></div>' +
         '<div class="sl-sub"><span class="sl-k">Inspiration photos <em class="sl-opt">Optional</em></span>' + phThumbs(D.photos, 'sl-phx') +
         (phLive(D.photos).length < 5 ? phPicker('n-photos', D.photos.length ? 'Add more photos' : 'Add photos') : '') +
@@ -1897,9 +2140,9 @@
       (D.diet === 'yes' ? '<div class="sl-ldiet">Dietary or allergy: ' + dv + '</div>' : D.diet === 'unsure' ? '<div class="sl-ldiet">Allergies not confirmed yet. Check with the customer before baking.</div>' : '') +
       '<div class="sl-llines">' +
       line('Guest Name', 1, nm) + line('Contact', 2, ct) + line(dl ? 'Delivery' : 'Pickup', 3, wv) +
-      line('Type of cake', 0, p ? esc(D.variant || p.name) + (D.finish === 'custom' ? ' · Custom design' + (D.design.trim() ? '<small>' + esc(D.design.trim()) + '</small>' : '') : '') : '') +
-      line('Size', 0, D.size ? D.size + ' inch' + (D.qty > 1 ? ' × ' + D.qty : '') + (so && so.serves ? ' · ' + esc(so.serves) : '') : '') +
-      line('Price', 0, dTotal() != null ? money(dTotal()) : '') +
+      line('Type of cake', 0, D.req ? 'Custom cake' + (D.variant ? ', ' + esc(D.variant) : '') + (D.design.trim() ? '<small>' + esc(D.design.trim()) + '</small>' : '') : p ? esc(D.variant || p.name) + (D.finish === 'custom' ? ' · Custom design' + (D.design.trim() ? '<small>' + esc(D.design.trim()) + '</small>' : '') : '') : '') +
+      line('Size', 0, D.req ? esc((D.sizeNote || '').trim()) + (D.qty > 1 ? ' × ' + D.qty : '') : D.size ? D.size + ' inch' + (D.qty > 1 ? ' × ' + D.qty : '') + (so && so.serves ? ' · ' + esc(so.serves) : '') : '') +
+      line('Price', 0, dTotal() != null ? money(dTotal()) : D.req ? 'To be priced' : '') +
       line('Candles', 4, esc(D.candles)) + line('Inscription', 4, D.message ? '“' + esc(D.message) + '”' : '') +
       line('Dietary', 5, dv) + line('Remarks', 6, rv) +
       line('Order Taken by', 99, esc(me.full_name || 'You')) +
@@ -1909,10 +2152,10 @@
     var bar = '<div class="sl-stepbar">' + (cur > 0 ? '<button type="button" class="ccs-btn ccs-ghost" data-act="sl-back">Back</button>' : '<span></span>') +
       '<div class="sl-stepbar-r">' + (opt && cur < 7 ? '<button type="button" class="ccs-btn ccs-ghost" data-act="sl-skip">Skip</button>' : '') +
       (cur < 7 ? '<button type="button" class="ccs-btn" data-act="sl-next"><span class="sl-nxlong">Next: ' + esc(cur === 3 && slPhone() && !(D.whenPart === 'time' && D.date) ? (D.method === 'delivery' ? 'Delivery time' : 'Pickup time') : SL_STAGES[nx]) + '</span><span class="sl-nxshort">Next</span></button>'
-        : '<button type="button" class="ccs-btn ccs-good" data-act="n-submit"' + (S.busy ? ' disabled' : '') + '>' + (S.busy ? 'Saving…' : (D.confirmNow && D.finish !== 'custom' ? 'Save and confirm' : 'Save cake order') + (dTotal() != null ? ' · ' + money(dTotal()) : '')) + '</button>') + '</div></div>';
+        : '<button type="button" class="ccs-btn ccs-good" data-act="n-submit"' + (S.busy ? ' disabled' : '') + '>' + (S.busy ? 'Saving…' : (D.req ? 'Save custom cake' : D.confirmNow && D.finish !== 'custom' ? 'Save and confirm' : 'Save cake order') + (dTotal() != null ? ' · ' + money(dTotal()) : '')) + '</button>') + '</div></div>';
     var head = '<div class="sl-stephead"><p class="sl-progress">New order · Step ' + (cur + 1) + ' of 8</p><h2 class="sl-steptitle">' + (cur === 3 && slPhone() ? (D.whenPart === 'time' && D.date ? (D.method === 'delivery' ? 'Delivery time' : 'Pickup time') : (D.method === 'delivery' ? 'Delivery date' : 'Pickup date')) : SL_STAGES[cur]) + '</h2>' +
       '<ol class="sl-dots" aria-hidden="true">' + SL_STAGES.map(function (x, i) { return '<li class="' + (i === cur ? 'is-now' : seen[i] && !slNeeds(i).length ? 'is-done' : '') + '"></li>'; }).join('') + '</ol>' +
-      '<button type="button" class="ccs-link sl-viewbtn" data-act="sl-view">' + (D.showSlip ? 'Back to this step' : 'View slip') + '</button></div>';
+      '<button type="button" class="ccs-link sl-viewbtn" data-act="sl-view">' + (D.showSlip ? 'Back to this step' : 'View slip') + '</button>' + (cur === 0 ? reqButton('sl-headreq') : '') + '</div>';
     return '<div class="sl-stepper' + (D.showSlip ? ' show-slip' : '') + '"><section class="sl-stepmain" id="sl-st-' + cur + '">' + head + '<div class="sl-stepbody">' + ed + '</div>' + bar + '</section>' + live + '</div>';
   }
   // The slip beside the step follows the typing, without redrawing the field being typed in
@@ -1953,11 +2196,12 @@
     var dep = D.confirmNow && !custom && D.askDeposit ? num(D.deposit) : null;
     var payAmt = D.payNow ? num(D.payAmount) : null;
     if (D.payNow && (!payAmt || payAmt <= 0)) { D.err = 'Enter the amount the customer is paying.'; D.errField = 'payment'; return refreshStep(); }
-    var p = { idempotency_key: D.key, location: 'corner-cafe', source: D.source, product_code: D.product, variant: D.variant, size_inch: D.size, quantity: D.qty,
+    var p = { idempotency_key: D.key, location: 'corner-cafe', source: D.source, product_code: D.req ? 'custom-cake' : D.product, variant: D.variant, size_inch: D.req ? null : D.size, quantity: D.qty,
       finish: D.finish, design: D.design, attachments: custom ? D.photos.filter(function (x) { return x.status === 'done'; }).map(function (x) { return x.path; }) : [], message: D.message, candles: D.candles, occasion: D.occasion, has_dietary: D.diet, dietary: D.diet === 'yes' ? D.diets : [], dietary_note: D.dietNote, notes: D.notes,
       date: D.date, time: D.time, rush: tooSoon() ? { reason: D.rush, approved_by: D.rushBy } : null, confirm_now: D.confirmNow && !custom, deposit_required: dep,
       payment: payAmt ? { amount: payAmt, method: D.payMethod, kind: dep ? 'deposit' : (payAmt >= price ? 'full' : 'deposit') } : null,
       delivery: D.method === 'delivery' ? { method: 'delivery', zone: D.zone, address: D.address, fee: zoneObj() && zoneObj().fee == null ? num(D.fee) : null, contact: D.contact } : { method: 'collection' } };
+    if (D.req) { p.size_note = (D.sizeNote || '').trim(); p.price = num(D.reqPrice) > 0 ? num(D.reqPrice) : null; }
     if (D.customer) { p.customer_id = D.customer.id; if (D.optIn === true || D.optIn === false) p.consent = D.optIn ? 'yes' : 'no'; } else p.customer = { name: D.name, phone: D.phone, email: D.email, whatsapp: D.whatsapp, opt_in: D.optIn === true };
     if (D.heard && !D.customer) p.heard_from = D.heard;
     if (RECUR.indexOf(D.occasion) > -1) { if ((D.occFor || '').trim()) p.occasion_for = D.occFor.trim(); p.occasion_date = D.occDate || D.date; }
@@ -1968,7 +2212,7 @@
         D.err = r.data.message;
         var map = { phone: 0, name: 0, customer: 0, product: 1, variant: 1, size: 1, finish: 2, design: 2, message: 2, candles: 2, diet: 2, date: 3, rush: 3, rushBy: 3, time: 3, full: 3, zone: 3, address: 3, fee: 3, method: 3, deposit: 4 };
         var f = r.data.field || r.data.error, s = map[f] != null ? map[f] : 4; D.errField = r.data.field || null;
-        if (SLIP) { var sm = { phone: 2, name: 1, customer: 2, product: 0, variant: 0, size: 0, finish: 0, design: 0, message: 4, candles: 4, diet: 5, date: 3, rush: 3, rushBy: 3, time: 3, full: 3, zone: 3, address: 3, fee: 3, method: 3, deposit: 7, payment: 7 }; D.sl = sm[f] != null ? sm[f] : 7; if (D.sl === 7) D.errField = null; refreshStep(); return; }
+        if (SLIP) { var sm = { phone: 2, name: 1, customer: 2, product: 0, variant: 0, size: 0, size_note: 0, price: 0, finish: 0, design: 0, message: 4, candles: 4, diet: 5, date: 3, rush: 3, rushBy: 3, time: 3, full: 3, zone: 3, address: 3, fee: 3, method: 3, deposit: 7, payment: 7 }; D.sl = sm[f] != null ? sm[f] : 7; if (D.sl === 7) D.errField = null; refreshStep(); return; }
         if (s !== D.step) { var e = D.err, ef = D.errField; goStep(s); D.err = e; D.errField = ef; refreshStep(); } else refreshStep();
         return;
       }
@@ -3331,12 +3575,19 @@
         case 'close': if (hasTyping() && !confirmDiscard(b, 'Tap again to discard your changes')) break; S.dirty = {}; sheetClose(); break;
         case 'fill': var fi = document.getElementById(b.dataset.f); if (fi) { fi.value = v; S.dirty[fi.id] = v; fi.focus(); } break;
         case 'history': S.sheet.showHistory = true; renderSheet(); break;
-        case 'panel': if (S.panel && S.panel !== v && hasTyping() && !confirmDiscard(b)) break; S.panel = v || null; S.panelErr = null; S.dirty = {}; if (v === 'pay') { S.payKey = uuid(); S.payMethod = 'cash'; }
+        case 'panel': if (S.panel && S.panel !== v && hasTyping() && !confirmDiscard(b)) break; S.panel = v || null; S.panelErr = null; S.dirty = {}; S.cfmHow = null; if (v === 'pay') { S.payKey = uuid(); S.payMethod = 'cash'; }
           if (v === 'amend') S.am = amendInit(S.sheet.data);
           if (v === 'fulfil') { var od = S.sheet.data; S.ful = { method: od.fulfilment_method || 'collection', zone: od.delivery_zone, address: od.delivery_address || '', fee: od.delivery_fee != null ? String(Number(od.delivery_fee)) : '', contact: od.delivery_contact || '' }; }
           renderSheet(); var sb_ = document.querySelector('#ccs-sheet .ccs-sheet-body'); if (sb_ && v) sb_.scrollTop = 0; break;
         case 'method': S.payMethod = v; root.querySelectorAll('#ccs-method .ccs-chip').forEach(function (c) { c.setAttribute('aria-pressed', c.dataset.v === v); }); break;
         case 'do-confirm': {
+          var od0 = S.sheet.data;
+          if (od0.order_type === 'custom' && od0.final_total != null) {
+            if (!S.cfmHow) { S.panelErr = 'Choose how the customer agreed.'; renderSheet(); break; }
+            var dep0 = num(val('ccs-dep'));
+            if (dep0 != null && (dep0 < 0 || dep0 > Number(od0.final_total))) { S.panelErr = 'The deposit must be between zero and the price.'; renderSheet(); break; }
+            act('confirm', { p_final_total: Number(od0.final_total), p_deposit: dep0, p_note: S.cfmHow === 'email' ? 'Customer accepted by email' : 'Customer confirmed verbally' }); break;
+          }
           var price = num(val('ccs-price')), dep = num(val('ccs-dep'));
           if (price == null || price < 0) { S.panelErr = 'Enter the price.'; renderSheet(); break; }
           act('confirm', { p_final_total: price, p_deposit: dep }); break;
@@ -3349,6 +3600,18 @@
           markBusy(b, 'Restoring…'); restoreOrder(b.dataset.id); break;
         case 'do-note': act('note', { p_note: val('ccs-note').trim() }); break;
         case 'do-candles': saveCandles(); break;
+        case 'lb-open': (function () {
+          var src = b.dataset.src, list = src === 'draft' ? D.photos : src === 'addph' ? (S.sheet && S.sheet.addPh) || [] : (S.sheet && S.sheet.photos) || [];
+          var urls = src === 'sheet' ? list : list.filter(function (x) { return x.url && x.status !== 'failed'; }).map(function (x) { return x.url; });
+          var at = src === 'sheet' ? Number(v) : urls.indexOf((list[Number(v)] || {}).url);
+          lbOpen(urls, Math.max(0, at), b);
+        })(); break;
+        case 'ph-rm':
+          if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = 'Tap again to remove'; setTimeout(function () { if (b.isConnected) { b.dataset.armed = ''; b.textContent = 'Remove'; } }, 4000); break; }
+          removePhoto(Number(v), b); break;
+        case 'do-quote': saveQuote(); break;
+        case 'send-quote': sendQuote(b); break;
+        case 'cfm-how': S.cfmHow = v; renderSheet(); break;
         case 'do-waive': if (val('ccs-note').trim().length < 3) { panelNeed('Add the reason for confirming without a deposit.'); break; } act('waive_deposit', { p_note: val('ccs-note').trim() }); break;
         case 'do-collected': if (val('ccs-note').trim().length < 2) { panelNeed(S.sheet.data.fulfilment_method === 'delivery' ? 'Enter who received the cake.' : 'Enter who collected the cake.'); break; } act('collected', { p_note: val('ccs-note').trim() }); break;
         case 'do-fulfil': saveFulfil(); break;
@@ -3479,7 +3742,9 @@
         case 'n-paynow': D.payNow = true; D.payAmount = D.askDeposit && D.deposit ? D.deposit : String(dTotal()); refreshStep(); break;
         case 'n-paym': D.payMethod = v; refreshStep(); break;
         case 'n-submit': if (SLIP && slipMissing().length) { toast('Still to finish: ' + slipMissing().map(function (x) { return x[0]; }).join(', '), true); slipJump(); break; } submitOrder(); break;
-        case 'n-cell': (function () { var pr = v.split('|'), code = pr[0], inch = Number(pr[1]); if (D.product !== code) { D.product = code; D.variant = null; } D.size = inch; D.restored = false; if (D.errField === 'product' || D.errField === 'size') { D.err = null; D.errField = null; } refreshStep(); })(); break;
+        case 'n-req': D.req = true; D.product = null; D.size = null; D.variant = null; D.finish = 'custom'; D.confirmNow = false; if (D.errField === 'product' || D.errField === 'size') { D.err = null; D.errField = null; } refreshStep(); break;
+        case 'n-reqflav': D.variant = D.variant === v ? null : v; refreshStep(); break;
+        case 'n-cell': (function () { var pr = v.split('|'), code = pr[0], inch = Number(pr[1]); if (D.req) { D.req = false; D.finish = 'standard'; D.variant = null; } if (D.product !== code) { D.product = code; D.variant = null; } D.size = inch; D.restored = false; if (D.errField === 'product' || D.errField === 'size') { D.err = null; D.errField = null; } refreshStep(); })(); break;
         case 'n-unpick': D.customer = null; D.phone = ''; D.matches = null; D.nameMatches = null; D.name = ''; D.optIn = null; D.sl = 1; refreshStep(); setTimeout(function () { var f = document.getElementById('n-name'); if (f) f.focus(); }, 30); break;
         case 'sl-jump': slipJump(); break;
         case 'sl-when-open': D.whenOpen = true; refreshStep(); (function () { var w = document.getElementById('sl-when'); if (w && w.scrollIntoView) w.scrollIntoView({ behavior: 'smooth', block: 'start' }); })(); break;
