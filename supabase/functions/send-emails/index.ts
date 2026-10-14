@@ -210,6 +210,18 @@ function build(kind: string, d: any): { subject: string; html: string } {
           (Number(d.paid_total) > 0 ? p(`Our team will be in touch about the ${money(d.paid_total)} you've paid.`) : "") +
           p(`If this doesn't look right, call us on ${esc(loc.phone)}.`)),
       };
+    case "guest_thanks": {
+      const dl = o.fulfilment_method === "delivery";
+      const link = cfg.review_link || "";
+      return {
+        subject: `Thank you, ${first(c.full_name)}. How was your cake?`,
+        html: layout(loc, `Thank you, ${first(c.full_name)}`,
+          p(`Thank you for choosing ${esc(loc.name)} for your cake. We hope it was a hit${dl ? " and arrived just as you pictured it" : ""}.`) +
+          (link ? p(`If you enjoyed it, a short Google review would mean a lot to our small team. It takes less than a minute.`) + btn(link, "Leave a Google review") : "") +
+          p(`If anything wasn't quite right, reply to this email and tell us. Our team reads every reply.`) +
+          p(`Next celebration coming up? ${loc.order_page_url ? `<a href="${esc(loc.order_page_url)}" style="color:${HONEY}">Order your next cake online</a> or call` : "Call"} ${esc(loc.phone)}.`)),
+      };
+    }
     default:
       return { subject: `Cake order update (${o.reference})`, html: layout(loc, "Order update", table(cakeRows(d, false))) };
   }
