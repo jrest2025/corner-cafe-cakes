@@ -140,6 +140,7 @@ async def main():
         await pg.evaluate('window.print = function(){ window.__printed = 1; }')
         await pg.click('[data-act="panel"][data-v="brief"]'); await pg.wait_for_timeout(200)
         await pg.click('[data-act="do-brief"][data-v="A5"]'); await pg.wait_for_timeout(700)
+        await pg.evaluate("(function(){var e=document.querySelector('#ccs-sheet [data-act=brief-print]'); if(e) e.click()})()"); await pg.wait_for_timeout(700)
         brief = await pg.evaluate("(document.getElementById('ccs-print')||{}).innerText||''")
         check('kitchen brief printed without any note or feedback text', 'CC-1003' in brief and 'too sweet' not in brief and 'apologise' not in brief, brief[:300])
         await ctx.close()

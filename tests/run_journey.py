@@ -73,6 +73,7 @@ async def main():
         await shot(pg, 'confirmed-deposit-paid')
         # 4. Print the kitchen slip
         await js(pg, '#ccs-sheet [data-act="panel"][data-v="brief"]'); await js(pg, '#ccs-sheet [data-act="do-brief"][data-v="A5"]'); await pg.wait_for_timeout(900)
+        await pg.evaluate("(function(){var e=document.querySelector('#ccs-sheet [data-act=brief-print]'); if(e) e.click()})()"); await pg.wait_for_timeout(700)
         title = await pg.evaluate("document.title"); slip = await pg.evaluate("(document.querySelector('#ccs-print .ccs-slip')||{}).innerText||''")
         check('slip printed: order number first, v1, file named for the order', await pg.evaluate("window.__printed||0") >= 1 and slip.strip().upper().startswith('ORDER') and 'CC-1009' in slip and re.match(r'^CC-1009 Pickup .+ Cheesecake 8 inch Mere Tavola v1$', title) is not None, title)
         check('slip carries allergy, design, inscription and candles', all(w in slip for w in ['Nut allergy', 'Blue ombre', 'Happy 30th Mere', 'Number 30 candle']), slip[:300])

@@ -163,6 +163,7 @@ async def main():
             await open_order(pg, 'CC-1007')
             await jsclick(pg, '#ccs-sheet [data-act="panel"][data-v="brief"]')
             await jsclick(pg, f'#ccs-sheet [data-act="do-brief"][data-v="{size}"]'); await pg.wait_for_timeout(700)
+            await pg.evaluate("(function(){var e=document.querySelector('#ccs-sheet [data-act=brief-print]'); if(e) e.click()})()"); await pg.wait_for_timeout(700)
             sc = await pg.evaluate("(document.getElementById('ccs-print')||{dataset:{}}).dataset.scale")
             n = await pdf_pages(pg, f'brief-{size}-{"long" if items else "short"}.pdf')
             label = f'{size} {"long order" if items else "normal order"}'

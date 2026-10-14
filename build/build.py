@@ -2,7 +2,11 @@ import subprocess, json, re, os
 os.chdir('/home/claude/cakes')
 def run(c): subprocess.run(c, shell=True, check=True)
 run('npx -y terser@5.31.0 guest.js -c -m -o dist/guest.min.js')
-open('dist/staff.full.js','w').write(open('staff.js').read().replace('/*@DASH@*/', open('staff.dash.js').read() + open('staff.reg.js').read() + open('staff.crm.js').read()))
+# The kitchen slip PDF layout is shared with the email sender: one source file, so a downloaded slip matches the emailed one
+slip = open('/home/claude/corner-cafe-cakes/supabase/functions/send-emails/slip_pdf.js').read().replace('export const ', 'const ').replace('export async function ', 'async function ').replace('export function ', 'function ')
+assert 'export ' not in slip and 'import ' not in slip
+slipjs = 'var SlipPdf = (function () {\n' + slip + '\nreturn { buildSlipPdf: buildSlipPdf, slipFileName: slipFileName };\n})();\n'
+open('dist/staff.full.js','w').write(open('staff.js').read().replace('/*@DASH@*/', slipjs + open('staff.dash.js').read() + open('staff.reg.js').read() + open('staff.crm.js').read()))
 run('npx -y terser@5.31.0 dist/staff.full.js -c -m -o dist/staff.min.js')
 run('npx -y csso-cli@4.0.2 guest.css -o dist/guest.min.css')
 run('npx -y csso-cli@4.0.2 staff.css -o dist/staff.min.css')

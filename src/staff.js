@@ -837,8 +837,18 @@
     }
     if (p === 'brief') {
       var ppr = S.slip.paper;
-      return '<div class="ccs-panel"><b>Print kitchen slip</b><p class="ccs-hint">' + (o.brief_version ? 'Version ' + o.brief_version + ' was printed before. If anything changed since, this prints a new version and marks what changed.' : 'This is the first slip for this order.') + ' Prints on one ' + ppr + ' page, with the guest name, phone number and price.</p>' + err +
-        '<div class="ccs-actions-row"><button type="button" class="ccs-btn" data-act="do-brief" data-v="' + ppr + '">Print slip (' + ppr + ')</button><button type="button" class="ccs-btn ccs-ghost" data-act="panel" data-v="">Back</button></div></div>';
+      return '<div class="ccs-panel"><b>Print kitchen slip</b><p class="ccs-hint">The slip is emailed as a PDF to the admin and counter inboxes, ready to print. You can also download it. ' + (o.brief_version ? 'Version ' + o.brief_version + ' was made before. If anything changed since, this makes a new version and marks what changed.' : 'This is the first slip for this order.') + ' One ' + ppr + ' page, with the guest name, phone number and price.</p>' + err +
+        '<div class="ccs-actions-row"><button type="button" class="ccs-btn" data-act="do-brief" data-v="' + ppr + '">Email slip to print</button><button type="button" class="ccs-btn ccs-ghost" data-act="panel" data-v="">Back</button></div></div>';
+    }
+    if (p === 'brief-done' && S.briefDone && S.briefDone.id === o.id) {
+      var bd = S.briefDone.b, em = bd.email || {}, who = [em.to, em.cc].filter(Boolean).join(' and '), sst2 = slipState(o.id);
+      var emTxt = em.state === 'queued' ? 'Emailed to ' + who + ' for printing.' : em.state === 'recent' ? 'This slip was emailed to ' + who + ' less than a minute ago, so it was not sent again.' :
+        em.state === 'off' ? 'Emailing slips is switched off in Settings, Kitchen printing. Download it or print it here.' : em.state === 'no_address' ? 'No email address is set for kitchen slips, so it was not emailed. Download it or print it here, and ask an admin to add the address in Settings, Kitchen printing.' : 'The slip was not emailed. Download it or print it here.';
+      var emOk = em.state === 'queued' || em.state === 'recent';
+      return '<div class="ccs-panel ccs-briefdone"><b>Kitchen slip ' + esc(bd.snapshot.reference) + ' v' + bd.version + '</b>' +
+        '<p class="' + (emOk ? 'ccs-hint' : 'ccs-note') + '" role="status">' + esc(emTxt) + '</p>' +
+        (emOk && sst2 && sst2.v === bd.version ? (sst2.failed ? '<div class="ccs-alert" role="alert">' + esc(SLIP_FAIL) + ' Download it or print it here.</div>' : '<p class="ccs-slipst' + (sst2.printed ? ' is-ok' : '') + '">' + esc(sst2.text) + '</p>') : '') + err +
+        '<div class="ccs-actions-row"><button type="button" class="ccs-btn" data-act="brief-pdf">Download slip (PDF)</button><button type="button" class="ccs-btn ccs-ghost" data-act="brief-print">Print on this device</button><button type="button" class="ccs-btn ccs-ghost" data-act="panel" data-v="">Done</button></div></div>';
     }
     if (p === 'pay') {
       if (!S.payKey) S.payKey = uuid();
@@ -978,11 +988,51 @@
       S.busy = false; if (r.error) throw r.error;
       if (!r.data.ok) { S.panelErr = r.data.message; return renderSheet(); }
       if (!r.data.snapshot || !validRef(r.data.snapshot.reference) || r.data.snapshot.reference !== o.reference) { S.panelErr = NO_REF; return renderSheet(); }
-      var b = r.data, paths = b.snapshot.photos || [];
-      var go = function (urls) { renderBrief(b, urls, size); toast(b.new_version ? 'Print window opened. ' + b.snapshot.reference + ' slip v' + b.version + ' recorded.' : 'Print window opened for ' + b.snapshot.reference + ' v' + b.version + ' again. Nothing changed since it was printed.'); S.panel = null; openOrder(o.id); };
-      if (!paths.length) return go([]);
-      sb.storage.from('cake-references').createSignedUrls(paths, 900).then(function (u) { go(((u && u.data) || []).map(function (x) { return x.signedUrl; }).filter(Boolean)); }, function () { go([]); });
+      var b = r.data, em = b.email || {};
+      S.briefDone = { id: o.id, b: b, size: size };
+      toast(em.state === 'queued' ? b.snapshot.reference + ' slip v' + b.version + ' emailed for printing' : b.snapshot.reference + ' slip v' + b.version + ' ready');
+      openOrder(o.id).then(function () {
+        if (!S.sheet || S.sheet.id !== o.id) return;
+        S.panel = 'brief-done'; S.panelErr = null; renderSheet();
+        [3000, 8000, 20000].forEach(function (ms) { setTimeout(function () { if (S.sheet && S.sheet.id === o.id && S.panel === 'brief-done') slipLoad([o.id]); }, ms); });
+      });
     }).catch(function (e) { S.busy = false; fail(e); });
+  }
+  // Print on this device: the same slip as before, through the browser's print window
+  function briefPrintHere() {
+    var d = S.briefDone; if (!d) return;
+    var b = d.b, paths = b.snapshot.photos || [];
+    var go = function (urls) { renderBrief(b, urls, d.size || S.slip.paper); };
+    if (!paths.length) return go([]);
+    sb.storage.from('cake-references').createSignedUrls(paths, 900).then(function (u) { go(((u && u.data) || []).map(function (x) { return x.signedUrl; }).filter(Boolean)); }, function () { go([]); });
+  }
+  // Download: the same PDF the kitchen email carries, made in the browser from the same layout file
+  var PDFLIB_URL = 'https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js', PDFLIB_SRI = 'sha384-weMABwrltA6jWR8DDe9Jp5blk+tZQh7ugpCsF3JwSA53WZM9/14PjS5LAJNHNjAI';
+  var SLIP_LOGO_PNG = 'https://cdn.jsdelivr.net/gh/jrest2025/corner-cafe-cakes@6879294bbce62e730bdf5b1af8c2b3e931a06fb5/dist/brand/slip-logo-white.png';
+  var pdfLibP = null;
+  function pdfLib() {
+    if (window.PDFLib) return Promise.resolve(window.PDFLib);
+    if (pdfLibP) return pdfLibP;
+    pdfLibP = new Promise(function (ok, no) {
+      var s = document.createElement('script'); s.src = PDFLIB_URL; s.integrity = PDFLIB_SRI; s.crossOrigin = 'anonymous';
+      s.onload = function () { window.PDFLib ? ok(window.PDFLib) : no(new Error('pdf')); }; s.onerror = function () { pdfLibP = null; no(new Error('pdf')); };
+      document.head.appendChild(s);
+    });
+    return pdfLibP;
+  }
+  function briefPdf() {
+    var d = S.briefDone; if (!d || S.busy) return;
+    var b = d.b; S.busy = true; S.panelErr = null;
+    var logo = fetch(SLIP_LOGO_PNG).then(function (r) { return r.ok ? r.arrayBuffer() : null; }).then(function (x) { return x ? new Uint8Array(x) : null; }, function () { return null; });
+    Promise.all([pdfLib(), logo]).then(function (z) {
+      return SlipPdf.buildSlipPdf(z[0], { snapshot: b.snapshot, slip: b.slip || {}, version: b.version, changes: b.changes || [], printedAt: b.first_printed_at, logoPng: z[1], location: {}, paper: b.paper || d.size || 'A5' });
+    }).then(function (bytes) {
+      S.busy = false; clearBusy();
+      var url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' })), a = document.createElement('a');
+      a.href = url; a.download = SlipPdf.slipFileName(b.snapshot, b.slip || {}, b.version) + '.pdf'; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
+      toast('Slip downloaded');
+    }).catch(function () { S.busy = false; clearBusy(); S.panelErr = 'The download did not work. Press Print on this device and choose Save as PDF instead.'; renderSheet(); });
   }
   // Kitchen slip in the Cake Order Slip layout (one A5 page)
   var SLIP_LOGO = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="364.8 277 120.3 43.8" fill="currentColor" role="img" aria-label="Corner Cafe"><path fill-rule="evenodd" d="M 477.05 282.33L477.02 288.33L477.09 294.55L468.64 294.55L468.66 293.69L468.67 290.50L468.73 284.76L468.66 278.39L468.64 277.48L477.07 277.48L477.07 280.70C478.33 279.43 479.21 278.63 479.71 278.29C480.85 277.53 481.92 277.15 482.93 277.15C483.55 277.15 484.06 277.28 484.46 277.53C484.85 277.78 485.06 278.10 485.06 278.48C485.06 278.78 484.94 279.03 484.69 279.23C484.45 279.43 484.16 279.53 483.79 279.53C483.56 279.53 483.30 279.46 483.01 279.34C482.53 279.12 482.13 279.01 481.82 279.01C481.02 279.01 480.26 279.27 479.52 279.78C478.79 280.29 477.96 281.14 477.05 282.33M459.23 285.49L459.23 280.92C459.20 279.94 459.18 279.35 459.16 279.16C459.14 278.97 459.07 278.79 458.93 278.62C458.62 278.21 458 278.01 457.05 278.01C456.08 278.01 455.48 278.25 455.24 278.71C455.08 279 455.01 279.73 455.01 280.92L455.01 285.49L457.02 285.55 ZM455.01 286.52L455.01 291.36C455.01 292.30 455.07 292.89 455.19 293.14C455.42 293.62 455.97 293.87 456.82 293.87C458.10 293.87 459.35 293.53 460.60 292.87C461.85 292.21 462.92 291.30 463.83 290.13C464.13 289.75 464.35 289.50 464.48 289.39C464.61 289.29 464.75 289.24 464.91 289.24C465.09 289.24 465.25 289.30 465.37 289.44C465.49 289.57 465.55 289.73 465.55 289.93C465.55 290.37 465.18 290.95 464.45 291.69C463.48 292.64 462.28 293.41 460.85 294.00C459.41 294.60 458.02 294.90 456.66 294.90C454.32 294.90 452.26 294.16 450.46 292.66C449.42 291.78 448.62 290.71 448.06 289.42C447.57 288.30 447.32 287.17 447.32 286.05C447.32 284.96 447.54 283.88 447.98 282.78C448.42 281.70 449.02 280.76 449.79 279.97C450.68 279.04 451.73 278.32 452.95 277.81C454.15 277.31 455.40 277.06 456.71 277.06C458.74 277.06 460.58 277.62 462.22 278.76C464.79 280.53 466.07 283.10 466.04 286.47L462.21 286.47L457.26 286.48 ZM431.44 277.48L431.44 279.65C432.73 278.79 433.98 278.14 435.21 277.71C436.45 277.27 437.64 277.06 438.80 277.06C440.36 277.06 441.68 277.39 442.76 278.07C443.57 278.58 444.11 279.21 444.39 279.97C444.67 280.73 444.82 281.96 444.82 283.67L444.78 290.91L444.83 294.55L436.45 294.55L436.51 290.21L436.57 287.02L436.55 282.20C436.54 281.09 436.53 280.42 436.51 280.21C436.49 280 436.44 279.80 436.35 279.64C436.17 279.31 435.80 279.14 435.21 279.14C434.67 279.14 434.10 279.28 433.47 279.57C432.84 279.87 432.17 280.30 431.44 280.89L431.43 281.53L431.39 285.92L431.36 289.29L431.41 293.88L431.43 294.55L423.01 294.55L423.07 288.43L423.11 284.37L423.07 280.87L423.01 277.48 ZM413.59 282.33L413.55 288.33L413.62 294.55L405.17 294.55L405.19 293.69L405.21 290.50L405.26 284.76L405.19 278.39L405.17 277.48L413.60 277.48L413.60 280.70C414.86 279.43 415.75 278.63 416.24 278.29C417.38 277.53 418.46 277.15 419.47 277.15C420.08 277.15 420.59 277.28 420.99 277.53C421.39 277.78 421.59 278.10 421.59 278.48C421.59 278.78 421.47 279.03 421.23 279.23C420.98 279.43 420.69 279.53 420.32 279.53C420.09 279.53 419.83 279.46 419.55 279.34C419.07 279.12 418.66 279.01 418.35 279.01C417.56 279.01 416.79 279.27 416.06 279.78C415.32 280.29 414.50 281.14 413.59 282.33M392.73 278.07L392.68 293.83C393.02 293.85 393.25 293.87 393.39 293.87C394.91 293.87 396.37 293.46 397.76 292.65C399.11 291.85 400.11 290.80 400.78 289.49C401.31 288.44 401.57 287.30 401.57 286.05C401.57 283.54 400.59 281.50 398.64 279.94C397.06 278.67 395.34 278.04 393.49 278.04C393.33 278.04 393.08 278.05 392.73 278.07M393.21 277.06C394.97 277.06 396.65 277.52 398.23 278.45C399.69 279.31 400.80 280.47 401.57 281.95C402.25 283.26 402.59 284.64 402.59 286.10C402.59 287.10 402.39 288.10 401.99 289.11C401.59 290.12 401.04 291.02 400.35 291.80C399.39 292.88 398.21 293.68 396.81 294.22C395.67 294.67 394.48 294.90 393.24 294.90C391.16 294.90 389.30 294.32 387.64 293.14C386.35 292.25 385.36 291.10 384.69 289.69C384.13 288.50 383.85 287.25 383.85 285.92C383.85 283.33 384.84 281.19 386.82 279.48C388.67 277.90 390.80 277.09 393.21 277.06M373.73 280.87L373.73 291.32L373.71 292.32C373.71 292.96 373.80 293.40 373.96 293.61C374.14 293.82 374.48 293.93 374.99 293.93C376.29 293.93 377.56 293.55 378.82 292.79C380.07 292.04 381.08 291.03 381.88 289.76C382.12 289.37 382.35 289.17 382.58 289.17C382.75 289.17 382.90 289.25 383.04 289.39C383.17 289.53 383.24 289.67 383.24 289.83C383.24 290.21 382.93 290.74 382.29 291.42C381.65 292.10 380.91 292.71 380.07 293.26C378.34 294.35 376.50 294.90 374.53 294.90C371.84 294.90 369.62 294.10 367.87 292.52C365.86 290.74 364.87 288.55 364.87 285.97C364.87 283.30 365.92 281.08 368.03 279.31C369.80 277.81 371.98 277.06 374.57 277.06C376.63 277.06 378.44 277.52 379.98 278.45C380.64 278.85 381.18 279.27 381.60 279.72C382.01 280.17 382.23 280.56 382.23 280.87C382.23 281.03 382.16 281.16 382.04 281.27C381.92 281.38 381.77 281.44 381.60 281.44C381.37 281.44 381.07 281.19 380.73 280.68C380.22 279.99 379.42 279.38 378.33 278.86C377.25 278.35 376.22 278.09 375.26 278.09C374.61 278.09 374.19 278.26 374.01 278.61C373.82 278.95 373.73 279.71 373.73 280.87"/><path fill-rule="evenodd" d="M 454.97 311.08L454.97 306.37C454.94 305.36 454.92 304.76 454.90 304.56C454.88 304.36 454.81 304.17 454.67 304.00C454.37 303.58 453.76 303.37 452.83 303.37C451.88 303.37 451.29 303.61 451.05 304.09C450.90 304.39 450.83 305.15 450.83 306.37L450.83 311.08L452.80 311.14 ZM450.83 312.14L450.83 317.14C450.83 318.11 450.89 318.72 451.00 318.98C451.23 319.47 451.76 319.72 452.60 319.72C453.86 319.72 455.09 319.38 456.32 318.69C457.54 318.01 458.60 317.07 459.5 315.87C459.79 315.47 460.00 315.22 460.12 315.11C460.26 315.00 460.40 314.95 460.55 314.95C460.73 314.95 460.88 315.01 461.00 315.15C461.12 315.28 461.18 315.45 461.18 315.66C461.18 316.11 460.82 316.71 460.10 317.48C459.15 318.46 457.97 319.25 456.56 319.86C455.15 320.48 453.78 320.78 452.44 320.78C450.15 320.78 448.12 320.01 446.36 318.48C445.33 317.57 444.55 316.46 444 315.14C443.51 313.98 443.27 312.82 443.27 311.66C443.27 310.54 443.49 309.42 443.92 308.29C444.35 307.17 444.94 306.20 445.69 305.39C446.57 304.43 447.61 303.69 448.80 303.16C449.98 302.65 451.21 302.39 452.5 302.39C454.49 302.39 456.29 302.97 457.91 304.14C460.44 305.97 461.69 308.62 461.67 312.09L457.89 312.09L453.04 312.11 ZM440.42 303.78L440.39 308.61L440.35 314.60L440.42 319.78L440.42 320.43L432.16 320.43L432.16 319.88L432.19 317.27L432.22 311.61L432.16 304.25L432.16 303.78L431.86 303.78L430.62 303.82C430.13 303.82 429.89 303.63 429.89 303.26C429.89 302.89 430.11 302.69 430.55 302.69L431.33 302.74L432.26 302.74C432.42 301.84 432.61 301.13 432.84 300.62C433.07 300.11 433.43 299.62 433.92 299.15C435.26 297.82 437.19 297.15 439.69 297.15C440.92 297.15 442.01 297.33 442.94 297.69C443.89 298.07 444.35 298.48 444.35 298.96C444.35 299.14 444.28 299.30 444.13 299.43C443.99 299.56 443.82 299.63 443.62 299.63C443.41 299.63 443.20 299.51 443 299.28C442.74 298.96 442.54 298.75 442.39 298.65C442.26 298.55 442.08 298.50 441.89 298.50C441.34 298.50 440.95 298.82 440.73 299.44C440.50 300.07 440.38 301.17 440.37 302.74L441.87 302.74C441.94 302.74 442.08 302.73 442.30 302.71C442.48 302.70 442.66 302.69 442.82 302.69C443.26 302.69 443.48 302.89 443.48 303.28C443.48 303.64 443.22 303.82 442.69 303.82L441.50 303.79 ZM420.03 310.85C418.67 310.17 417.62 309.83 416.88 309.83C416.25 309.83 415.84 310.08 415.65 310.58C415.54 310.85 415.49 311.62 415.49 312.92L415.49 316.77C415.50 317.62 415.53 318.13 415.57 318.32C415.67 318.81 416.04 319.06 416.67 319.06C417.16 319.06 417.71 318.91 418.33 318.61C418.94 318.32 419.49 317.93 420.00 317.44 ZM420.02 309.69L420.02 307.72C420.01 306.36 419.98 305.52 419.95 305.21C419.92 304.90 419.82 304.62 419.66 304.37C419.27 303.77 418.37 303.47 416.94 303.47C414.75 303.47 413.04 304.16 411.85 305.53C411.36 306.09 410.95 306.37 410.62 306.37C410.37 306.37 410.16 306.28 409.97 306.11C409.78 305.94 409.69 305.74 409.69 305.51C409.69 304.84 410.5 304.14 412.10 303.42C413.64 302.73 415.62 302.39 418.05 302.39C422.03 302.39 424.85 302.99 426.49 304.19C427.20 304.72 427.67 305.31 427.88 305.97C428.10 306.62 428.20 307.78 428.20 309.43L428.20 315.83C428.16 317.01 428.19 317.90 428.31 318.50C428.42 319.10 428.67 319.74 429.08 320.43L420.02 320.43L420.02 318.73C419.02 319.41 418.04 319.92 417.06 320.27C416.09 320.61 415.12 320.78 414.17 320.78C412.57 320.78 411.14 320.32 409.89 319.38C408.26 318.16 407.45 316.57 407.45 314.60C407.45 312.88 408.10 311.48 409.42 310.42C410.95 309.16 412.85 308.53 415.11 308.53C416.04 308.53 416.86 308.61 417.58 308.78C418.29 308.95 419.10 309.25 420.02 309.69M397.48 306.32L397.48 317.09L397.46 318.12C397.46 318.79 397.55 319.23 397.71 319.46C397.88 319.67 398.22 319.78 398.72 319.78C400.00 319.78 401.25 319.39 402.48 318.61C403.71 317.83 404.71 316.79 405.49 315.48C405.73 315.08 405.96 314.88 406.18 314.88C406.34 314.88 406.49 314.95 406.63 315.10C406.76 315.25 406.83 315.40 406.83 315.56C406.83 315.95 406.52 316.5 405.89 317.20C405.27 317.90 404.54 318.53 403.71 319.09C402.01 320.22 400.20 320.78 398.27 320.78C395.63 320.78 393.44 319.97 391.72 318.33C389.75 316.5 388.78 314.24 388.78 311.58C388.78 308.83 389.81 306.54 391.88 304.71C393.62 303.16 395.76 302.39 398.30 302.39C400.33 302.39 402.11 302.87 403.63 303.82C404.27 304.23 404.80 304.67 405.21 305.14C405.62 305.60 405.83 306.00 405.83 306.32C405.83 306.48 405.77 306.62 405.65 306.73C405.53 306.85 405.38 306.90 405.21 306.90C404.99 306.90 404.70 306.64 404.35 306.12C403.86 305.41 403.07 304.78 402.01 304.25C400.94 303.71 399.93 303.45 398.98 303.45C398.35 303.45 397.94 303.63 397.76 303.98C397.57 304.33 397.48 305.12 397.48 306.32"/></svg>';
@@ -2918,10 +2968,10 @@
       if (pr.test_mode) h += '<p class="ccs-note">Test mode is on. Every slip goes only to ' + esc(pr.test_email) + ', not to the addresses below.</p>';
       if (!pr.verified) h += '<p class="ccs-note">The printer email or paper size changed. Send a test slip, check it printed correctly, then press It printed correctly.</p>';
       else if (pr.verified_note) h += '<p class="ccs-hint">Printer last checked: ' + esc(pr.verified_note) + '.</p>';
-      h += '<div class="ccs-row">' + sf('pr-pri', 'Kitchen printer email', pr.primary, 'email') + sf('pr-bak', 'Backup email (optional, gets a copy)', pr.backup, 'email') + '</div>' +
+      h += '<div class="ccs-row">' + sf('pr-pri', 'Admin inbox (every slip is emailed here to print)', pr.primary, 'email') + sf('pr-bak', 'Counter inbox (gets the same email)', pr.backup, 'email') + '</div>' +
         '<div class="ccs-row"><div class="ccs-field"><label class="ccs-label" for="pr-paper">Paper size</label><select class="ccs-input" id="pr-paper">' +
         [['A5', 'A5 (148 x 210 mm)'], ['DL', 'DL (99 x 210 mm)']].map(function (o) { return '<option value="' + o[0] + '"' + (pr.paper === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></div></div>' +
-        '<label class="ccs-check"><input type="checkbox" id="pr-on"' + (pr.on_new ? ' checked' : '') + '> Email the kitchen each time a new slip version is printed</label>' +
+        '<label class="ccs-check"><input type="checkbox" id="pr-on"' + (pr.on_new ? ' checked' : '') + '> Email the slip each time Print kitchen slip is pressed</label>' +
         (st.prFormErr ? '<p class="ccs-err" role="alert">' + esc(st.prFormErr) + '</p>' : '') +
         '<div class="ccs-actions-row"><button type="button" class="ccs-btn" data-act="pr-save">Save printing settings</button><button type="button" class="ccs-btn ccs-ghost" data-act="pr-test">Send test slip</button>' +
         (!pr.verified && pr.last_test && pr.last_test.status === 'sent' ? '<button type="button" class="ccs-btn ccs-good" data-act="pr-ok">It printed correctly</button>' : '') + '</div>';
@@ -3212,7 +3262,7 @@
     }).catch(function () { loginView('Could not connect. Check the internet connection.'); });
   });
   var BUSY_ACTS = { 'do-delete': 'Deleting…', 'do-confirm': 'Saving…', 'do-decline': 'Saving…', 'do-cancel': 'Saving…', 'do-note': 'Saving…', 'do-waive': 'Saving…', 'do-collected': 'Saving…', 'do-fulfil': 'Saving…',
-    'do-brief': 'Preparing…', 'do-pay': 'Saving…', 'k-stage': 'Saving…', 'k-next': 'Saving…', 'k-ready': 'Saving…', 'k-assign': 'Saving…', 'save-zones': 'Saving…', 'add-zone': 'Saving…', 'cust-save': 'Saving…', 'cn-save': 'Saving…', 'consent-ch': 'Saving…',
+    'do-brief': 'Sending…', 'do-pay': 'Saving…', 'k-stage': 'Saving…', 'k-next': 'Saving…', 'k-ready': 'Saving…', 'k-assign': 'Saving…', 'save-zones': 'Saving…', 'add-zone': 'Saving…', 'cust-save': 'Saving…', 'cn-save': 'Saving…', 'consent-ch': 'Saving…',
     'consent': 'Saving…', 'save-loc': 'Saving…', 'confirm-loc': 'Saving…', 'add-closed': 'Saving…', 'save-staff': 'Saving…', 'tm-add': 'Adding…', 'tm-reset-save': 'Saving…', 'bk-link': 'Linking…', 'bk-copy': 'Copying…', 'pr-save': 'Saving…', 'pr-test': 'Sending…', 'pr-ok': 'Saving…', 'k-printed': 'Saving…' };
   // Tablets and laptops: the menu is hidden and slides in from the Menu button, so the page has the full width
   function menuOpen() { var a = root.querySelector('.ccs-app'); return !!(a && a.classList.contains('menu-open')); }
@@ -3303,6 +3353,8 @@
         case 'f-method': S.ful.method = v; renderSheet(); break;
         case 'f-zone': S.ful.zone = v; renderSheet(); break;
         case 'do-brief': printBrief(v); break;
+        case 'brief-pdf': markBusy(b, 'Preparing…'); briefPdf(); break;
+        case 'brief-print': briefPrintHere(); break;
         case 'open-kitchen': openKitchen(b.dataset.id); break;
         case 'k-stage': kitStage(v); break;
         case 'k-next': kitStage(v, null, b.dataset.id); break;
