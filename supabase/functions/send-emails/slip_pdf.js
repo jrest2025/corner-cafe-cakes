@@ -1,4 +1,4 @@
-// Kitchen slip as a PDF (A5 portrait), matching the printed slip in the staff app.
+// Kitchen slip as a PDF (A5 or DL portrait, set in Settings), matching the printed slip in the staff app.
 // The order number comes first, large, with its version (v1, v2...). Black and white only, so it prints on any printer.
 // Pure layout code: pdf-lib is passed in so the same file runs in the email sender (Deno) and in local tests (Node).
 
@@ -18,12 +18,25 @@ export function slipFileName(s, slip, version) {
   return parts.filter(Boolean).join(" ").replace(/[\\/:*?"<>|]+/g, " ").replace(/\s+/g, " ").trim();
 }
 
-export async function buildSlipPdf(PDFLib, { snapshot: s, slip, version, changes, printedAt, logoPng, location }) {
+// Paper sizes: A5 (148 x 210 mm) or DL (99 x 210 mm). On DL, or when an order has a lot of text,
+// the type is made smaller step by step until the whole slip fits on one page.
+export const SLIP_PAPER = { A5: [148, 210], DL: [99, 210] };
+export async function buildSlipPdf(PDFLib, opts) {
+  const s = opts.snapshot;
   if (!s || !SLIP_REF.test(String(s.reference || "").trim())) throw new Error("No valid order number: kitchen slip not made");
+  const paper = SLIP_PAPER[opts.paper] ? opts.paper : "A5";
+  const steps = paper === "DL" ? [0.86, 0.78, 0.7, 0.62] : [1, 0.9, 0.8, 0.7];
+  let last;
+  for (const z of steps) { last = await renderSlip(PDFLib, opts, paper, z); if (last.fits) break; }
+  return last.bytes;
+}
+
+async function renderSlip(PDFLib, { snapshot: s, slip, version, changes, printedAt, logoPng, location }, paper, z) {
   const { PDFDocument, StandardFonts, rgb } = PDFLib;
   const doc = await PDFDocument.create();
   doc.setTitle(slipFileName(s, slip, version)); doc.setAuthor("Corner Café Cakes"); doc.setSubject(`Kitchen slip ${s.reference} v${version}`);
-  const W = 148 * MM, H = 210 * MM, M = 8 * MM, CW = W - 2 * M;
+  // Drawn at a larger logical size, then the whole page is shrunk by z, so type and spacing scale together
+  const RW = SLIP_PAPER[paper][0] * MM, RH = SLIP_PAPER[paper][1] * MM, W = RW / z, H = RH / z, M = (paper === "DL" ? 6 : 8) * MM / z, CW = W - 2 * M;
   const page = doc.addPage([W, H]);
   const R = await doc.embedFont(StandardFonts.Helvetica), B = await doc.embedFont(StandardFonts.HelveticaBold);
   const BLACK = rgb(0, 0, 0), WHITE = rgb(1, 1, 1), GREY = rgb(0.35, 0.35, 0.35);
@@ -113,9 +126,13 @@ export async function buildSlipPdf(PDFLib, { snapshot: s, slip, version, changes
 
   // 6. Footer
   const loc = location || {};
-  const f1 = `Phone: ${loc.phone || "+ 679 8922760"} | Email: ${loc.email || "cornercafe@jacksfiji.com"}`;
-  text(f1, (W - width(B, f1, 7.5)) / 2, M + 12, B, 7.5);
   const f2 = "All prices include 12.5% VAT. 2% surcharge applies to overseas credit card transactions.";
-  text(f2, (W - width(R, f2, 6)) / 2, M + 3, R, 6, GREY);
-  return await doc.save();
+  const f1 = `Phone: ${loc.phone || "+ 679 8922760"} | Email: ${loc.email || "cornercafe@jacksfiji.com"}`;
+  const f1y = M + 12 + (wrap(R, f2, 6, CW).length - 1) * 7;
+  text(f1, (W - width(B, f1, 7.5)) / 2, f1y, B, 7.5);
+  const f2w = wrap(R, f2, 6, CW);
+  f2w.forEach((l, k) => text(l, (W - width(R, l, 6)) / 2, M + 3 + (f2w.length - 1 - k) * 7, R, 6, GREY));
+  const fits = y > f1y + 12;
+  page.scaleContent(z, z); page.setSize(RW, RH);
+  return { fits, bytes: await doc.save() };
 }

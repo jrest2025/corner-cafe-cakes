@@ -361,6 +361,26 @@
         orders[0].order_amendments = [{ revision: 1, amended_at: new Date().toISOString(), staff_label: 'Test Manager', requested_by: args.p_requested_by, reason: args.p_reason, time_change_cause: ch.time ? 'guest_request' : null, changes: list, excess_paid: 0, kitchen_ack_required: false, notification_status: 'Not sent: guest emails are off. Tell the customer by WhatsApp or phone.' }];
         return Promise.resolve({ data: { ok: true, revision: 1, reference: 'CC-1001', kitchen_ack_required: false, needs_reprint: false, balance_after: after, excess_paid: 0 } });
       }
+      // Kitchen printing (invented data): settings, test slip, delivery log, resend, slip status, Printed tap
+      if (/^(admin_print|admin_slip|slip_status|kitchen_confirm_printed)/.test(fn)) {
+        var R = window.__role || 'manager', isA = R === 'admin', isM = isA || R === 'manager';
+        var P = window.__pr = window.__pr || { primary: 'kitchen@example.com', backup: '', paper: 'A5', on_new: true, verified: true, verified_note: 'Test Manager · 1 Oct 9:00am', last_test: null, test_mode: true, test_email: 'test@example.com' };
+        var LOG = window.__slipLog = window.__slipLog || [], ROWS = window.__slipRows = window.__slipRows || {};
+        var no = function (m) { return Promise.resolve({ data: { ok: false, error: 'x', message: m } }); }, yes = function (d) { return Promise.resolve({ data: Object.assign({ ok: true }, d) }); };
+        var re = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+        if (fn === 'admin_print_settings') return isA ? yes(P) : no('Only an administrator can see printing settings.');
+        if (fn === 'admin_print_settings_save') { if (!isA) return no('Only an administrator can change printing settings.'); var q = args.p, pri = (q.primary || '').trim().toLowerCase(), bak = (q.backup || '').trim().toLowerCase();
+          if (!pri) return no('Enter the kitchen printer email address.'); if (!re.test(pri)) return no('That kitchen printer email address does not look right.'); if (bak && !re.test(bak)) return no('That backup email address does not look right.'); if (bak && bak === pri) return no('The backup address is the same as the main one. Use a different address or leave it empty.');
+          if (pri !== P.primary || bak !== P.backup || q.paper !== P.paper) { P.verified = false; P.verified_note = ''; } P.primary = pri; P.backup = bak; P.paper = q.paper; P.on_new = !!q.on_new; return yes(P); }
+        if (fn === 'admin_print_test') { if (!isA) return no('Only an administrator can send a test slip.'); P.last_test = { at: new Date().toISOString(), status: 'sent', error: null }; LOG.unshift({ id: 't' + LOG.length, kind: 'kitchen_slip_test', status: 'sent', attempts: 1, created_at: new Date().toISOString(), version: 1 }); return yes({ to: P.primary, test_mode: P.test_mode, test_email: P.test_email }); }
+        if (fn === 'admin_print_test_confirm') { if (!isA) return no('Only an administrator can confirm the test slip.'); if (!P.last_test) return no('Send a test slip first.'); P.verified = true; P.verified_note = 'Test Manager · today'; return yes(P); }
+        if (fn === 'admin_slip_log') return isM ? yes({ rows: LOG.slice() }) : no('Only managers can see the slip delivery log.');
+        if (fn === 'admin_slip_resend') { if (!isM) return no('Only managers can send a slip again.'); var lr = LOG.filter(function (x) { return x.order_id === args.p_order && x.kind === 'kitchen_slip'; })[0]; if (!lr) return no('No slip has been printed for this order yet.');
+          LOG.unshift(Object.assign({}, lr, { id: 'r' + LOG.length, status: 'pending', attempts: 0, created_at: new Date().toISOString() })); return yes({ reference: lr.reference, version: lr.latest_version }); }
+        if (fn === 'slip_status') { var out = {}; (args.p_orders || []).forEach(function (id) { if (ROWS[id]) out[id] = ROWS[id]; }); return yes({ paper: P.paper, rows: out }); }
+        if (fn === 'kitchen_confirm_printed') { if (R === 'finance' || R === 'marketing') return no('You do not have access to the kitchen.'); var sr = ROWS[args.p_order]; if (!sr) return no('No slip has been printed for this order yet.'); if (sr.version !== args.p_version) return no('There is a newer slip (v' + sr.version + '). Print and confirm that one.');
+          sr.confirmed_at = new Date().toISOString(); sr.confirmed_by = 'Test Kitchen'; return yes({ version: sr.version }); }
+      }
       if (fn === 'kitchen_ack_amendment') { if (!args.p_name || args.p_name.length < 2) return Promise.resolve({ data: { ok: false, error: 'name', message: 'Enter your name.' } }); kitchenRows[2].amend_pending = null; return Promise.resolve({ data: { ok: true, count: 1 } }); }
       return Promise.resolve({ data: { ok: true, status: 'confirmed', version: 2 } });
     }

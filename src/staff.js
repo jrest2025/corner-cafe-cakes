@@ -501,6 +501,7 @@
       if (!S.sheet || S.sheet.id !== id) return;
       S.sheet.data = r.data;
       if (r.data.customer_id) orderFuLoad(id);
+      if (r.data.brief_version) slipLoad([id]);
       var att = r.data.order_attachments || [];
       if (att.length) sb.storage.from('cake-references').createSignedUrls(att.map(function (a) { return a.storage_path; }), 900).then(function (u) {
         if (u.data && S.sheet && S.sheet.id === id) { S.sheet.photos = u.data.map(function (x) { return x.signedUrl; }).filter(Boolean); renderSheet(); }
@@ -599,6 +600,8 @@
       '<div><span>Guest</span><b>' + esc(gName) + '</b>' + (gPhone ? '<a href="tel:' + esc(digits(gPhone)) + '">' + esc(gPhone) + '</a>' : '') + '</div>' +
       (can('manager', 'finance', 'front_of_house') ? '<div><span>Price</span><b>' + money(total) + '</b></div><div><span>Paid</span><b>' + money(paid) + '</b></div><div><span>To pay</span><b>' + money(bal) + '</b></div>' : '') + '</div>';
     if (o.has_dietary) h += '<div class="ccs-alert">Dietary or allergy: ' + esc([].concat(i.dietary || [], i.dietary_note ? [i.dietary_note] : []).join(', ') || 'see notes') + '</div>';
+    var sst = o.order_status === 'confirmed' ? slipState(o.id) : null;
+    if (sst && sst.failed) h += '<div class="ccs-alert" role="alert">' + esc(SLIP_FAIL) + ' Press Print kitchen slip to print slip v' + sst.v + ' here.</div>';
     h += actionsBox(o, total, paid, bal);
     var cut = [['cake', h.length]];
     h += '<section class="ccs-box"><h3>Cake</h3><p class="ccs-big">' + esc(cakeLine(i)) + '</p><dl class="ccs-kv">' +
@@ -615,7 +618,7 @@
       (!closedSt && can('manager', 'front_of_house') ? '<button type="button" class="ccs-link" data-act="panel" data-v="fulfil">Change collection or delivery</button>' : '') + '</section>';
     cut.push(['kitchen', h.length]);
     if (o.order_status === 'confirmed' || o.order_status === 'completed') {
-      h += '<section class="ccs-box"><h3>Kitchen</h3><div class="ccs-tags">' + stagePill(o.production_status) + (o.brief_version ? '<span class="ccs-pill">Kitchen slip v' + o.brief_version + '</span>' : '<span class="ccs-pill s-action">Brief not printed</span>') + '</div><dl class="ccs-kv">' +
+      h += '<section class="ccs-box"><h3>Kitchen</h3><div class="ccs-tags">' + stagePill(o.production_status) + (o.brief_version ? '<span class="ccs-pill">Kitchen slip v' + o.brief_version + '</span>' : '<span class="ccs-pill s-action">Slip not printed</span>') + '</div>' + (o.brief_version ? slipBox(o.id, false) : '') + '<dl class="ccs-kv">' +
         kv('Made by', o.kitchen_assignee) + kv('Checked by', o.qc_by ? o.qc_by + (o.qc_at ? ', ' + stamp(o.qc_at) : '') : '') + '</dl>' +
         (o.order_status === 'confirmed' && can('manager', 'front_of_house') ? '<button type="button" class="ccs-link" data-act="open-kitchen" data-id="' + o.id + '">Update kitchen progress</button>' : '') + '</section>';
     }
@@ -718,8 +721,9 @@
         '<div class="ccs-actions-row"><button type="button" class="ccs-btn ccs-good" data-act="do-collected">' + (dl ? 'Delivered' : 'Collected') + '</button><button type="button" class="ccs-btn ccs-ghost" data-act="panel" data-v="">Back</button></div></div>';
     }
     if (p === 'brief') {
-      return '<div class="ccs-panel"><b>Print kitchen slip</b><p class="ccs-hint">' + (o.brief_version ? 'Version ' + o.brief_version + ' was printed before. If anything changed since, this prints a new version and marks what changed.' : 'This is the first brief for this order.') + ' Prints on one A5 page in the Cake Order Slip layout, with the guest name, phone number and price.</p>' + err +
-        '<div class="ccs-actions-row"><button type="button" class="ccs-btn" data-act="do-brief" data-v="A5">Print slip (A5)</button><button type="button" class="ccs-btn ccs-ghost" data-act="panel" data-v="">Back</button></div></div>';
+      var ppr = S.slip.paper;
+      return '<div class="ccs-panel"><b>Print kitchen slip</b><p class="ccs-hint">' + (o.brief_version ? 'Version ' + o.brief_version + ' was printed before. If anything changed since, this prints a new version and marks what changed.' : 'This is the first slip for this order.') + ' Prints on one ' + ppr + ' page, with the guest name, phone number and price.</p>' + err +
+        '<div class="ccs-actions-row"><button type="button" class="ccs-btn" data-act="do-brief" data-v="' + ppr + '">Print slip (' + ppr + ')</button><button type="button" class="ccs-btn ccs-ghost" data-act="panel" data-v="">Back</button></div></div>';
     }
     if (p === 'pay') {
       if (!S.payKey) S.payKey = uuid();
@@ -919,7 +923,7 @@
     var el = document.getElementById('ccs-print'); if (!el) { el = document.createElement('div'); el.id = 'ccs-print'; document.body.appendChild(el); }
     el.innerHTML = '<div class="ccs-fit">' + briefHtml(b, urls, size) + '</div>';
     var ps = document.getElementById('ccs-page'); if (!ps) { ps = document.createElement('style'); ps.id = 'ccs-page'; document.head.appendChild(ps); }
-    ps.textContent = '@page{size:' + size + ' portrait;margin:' + (size === 'A5' ? '8mm' : '12mm') + '}';
+    ps.textContent = '@page{size:' + (size === 'DL' ? '99mm 210mm' : size + ' portrait') + ';margin:' + (size === 'A5' ? '8mm' : size === 'DL' ? '6mm' : '12mm') + '}';
     var imgs = Array.prototype.slice.call(el.querySelectorAll('img')), started = false;
     var fire = function () { if (started) return; started = true; fitBrief(el, size); printNamed(briefFileName(b)); document.body.classList.add('ccs-printing'); setTimeout(function () { window.print(); }, 50); };
     var left = imgs.length; if (!left) return fire();
@@ -928,7 +932,7 @@
   }
   // The brief always prints on one page: if it is too long, it is scaled down to fit. Nothing is cut off.
   function fitBrief(el, size) {
-    var mm = 96 / 25.4, W = (size === 'A5' ? 132 : 186) * mm, H = (size === 'A5' ? 191 : 270) * mm, f = el.firstChild, sc = 1;
+    var mm = 96 / 25.4, W = (size === 'A5' ? 132 : size === 'DL' ? 87 : 186) * mm, H = (size === 'A5' ? 191 : size === 'DL' ? 196 : 270) * mm, f = el.firstChild, sc = 1;
     el.style.cssText = 'display:block;position:absolute;left:-10000px;top:0;visibility:hidden;width:' + W + 'px';
     f.style.transform = ''; f.style.width = W + 'px';
     for (var i = 0; i < 8; i++) {
@@ -944,12 +948,49 @@
   }
   window.addEventListener('afterprint', function () { document.body.classList.remove('ccs-printing'); if (titleBeforePrint != null) { document.title = titleBeforePrint; titleBeforePrint = null; } });
 
+  // ---------- kitchen slip delivery: emailed is not the same as printed ----------
+  // The email only proves the slip left us. The kitchen taps Printed once it is in their hands.
+  S.slip = { rows: {}, paper: 'A5' };
+  function slipLoad(ids) {
+    ids = (ids || []).filter(Boolean); if (!ids.length) return Promise.resolve();
+    return sb.rpc('slip_status', { p_orders: ids }).then(function (r) {
+      if (r.error || !r.data || !r.data.ok) return;
+      S.slip.paper = r.data.paper === 'DL' ? 'DL' : 'A5';
+      ids.forEach(function (id) { S.slip.rows[id] = (r.data.rows || {})[id] || null; });
+      if (S.tab === 'kitchen' && !S.sheet) view();
+      if (S.sheet && ids.indexOf(S.sheet.id) > -1) renderSheet();
+    }, function () {});
+  }
+  var SLIP_FAIL = 'The kitchen email could not be delivered. The order is safely saved.';
+  // One plain line: is the newest slip emailed, and has the kitchen confirmed it printed?
+  function slipState(id) {
+    var x = S.slip.rows[id]; if (!x) return null;
+    var em = x.email === 'sent' ? 'Emailed to the kitchen' : x.email === 'pending' || x.email === 'sending' ? 'Sending to the kitchen' : x.email === 'retrying' ? 'Kitchen email delayed, trying again' : x.email === 'failed' ? 'Kitchen email failed' : 'Not emailed';
+    return { v: x.version, failed: x.email === 'failed', printed: !!x.confirmed_at, text: 'Slip v' + x.version + ' · ' + em + ' · ' + (x.confirmed_at ? 'Printed, confirmed by ' + (x.confirmed_by || 'staff') : 'Not yet confirmed as printed') };
+  }
+  function slipBox(id, kitchen) {
+    var st = slipState(id); if (!st) return '';
+    if (st.failed) return '<div class="ccs-alert" role="alert">' + (kitchen ? 'Slip v' + st.v + ' email failed. Ask front of house to print it for you.' : esc(SLIP_FAIL) + ' Press Print kitchen slip to print it here, or ask a manager to send it again from Settings.') + '</div>';
+    var h = '<p class="ccs-slipst' + (st.printed ? ' is-ok' : '') + '">' + esc(st.text) + '</p>';
+    if (kitchen && !st.printed && !st.failed) h += '<button type="button" class="ccs-btn ccs-ghost ccs-kprinted" data-act="k-printed" data-id="' + id + '" data-v="' + st.v + '">Slip v' + st.v + ' printed</button>';
+    return h;
+  }
+  function slipPrinted(b) {
+    var id = b.dataset.id, v = Number(b.dataset.v);
+    sb.rpc('kitchen_confirm_printed', { p_order: id, p_version: v }).then(function (r) {
+      clearBusy(); if (r.error) throw r.error;
+      if (!r.data.ok) { toast(r.data.message, true); return slipLoad([id]); }
+      toast('Slip v' + r.data.version + ' marked as printed'); return slipLoad([id]);
+    }).catch(fail);
+  }
+
   // ---------- kitchen screen ----------
   function loadKitchen(silent) {
     return sb.rpc('kitchen_board', { p_from: null, p_days: S.kit.days }).then(function (r) {
       if (r.error) throw r.error;
       if (!r.data.ok) throw userErr(r.data.message);
       S.kit.data = r.data; S.kit.loaded = true; S.kit.err = null; S.kit.fails = 0; S.kit.at = Date.now();
+      slipLoad((r.data.orders || []).filter(function (x) { return x.brief_version > 0 && x.status === 'confirmed'; }).map(function (x) { return x.id; }));
       if (S.tab === 'kitchen') view();
       if (S.sheet && S.sheet.type === 'kitchen') renderSheet();
     }).catch(function (e) {
@@ -973,12 +1014,12 @@
     if (r.method === 'delivery') tags += '<span class="ccs-pill s-info">Delivery' + (r.area ? ', ' + esc(r.area) : '') + '</span>';
     if (r.amend_pending && r.amend_pending.length) tags += '<span class="ccs-pill s-flag">Changed: kitchen to confirm</span>';
     if (r.brief_changed) tags += '<span class="ccs-pill s-flag">Changed after printing: print new slip</span>';
-    else if (!r.brief_version && r.status === 'confirmed') tags += '<span class="ccs-pill s-off">No brief yet</span>';
+    else if (!r.brief_version && r.status === 'confirmed') tags += '<span class="ccs-pill s-off">No slip yet</span>';
     var inProg = ['preparing', 'baking', 'assembling', 'decorating'].indexOf(r.stage) > -1;
     var idx = stageIndex(r.stage), next = r.status === 'confirmed' && idx < STAGES.length - 2 ? STAGES[idx + 1] : null;
     var action = r.status !== 'confirmed' ? '' : next ? '<button type="button" class="ccs-btn ccs-good ccs-knext" data-act="k-next" data-id="' + r.id + '" data-v="' + next[0] + '">' + esc(stageJob(next)) + '</button>' :
       r.stage === 'quality_check' ? '<button type="button" class="ccs-btn ccs-knext" data-act="open-kitchen" data-id="' + r.id + '">Check and mark Ready</button>' : '';
-    return '<div class="ccs-kitem">' + kitCardBody(r, inProg, tags) + action + '</div>';
+    return '<div class="ccs-kitem">' + kitCardBody(r, inProg, tags) + (r.status === 'confirmed' && r.stage !== 'ready' ? slipBox(r.id, true) : '') + action + '</div>';
   }
   function kitCardBody(r, inProg, tags) {
     return '<button type="button" class="ccs-kcard' + (r.late ? ' is-late' : '') + '" data-act="open-kitchen" data-id="' + r.id + '">' +
@@ -1183,6 +1224,7 @@
     if (r.has_dietary) h += '<div class="ccs-alert">Dietary or allergy: ' + esc([].concat(r.dietary || [], r.dietary_note ? [r.dietary_note] : []).join(', ') || 'see notes') + '</div>';
     if (r.amend_pending && r.amend_pending.length) h += kitAckBox(r, err);
     if (r.brief_changed) h += '<p class="ccs-note">Details changed after slip v' + r.brief_version + ' was printed. Ask front of house to print v' + (r.brief_version + 1) + '.</p>';
+    if (!done && r.stage !== 'ready') h += slipBox(r.id, true);
     // progress
     h += '<section class="ccs-box"><h3>Progress</h3><ol class="ccs-kstages">' + STAGES.map(function (s, i) { return '<li class="' + (i < idx ? 'is-done' : i === idx ? 'is-now' : '') + '">' + esc(s[1]) + '</li>'; }).join('') + '</ol>';
     if (done) h += '<p class="ccs-hint">Handed over' + (r.handed_over_at ? ' ' + esc(stamp(r.handed_over_at)) : '') + '. Checked by ' + esc(r.qc_by || '—') + '.</p>';
@@ -2380,7 +2422,7 @@
     S.settings = null; S.setErr = null; view();
     var reqs = [sb.from('locations').select('*').eq('code', 'corner-cafe').single(), sb.from('closed_dates').select('*').gte('closed_on', today()).order('closed_on'), sb.from('products').select('*, product_sizes(*), product_variants(*)').order('sort'), sb.from('delivery_zones').select('*').order('sort')];
     if (can('admin')) { reqs.push(sb.rpc('admin_list_users')); reqs.push(sb.rpc('admin_deleted_orders')); }
-    Promise.all(reqs).then(function (rs) { rs.forEach(function (r) { if (r.error) throw r.error; }); S.settings = { loc: rs[0].data, closed: rs[1].data || [], products: rs[2].data || [], zones: rs[3].data || [], team: rs[4] ? rs[4].data || [] : null, deleted: rs[5] && rs[5].data && rs[5].data.ok ? rs[5].data.orders : null }; if (S.tab === 'settings') view(); if (can('admin')) backupLoad(); s5SettingsLoad(); }).catch(function (e) {
+    Promise.all(reqs).then(function (rs) { rs.forEach(function (r) { if (r.error) throw r.error; }); S.settings = { loc: rs[0].data, closed: rs[1].data || [], products: rs[2].data || [], zones: rs[3].data || [], team: rs[4] ? rs[4].data || [] : null, deleted: rs[5] && rs[5].data && rs[5].data.ok ? rs[5].data.orders : null }; if (S.tab === 'settings') view(); if (can('admin')) backupLoad(); s5SettingsLoad(); prLoad(); }).catch(function (e) {
       console.error(e); if (errKind(e) === 'expired') return sessionExpired();
       S.setErr = errKind(e) === 'offline' ? 'No internet connection, so settings could not load.' : errKind(e) === 'denied' ? 'Your login cannot see these settings. Ask a manager.' : 'Settings could not load.';
       if (S.tab === 'settings') view();
@@ -2535,7 +2577,7 @@
     });
   }
   // Settings: typing in a section is kept until that section is saved, and open sections stay open
-  var SET_SAVES = { 'save-loc': 1, 'confirm-loc': 1, 'save-zones': 1, 'add-zone': 1, 'add-closed': 1, 'save-staff': 1, 'tm-add': 1, 'tm-reset-save': 1, 'bk-link': 1 };
+  var SET_SAVES = { 'save-loc': 1, 'confirm-loc': 1, 'save-zones': 1, 'add-zone': 1, 'add-closed': 1, 'save-staff': 1, 'tm-add': 1, 'tm-reset-save': 1, 'bk-link': 1, 'pr-save': 1 };
   S.setTyped = {}; S.setOpen = {}; S.setSaved = null;
   function setSec(el) { var d = el.closest('details'), sm = d && d.querySelector('summary'); return sm ? (sm.firstChild && sm.firstChild.nodeType === 3 ? sm.firstChild.nodeValue : sm.textContent).trim() : ''; }
   function setKeep(m) {
@@ -2600,7 +2642,7 @@
     h += '<details><summary>Delivery areas <span>' + st.zones.filter(function (z) { return z.active; }).length + ' areas</span></summary><div class="ccs-set-body"><p class="ccs-hint">Leave the fee blank where staff set the fee for each order. Website guests cannot choose delivery yet.</p>' +
       st.zones.map(function (z) { return '<div class="ccs-row" style="align-items:end">' + sf('dz-n-' + z.id, 'Area', z.name, 'text') + sf('dz-f-' + z.id, 'Fee (FJD)', z.fee == null ? '' : Number(z.fee)) + '<label class="ccs-check" style="padding-bottom:14px"><input type="checkbox" id="dz-a-' + z.id + '"' + (z.active ? ' checked' : '') + '> Offered</label></div>'; }).join('') +
       '<button type="button" class="ccs-btn ccs-ghost" data-act="save-zones">Save delivery areas</button><div class="ccs-row" style="align-items:end">' + sf('dz-new-n', 'New area', '', 'text') + sf('dz-new-f', 'Fee (FJD)', '') + '<button type="button" class="ccs-btn ccs-ghost" data-act="add-zone">Add area</button></div></div></details>';
-    h += s5PermView(st) + s5BackupCheckView(st);
+    h += s5PermView(st) + s5BackupCheckView(st) + printView(st);
     if (st.team) {
       var tm = st.tmDraft || {};
       h += '<details' + (st.tmOpen ? ' open' : '') + '><summary>Team and access <span>' + st.team.filter(function (u) { return u.active; }).length + ' with access</span></summary><div class="ccs-set-body">';
@@ -2625,6 +2667,70 @@
     }
     return h + '</div>';
   }
+  // ---------- kitchen printing (administrators change it; managers see the delivery log) ----------
+  function prLoad() {
+    var st = S.settings; if (!st || !can('manager')) return;
+    var reqs = [sb.rpc('admin_slip_log', { p_limit: 30 })]; if (can('admin')) reqs.push(sb.rpc('admin_print_settings'));
+    Promise.all(reqs).then(function (rs) {
+      if (S.settings !== st) return;
+      rs.forEach(function (r) { if (r.error) throw r.error; if (!r.data.ok) throw userErr(r.data.message); });
+      st.prLog = rs[0].data.rows || []; if (rs[1]) st.pr = rs[1].data; st.prErr = null;
+      if (S.tab === 'settings') view();
+    }).catch(function (e) { if (S.settings !== st) return; st.prErr = errKind(e) === 'offline' ? 'No internet connection.' : 'Kitchen printing could not load.'; if (S.tab === 'settings') view(); });
+  }
+  var PR_STATUS = { sent: 'Emailed', pending: 'Waiting to send', sending: 'Sending', failed: 'Could not be delivered' };
+  function prRowStatus(x) { return x.status === 'failed' && x.attempts < 5 ? 'Delayed, trying again' : PR_STATUS[x.status] || x.status; }
+  function printView(st) {
+    if (!can('manager')) return '';
+    var pr = st.pr, log = st.prLog, open = st.prOpen ? ' open' : '';
+    // Only the newest email for each order counts: once it is sent again, the old failure no longer needs attention
+    var seen = {}, failed = (log || []).filter(function (x) { if (x.kind !== 'kitchen_slip' || seen[x.order_id]) return false; seen[x.order_id] = 1; return x.status === 'failed' && x.attempts >= 5 && x.version === x.latest_version; });
+    var tag = !log ? (st.prErr ? 'Could not load' : 'Checking…') : failed.length ? failed.length + ' not delivered' : pr && !pr.verified ? 'Check the printer' : 'Working';
+    var h = '<details' + open + '><summary>Kitchen printing <span>' + esc(tag) + '</span></summary><div class="ccs-set-body">';
+    if (!log) return h + (st.prErr ? '<p class="ccs-err" role="alert">' + esc(st.prErr) + '</p><button type="button" class="ccs-btn ccs-ghost" data-act="pr-reload">Try again</button>' : '<p class="ccs-loading">Checking…</p>') + '</div></details>';
+    if (failed.length) h += '<div class="ccs-alert" role="alert">' + failed.length + (failed.length > 1 ? ' kitchen slips' : ' kitchen slip') + ' could not be delivered: ' + esc(failed.map(function (x) { return x.reference + ' v' + x.version; }).join(', ')) + '. Check the printer email below, then press Send again, or print the slip from the order.</div>';
+    if (pr) {
+      if (pr.test_mode) h += '<p class="ccs-note">Test mode is on. Every slip goes only to ' + esc(pr.test_email) + ', not to the addresses below.</p>';
+      if (!pr.verified) h += '<p class="ccs-note">The printer email or paper size changed. Send a test slip, check it printed correctly, then press It printed correctly.</p>';
+      else if (pr.verified_note) h += '<p class="ccs-hint">Printer last checked: ' + esc(pr.verified_note) + '.</p>';
+      h += '<div class="ccs-row">' + sf('pr-pri', 'Kitchen printer email', pr.primary, 'email') + sf('pr-bak', 'Backup email (optional, gets a copy)', pr.backup, 'email') + '</div>' +
+        '<div class="ccs-row"><div class="ccs-field"><label class="ccs-label" for="pr-paper">Paper size</label><select class="ccs-input" id="pr-paper">' +
+        [['A5', 'A5 (148 x 210 mm)'], ['DL', 'DL (99 x 210 mm)']].map(function (o) { return '<option value="' + o[0] + '"' + (pr.paper === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></div></div>' +
+        '<label class="ccs-check"><input type="checkbox" id="pr-on"' + (pr.on_new ? ' checked' : '') + '> Email the kitchen each time a new slip version is printed</label>' +
+        (st.prFormErr ? '<p class="ccs-err" role="alert">' + esc(st.prFormErr) + '</p>' : '') +
+        '<div class="ccs-actions-row"><button type="button" class="ccs-btn" data-act="pr-save">Save printing settings</button><button type="button" class="ccs-btn ccs-ghost" data-act="pr-test">Send test slip</button>' +
+        (!pr.verified && pr.last_test && pr.last_test.status === 'sent' ? '<button type="button" class="ccs-btn ccs-good" data-act="pr-ok">It printed correctly</button>' : '') + '</div>';
+      if (pr.last_test) h += '<p class="ccs-hint">Last test slip: ' + esc(when(pr.last_test.at)) + ', ' + esc(prRowStatus({ status: pr.last_test.status, attempts: 5 }).toLowerCase()) + '.' + (pr.last_test.status === 'pending' || pr.last_test.status === 'sending' ? ' <button type="button" class="ccs-link" data-act="pr-reload">Check again</button>' : '') + '</p>';
+    } else h += '<p class="ccs-hint">Only an administrator can change the printer email and paper size.</p>';
+    h += '<h3 class="ccs-seth">Delivery log</h3><p class="ccs-hint">Emailed means the slip left us. Printed means the kitchen confirmed it is in their hands.</p>';
+    var rows = log.slice(0, 15), again1 = {};
+    h += rows.length ? '<div class="ccs-history">' + rows.map(function (x) {
+      var test = x.kind === 'kitchen_slip_test', latest = x.version === x.latest_version;
+      var printed = test ? '' : (x.printed_confirmed_at ? ' · printed, confirmed by ' + esc(x.printed_confirmed_label || 'staff') : latest ? ' · not yet confirmed as printed' : '') + (latest ? '' : ' · replaced by v' + x.latest_version);
+      var newest = !test && !again1[x.order_id]; if (!test) again1[x.order_id] = 1;
+      var again = newest && latest && x.status !== 'pending' && x.status !== 'sending' ? ' <button type="button" class="ccs-link" data-act="pr-resend" data-id="' + x.order_id + '" data-v="' + x.version + '">Send again</button>' : '';
+      return '<div><span>' + esc(when(x.created_at)) + '</span><span><b style="font-weight:600;color:var(--ccs-ink)">' + esc(test ? 'Test slip' : x.reference + ' v' + x.version) + '</b> · ' + esc(prRowStatus(x)) + printed + again + '</span></div>';
+    }).join('') + '</div>' : '<p class="ccs-hint">No slips emailed yet.</p>';
+    return h + '<div class="ccs-actions-row ccs-more-row"><button type="button" class="ccs-link" data-act="pr-reload">Refresh</button></div></div></details>';
+  }
+  function prSave() {
+    var st = S.settings, on = document.getElementById('pr-on');
+    sb.rpc('admin_print_settings_save', { p: { primary: val('pr-pri'), backup: val('pr-bak'), paper: val('pr-paper'), on_new: !!(on && on.checked) } }).then(function (r) {
+      clearBusy(); if (r.error) throw r.error;
+      st.prOpen = true;
+      if (!r.data.ok) { st.prFormErr = r.data.message; view(); return; }
+      st.prFormErr = null; st.pr = r.data; setSavedOk(); toast(r.data.verified ? 'Printing settings saved' : 'Saved. Now send a test slip to check the printer.'); view();
+    }).catch(fail);
+  }
+  function prCall(fn, args, ok) {
+    var st = S.settings;
+    sb.rpc(fn, args || {}).then(function (r) {
+      clearBusy(); if (r.error) throw r.error; st.prOpen = true;
+      if (!r.data.ok) { toast(r.data.message, true); return; }
+      toast(ok(r.data)); prLoad();
+    }).catch(fail);
+  }
+
   // ---------- deleted orders (admins) ----------
   function deletedView(st) {
     var l = st.deleted; if (!l) return '';
@@ -2793,7 +2899,7 @@
   });
   var BUSY_ACTS = { 'do-delete': 'Deleting…', 'do-confirm': 'Saving…', 'do-decline': 'Saving…', 'do-cancel': 'Saving…', 'do-note': 'Saving…', 'do-waive': 'Saving…', 'do-collected': 'Saving…', 'do-fulfil': 'Saving…',
     'do-brief': 'Preparing…', 'do-pay': 'Saving…', 'k-stage': 'Saving…', 'k-next': 'Saving…', 'k-ready': 'Saving…', 'k-assign': 'Saving…', 'save-zones': 'Saving…', 'add-zone': 'Saving…', 'cust-save': 'Saving…', 'cn-save': 'Saving…', 'consent-ch': 'Saving…',
-    'consent': 'Saving…', 'save-loc': 'Saving…', 'confirm-loc': 'Saving…', 'add-closed': 'Saving…', 'save-staff': 'Saving…', 'tm-add': 'Adding…', 'tm-reset-save': 'Saving…', 'bk-link': 'Linking…', 'bk-copy': 'Copying…' };
+    'consent': 'Saving…', 'save-loc': 'Saving…', 'confirm-loc': 'Saving…', 'add-closed': 'Saving…', 'save-staff': 'Saving…', 'tm-add': 'Adding…', 'tm-reset-save': 'Saving…', 'bk-link': 'Linking…', 'bk-copy': 'Copying…', 'pr-save': 'Saving…', 'pr-test': 'Sending…', 'pr-ok': 'Saving…', 'k-printed': 'Saving…' };
   // Tablets and laptops: the menu is hidden and slides in from the Menu button, so the page has the full width
   function menuOpen() { var a = root.querySelector('.ccs-app'); return !!(a && a.classList.contains('menu-open')); }
   function menuSet(open, quiet) {
@@ -3032,6 +3138,14 @@
           if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = 'Tap again to stop the backup'; setTimeout(function () { if (b.isConnected) { b.dataset.armed = ''; b.textContent = 'Stop backup'; } }, 4000); break; }
           markBusy(b, 'Stopping…'); var ust = S.settings; sheetBackup({ op: 'unlink' }).then(function (r) { backupDone(ust, r, function () { return 'Backup stopped. The sheet keeps what it has.'; }); }).catch(fail); break;
         case 'tm-reset-save': teamReset(b.dataset.id); break;
+        case 'pr-reload': S.settings.prOpen = true; prLoad(); break;
+        case 'pr-save': prSave(); break;
+        case 'pr-test': prCall('admin_print_test', {}, function (d) { return 'Test slip sent' + (d.test_mode ? ' to ' + d.test_email + ' (test mode)' : ' to ' + d.to) + '. Check it printed, then confirm here.'; }); setTimeout(prLoad, 8000); break;
+        case 'pr-ok': prCall('admin_print_test_confirm', {}, function () { return 'Printer confirmed'; }); break;
+        case 'pr-resend':
+          if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = 'Tap again to send v' + v + ' again'; setTimeout(function () { if (b.isConnected) { b.dataset.armed = ''; b.textContent = 'Send again'; } }, 4000); break; }
+          markBusy(b, 'Sending…'); prCall('admin_slip_resend', { p_order: b.dataset.id }, function (d) { return d.reference + ' slip v' + d.version + ' sent again'; }); break;
+        case 'k-printed': slipPrinted(b); break;
         case 'save-staff': var uid = b.dataset.id; sb.rpc('admin_set_staff', { p_user: uid, p_name: val('tm-n-' + uid), p_role: val('tm-r-' + uid), p_active: document.getElementById('tm-a-' + uid).checked }).then(function (r) { if (r.error) throw r.error; if (!r.data.ok) throw userErr(r.data.message); toast('Team updated'); loadSettings(); }).catch(fail); break;
       }
     } catch (err) { fail(err); }

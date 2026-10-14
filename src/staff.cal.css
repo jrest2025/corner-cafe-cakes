@@ -1223,3 +1223,11 @@ body.ccs-is-off #cc-staff .ccs-side { top: var(--ccs-offh, 44px); }
 
 /* Step 1 design box: smaller so the price table fits on tablets */
 #cc-staff .sl-wrap textarea.sl-design { min-height: 72px; }
+
+/* Kitchen slip delivery line: emailed is not printed. Plain text; red only when the email failed (shown as an alert) */
+#cc-staff .ccs-slipst { margin: 6px 0 0; font-size: 13px; line-height: 1.4; color: var(--ccs-muted, #5B6470); }
+#cc-staff .ccs-slipst.is-ok { color: var(--ccs-ink, #1D2939); }
+#cc-staff .ccs-kitem .ccs-slipst { margin: 6px 12px 0; }
+#cc-staff .ccs-kprinted { margin: 8px 12px 0; min-height: 44px; width: calc(100% - 24px); }
+#cc-staff .ccs-kitem .ccs-alert { margin: 8px 12px 0; font-size: 13px; }
+#cc-staff .ccs-seth { margin: 18px 0 4px; font-size: 16px; color: var(--ccs-ink, #1D2939); }

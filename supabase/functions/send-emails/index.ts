@@ -213,11 +213,11 @@ function build(kind: string, d: any): { subject: string; html: string } {
   }
 }
 
-async function send(to: string, subject: string, html: string, from: string, replyTo?: string, attachments?: { filename: string; content: string }[]) {
+async function send(to: string, subject: string, html: string, from: string, replyTo?: string, attachments?: { filename: string; content: string }[], cc?: string[]) {
   const r = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${RESEND_KEY}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from, to: [to], subject, html, reply_to: replyTo || undefined, attachments: attachments && attachments.length ? attachments : undefined }),
+    body: JSON.stringify({ from, to: [to], cc: cc && cc.length ? cc : undefined, subject, html, reply_to: replyTo || undefined, attachments: attachments && attachments.length ? attachments : undefined }),
   });
   const t = await r.text();
   if (!r.ok) throw new Error(`Resend ${r.status}: ${t.slice(0, 300)}`);
@@ -227,6 +227,24 @@ async function send(to: string, subject: string, html: string, from: string, rep
 // ---------- kitchen slip PDF for the printer PC ----------
 function b64(bytes: Uint8Array) { let s = ""; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000)); return btoa(s); }
 class NoRetry extends Error {}
+async function slipPaper() { try { const [r] = await db(`app_config?key=eq.kitchen_slip_paper&select=value`); return r?.value === "DL" ? "DL" : "A5"; } catch (_e) { return "A5"; } }
+async function config() { const rows: any[] = await db(`app_config?key=in.(test_mode,test_email,from_email,reply_to)&select=key,value`); return Object.fromEntries(rows.map((r) => [r.key, r.value])); }
+
+// A sample slip with invented details, sent from Settings so the printer PC can be checked without a real order
+async function testSlip() {
+  const paper = await slipPaper();
+  const today = new Date(Date.now() + 12 * 3600e3 + 2 * 864e5).toISOString().slice(0, 10);
+  const s = { reference: "TEST-001", method: "collection", date: today, time: "15:00", cake: "Test cake", variant: "Test cake", size: 8, quantity: 1, finish: "standard",
+    message: "Test only", has_dietary: true, dietary: ["Nut allergy (test)"], candles: "None", rush: false, order_notes: "This is a test slip. Do not bake." };
+  const slip = { name: "Test Guest", phone: "+679 000 0000", price: 0, paid: 0, taken_by: "Settings test", ordered_at: new Date().toISOString(), source: "phone", method: "collection" };
+  const PDFLib = await import("npm:pdf-lib@1.17.1");
+  const pdf = await buildSlipPdf(PDFLib, { snapshot: s, slip, version: 1, changes: [], printedAt: new Date().toISOString(), logoPng: await slipLogo(), location: {}, paper });
+  const subject = `Kitchen slip TEST-001 v1 · Test print (${paper}) · Do not bake`;
+  const html = `<!doctype html><html><body style="margin:0;font-family:Arial,Helvetica,sans-serif;color:${INK};background:#ffffff"><div style="max-width:520px;padding:20px 16px">` +
+    `<div style="font-size:30px;font-weight:bold;margin:2px 0 12px">TEST-001</div><p style="margin:0 0 10px;font-size:15px">This is a test kitchen slip on ${paper} paper, sent from the cake staff app settings.</p>` +
+    `<p style="margin:0 0 10px;font-size:15px">Print the attached PDF, check it comes out the right size, then throw it away. <b>Do not bake.</b></p></div></body></html>`;
+  return { subject, html, attachments: [{ filename: `TEST-001 Test slip ${paper} v1.pdf`, content: b64(pdf) }] };
+}
 async function kitchenSlip(m: any, d: any) {
   const o = d.order, c = d.customer ?? {};
   const v = Number(((m.dedupe_key || "").match(/:v(\d+)$/) || [])[1]);
@@ -242,7 +260,7 @@ async function kitchenSlip(m: any, d: any) {
     taken_by: takenBy, ordered_at: o.created_at, source: o.source, method: o.fulfilment_method,
     address: o.fulfilment_method === "delivery" ? o.delivery_address : null, receiver: o.fulfilment_method === "delivery" ? o.delivery_contact : null };
   const PDFLib = await import("npm:pdf-lib@1.17.1");
-  const pdf = await buildSlipPdf(PDFLib, { snapshot: s, slip, version: v, changes: br.changes || [], printedAt: br.printed_at, logoPng: await slipLogo(), location: d.location });
+  const pdf = await buildSlipPdf(PDFLib, { snapshot: s, slip, version: v, changes: br.changes || [], printedAt: br.printed_at, logoPng: await slipLogo(), location: d.location, paper: await slipPaper() });
   const name = slipFileName(s, slip, v);
   const dl = s.method === "delivery";
   const when = `${new Date(s.date + "T12:00:00Z").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" }).replace(",", "")} ${t12(s.time)}`;
@@ -270,15 +288,24 @@ async function processOutbox() {
       held++; continue;
     }
     try {
+      if (m.kind === "kitchen_slip_test") {
+        const cfg = await config(), t = await testSlip();
+        let to = m.to_email, subject = t.subject, cc: string[] = m.cc || [];
+        if (cfg.test_mode === "true") { subject = `[TEST, for ${[to, ...cc].join(" and ")}] ${subject}`; to = cfg.test_email; cc = []; }
+        const id = await send(to, subject, t.html, cfg.from_email, undefined, t.attachments, cc);
+        await db(`email_outbox?id=eq.${m.id}`, { method: "PATCH", body: JSON.stringify({ status: "sent", sent_at: new Date().toISOString(), provider_message_id: id, last_error: null }) });
+        sent++; continue;
+      }
       const d = await rpc("email_payload", { p_order: m.order_id });
       if (!d) throw new Error("order not found");
       const cfg = d.config ?? {};
       let att: { filename: string; content: string }[] | undefined;
       let { subject, html } = m.kind === "kitchen_slip" ? await kitchenSlip(m, d).then((k) => { att = k.attachments; return k; }) : build(m.kind, d);
-      let to = m.to_email;
-      if (cfg.test_mode === "true") { subject = `[TEST, for ${to}] ${subject}`; to = cfg.test_email; }
+      let to = m.to_email, cc: string[] = m.cc || [];
+      // Test mode: everything goes to the test inbox only, backup copies included
+      if (cfg.test_mode === "true") { subject = `[TEST, for ${[to, ...cc].join(" and ")}] ${subject}`; to = cfg.test_email; cc = []; }
       const guestKind = m.kind.startsWith("guest_");
-      const id = await send(to, subject, html, cfg.from_email, guestKind ? cfg.reply_to : (m.kind === "kitchen_slip" ? undefined : (d.customer?.email || undefined)), att);
+      const id = await send(to, subject, html, cfg.from_email, guestKind ? cfg.reply_to : (m.kind === "kitchen_slip" ? undefined : (d.customer?.email || undefined)), att, cc);
       await db(`email_outbox?id=eq.${m.id}`, { method: "PATCH", body: JSON.stringify({ status: "sent", sent_at: new Date().toISOString(), provider_message_id: id, last_error: null }) });
       sent++;
     } catch (e) {
