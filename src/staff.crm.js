@@ -720,7 +720,7 @@
 
   // ---------- CRM step 5: customer report, export log, role permissions, backup check ----------
   var S5_SECTIONS = [['contact', 'Contact details and summary'], ['orders', 'Orders'], ['sheet', 'Orders from the old sheets'], ['notes', 'Notes and follow-ups'], ['consent', 'Marketing permission']];
-  var S5_ROLE_NAME = { admin: 'Admin', manager: 'Manager', front_of_house: 'Front of house', kitchen: 'Kitchen', finance: 'Finance', marketing: 'Marketing' };
+  var S5_ROLE_NAME = { admin: 'Admin', manager: 'Manager', front_of_house: 'Counter', kitchen: 'Kitchen', finance: 'Finance', marketing: 'Marketing' };
   function s5MaySection(k) {
     if (k === 'notes') return wsCanRead();
     if (k === 'consent') return can('manager', 'front_of_house', 'marketing');
@@ -853,7 +853,8 @@
     var h = '<details' + open + ' data-s5open="perm"><summary>What each role can do <span>Read from the database rules</span></summary><div class="ccs-set-body">';
     if (st.permErr) return h + '<p class="ccs-err" role="alert">' + esc(st.permErr) + '</p><button type="button" class="ccs-btn ccs-ghost" data-act="ws-cm-s5-settings" data-v="perm">Try again</button></div></details>';
     if (!P) return h + '<p class="ccs-loading">Loading…</p></div></details>';
-    var roles = P.roles.filter(function (r) { return r !== 'admin'; }).concat(['admin']);
+    // Only the three levels in use (Counter, Kitchen, then Admin)
+    var roles = ['front_of_house', 'kitchen', 'admin'].filter(function (r) { return P.roles.indexOf(r) > -1; });
     var area = '', cell = function (v) { return v === 'yes' ? '<td class="s5-yes">Yes</td>' : v === 'partly' ? '<td class="s5-part">Partly</td>' : '<td class="s5-no">No</td>'; };
     h += '<p class="ccs-hint">Worked out from the checks the database actually runs, so it cannot drift from what people can really do. Checked ' + esc(stamp(P.checked_at)) + '.</p>' +
       '<div class="s5-perm-wrap"><table class="s5-perm"><thead><tr><th scope="col">Can</th>' + roles.map(function (r) { return '<th scope="col">' + esc(S5_ROLE_NAME[r] || r) + '</th>'; }).join('') + '</tr></thead><tbody>';

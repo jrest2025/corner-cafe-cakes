@@ -78,7 +78,7 @@ async def main():
         check('backup check flags the Sheet that is not set up', 'Not set up' in await pg.inner_text('.ccs-setnav') or 'Not set up' in await pg.evaluate("document.querySelector('details[data-s5open=bc] summary').textContent"))
         await pg.evaluate("(function(){var n=[].filter.call(document.querySelectorAll('.ccs-setnav [data-setk]'),function(x){return x.dataset.setk==='What each role can do'})[0]; if(n) n.click()})()"); await pg.wait_for_timeout(300)
         t = await main_text(pg)
-        check('role table shows roles and Yes, Partly, No', all(x in t for x in ['Front of house', 'Kitchen', 'Finance', 'Marketing', 'Partly', 'Yes', 'No', 'Read from the database rules']), t[-1500:])
+        check('role table shows roles and Yes, Partly, No', all(x in t for x in ['Counter', 'Kitchen', 'Admin', 'Partly', 'Yes', 'No', 'Read from the database rules']) and 'Finance' not in t.split('What each role can do')[-1] and 'Marketing' not in t.split('What each role can do')[-1], t[-1500:])
         await pg.evaluate("(function(){var n=[].filter.call(document.querySelectorAll('.ccs-setnav [data-setk]'),function(x){return x.dataset.setk==='Backup and business continuity'})[0]; if(n) n.click()})()"); await pg.wait_for_timeout(300)
         t = await main_text(pg)
         check('backup check explains each layer', all(x in t for x in ['Backup Google Sheet', 'not set up yet', 'Full copies inside the database', 'backup_20261013', 'Host backups', 'Restore tests', 'passed']), t[-2000:])

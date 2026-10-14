@@ -103,7 +103,7 @@ async def main():
         tr = await pg.evaluate(cardR)
         check('a cake already ready does not ask for print confirmation', 'Slip v2' not in tr and 'printed' not in tr, tr)
         t1 = await pg.evaluate("(function(){var k=[].slice.call(document.querySelectorAll('.ccs-kitem')).filter(function(x){return x.innerText.indexOf('CC-1010')>-1})[0]; return k? k.innerText : ''})()")
-        check('a failed slip email shows on the kitchen card with what to do', 'Slip v1 email failed. Ask front of house to print it for you.' in t1 and 'Slip v1 printed' not in t1 and t1.count('failed') == 1, t1)
+        check('a failed slip email shows on the kitchen card with what to do', 'Slip v1 email failed. Ask the counter to print it for you.' in t1 and 'Slip v1 printed' not in t1 and t1.count('failed') == 1, t1)
         await pg.screenshot(path=str(OUT / 'kitchen.png'))
         await js(pg, "(function(){var b=document.querySelector('[data-act=k-printed][data-id=o3]'); b.click()})()", 800)
         t4 = await pg.evaluate(card4)

@@ -1,0 +1,6 @@
+-- Three access levels (owner decision 14 Oct, 5:26pm): Admin, Counter (front_of_house), Kitchen.
+-- Applied as migration three_access_levels by text replacement inside the existing functions:
+-- 1. staff_order_action, cancel: with money paid, only an Admin can cancel ("Money has been paid on this order. Ask an Admin to cancel it.").
+-- 2. staff_order_action, note: timestamp now 12-hour ('DD Mon FMHH12:MIam').
+-- 3. admin_set_staff: only admin, front_of_house or kitchen can be given out ("Choose Admin, Counter or Kitchen.").
+-- The older levels stay in the staff_role list (no destructive change); nobody holds them.

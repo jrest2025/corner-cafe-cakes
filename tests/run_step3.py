@@ -186,9 +186,7 @@ async def main():
 
         # Roles
         ctx, pg = await newpage(b, DESK, errs, 'front_of_house')
-        await open_c1(pg); await tab(pg, 'notes')
-        check('front of house: can add, cannot change or remove someone else\'s note', await pg.locator('[data-act="ws-save"]').count() == 1 and await pg.locator('[data-act="ws-edit"][data-id="n1"]').count() == 0 and await pg.locator('[data-act="ws-hide"]').count() == 0)
-        await pg.click('#ccs-sheet [data-act="close"]'); await pg.wait_for_timeout(200)
+        check('counter (three levels, 14 Oct): no Customers screen', await pg.locator('.ccs-nav [data-tab="customers"]').count() == 0)
         await pg.click('.ccs-nav [data-tab="today"]'); await pg.wait_for_timeout(500)
         tt = await pg.inner_text('#ccs-main')
         check('front of house: Today has Follow-ups, without the everyone switch', 'Follow-ups' in tt and await pg.locator('[data-act="ws-fu-all"]').count() == 0, tt[-300:])

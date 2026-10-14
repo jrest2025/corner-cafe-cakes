@@ -33,7 +33,10 @@
   var PAY = { unpaid: 'Unpaid', deposit_paid: 'Part paid', paid: 'Paid', refunded: 'Refunded' };
   var SOURCES = [['walk_in', 'Walk-in'], ['phone', 'Phone'], ['whatsapp', 'WhatsApp'], ['social', 'Social media'], ['corporate', 'Corporate']];
   var SOURCE_LABEL = { online: 'Online', walk_in: 'Walk-in', phone: 'Phone', whatsapp: 'WhatsApp', social: 'Social media', corporate: 'Corporate' };
-  var ROLES = [['admin', 'Admin'], ['manager', 'Manager'], ['front_of_house', 'Front of house'], ['kitchen', 'Kitchen'], ['finance', 'Finance'], ['marketing', 'Marketing']];
+  // Three access levels (owner decision 14 Oct): Admin sees everything; Counter takes and runs orders; Kitchen sees the kitchen board.
+  // Older level names stay only so an old login still shows a name; they can no longer be given out.
+  var ROLES = [['admin', 'Admin'], ['front_of_house', 'Counter'], ['kitchen', 'Kitchen'], ['manager', 'Manager (old level)'], ['finance', 'Finance (old level)'], ['marketing', 'Marketing (old level)']];
+  var ROLE_PICK = ROLES.slice(0, 3);
   var OCCASIONS = ['Birthday', 'Anniversary', 'Wedding', 'Baby shower', 'Graduation', 'Office', 'Other'];
   var DIETS = ['Vegetarian (eggless)', 'Gluten-free', 'Nut allergy', 'Other'];
   var NEEDS = ['awaiting_review', 'awaiting_quote', 'awaiting_deposit'];
@@ -150,7 +153,7 @@
     if (can('manager', 'front_of_house')) tabs.push(['new', 'New order']);
     if (can('marketing', 'manager')) tabs.push(['dash', 'Dashboard']);
     if (can('manager')) tabs.push(['register', 'Register']);
-    if (can('manager', 'front_of_house', 'finance', 'marketing')) tabs.push(['customers', 'Customers']);
+    if (can('manager', 'finance', 'marketing')) tabs.push(['customers', 'Customers']);
     if (can('manager')) tabs.push(['settings', 'Settings']);
     tabs.push(['more', 'More']);
     return tabs;
@@ -585,7 +588,7 @@
     h += '<section class="ccs-box"><h3>Signed in</h3><p class="ccs-big">' + esc(S.me.full_name || '') + '</p><p class="ccs-hint">' + esc(role) + '</p></section>';
     var links = '';
     if (can('manager', 'front_of_house')) links += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-tab="kitchen">Kitchen</button>';
-    if (can('manager', 'front_of_house', 'finance', 'marketing')) links += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-tab="customers">Customers</button>';
+    if (can('manager', 'finance', 'marketing')) links += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-tab="customers">Customers</button>';
     if (can('marketing', 'manager')) links += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-tab="dash">Dashboard</button>';
     if (can('manager')) links += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-tab="register">Cake register</button>';
     if (can('manager')) links += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-tab="settings">Settings</button>';
@@ -649,7 +652,7 @@
         (o.profile && o.profile.full_name && o.profile.full_name !== c.full_name ? kv('Profile name', o.profile.full_name + ' (the name on this order is kept as it was)') : '') +
         (S.sheet.custOrders != null ? kv('History', S.sheet.custOrders > 1 ? 'Returning customer, ' + S.sheet.custOrders + ' orders' : 'First order') : '') + '</dl>' +
         '<div class="ccs-actions-row"><a class="ccs-btn ccs-ghost" href="' + esc(waLink(c.phone)) + '" target="_blank" rel="noopener">WhatsApp</a><a class="ccs-btn ccs-ghost" href="tel:' + esc(digits(c.phone)) + '">Call</a>' +
-        (can('manager', 'front_of_house', 'finance', 'marketing') ? '<button type="button" class="ccs-btn ccs-ghost" data-act="open-customer" data-id="' + c.id + '">Customer profile</button>' : '') + '</div>' + orderFuBox(o) + '</section>';
+        (can('manager', 'finance', 'marketing') ? '<button type="button" class="ccs-btn ccs-ghost" data-act="open-customer" data-id="' + c.id + '">Customer profile</button>' : '') + '</div>' + orderFuBox(o) + '</section>';
     }
     cut.push(['payment', h.length]);
     if (can('manager', 'finance', 'front_of_house')) {
@@ -718,6 +721,10 @@
         (p === 'cancel' && paid > 0 ? '<p class="ccs-note">' + money(paid) + ' has been paid. Arrange the refund with a manager after cancelling.</p>' : '') + err +
         '<div class="ccs-actions-row"><button type="button" class="ccs-btn ' + lbl[3] + '" data-act="do-' + p + '">' + lbl[2] + '</button><button type="button" class="ccs-btn ccs-ghost" data-act="panel" data-v="">Back</button></div></div>';
     }
+    if (p === 'cancel-locked') {
+      return '<div class="ccs-panel"><b>Cancel this order</b><p class="ccs-hint">' + money(paid) + ' has been paid on this order, so only an Admin can cancel it. Ask an Admin, who will also arrange the refund.</p>' +
+        '<div class="ccs-actions-row"><button type="button" class="ccs-btn ccs-ghost" data-act="panel" data-v="">Back</button></div></div>';
+    }
     if (p === 'delete') {
       return '<div class="ccs-panel"><b>Delete this order</b><p class="ccs-hint">Only for test orders and orders entered by mistake. The order disappears from every list, count and figure, and no more emails go out for it. It is kept with your name and reason, and an admin can restore it from Settings.</p>' +
         '<div class="ccs-field"><label class="ccs-label" for="ccs-note">Why is it being deleted? (required)</label><textarea class="ccs-input" id="ccs-note" data-autofocus placeholder="For example: test order, or entered twice by mistake"></textarea></div>' +
@@ -782,7 +789,8 @@
       hint = (hint ? hint + ' ' : '') + 'The kitchen slip prints once the order is confirmed.';
     }
     if (orderer) more.push(['note', '+ Add note']);
-    if (orderer && OPEN.indexOf(st) > -1) danger.push(['cancel', 'Cancel order']);
+    // Counter can cancel only unpaid orders; with money paid, an Admin cancels (the server enforces this too)
+    if (orderer && OPEN.indexOf(st) > -1) danger.push([paid > 0 && !can('manager') ? 'cancel-locked' : 'cancel', 'Cancel order']);
     // Admins can delete any order (owner decision 14 Oct); paid orders get a plain warning first
     if (S.me.role === 'admin') danger.push(['delete', 'Delete order']);
     S.sheet.danger = danger;
@@ -994,7 +1002,7 @@
   }
   function slipBox(id, kitchen) {
     var st = slipState(id); if (!st) return '';
-    if (st.failed) return '<div class="ccs-alert" role="alert">' + (kitchen ? 'Slip v' + st.v + ' email failed. Ask front of house to print it for you.' : esc(SLIP_FAIL) + ' Press Print kitchen slip to print it here, or ask a manager to send it again from Settings.') + '</div>';
+    if (st.failed) return '<div class="ccs-alert" role="alert">' + (kitchen ? 'Slip v' + st.v + ' email failed. Ask the counter to print it for you.' : esc(SLIP_FAIL) + ' Press Print kitchen slip to print it here, or ask a manager to send it again from Settings.') + '</div>';
     var h = '<p class="ccs-slipst' + (st.printed ? ' is-ok' : '') + '">' + esc(st.text) + '</p>';
     if (kitchen && !st.printed && !st.failed) h += '<button type="button" class="ccs-btn ccs-ghost ccs-kprinted" data-act="k-printed" data-id="' + id + '" data-v="' + st.v + '">Slip v' + st.v + ' printed</button>';
     return h;
@@ -1075,7 +1083,7 @@
       '<div class="ccs-kpi' + (late ? ' t-late' : '') + '"><span class="ccs-kpi-l">Running late</span><b class="ccs-kpi-n">' + late + '</b><span class="ccs-kpi-s">' + (late ? 'Past due and not ready' : 'None') + '</span></div>' +
       '<div class="ccs-kpi"><span class="ccs-kpi-l">Waiting for quality check</span><b class="ccs-kpi-n">' + groups.qc.length + '</b><span class="ccs-kpi-s">Needs a name to pass</span></div>' +
       '<div class="ccs-kpi t-good"><span class="ccs-kpi-l">Ready</span><b class="ccs-kpi-n">' + groups.ready.length + '</b><span class="ccs-kpi-s">Waiting for handover</span></div></div>';
-    if (!rows.length) return h + '<div class="ccs-empty" style="margin-top:16px"><b>No confirmed cakes in this range.</b><span>Cakes appear here once front of house confirms them.</span></div>';
+    if (!rows.length) return h + '<div class="ccs-empty" style="margin-top:16px"><b>No confirmed cakes in this range.</b><span>Cakes appear here once the counter confirms them.</span></div>';
     // Phones: one column at a time. Tablets: four columns that each fit the screen; Handed over shows on request (always on wide screens)
     var curK = secCur('kitP', KCOLS.map(function (c) { return c[0]; }), groups.qc.length ? 'qc' : groups.prog.length ? 'prog' : 'start');
     h += '<div class="kp-bar">' + secBar('kitP', KCOLS.map(function (c) { return [c[0], c[1], groups[c[0]].length]; }), curK, 'Kitchen columns') + '</div>';
@@ -1247,12 +1255,12 @@
     if (r.late) h += '<div class="ccs-alert">Running late: due ' + esc(whenLabel(r.date)) + ' at ' + esc(t12(r.time)) + '.</div>';
     if (r.has_dietary) h += '<div class="ccs-alert">Dietary or allergy: ' + esc([].concat(r.dietary || [], r.dietary_note ? [r.dietary_note] : []).join(', ') || 'see notes') + '</div>';
     if (r.amend_pending && r.amend_pending.length) h += kitAckBox(r, err);
-    if (r.brief_changed) h += '<p class="ccs-note">Details changed after slip v' + r.brief_version + ' was printed. Ask front of house to print v' + (r.brief_version + 1) + '.</p>';
+    if (r.brief_changed) h += '<p class="ccs-note">Details changed after slip v' + r.brief_version + ' was printed. Ask the counter to print v' + (r.brief_version + 1) + '.</p>';
     if (!done && r.stage !== 'ready') h += slipBox(r.id, true);
     // progress
     h += '<section class="ccs-box"><h3>Progress</h3><ol class="ccs-kstages">' + STAGES.map(function (s, i) { return '<li class="' + (i < idx ? 'is-done' : i === idx ? 'is-now' : '') + '">' + esc(s[1]) + '</li>'; }).join('') + '</ol>';
     if (done) h += '<p class="ccs-hint">Handed over' + (r.handed_over_at ? ' ' + esc(stamp(r.handed_over_at)) : '') + '. Checked by ' + esc(r.qc_by || '—') + '.</p>';
-    else if (r.stage === 'ready') h += '<p class="ccs-hint">Ready since ' + esc(stamp(r.ready_at)) + ', checked by ' + esc(r.qc_by) + '. Front of house hands it over from the order screen.</p>' + err +
+    else if (r.stage === 'ready') h += '<p class="ccs-hint">Ready since ' + esc(stamp(r.ready_at)) + ', checked by ' + esc(r.qc_by) + '. The counter hands it over from the order screen.</p>' + err +
       '<div class="ccs-actions-row"><button type="button" class="ccs-btn ccs-ghost" data-act="k-stage" data-v="quality_check">Back to quality check</button></div>';
     else if (r.stage === 'quality_check') h += '<div class="ccs-panel"><b>Quality check</b><p class="ccs-hint">Flavour and size right, message spelled exactly, design matches, dietary needs followed, clean finish and box.</p><div class="ccs-field"><label class="ccs-label" for="k-qc">Checked by</label><input class="ccs-input" id="k-qc" placeholder="Your name" autocomplete="off">' + nameChips('k-qc') + '</div>' + err +
       '<div class="ccs-actions-row"><button type="button" class="ccs-btn ccs-good" data-act="k-ready">Passed, mark Ready</button><button type="button" class="ccs-btn ccs-ghost" data-act="k-stage" data-v="decorating">Back to decorating</button></div></div>';
@@ -2725,15 +2733,15 @@
       if (st.tmDone) h += '<div class="ccs-note" role="status"><b>' + esc(st.tmDone.name) + ' can now sign in.</b> Give them the staff page link, their email (' + esc(st.tmDone.email) + ') and the temporary password you set. They choose their own password when they first sign in.</div>';
       h += '<div class="ccs-box ccs-tmadd"><b style="color:var(--ccs-ink);font-size:17px">Add a staff member</b><div class="ccs-row">' +
         sf('tm-new-n', 'Name', tm.name || '', 'text') + sf('tm-new-e', 'Email', tm.email || '', 'email') +
-        '<div class="ccs-field"><label class="ccs-label" for="tm-new-r">Role</label><select class="ccs-input" id="tm-new-r">' + ROLES.map(function (r) { return '<option value="' + r[0] + '"' + ((tm.role || 'front_of_house') === r[0] ? ' selected' : '') + '>' + r[1] + '</option>'; }).join('') + '</select></div></div>' +
+        '<div class="ccs-field"><label class="ccs-label" for="tm-new-r">Role</label><select class="ccs-input" id="tm-new-r">' + ROLE_PICK.map(function (r) { return '<option value="' + r[0] + '"' + ((tm.role || 'front_of_house') === r[0] ? ' selected' : '') + '>' + r[1] + '</option>'; }).join('') + '</select></div></div>' +
         '<div class="ccs-row" style="align-items:end">' + sf('tm-new-p', 'Temporary password', tm.password || '', 'text') + '<button type="button" class="ccs-btn ccs-ghost" data-act="tm-gen">Make one for me</button></div>' +
-        '<p class="ccs-hint">Front of house and managers run orders. Kitchen logins see only the kitchen board, with no prices or customer details. Only admins see this team list.</p>' +
+        '<p class="ccs-hint">Three access levels. Admin: everything, including reports, menu, prices, customer records, settings and the team. Counter: Today, orders, calendar, new orders and the kitchen board; cannot cancel an order that has money paid on it. Kitchen: the kitchen board only, with no prices or customer details.</p>' +
         (st.tmErr ? '<p class="ccs-err" role="alert">' + esc(st.tmErr) + '</p>' : '') +
         '<button type="button" class="ccs-btn" data-act="tm-add">Add staff member</button></div>';
       h += st.team.map(function (u) {
         var mine = S.me && u.user_id === S.me.user_id;
         return '<div class="ccs-box"><b style="color:var(--ccs-ink)">' + esc(u.email) + '</b>' + (u.full_name ? '' : '<p class="ccs-hint">No role yet. Give this login a name and role, then save.</p>') + '<div class="ccs-row">' + sf('tm-n-' + u.user_id, 'Name', u.full_name || '', 'text') +
-          '<div class="ccs-field"><label class="ccs-label" for="tm-r-' + u.user_id + '">Role</label><select class="ccs-input" id="tm-r-' + u.user_id + '">' + ROLES.map(function (r) { return '<option value="' + r[0] + '"' + ((u.role || 'front_of_house') === r[0] ? ' selected' : '') + '>' + r[1] + '</option>'; }).join('') + '</select></div></div>' +
+          '<div class="ccs-field"><label class="ccs-label" for="tm-r-' + u.user_id + '">Role</label><select class="ccs-input" id="tm-r-' + u.user_id + '">' + ROLE_PICK.map(function (r) { return '<option value="' + r[0] + '"' + ((u.role || 'front_of_house') === r[0] ? ' selected' : '') + '>' + r[1] + '</option>'; }).join('') + '</select></div></div>' +
           '<label class="ccs-check"><input type="checkbox" id="tm-a-' + u.user_id + '"' + (u.active ? ' checked' : '') + '> Has access</label>' +
           (st.resetFor === u.user_id ? '<div class="ccs-panel"><div class="ccs-row" style="align-items:end">' + sf('tm-rp-' + u.user_id, 'New temporary password', '', 'text') + '<button type="button" class="ccs-btn ccs-ghost" data-act="tm-gen" data-for="tm-rp-' + u.user_id + '">Make one for me</button></div><p class="ccs-hint">They will be asked to choose their own password at their next sign-in.</p>' + (st.resetErr ? '<p class="ccs-err" role="alert">' + esc(st.resetErr) + '</p>' : '') + '<div class="ccs-actions-row"><button type="button" class="ccs-btn" data-act="tm-reset-save" data-id="' + u.user_id + '">Save new password</button><button type="button" class="ccs-btn ccs-ghost" data-act="tm-reset" data-id="">Cancel</button></div></div>' : '') +
           '<div class="ccs-actions-row ccs-more-row"><button type="button" class="ccs-btn ccs-ghost" data-act="save-staff" data-id="' + u.user_id + '">Save this person</button>' + (mine ? '' : '<button type="button" class="ccs-link" data-act="tm-reset" data-id="' + u.user_id + '">Forgotten password? Set a new one</button>') + '</div></div>';
