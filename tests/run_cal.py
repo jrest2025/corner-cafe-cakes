@@ -55,7 +55,7 @@ async def desktop(b, errs):
     ctx, pg = await newpage(b, {"width": 1280, "height": 900}, errs)
     check('desk Calendar in the side menu', await pg.locator('.ccs-nav [data-tab="calendar"]').count() == 1)
     await go_cal(pg)
-    check('desk month view by default with date basis label', 'collection or delivery date' in (await pg.inner_text('#ccs-main')).lower())
+    check('desk month view by default with date basis label', 'by pickup or delivery date' in (await pg.inner_text('#ccs-main')).lower())
     check('desk month grid shows the target date', await show_month_of(pg, D2))
     lab = await pg.get_attribute(f'.ccs-mday[data-v="{D2}"]', 'aria-label')
     check('desk month cell counts orders and cakes separately, cancelled left out', '3 orders · 5 cakes' in (lab or ''), lab)

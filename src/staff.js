@@ -195,6 +195,14 @@
     var keepFocus = captureFocus(m);
     viewInner(m); restoreFocus(keepFocus); saveDraft();
   }
+  // One New order button, always top right of the page header (phones use the bottom bar)
+  function newTop(m) {
+    if (!can('manager', 'front_of_house') || ['orders', 'calendar', 'kitchen', 'customers', 'dash'].indexOf(S.tab) < 0) return;
+    var hd = m.querySelector('.ccs-head'); if (!hd || hd.querySelector('.ccs-newtop')) return;
+    var acts = hd.querySelector(':scope > .ccs-head-acts');
+    if (!acts) { acts = document.createElement('div'); acts.className = 'ccs-head-acts'; [].slice.call(hd.children).slice(1).forEach(function (c) { acts.appendChild(c); }); hd.appendChild(acts); }
+    acts.insertAdjacentHTML('beforeend', '<button type="button" class="ccs-btn ccs-new ccs-newtop" data-tab="new">' + NAV_ICON['new'] + 'New order</button>');
+  }
   function viewInner(m) {
     if (S.tab === 'today') m.innerHTML = todayView();
     else if (S.tab === 'orders') m.innerHTML = ordersView();
@@ -205,6 +213,7 @@
     else if (S.tab === 'register') m.innerHTML = regView();
     else if (S.tab === 'kitchen') m.innerHTML = kitchenView();
     else if (S.tab === 'calendar') m.innerHTML = calendarView();
+    newTop(m);
   }
   function loginView(err) {
     root.innerHTML = '<form class="ccs-login" id="ccs-login"><div class="ccs-brand" style="color:var(--ccs-esp)">Corner Café Cakes</div>' +
@@ -391,9 +400,9 @@
       upcoming: S.orders.filter(function (o) { return o.required_date >= t && OPEN.indexOf(o.order_status) > -1; }).length,
       overdue: S.orders.filter(isOverdue).length
     };
-    var chips = [['action', 'Needs action', counts.action], ['today', 'Today', counts.today], ['upcoming', 'Upcoming', counts.upcoming]];
+    var chips = [['action', 'Needs attention', counts.action], ['today', 'Today', counts.today], ['upcoming', 'Upcoming', counts.upcoming]];
     if (counts.overdue || S.filter === 'overdue') chips.push(['overdue', 'Overdue', counts.overdue]);
-    chips.push(['deposit', 'Money owing', null], ['recent', 'All, 45 days back and ahead', null]);
+    chips.push(['deposit', 'Payments due', null], ['recent', 'All, 45 days back and ahead', null]);
     if (S.filter === 'day' && S.day) chips.push(['day', dayLabel(S.day), null]);
     var h = '<div class="ccs-head"><div><h1 class="ccs-title">Cake orders</h1><p class="ccs-sub">' + esc(nice(t, true)) + '</p></div>' +
       '<input class="ccs-input ccs-search" id="ccs-q" aria-label="Search orders" type="search" placeholder="Search name, mobile or CC-number" value="' + esc(S.q) + '"></div>' +
@@ -439,7 +448,7 @@
     if (!S.loaded) return h + (S.ordErr ? loadErr(S.ordErr, 'reload-orders') : '<p class="ccs-loading">Loading today…</p>');
     h += freshLine(S.ordAt, S.ordFails, 'reload-orders');
     var overdue = S.orders.filter(isOverdue).sort(function (a, b) { return (a.required_date + a.required_time) < (b.required_date + b.required_time) ? -1 : 1; });
-    if (overdue.length && can('manager', 'front_of_house', 'finance')) h += '<section class="ccs-panel-card ccs-overdue zone zone-red" aria-label="Overdue orders"><div class="ccs-card-head"><h2><span class="zone-tag">Urgent</span>Overdue orders (' + overdue.length + ')</h2>' + (overdue.length > 5 ? '<button type="button" class="ccs-link" data-act="goto" data-v="overdue">See all ' + overdue.length + '</button>' : '') + '</div><p class="zone-sum">' + plural(overdue.length, 'order needs', 'orders need') + ' immediate attention</p><p class="ccs-hint">Past their date and still open. Hand over, cancel or change the date.</p><div class="ccs-minis">' + overdue.slice(0, 5).map(function (o) { return miniRow(o, false); }).join('') + '</div></section>';
+    if (overdue.length && can('manager', 'front_of_house', 'finance')) h += '<section class="ccs-panel-card ccs-overdue tp-card" aria-label="Overdue"><div class="ccs-card-head"><h2>Overdue (' + overdue.length + ')</h2>' + (overdue.length > 3 ? '<button type="button" class="ccs-link" data-act="goto" data-v="overdue">See all ' + overdue.length + '</button>' : '') + '</div><p class="ccs-hint">Hand over, cancel or change the date.</p><div class="ccs-minis">' + overdue.slice(0, 3).map(function (o) { return miniRow(o, false); }).join('') + '</div></section>';
     var live = S.orders.filter(function (o) { return o.order_status !== 'declined' && o.order_status !== 'cancelled'; });
     var needs = S.orders.filter(function (o) { return NEEDS.indexOf(o.order_status) > -1; }).sort(function (a, b) { return (a.required_date + a.required_time) < (b.required_date + b.required_time) ? -1 : 1; });
     var todays = live.filter(function (o) { return o.required_date === t; }).sort(function (a, b) { return a.required_time < b.required_time ? -1 : 1; });
@@ -448,16 +457,14 @@
     var owing = live.filter(function (o) { return o.order_status === 'awaiting_deposit' || (o.order_status === 'confirmed' && o.payment_status !== 'paid'); });
     var weekValue = week.filter(function (o) { return o.order_status === 'confirmed' || o.order_status === 'completed'; }).reduce(function (s, o) { return s + orderTotal(o); }, 0);
     h += '<div class="ccs-kpis ccs-kpis-row">' +
-      tile('goto', 'action', 'Needs action', needs.length, needs.length ? 'Review and confirm' : 'All clear', needs.length ? 'action' : '') +
-      tile('goto', 'today', 'Cakes due today', todays.length, todays.length ? collected + ' of ' + todays.length + ' handed over' : 'Nothing due', 'today') +
-      tile('goto', 'upcoming', 'Next 7 days', week.length, week.length ? 'Cakes to make' : 'Nothing booked', 'week') +
-      (money_ ? tile('goto', 'deposit', 'Money owing', owing.length, owing.length ? 'Orders with a balance' : 'All paid', owing.length ? 'deposit' : '') : '') +
-      (money_ ? tile('goto', 'upcoming', 'Booked this week', money(weekValue), 'Confirmed orders', 'good') : '') + '</div>';
+      tile('goto', 'upcoming', 'Next 7 days', week.length, week.length ? 'Cakes to make' : 'Nothing booked', '') +
+      (money_ ? tile('goto', 'deposit', 'Payments due', owing.length, owing.length ? 'Orders with a balance' : 'All paid', '') : '') +
+      (money_ ? tile('goto', 'upcoming', 'Booked this week', money(weekValue), 'Confirmed orders', '') : '') + '</div>';
     // Fits the screen: Needs action and Due today side by side, the rest one at a time (phones: all one at a time)
     var CAP = 2, P = [];
-    P.push(['needs', 'Needs action', needs.length, '<section class="ccs-panel-card tp-card zone zone-amber"><div class="ccs-card-head"><h2><span class="zone-tag">To do</span>Needs action</h2>' + (needs.length > CAP ? '<button type="button" class="ccs-link" data-act="goto" data-v="action">See all ' + needs.length + '</button>' : '') + '</div><p class="zone-sum">' + (needs.length ? plural(needs.length, 'order needs', 'orders need') + ' review' : 'Nothing waiting') + '</p>' +
-      (needs.length ? '<div class="ccs-minis">' + needs.slice(0, CAP).map(function (o) { return miniRow(o, false); }).join('') + '</div>' : '<p class="ccs-quiet">Nothing waiting. New website orders show up here.</p>') + '</section>']);
-    P.push(['due', 'Due today', todays.length, '<section class="ccs-panel-card tp-card zone zone-blue"><div class="ccs-card-head"><h2><span class="zone-tag">Today</span>Due today</h2>' + (todays.length > CAP ? '<button type="button" class="ccs-link" data-act="goto" data-v="today">See all ' + todays.length + '</button>' : '') + '</div><p class="zone-sum">' + plural(todays.length, 'cake', 'cakes') + ' due today' + (todays.length ? ', ' + collected + ' handed over' : '') + '</p>' +
+    P.push(['needs', 'Needs attention', needs.length, '<section class="ccs-panel-card tp-card tp-needs"><div class="ccs-card-head"><h2>Needs attention' + (needs.length ? ' (' + needs.length + ')' : '') + '</h2>' + (needs.length > CAP ? '<button type="button" class="ccs-link" data-act="goto" data-v="action">See all ' + needs.length + '</button>' : '') + '</div>' +
+      (needs.length ? '<div class="ccs-minis">' + needs.slice(0, CAP).map(function (o) { return miniRow(o, false); }).join('') + '</div>' : '<p class="ccs-quiet">Nothing needs attention.</p>') + '</section>']);
+    P.push(['due', 'Due today', todays.length, '<section class="ccs-panel-card tp-card"><div class="ccs-card-head"><h2>Due today' + (todays.length ? ' (' + todays.length + ')' : '') + '</h2>' + (todays.length > CAP ? '<button type="button" class="ccs-link" data-act="goto" data-v="today">See all ' + todays.length + '</button>' : '') + (todays.length ? '<span class="ccs-hint">' + collected + ' of ' + todays.length + ' handed over</span>' : '') + '</div>' +
       (todays.length ? '<div class="ccs-minis">' + todays.slice(0, CAP).map(function (o) { return miniRow(o, true); }).join('') + '</div>' : '<p class="ccs-quiet">No cakes due today.</p>') + '</section>']);
     // seven day strip
     var strip = '';
@@ -466,14 +473,14 @@
       var closed = (S.setup && S.setup.closed_dates || []).indexOf(iso) > -1;
       strip += '<button type="button" class="ccs-daycell' + (d === 0 ? ' is-today' : '') + (closed ? ' is-closed' : '') + '" data-act="day" data-v="' + iso + '"><span>' + (d === 0 ? 'Today' : new Date(iso + 'T12:00:00Z').toLocaleDateString('en-GB', { weekday: 'short', timeZone: 'UTC' })) + '</span><b>' + new Date(iso + 'T12:00:00Z').getUTCDate() + '</b><em>' + (closed ? 'Closed' : n ? n + (n === 1 ? ' cake' : ' cakes') : '—') + '</em></button>';
     }
-    P.push(['week', 'This week', null, '<section class="ccs-panel-card tp-card zone zone-green"><div class="ccs-card-head"><h2><span class="zone-tag">Coming up</span>This week</h2><button type="button" class="ccs-link" data-act="goto" data-v="upcoming">See all upcoming</button></div><p class="zone-sum">' + plural(week.length, 'cake', 'cakes') + ' over the next 7 days</p><div class="ccs-week">' + strip + '</div></section>']);
+    P.push(['week', 'This week', null, '<section class="ccs-panel-card tp-card"><div class="ccs-card-head"><h2>This week</h2><button type="button" class="ccs-link" data-act="goto" data-v="upcoming">See all upcoming</button></div><div class="ccs-week">' + strip + '</div></section>']);
     var fu = fuPanel(); if (fu) P.push(['fu', 'Follow-ups', null, fu]);
     // where orders come from, last 30 days
     var since = addDays(t, -30), recent = S.orders.filter(function (o) { return (o.created_at || '').slice(0, 10) >= since; });
     if (recent.length && can('manager', 'marketing', 'finance')) {
       var bySrc = {}; recent.forEach(function (o) { bySrc[o.source] = (bySrc[o.source] || 0) + 1; });
       var rows = Object.keys(bySrc).sort(function (a, b) { return bySrc[b] - bySrc[a]; });
-      P.push(['src', 'Order sources', null, '<section class="ccs-panel-card tp-card zone zone-neutral"><div class="ccs-card-head"><h2><span class="zone-tag">Information</span>Where orders came from</h2><span class="ccs-hint">Last 30 days · ' + recent.length + ' orders</span></div><div class="ccs-bars">' +
+      P.push(['src', 'Order sources', null, '<section class="ccs-panel-card tp-card"><div class="ccs-card-head"><h2>Order sources</h2><span class="ccs-hint">Last 30 days · ' + recent.length + ' orders</span></div><div class="ccs-bars">' +
         rows.map(function (k) { var pct = Math.round(bySrc[k] / recent.length * 100); return '<div class="ccs-barrow"><span>' + esc(SOURCE_LABEL[k] || k) + '</span><span class="ccs-bartrack"><i style="width:' + pct + '%"></i></span><b>' + bySrc[k] + '</b></div>'; }).join('') + '</div></section>']);
     }
     var keys = P.map(function (x) { return x[0]; }), lower = P.slice(2), curP = secCur('todayP', keys), curB = lower.length ? secCur('todayB', lower.map(function (x) { return x[0]; })) : '';
@@ -977,7 +984,7 @@
   }
   function kitchenView() {
     var K = S.kit, t = today();
-    var h = '<div class="ccs-head"><div><h1 class="ccs-title">Kitchen</h1><p class="ccs-sub">' + esc(nice(t, true)) + '. Confirmed cakes only. Tap a cake to update it.</p></div>' +
+    var h = '<div class="ccs-head"><div><h1 class="ccs-title">Kitchen</h1><p class="ccs-sub">' + esc(nice(t, true)) + '. Confirmed cakes only.</p></div>' +
       '<div class="ccs-chips" role="group" aria-label="Range">' + [[2, 'Today and tomorrow'], [7, 'Next 7 days']].map(function (c) { return '<button type="button" class="ccs-chip" data-act="k-range" data-v="' + c[0] + '" aria-pressed="' + (K.days === c[0]) + '">' + c[1] + '</button>'; }).join('') +
       '<button type="button" class="ccs-chip ccs-kdone-chip" data-act="k-done" aria-pressed="' + !!K.showDone + '">Handed over</button>' +
       '<button type="button" class="ccs-chip" data-act="k-refresh">Refresh</button></div></div>';
@@ -1713,7 +1720,7 @@
   var CAL_LIST = 'id,reference,revision,order_status,payment_status,production_status,fulfilment_method,delivery_zone,source,required_date,required_time,estimate_total,final_total,has_dietary,rush_override,customer_notes,contact_name,contact_phone,contact_email,customers(full_name,phone),order_items(product_name,variant,size_inch,quantity,finish,design_description,cake_message,dietary,dietary_note),order_amendments(kitchen_ack_required,kitchen_ack_at)';
   var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   var WD = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  var CAL_STATUS = [['active', 'All active orders'], ['needs', 'Needs action'], ['confirmed', 'Confirmed'], ['done', 'Handed over'], ['off', 'Cancelled or declined']];
+  var CAL_STATUS = [['active', 'All active orders'], ['needs', 'Needs attention'], ['confirmed', 'Confirmed'], ['done', 'Handed over'], ['off', 'Cancelled or declined']];
   S.cal = { view: 'month', anchor: today(), sel: null, pre: null, ask: null, status: 'active', type: 'all', basis: 'orders', rows: [], range: null, loading: false, err: false, seq: 0, counts: {}, cYear: null, cLoading: false, cErr: false, cseq: 0 };
   S.wl = {};
   function dow(iso) { return (new Date(iso + 'T12:00:00Z').getUTCDay() + 6) % 7; }
@@ -1808,7 +1815,7 @@
 
   function calendarView() {
     var c = S.cal;
-    var h = '<div class="ccs-head"><div><h1 class="ccs-title">Calendar</h1><p class="ccs-sub">Orders by collection or delivery date. Counts leave out cancelled and declined orders.</p></div></div>';
+    var h = '<div class="ccs-head"><div><h1 class="ccs-title">Calendar</h1><p class="ccs-sub">By pickup or delivery date. Cancelled orders are left out.</p></div></div>';
     h += '<div class="ccs-calbar"><div class="ccs-calnav"><button type="button" class="ccs-btn ccs-ghost ccs-small" data-act="cal-today">Today</button>' +
       '<button type="button" class="ccs-calarrow" data-act="cal-move" data-v="-1" aria-label="Previous ' + c.view + '"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.4 5.4 14 4l-8 8 8 8 1.4-1.4L8.8 12z"/></svg></button>' +
       '<button type="button" class="ccs-calarrow" data-act="cal-move" data-v="1" aria-label="Next ' + c.view + '"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.6 18.6 10 20l8-8-8-8-1.4 1.4 6.6 6.6z"/></svg></button>' +
@@ -2089,7 +2096,7 @@
     var c = clState();
     if (c.mode === 'dups' && can('manager')) return clDupsView();
     if (c.mode === 'log') return s5LogView();
-    var h = '<div class="ccs-head"><div><h1 class="ccs-title">Customers</h1><p class="ccs-sub">Built from every online and counter order. Spend counts collected orders only.</p></div>' +
+    var h = '<div class="ccs-head"><div><h1 class="ccs-title">Customers</h1><p class="ccs-sub">Spend counts collected orders only.</p></div>' +
       '<div class="ccs-headacts"><input class="ccs-input ccs-search" id="ccs-cq" aria-label="Search customers" type="search" placeholder="Search name, mobile, email, company, C-number or order number" value="' + esc(c.q) + '">' +
       (can('manager', 'front_of_house') ? '<button type="button" class="ccs-btn" data-act="cust-new">Add customer</button>' : '') + '</div></div>';
     if (c.q.trim().length >= 2) h += '<p class="ccs-hint cm-gline">Search results. Clear the search to use filters and groups.</p>';

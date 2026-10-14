@@ -1167,3 +1167,56 @@ body.ccs-is-off #cc-staff .ccs-side { top: var(--ccs-offh, 44px); }
   #cc-staff .ccs-today .tp-card .ccs-mini { row-gap: 2px; }
 }
 #cc-staff .ccs-today .tp-card .ccs-mini .ccs-pill.st { display: none; }
+/* ===== Calm: mostly neutral, colour only where it matters (red = allergy, late, overdue; amber dot = needs a check; green = main buttons and current page) ===== */
+/* New order: top right of each page; not in the side menu on tablets and laptops (phones keep it in the bottom bar) */
+#cc-staff .ccs-head-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-left: auto; }
+#cc-staff .ccs-newtop { width: auto; min-height: 48px; padding: 0 18px; }
+@media (min-width: 760px) { #cc-staff .ccs-side .ccs-nav-new, #cc-staff .ccs-side [data-tab="new"] { display: none !important; } }
+@media (max-width: 759px) { #cc-staff .ccs-newtop { display: none; } }
+/* Sections: white, thin neutral border, spacing and headings do the separating */
+#cc-staff .zone, #cc-staff .tp-card, #cc-staff .ccs-panel-card { background: #fff; border: 1px solid #E4E7EC; box-shadow: none; }
+#cc-staff .zone::before { display: none; }
+#cc-staff .ccs-card-head h2 { font-size: 18px; color: var(--ccs-ink); font-weight: 700; }
+#cc-staff .ccs-overdue.ccs-overdue { border: 1px solid #E4E7EC; box-shadow: inset 4px 0 0 #D92D20; background: #fff; }
+#cc-staff .ccs-overdue .ccs-card-head h2 { color: #B42318; }
+#cc-staff .ccs-overdue .ccs-hint { margin: -4px 0 8px; }
+/* Summary tiles: identical and neutral */
+#cc-staff .ccs-kpis-row .ccs-kpi, #cc-staff .ccs-kpis-row .ccs-kpi.t-action, #cc-staff .ccs-kpis-row .ccs-kpi.t-deposit, #cc-staff .ccs-kpis-row .ccs-kpi.t-today, #cc-staff .ccs-kpis-row .ccs-kpi.t-week, #cc-staff .ccs-kpis-row .ccs-kpi.t-good { background: #fff; border-color: #E4E7EC; box-shadow: none; }
+#cc-staff .ccs-kpis-row .ccs-kpi .ccs-kpi-n, #cc-staff .ccs-kpi .ccs-kpi-n { color: var(--ccs-ink) !important; }
+#cc-staff .ccs-kpi.t-action, #cc-staff .ccs-kpi.t-deposit { border-color: #E4E7EC; }
+#cc-staff .ccs-kpi.t-late { border-color: #E4E7EC; box-shadow: inset 4px 0 0 #D92D20; }
+#cc-staff .ccs-kpi.t-late .ccs-kpi-n, #cc-staff .ccs-kpi.t-late .ccs-kpi-l { color: #B42318 !important; }
+/* Section buttons: one look, brand green when chosen */
+#cc-staff .ccs-today .ccs-secbtn[aria-selected="true"] { background: var(--ds-select-bg); color: var(--ds-select-text); border-color: var(--ds-primary); box-shadow: inset 0 0 0 1px var(--ds-primary); }
+/* The section button already names the section: its heading is not repeated */
+#cc-staff .ccs-today .tp-lower .ccs-card-head h2 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+#cc-staff .ccs-today .tp-lower .ccs-card-head { justify-content: flex-end; margin-bottom: 6px; }
+@media (max-width: 759px) { #cc-staff .ccs-today .tp .ccs-card-head h2 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); } #cc-staff .ccs-today .tp .ccs-card-head { justify-content: flex-end; min-height: 0; margin-bottom: 4px; } }
+/* Status labels: neutral with words; a small amber dot marks orders that need a check */
+#cc-staff .ccs-pill.ccs-pill.st, #cc-staff .ccs-pill.ccs-pill.s-review, #cc-staff .ccs-pill.ccs-pill.s-wait, #cc-staff .ccs-pill.ccs-pill.s-ready, #cc-staff .ccs-pill.ccs-pill.s-done, #cc-staff .ccs-pill.ccs-pill.s-action, #cc-staff .ccs-pill.ccs-pill.s-deposit { background: #F2F4F7; color: #344054; border: 1px solid #E4E7EC; }
+#cc-staff .ccs-pill.ccs-pill.st::before { background: #98A2B3; }
+#cc-staff .ccs-pill.ccs-pill.s-review::before, #cc-staff .ccs-pill.ccs-pill.s-wait::before { background: #F79009; width: 8px; height: 8px; }
+#cc-staff .ccs-pay.ccs-pay.p-unpaid, #cc-staff .ccs-pay.ccs-pay.p-part, #cc-staff .ccs-pay.ccs-pay.p-paid, #cc-staff .ccs-pay.ccs-pay.p-refunded { background: #fff; color: #344054; border-color: #D0D5DD; }
+#cc-staff .ccs-pill.ccs-pill.s-flag, #cc-staff .ccs-pill.ccs-pill.s-amend, #cc-staff .ccs-tag.t-warn { background: #fff; color: #101828; border: 1.5px solid #344054; }
+#cc-staff .ccs-kpi .ccs-kpi-n { color: var(--ccs-ink); }
+/* Order list stripes: red only for late or dietary */
+#cc-staff .ccs-card::before, #cc-staff .ccs-mini::before { background: #E4E7EC !important; }
+#cc-staff .ccs-card.is-red::before, #cc-staff .ccs-mini.is-red::before { background: #D92D20 !important; }
+/* Kitchen columns neutral; late keeps its red edge and the word Late */
+#cc-staff .ccs-col, #cc-staff .ccs-col-ready, #cc-staff .ccs-col-qc, #cc-staff .ccs-col-done { background: #F2F4F7; }
+#cc-staff .ccs-col h2 span { color: var(--ccs-ink) !important; }
+/* Short-notice date chips: neutral dashed, the words say short notice */
+#cc-staff .ccs-chip.ccs-chip-soon { border: 1.5px dashed #98A2B3; color: var(--ccs-ink); }
+#cc-staff .ccs-chip.ccs-chip-soon[aria-pressed="true"] { background: var(--ds-select-bg); border-style: solid; border-color: var(--ds-primary); }
+#cc-staff .ccs-note { border-left: 4px solid #98A2B3; }
+/* Today rows: payment is in the Next line, not repeated as a label */
+#cc-staff .ccs-today .ccs-mini .ccs-pay { display: none; }
+#cc-staff .ccs-head-acts { flex-wrap: nowrap; }
+#cc-staff .ccs-head-acts .ccs-search { flex: 0 1 320px; min-width: 200px; margin: 0; }
+#cc-staff .ccs-head-acts .ccs-chips { flex-wrap: nowrap; }
+@media (max-width: 1099px) { #cc-staff .ccs-head-acts { flex-wrap: wrap; justify-content: flex-end; } }
+#cc-staff .ccs-dash-head .ccs-eyebrow { color: var(--ccs-muted); }
+#cc-staff .ccs-today .tp-lower .ccs-card-head { min-height: 0; margin-bottom: 4px; }
+#cc-staff .ccs-newtop { white-space: nowrap; }
+#cc-staff .ccs-today .tp-week .ccs-card-head { display: none; }
+#cc-staff .ccs-today .ccs-secbtn[data-g][data-v][aria-selected="true"] { background: var(--ds-select-bg); color: var(--ds-select-text); border-color: var(--ds-primary); box-shadow: inset 0 0 0 1px var(--ds-primary); }

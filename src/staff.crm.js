@@ -334,9 +334,9 @@
     if (!can('manager', 'front_of_house', 'marketing')) return '';
     if (!S.fu.loading && Date.now() - S.fu.at > 60000) setTimeout(fuLoad, 0);
     var d = S.fu.data, t = today();
-    var head = '<div class="ccs-card-head"><h2><span class="zone-tag">Reminders</span>Follow-ups</h2>' + (can('manager') ? '<button type="button" class="ccs-link" data-act="ws-fu-all">' + (S.fu.all ? 'Show only mine' : 'Show everyone\'s') + '</button>' : '') + '</div>';
-    if (S.fu.err && !d) return '<section class="ccs-panel-card ws-fu zone zone-neutral">' + head + '<p class="ccs-quiet">Could not load follow-ups. <button type="button" class="ccs-link" data-act="ws-fu-reload">Try again</button></p></section>';
-    if (!d) return '<section class="ccs-panel-card ws-fu zone zone-neutral">' + head + '<p class="ccs-loading">Loading…</p></section>';
+    var head = '<div class="ccs-card-head"><h2>Follow-ups</h2>' + (can('manager') ? '<button type="button" class="ccs-link" data-act="ws-fu-all">' + (S.fu.all ? 'Show only mine' : 'Show everyone\'s') + '</button>' : '') + '</div>';
+    if (S.fu.err && !d) return '<section class="ccs-panel-card ws-fu">' + head + '<p class="ccs-quiet">Could not load follow-ups. <button type="button" class="ccs-link" data-act="ws-fu-reload">Try again</button></p></section>';
+    if (!d) return '<section class="ccs-panel-card ws-fu">' + head + '<p class="ccs-loading">Loading…</p></section>';
     var list = d.tasks || [];
     var late = list.filter(function (x) { return x.due_on < t; }), now_ = list.filter(function (x) { return x.due_on === t; }), soon = list.filter(function (x) { return x.due_on > t; });
     var row = function (x) {
@@ -344,7 +344,7 @@
         '<span class="ccs-mini-m"><b>' + esc(x.title) + '</b><span>' + esc(x.customer + ' · ' + custNo(x.customer_no) + (x.order_ref ? ' · ' + x.order_ref : '') + ' · For ' + wsWho(x)) + '</span></span></button>';
     };
     var sub = function (label, arr) { return arr.length ? '<p class="ws-fu-h">' + label + ' (' + arr.length + ')</p><div class="ccs-minis">' + arr.slice(0, 8).map(row).join('') + '</div>' : ''; };
-    return '<section class="ccs-panel-card ws-fu zone zone-neutral">' + head + (list.length ? sub('Overdue', late) + sub('Due today', now_) + sub('Next 7 days', soon) :
+    return '<section class="ccs-panel-card ws-fu">' + head + (list.length ? sub('Overdue', late) + sub('Due today', now_) + sub('Next 7 days', soon) :
       '<p class="ccs-quiet">Nothing due this week' + (S.fu.all ? '' : ' for you') + '. Add follow-ups from a customer\'s Notes and follow-ups tab.</p>') + '</section>';
   }
 
