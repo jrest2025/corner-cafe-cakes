@@ -5,7 +5,7 @@
   var WS_CHANNEL = [['', 'Not recorded'], ['in_person', 'In person'], ['phone', 'Phone call'], ['whatsapp', 'WhatsApp'], ['email', 'Email'], ['social', 'Social media'], ['other', 'Other']];
   var WS_TASK = { open: 'To do', in_progress: 'Started', done: 'Done', cancelled: 'No longer needed' };
   var WS_DUE = [['today', 'Today'], ['tomorrow', 'Tomorrow'], ['3', 'In 3 days'], ['7', 'Next week'], ['other', 'Other date']];
-  var WS_HINT = 'Internal only. Never shown to the customer, in emails or on kitchen briefs. Keep it factual. No card numbers, passwords or health details. Allergies go on the order.';
+  var WS_HINT = 'Internal only. Never shown to the customer, in emails or on kitchen slips. Keep it factual. No card numbers, passwords or health details. Allergies go on the order.';
 
   function wsCanRead() { return can('manager', 'front_of_house', 'marketing', 'finance'); }
   function wsForm() {
@@ -345,7 +345,7 @@
     };
     var sub = function (label, arr) { return arr.length ? '<p class="ws-fu-h">' + label + ' (' + arr.length + ')</p><div class="ccs-minis">' + arr.slice(0, 8).map(row).join('') + '</div>' : ''; };
     return '<section class="ccs-panel-card ws-fu">' + head + (list.length ? sub('Overdue', late) + sub('Due today', now_) + sub('Next 7 days', soon) :
-      '<p class="ccs-quiet">Nothing due this week' + (S.fu.all ? '' : ' for you') + '. Add follow-ups from a customer\'s Notes and follow-ups tab.</p>') + '</section>';
+      '<p class="ccs-quiet">All caught up.</p>') + '</section>';
   }
 
   // Order screen: open follow-ups linked to this order

@@ -31,7 +31,7 @@ async def main():
     async with async_playwright() as p:
         b = await p.chromium.launch()
         ctx, pg, errs = await newpage(b)
-        check('starts at step 1, the cake', 'Step 1 of 8' in await stage(pg) and 'Cake and size' in await stage(pg))
+        check('starts at step 1, the cake', 'Step 1 of 8' in await stage(pg) and 'Choose the cake' in await stage(pg))
         check('only one line open at a time', await open_lines(pg) == 1)
         labels = await pg.evaluate("[].slice.call(document.querySelectorAll('.sl-live .sl-lk')).map(function(e){return e.textContent.trim()})")
         check('the live slip keeps the paper order', labels[:3] == ['Guest Name', 'Contact', 'Pickup'] and labels[3:6] == ['Type of cake', 'Size', 'Price'] and labels[-2:] == ['Order Taken by', 'Date'], labels)

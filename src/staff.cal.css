@@ -1220,3 +1220,6 @@ body.ccs-is-off #cc-staff .ccs-side { top: var(--ccs-offh, 44px); }
 #cc-staff .ccs-newtop { white-space: nowrap; }
 #cc-staff .ccs-today .tp-week .ccs-card-head { display: none; }
 #cc-staff .ccs-today .ccs-secbtn[data-g][data-v][aria-selected="true"] { background: var(--ds-select-bg); color: var(--ds-select-text); border-color: var(--ds-primary); box-shadow: inset 0 0 0 1px var(--ds-primary); }
+
+/* Step 1 design box: smaller so the price table fits on tablets */
+#cc-staff .sl-wrap textarea.sl-design { min-height: 72px; }

@@ -73,7 +73,7 @@ async def desktop(b, errs):
     await pg.click('.ccs-calside [data-act="cal-pre"][data-id="o7"]'); await pg.wait_for_timeout(250)
     pre = await pg.inner_text('.ccs-calside')
     check('desk preview shows reference, customer, cakes and pending change', all(x in pre for x in ['CC-1007', 'Test Customer B', '6 inch × 3', 'kitchen has not confirmed']), pre[:400])
-    check('desk preview has Open, Amend and Print kitchen brief', all([await pg.locator('.ccs-calside [data-act="open-order"]').count() == 1, await pg.locator('.ccs-calside [data-act="cal-amend"]').count() == 1, await pg.locator('.ccs-calside [data-act="cal-brief"]').count() == 1]))
+    check('desk preview has Open, Amend and Print kitchen slip', all([await pg.locator('.ccs-calside [data-act="open-order"]').count() == 1, await pg.locator('.ccs-calside [data-act="cal-amend"]').count() == 1, await pg.locator('.ccs-calside [data-act="cal-brief"]').count() == 1]))
     await pg.screenshot(path=str(OUT / 'desk-2-preview.png'), full_page=True)
     await pg.click('.ccs-calside [data-act="cal-amend"]'); await pg.wait_for_timeout(450)
     check('desk Amend order opens the existing amendment form', await pg.locator('#ccs-sheet #am-time').count() == 1)

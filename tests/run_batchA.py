@@ -34,7 +34,7 @@ async def main():
             check(f'{name}: Other actions box at the end holds Decline and Cancel', other and other['last'] and 'Decline order' in other['txt'] and 'Cancel order' in other['txt'], other)
             check(f'{name}: summary shows when, guest, mobile, price, paid, to pay', await pg.evaluate("(function(){var t=(document.querySelector('#ccs-sheet .ccs-ostrip')||{}).innerText||''; return /COLLECTION|DELIVERY/i.test(t) && /Guest/i.test(t) && /\\$68/.test(t) && /Paid/i.test(t) && /To pay/i.test(t) && /912/.test(t)})()"))
             check(f'{name}: summary and Confirm visible without scrolling', await inview(pg, '#ccs-sheet .ccs-ostrip') and await inview(pg, '#ccs-sheet [data-v=confirm]'))
-            dis = await pg.evaluate("(function(){var b=[].slice.call(document.querySelectorAll('#ccs-sheet .ccs-actions button')).filter(function(e){return /Print kitchen brief/.test(e.textContent)})[0]; return b ? {d:b.disabled, why:(document.getElementById('ccs-brief-why')||{}).textContent} : null})()")
+            dis = await pg.evaluate("(function(){var b=[].slice.call(document.querySelectorAll('#ccs-sheet .ccs-actions button')).filter(function(e){return /Print kitchen slip/.test(e.textContent)})[0]; return b ? {d:b.disabled, why:(document.getElementById('ccs-brief-why')||{}).textContent} : null})()")
             check(f'{name}: print brief shown greyed with the reason', dis and dis['d'] and 'once the order is confirmed' in (dis['why'] or ''), dis)
             await pg.screenshot(path=str(OUT / f'{name}-review.png'))
             await pg.evaluate("(function(){var e=document.querySelector('#ccs-sheet .ccs-other [data-v=decline]'); e&&e.click()})()"); await pg.wait_for_timeout(400)

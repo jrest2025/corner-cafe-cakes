@@ -104,7 +104,7 @@ async def main():
         sent = await pg.evaluate("window.__candlesSet")
         check('saving candles calls the database with the text', sent and sent.get('p_candles') == '5 small candles', sent)
         toast = await pg.evaluate("(document.getElementById('ccs-toast')||{}).textContent||''")
-        check('reprint reminder after changing candles', 'Print the new kitchen brief' in toast, toast)
+        check('reprint reminder after changing candles', 'Print the new kitchen slip' in toast, toast)
         await ctx.close()
         # Candles while taking an order
         ctx, pg, errs = await newpage(b)
