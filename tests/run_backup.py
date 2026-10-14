@@ -1,97 +1,84 @@
-"""Google Sheet backup section checks on the local copy with invented data."""
+"""Backup and business continuity section: backup Sheet health, access code for administrators, outage steps, Today warning. Invented data only."""
 import asyncio, pathlib, sys
 from playwright.async_api import async_playwright
 HERE = pathlib.Path(__file__).parent; OUT = HERE / "shotsB"; OUT.mkdir(exist_ok=True)
-PAGE = sys.argv[1] if len(sys.argv) > 1 else "built-staff5.html"
+PAGE = sys.argv[1] if len(sys.argv) > 1 else "hosted-staff.html"
 R = []
 def check(n, ok, d=''):
     R.append(bool(ok)); print(('PASS ' if ok else 'FAIL ') + n + (' -> ' + str(d)[:300] if not ok and d != '' else ''))
-
-async def newpage(b, vp, errs, role='admin', bk='{robot:true,linked:false,err:null}'):
+CURRENT = "{state:'current',minutes:1,last_ack_at:new Date(Date.now()-60000).toISOString(),rows:{'Today':2,'All orders':9},sheet_url:'https://docs.google.com/spreadsheets/d/x/edit',sheet_title:'Corner Café Cake Orders Backup',last_error:null,emails_failed:0,emails_waiting:0}"
+STALE = "{state:'attention',minutes:95,last_ack_at:new Date(Date.now()-95*60000).toISOString(),last_error_at:new Date().toISOString(),rows:{'Today':2},sheet_url:'https://docs.google.com/spreadsheets/d/x/edit',sheet_title:'Corner Café Cake Orders Backup',last_error:'Could not reach the order system. The tabs keep the last copy.',emails_failed:1,emails_waiting:0}"
+async def newpage(b, vp, errs, role='admin', mir='null'):
     ctx = await b.new_context(viewport=vp, is_mobile=vp['width'] < 760, has_touch=vp['width'] < 760); pg = await ctx.new_page()
     pg.on("pageerror", lambda e: errs.append(str(e)))
-    await pg.add_init_script(f"window.__role='{role}'; window.__bk={bk}; try{{localStorage.clear()}}catch(e){{}}")
-    await pg.goto((HERE / PAGE).as_uri()); await pg.wait_for_timeout(450)
+    await pg.add_init_script(f"window.__role='{role}'; window.__mir={mir}; try{{localStorage.clear()}}catch(e){{}}")
+    await pg.goto((HERE / PAGE).as_uri()); await pg.wait_for_timeout(700)
     return ctx, pg
-
 async def open_backup(pg, phone=False):
     if phone:
         await pg.click('.ccs-nav [data-tab="more"]'); await pg.wait_for_timeout(300)
         await pg.click('#ccs-sheet [data-tab="settings"]')
     else:
         await pg.click('.ccs-nav [data-tab="settings"]')
-    await pg.wait_for_timeout(500)
-    await pg.evaluate("(function(){var n=[].filter.call(document.querySelectorAll('.ccs-setnav [data-setk]'),function(x){return x.dataset.setk.indexOf('Backup to Google Sheet')===0})[0]; if(n) n.click(); else document.querySelectorAll('.ccs-set details').forEach(function(d){ if (d.textContent.indexOf('Backup to Google Sheet') > -1) d.open = true; })})()"); await pg.wait_for_timeout(200)
-
-async def text(pg): return await pg.inner_text('#ccs-main')
-async def fn_calls(pg): return await pg.evaluate("window.__calls.filter(function(c){return c[0]==='fn' && c[1]==='sheet-backup'}).map(function(c){return c[2]})")
+    await pg.wait_for_timeout(700)
+    await pg.evaluate("(function(){var n=[].filter.call(document.querySelectorAll('.ccs-setnav [data-setk]'),function(x){return x.dataset.setk.indexOf('Backup and business continuity')===0})[0]; if(n) n.click(); else document.querySelectorAll('.ccs-set details').forEach(function(d){ if (d.textContent.indexOf('Backup and business continuity') > -1) d.open = true; })})()"); await pg.wait_for_timeout(250)
+async def sec(pg): return await pg.evaluate("(function(){var d=document.querySelector('details[data-s5open=bc]'); return d? d.innerText : ''})()")
+async def calls(pg, fn): return await pg.evaluate(f"window.__calls.filter(function(c){{return c[1]==={fn!r}}}).length")
 
 async def main():
     errs = []
     async with async_playwright() as p:
         b = await p.chromium.launch()
-        # 1. robot not set up
-        ctx, pg = await newpage(b, {'width': 1280, 'height': 900}, errs, bk='{robot:false,linked:false,err:null}')
-        await open_backup(pg)
-        t = await text(pg)
-        check('not set up: says so plainly', 'Not set up' in t and 'GOOGLE_SERVICE_ACCOUNT_JSON' in t and await pg.locator('#bk-url').count() == 0)
-        await ctx.close()
-
-        # 2. manager does not see it
-        ctx, pg = await newpage(b, {'width': 1280, 'height': 900}, errs, role='manager')
-        await pg.click('.ccs-nav [data-tab="settings"]'); await pg.wait_for_timeout(400)
-        check('manager has no backup section', 'Backup to Google Sheet' not in await text(pg))
-        check('manager never asks for backup status', len(await fn_calls(pg)) == 0)
-        await ctx.close()
-
-        # 3. admin links a sheet
+        # 1. Not set up, administrator
         ctx, pg = await newpage(b, {'width': 1280, 'height': 900}, errs)
-        await open_backup(pg)
-        t = await text(pg)
-        check('not linked: steps and robot address shown', 'Not linked' in t and 'cakes-robot@test.iam.gserviceaccount.com' in t and 'Make a new Google Sheet' in t)
-        await pg.screenshot(path=str(OUT / 'not-linked.png'), full_page=True)
-        await pg.fill('#bk-url', 'my sheet'); await pg.click('[data-act="bk-link"]'); await pg.wait_for_timeout(250)
-        check('bad link refused before sending', 'Paste the full Google Sheet link' in await text(pg) and not [c for c in await fn_calls(pg) if c['op'] == 'link'])
-        await pg.fill('#bk-url', 'https://docs.google.com/spreadsheets/d/NOSHARE1234567890abcdefgh/edit'); await pg.click('[data-act="bk-link"]'); await pg.wait_for_timeout(400)
-        t = await text(pg)
-        check('unshared sheet: share message, link kept in box', 'press Share and add' in t and 'NOSHARE' in await pg.input_value('#bk-url'), t[-400:])
-        await pg.fill('#bk-url', 'https://docs.google.com/spreadsheets/d/ABCDEFGHIJKLMNOPQRSTUVWXYZ12/edit#gid=0'); await pg.click('[data-act="bk-link"]'); await pg.wait_for_timeout(500)
-        lc = [c for c in await fn_calls(pg) if c['op'] == 'link']
-        check('link sent with the pasted address', lc and lc[-1]['url'].endswith('#gid=0'), lc)
-        t = await text(pg)
-        check('linked: sheet name, last copied and count shown', 'Cake backup' in t and 'Orders copied' in t and '9' in t and 'Last copied' in t, t[-500:])
-        check('linked: summary says On', 'Backup to Google Sheet\tOn' in t or 'Backup to Google Sheet On' in t or 'On' in await pg.inner_text('.ccs-set summary:has-text("Backup to Google Sheet")'))
-        href = await pg.get_attribute('.ccs-history a.ccs-link', 'href'); tgt = await pg.get_attribute('.ccs-history a.ccs-link', 'target')
-        check('open sheet link opens Google in a new tab', href.startswith('https://docs.google.com/') and tgt == '_blank', href)
-        await pg.screenshot(path=str(OUT / 'linked.png'), full_page=True)
-        # copy now
-        await pg.click('[data-act="bk-copy"]'); await pg.wait_for_timeout(400)
-        check('copy now sent', [c for c in await fn_calls(pg) if c['op'] == 'copy'])
-        # change sheet then cancel
-        await pg.click('[data-act="bk-change"][data-v="1"]'); await pg.wait_for_timeout(250)
-        check('link a different sheet shows the form', await pg.locator('#bk-url').count() == 1)
-        await pg.click('[data-act="bk-change"][data-v="0"]'); await pg.wait_for_timeout(250)
-        check('cancel returns to linked view', await pg.locator('#bk-url').count() == 0 and 'Orders copied' in await text(pg))
-        # stop backup needs two taps
-        await pg.click('[data-act="bk-unlink"]'); await pg.wait_for_timeout(200)
-        check('stop needs a second tap', not [c for c in await fn_calls(pg) if c['op'] == 'unlink'] and 'Tap again' in await text(pg))
-        await pg.click('[data-act="bk-unlink"]'); await pg.wait_for_timeout(400)
-        check('stopped: back to not linked', [c for c in await fn_calls(pg) if c['op'] == 'unlink'] and 'Not linked' in await text(pg))
+        await open_backup(pg); t = await sec(pg)
+        check('one section: Backup and business continuity', 'Backup and business continuity' in await pg.inner_text('.ccs-setnav') and 'Backup to Google Sheet' not in await pg.inner_text('#ccs-main') and 'Backup check' not in await pg.inner_text('.ccs-setnav'))
+        check('not set up: says so plainly and flags it', 'Not set up' in t and 'not set up yet' in t, t[:400])
+        check('outage steps are shown', 'If the staff app is down' in t and 'M-001' in t and 'searching by phone first' in t)
+        check('database copies and restore tests still shown', 'Full copies inside the database' in t and 'Restore tests' in t)
+        check('access code hidden until asked', 'Show access code' in t and 'ab12ab12' not in t)
+        await pg.click('[data-act="mir-show"]'); await pg.wait_for_timeout(400); t = await sec(pg)
+        check('administrator can show the access code', 'ab12ab12' in t and await calls(pg, 'mirror_setup_code') == 1)
+        await pg.click('[data-act="mir-hide"]'); await pg.wait_for_timeout(300)
+        check('code can be hidden again', 'ab12ab12' not in await sec(pg))
+        await pg.click('[data-act="mir-new"]'); await pg.wait_for_timeout(300)
+        check('new code needs a second tap', await calls(pg, 'mirror_new_code') == 0 and 'tap again to make a new code' in await sec(pg))
+        await pg.click('[data-act="mir-new"]'); await pg.wait_for_timeout(500)
+        check('second tap makes a new code and shows it', await calls(pg, 'mirror_new_code') == 1 and 'cd34cd34' in await sec(pg))
+        await pg.click('.ccs-nav [data-tab="today"]'); await pg.wait_for_timeout(600)
+        check('Today warns managers the backup is not set up', 'The backup Google Sheet is not set up yet.' in await pg.inner_text('#ccs-main'))
+        await pg.screenshot(path=str(OUT / 'not-set-up.png'))
         await ctx.close()
 
-        # 4. error shown when the last copy failed
-        ctx, pg = await newpage(b, {'width': 1280, 'height': 900}, errs, bk="{robot:true,linked:true,err:'Google was busy. It will try again in 5 minutes.'}")
-        await open_backup(pg)
-        t = await text(pg)
-        check('last error shown and summary flags it', 'Google was busy' in t and 'Needs attention' in t)
+        # 2. Working
+        ctx, pg = await newpage(b, {'width': 1280, 'height': 900}, errs, mir=CURRENT)
+        check('Today has no backup warning when it is current', 'backup Google Sheet' not in await pg.inner_text('#ccs-main'))
+        await open_backup(pg); t = await sec(pg)
+        check('current: Connected and current, last copy and link', 'Connected and current' in t and 'last copy' in t and 'Corner Café Cake Orders Backup' in t, t[:400])
+        href = await pg.evaluate("(function(){var a=document.querySelector('details[data-s5open=bc] a[href*=\"docs.google.com\"]'); return a? a.target : ''})()")
+        check('Sheet link opens in a new tab', href == '_blank')
+        check('rows copied shown', 'All orders 9' in t)
+        await pg.screenshot(path=str(OUT / 'current.png'))
         await ctx.close()
 
-        # 5. small phone fits
-        ctx, pg = await newpage(b, {'width': 360, 'height': 780}, errs, bk='{robot:true,linked:false,err:null}')
+        # 3. Stale with an error, manager (no code)
+        ctx, pg = await newpage(b, {'width': 1280, 'height': 900}, errs, role='manager', mir=STALE)
+        check('Today warns managers when the backup stopped', 'The backup Google Sheet has not updated since' in await pg.inner_text('#ccs-main'))
+        await open_backup(pg); t = await sec(pg)
+        check('attention: plain problem text, no technical codes', 'Attention' in t and 'Could not reach the order system' in t and '1 could not be sent' in t, t[:500])
+        check('manager cannot see the access code', 'Show access code' not in t and await calls(pg, 'mirror_setup_code') == 0)
+        await ctx.close()
+
+        # 4. Front of house never asks for backup status
+        ctx, pg = await newpage(b, {'width': 1280, 'height': 900}, errs, role='front_of_house', mir=STALE)
+        check('front of house: no backup warning and no backup call', 'backup Google Sheet' not in await pg.inner_text('#ccs-main') and await calls(pg, 'mirror_health') == 0)
+        await ctx.close()
+
+        # 5. Phone
+        ctx, pg = await newpage(b, {'width': 360, 'height': 740}, errs, mir=CURRENT)
         await open_backup(pg, phone=True)
         sw = await pg.evaluate("document.documentElement.scrollWidth")
         check('no sideways scroll on a small phone', sw <= 360, sw)
-        await pg.screenshot(path=str(OUT / 'phone.png'), full_page=True)
         await ctx.close()
         await b.close()
     check('no page errors', not errs, errs)

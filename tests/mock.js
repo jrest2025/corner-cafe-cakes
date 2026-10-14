@@ -361,6 +361,16 @@
         orders[0].order_amendments = [{ revision: 1, amended_at: new Date().toISOString(), staff_label: 'Test Manager', requested_by: args.p_requested_by, reason: args.p_reason, time_change_cause: ch.time ? 'guest_request' : null, changes: list, excess_paid: 0, kitchen_ack_required: false, notification_status: 'Not sent: guest emails are off. Tell the customer by WhatsApp or phone.' }];
         return Promise.resolve({ data: { ok: true, revision: 1, reference: 'CC-1001', kitchen_ack_required: false, needs_reprint: false, balance_after: after, excess_paid: 0 } });
       }
+      // Backup Google Sheet (invented data): health, access code for administrators
+      if (/^mirror_/.test(fn)) {
+        var RM = window.__role || 'manager', aM = RM === 'admin', mM = aM || RM === 'manager';
+        var MI = window.__mir = window.__mir || { state: 'not_set_up', minutes: null, last_ack_at: null, rows: null, sheet_url: null, sheet_title: null, last_error: null, emails_failed: 0, emails_waiting: 0 };
+        window.__mirCode = window.__mirCode || 'ab12'.repeat(12);
+        if (fn === 'mirror_health') return Promise.resolve({ data: mM ? Object.assign({ ok: true, is_admin: aM }, MI) : { ok: false, message: 'Only managers can see the backup status.' } });
+        if (!aM) return Promise.resolve({ data: { ok: false, message: 'Only an administrator can see the setup code.' } });
+        if (fn === 'mirror_new_code') window.__mirCode = 'cd34'.repeat(12);
+        return Promise.resolve({ data: { ok: true, code: window.__mirCode, url: 'https://example.invalid/sheet-mirror' } });
+      }
       // Kitchen printing (invented data): settings, test slip, delivery log, resend, slip status, Printed tap
       if (/^(admin_print|admin_slip|slip_status|kitchen_confirm_printed)/.test(fn)) {
         var R = window.__role || 'manager', isA = R === 'admin', isM = isA || R === 'manager';

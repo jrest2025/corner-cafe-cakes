@@ -1231,3 +1231,12 @@ body.ccs-is-off #cc-staff .ccs-side { top: var(--ccs-offh, 44px); }
 #cc-staff .ccs-kprinted { margin: 8px 12px 0; min-height: 44px; width: calc(100% - 24px); }
 #cc-staff .ccs-kitem .ccs-alert { margin: 8px 12px 0; font-size: 13px; }
 #cc-staff .ccs-seth { margin: 18px 0 4px; font-size: 16px; color: var(--ccs-ink, #1D2939); }
+
+/* Backup Sheet state: plain text, colour only for the word itself */
+#cc-staff .ccs-mirstate { margin: 4px 0 10px; font-size: 15px; color: var(--ccs-ink, #1D2939); }
+#cc-staff .ccs-mirstate.is-current b { color: #027A48; }
+#cc-staff .ccs-mirstate.is-delayed b { color: #B54708; }
+#cc-staff .ccs-mirstate.is-attention b { color: #B42318; }
+#cc-staff .ccs-mircode { margin: 12px 0; }
+#cc-staff .ccs-mircode-v code { display: block; padding: 10px 12px; background: #F2F4F7; border-radius: 8px; font-size: 14px; word-break: break-all; user-select: all; }
+#cc-staff .ccs-mirnote { margin: 8px 0; }

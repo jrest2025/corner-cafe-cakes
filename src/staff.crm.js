@@ -868,22 +868,17 @@
   function s5BackupCheckView(st) {
     if (!can('manager')) return '';
     var B = st.bc, open = st.s5BcOpen ? ' open' : '';
-    if (st.bcErr) return '<details' + open + ' data-s5open="bc"><summary>Backup check <span>Could not check</span></summary><div class="ccs-set-body"><p class="ccs-err" role="alert">' + esc(st.bcErr) + '</p><button type="button" class="ccs-btn ccs-ghost" data-act="ws-cm-s5-settings" data-v="bc">Try again</button></div></details>';
-    if (!B) return '<details' + open + ' data-s5open="bc"><summary>Backup check <span>Checking…</span></summary><div class="ccs-set-body"><p class="ccs-loading">Checking…</p></div></details>';
-    var sh = B.sheet, stale = sh.linked && (!sh.last_ok_at || Date.now() - Date.parse(sh.last_ok_at) > 20 * 60000);
-    var problems = [];
-    if (!sh.linked) problems.push('The Google Sheet copy is not linked. ' + clN(B.orders, 'order') + ' exist only inside the database and its host\'s backups.');
-    else if (sh.last_error) problems.push('The last copy to the Google Sheet failed: ' + sh.last_error);
-    else if (stale) problems.push('The Google Sheet has not been updated for over 20 minutes.');
+    if (st.bcErr) return '<details' + open + ' data-s5open="bc"><summary>Backup and business continuity <span>Could not check</span></summary><div class="ccs-set-body"><p class="ccs-err" role="alert">' + esc(st.bcErr) + '</p><button type="button" class="ccs-btn ccs-ghost" data-act="ws-cm-s5-settings" data-v="bc">Try again</button></div></details>';
+    if (!B) return '<details' + open + ' data-s5open="bc"><summary>Backup and business continuity <span>Checking…</span></summary><div class="ccs-set-body"><p class="ccs-loading">Checking…</p></div></details>';
+    var problems = [], M = st.mir;
+    if (M && M.state === 'not_set_up') problems.push('The backup Google Sheet is not set up yet. ' + clN(B.orders, 'order') + ' exist only inside the database and its host\'s backups.');
+    else if (M && M.state === 'attention') problems.push(M.last_error && (!M.last_ack_at || M.last_error_at > M.last_ack_at) ? 'The backup Sheet could not copy: ' + M.last_error : 'The backup Sheet has not copied for over 30 minutes.');
     var lastDrill = B.drills[0];
     if (!lastDrill) problems.push('No restore test has been recorded.');
     else if (!lastDrill.passed) problems.push('The last restore test failed.');
-    var h = '<details' + open + ' data-s5open="bc"><summary>Backup check <span>' + (problems.length ? 'Needs attention' : 'All good') + '</span></summary><div class="ccs-set-body">';
+    var h = '<details' + open + ' data-s5open="bc"><summary>Backup and business continuity <span>' + esc(mirLabel(M)) + '</span></summary><div class="ccs-set-body">';
     if (problems.length) h += '<div class="ccs-note" role="status"><b>Needs attention</b><ul class="s5-list">' + problems.map(function (p) { return '<li>' + esc(p) + '</li>'; }).join('') + '</ul></div>';
-    h += '<h4 class="s5-h">Google Sheet copy of orders</h4><dl class="ccs-kv">' +
-      '<dt>State</dt><dd>' + (sh.linked ? esc('Linked to ' + (sh.title || 'a sheet') + ', tab ' + sh.tab) : 'Not linked') + '</dd>' +
-      (sh.linked ? '<dt>Last copied</dt><dd>' + (sh.last_ok_at ? esc(when(sh.last_ok_at)) : 'Not yet') + '</dd><dt>Orders copied</dt><dd>' + B.synced + ' of ' + B.orders + (B.pending ? ', ' + B.pending + ' new or changed waiting for the next copy' : '') + '</dd>' : '') + '</dl>' +
-      (sh.linked ? '' : '<p class="ccs-hint">An admin links a sheet in Backup to Google Sheet, below. It then copies new and changed orders every 5 minutes.</p>');
+    h += mirBlock(st);
     h += '<h4 class="s5-h">Full copies inside the database</h4>' + (B.snapshots.length ? '<ul class="s5-list">' + B.snapshots.map(function (x) {
       return '<li><b>' + esc(x.name) + '</b>: ' + (x.tables ? x.tables + ' tables, ' + Number(x.rows || 0).toLocaleString('en-US') + ' rows' : 'older copy') + (x.at ? ', taken ' + esc(when(x.at)) : '') + '. ' +
         (x.covers_crm ? 'Includes notes, follow-ups and marketing permission.' : 'Does not include notes, follow-ups or marketing permission.') + '</li>';
@@ -900,7 +895,7 @@
     if (a === 'ws-cm-s5-rep') { if (!s || s.type !== 'customer') return; s.rep = s.rep ? null : { off: {}, err: null }; if (s.rep && wsCanRead() && !s.ws) wsLoad(s.id); renderSheet(); return; }
     if (a === 'ws-cm-s5-print') { s5Print(b); return; }
     if (a === 'ws-cm-s5-log') { var c = clState(); c.mode = 'log'; c.merge = null; if (S.tab !== 'customers') goTab('customers'); window.scrollTo(0, 0); s5LogLoad(); return; }
-    if (a === 'ws-cm-s5-settings') { if (S.settings) { if (v === 'perm') S.settings.s5PermOpen = true; else S.settings.s5BcOpen = true; s5SettingsLoad(); } return; }
+    if (a === 'ws-cm-s5-settings') { if (S.settings) { if (v === 'perm') S.settings.s5PermOpen = true; else { S.settings.s5BcOpen = true; mirLoad(); } s5SettingsLoad(); } return; }
   }
   document.addEventListener('toggle', function (e) {
     var d = e.target; if (!d || !d.dataset || !d.dataset.s5open || !S.settings) return;

@@ -266,6 +266,7 @@
           S.tab = S.me.role === 'kitchen' || location.hash === '#kitchen' ? 'kitchen' : location.hash === '#new' && can('manager', 'front_of_house') ? 'new' : 'today';
           shell();
           if (S.tab === 'kitchen') loadKitchen(); else loadOrders();
+          mirLoad(); setInterval(mirLoad, 5 * 60000);
         });
       });
     }).catch(function (e) { fail(e); loginView('Could not connect. Check the internet connection and refresh.'); });
@@ -447,6 +448,7 @@
     if (draftHasContent() && can('manager', 'front_of_house')) h += '<div class="ccs-note ccs-draftbar"><span>Unfinished order' + (draftWho() ? ' for ' + esc(draftWho()) : '') + '.</span><button type="button" class="ccs-btn ccs-ghost" data-tab="new">Continue it</button></div>';
     if (!S.loaded) return h + (S.ordErr ? loadErr(S.ordErr, 'reload-orders') : '<p class="ccs-loading">Loading today…</p>');
     h += freshLine(S.ordAt, S.ordFails, 'reload-orders');
+    if (S.mir && can('manager') && (S.mir.state === 'attention' || S.mir.state === 'not_set_up')) h += '<p class="ccs-note ccs-mirnote">' + (S.mir.state === 'not_set_up' ? 'The backup Google Sheet is not set up yet.' : 'The backup Google Sheet has not updated since ' + esc(when(S.mir.last_ack_at) || 'it was set up') + '.') + ' <button type="button" class="ccs-link" data-tab="settings">Check backup</button></p>';
     var overdue = S.orders.filter(isOverdue).sort(function (a, b) { return (a.required_date + a.required_time) < (b.required_date + b.required_time) ? -1 : 1; });
     if (overdue.length && can('manager', 'front_of_house', 'finance')) h += '<section class="ccs-panel-card ccs-overdue tp-card" aria-label="Overdue"><div class="ccs-card-head"><h2>Overdue (' + overdue.length + ')</h2>' + (overdue.length > 3 ? '<button type="button" class="ccs-link" data-act="goto" data-v="overdue">See all ' + overdue.length + '</button>' : '') + '</div><p class="ccs-hint">Hand over, cancel or change the date.</p><div class="ccs-minis">' + overdue.slice(0, 3).map(function (o) { return miniRow(o, false); }).join('') + '</div></section>';
     var live = S.orders.filter(function (o) { return o.order_status !== 'declined' && o.order_status !== 'cancelled'; });
@@ -2422,7 +2424,7 @@
     S.settings = null; S.setErr = null; view();
     var reqs = [sb.from('locations').select('*').eq('code', 'corner-cafe').single(), sb.from('closed_dates').select('*').gte('closed_on', today()).order('closed_on'), sb.from('products').select('*, product_sizes(*), product_variants(*)').order('sort'), sb.from('delivery_zones').select('*').order('sort')];
     if (can('admin')) { reqs.push(sb.rpc('admin_list_users')); reqs.push(sb.rpc('admin_deleted_orders')); }
-    Promise.all(reqs).then(function (rs) { rs.forEach(function (r) { if (r.error) throw r.error; }); S.settings = { loc: rs[0].data, closed: rs[1].data || [], products: rs[2].data || [], zones: rs[3].data || [], team: rs[4] ? rs[4].data || [] : null, deleted: rs[5] && rs[5].data && rs[5].data.ok ? rs[5].data.orders : null }; if (S.tab === 'settings') view(); if (can('admin')) backupLoad(); s5SettingsLoad(); prLoad(); }).catch(function (e) {
+    Promise.all(reqs).then(function (rs) { rs.forEach(function (r) { if (r.error) throw r.error; }); S.settings = { loc: rs[0].data, closed: rs[1].data || [], products: rs[2].data || [], zones: rs[3].data || [], team: rs[4] ? rs[4].data || [] : null, deleted: rs[5] && rs[5].data && rs[5].data.ok ? rs[5].data.orders : null }; if (S.tab === 'settings') view(); s5SettingsLoad(); prLoad(); mirLoad(); }).catch(function (e) {
       console.error(e); if (errKind(e) === 'expired') return sessionExpired();
       S.setErr = errKind(e) === 'offline' ? 'No internet connection, so settings could not load.' : errKind(e) === 'denied' ? 'Your login cannot see these settings. Ask a manager.' : 'Settings could not load.';
       if (S.tab === 'settings') view();
@@ -2662,7 +2664,6 @@
           (st.resetFor === u.user_id ? '<div class="ccs-panel"><div class="ccs-row" style="align-items:end">' + sf('tm-rp-' + u.user_id, 'New temporary password', '', 'text') + '<button type="button" class="ccs-btn ccs-ghost" data-act="tm-gen" data-for="tm-rp-' + u.user_id + '">Make one for me</button></div><p class="ccs-hint">They will be asked to choose their own password at their next sign-in.</p>' + (st.resetErr ? '<p class="ccs-err" role="alert">' + esc(st.resetErr) + '</p>' : '') + '<div class="ccs-actions-row"><button type="button" class="ccs-btn" data-act="tm-reset-save" data-id="' + u.user_id + '">Save new password</button><button type="button" class="ccs-btn ccs-ghost" data-act="tm-reset" data-id="">Cancel</button></div></div>' : '') +
           '<div class="ccs-actions-row ccs-more-row"><button type="button" class="ccs-btn ccs-ghost" data-act="save-staff" data-id="' + u.user_id + '">Save this person</button>' + (mine ? '' : '<button type="button" class="ccs-link" data-act="tm-reset" data-id="' + u.user_id + '">Forgotten password? Set a new one</button>') + '</div></div>';
       }).join('') + '</div></details>';
-      h += backupView(st);
       h += deletedView(st);
     }
     return h + '</div>';
@@ -2740,7 +2741,43 @@
           ' <button type="button" class="ccs-link" data-act="del-restore" data-id="' + d.id + '">Restore</button></span></div>';
       }).join('') + '</div>' : '<p class="ccs-hint">No orders have been deleted. Admins can delete a test order or one entered by mistake from the order itself, as long as no payment is recorded.</p>') + '</div></details>';
   }
-  // ---------- Google Sheet backup (admins) ----------
+  // ---------- backup Google Sheet (in the owner's Drive; a script inside it copies orders every minute) ----------
+  var MIR_STATE = { current: 'Connected and current', delayed: 'Copy delayed', attention: 'Attention', not_set_up: 'Not set up' };
+  function mirLabel(M) { return M ? MIR_STATE[M.state] || M.state : 'Checking…'; }
+  function mirLoad() {
+    if (!can('manager')) return Promise.resolve();
+    return sb.rpc('mirror_health').then(function (r) {
+      if (r.error || !r.data || !r.data.ok) return;
+      S.mir = r.data; if (S.settings) S.settings.mir = r.data;
+      if (S.tab === 'settings' || S.tab === 'today') view();
+    }, function () {});
+  }
+  function mirAgo(m) { return m == null ? '' : m < 1 ? 'less than a minute ago' : m === 1 ? '1 minute ago' : m < 120 ? m + ' minutes ago' : Math.round(m / 60) + ' hours ago'; }
+  function mirBlock(st) {
+    var M = st.mir; if (!M) return '<p class="ccs-loading">Checking the backup Sheet…</p>';
+    var h = '<h4 class="s5-h">Backup Google Sheet</h4><p class="ccs-mirstate is-' + esc(M.state) + '"><b>' + esc(mirLabel(M)) + '</b>' +
+      (M.last_ack_at ? ' · last copy ' + esc(when(M.last_ack_at)) + ' (' + esc(mirAgo(M.minutes)) + ')' : '') + '</p>';
+    if (M.state === 'not_set_up') h += '<p class="ccs-hint">The Sheet lives in the owner\'s Google Drive. A script inside it copies every order here each minute. It cannot change orders.</p>';
+    h += '<dl class="ccs-kv">' + (M.sheet_url ? '<dt>Sheet</dt><dd><a class="ccs-link" href="' + esc(M.sheet_url) + '" target="_blank" rel="noopener">' + esc(M.sheet_title || 'Open the backup Sheet') + '</a></dd>' : '') +
+      (M.rows ? '<dt>Copied</dt><dd>' + esc(Object.keys(M.rows).map(function (k) { return k + ' ' + M.rows[k]; }).join(', ')) + '</dd>' : '') +
+      (M.last_error && (!M.last_ack_at || M.last_error_at > M.last_ack_at) ? '<dt>Problem</dt><dd>' + esc(M.last_error) + '</dd>' : '') +
+      '<dt>Emails</dt><dd>' + (M.emails_failed ? M.emails_failed + ' could not be sent in the last 7 days' : 'None failed in the last 7 days') + (M.emails_waiting ? ', ' + M.emails_waiting + ' waiting over 10 minutes' : '') + '</dd></dl>';
+    if (M.is_admin) {
+      h += '<div class="ccs-box ccs-mircode"><b>Sheet access code (administrators only)</b><p class="ccs-hint">Paste it into the Sheet once: Cake backup, then Set up. It only lets the Sheet read orders. Never put it anywhere else.</p>' +
+        (st.mirCode ? '<p class="ccs-mircode-v"><code>' + esc(st.mirCode) + '</code></p><div class="ccs-actions-row"><button type="button" class="ccs-btn ccs-ghost" data-act="mir-copy">Copy code</button><button type="button" class="ccs-link" data-act="mir-hide">Hide</button></div>' :
+          '<button type="button" class="ccs-btn ccs-ghost" data-act="mir-show">Show access code</button>') +
+        '<p class="ccs-hint">If the code may have been seen by the wrong person, <button type="button" class="ccs-link ccs-red" data-act="mir-new">make a new code</button>. The Sheet stops copying until the new code is pasted in it.</p></div>';
+    }
+    h += '<h4 class="s5-h">If the staff app is down</h4><ol class="s5-list">' +
+      '<li>Open the backup Sheet. Check Sync health for the time of the last copy.</li>' +
+      '<li>Collections: use the Today tab. Check the order number and name before handing over. Write each hand-over on paper with the time.</li>' +
+      '<li>Kitchen: use the Kitchen tab and read allergies aloud. Printed slips stay valid unless the Amendments tab shows a change.</li>' +
+      '<li>New or changed orders: write them in the Downtime orders tab with temporary numbers M-001, M-002. If the Sheet cannot open, use the paper form.</li>' +
+      '<li>When the app is back, a manager enters each downtime order, searching by phone first so nothing is entered twice, and writes the new order number next to it.</li></ol>';
+    return h;
+  }
+
+  // ---------- Google Sheet backup (old robot-account route, kept for reference; not shown) ----------
   function when(iso) { return iso ? new Date(iso).toLocaleString('en-GB', { timeZone: 'Pacific/Fiji', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true }).replace(/\s([ap]m)$/i, '$1') : ''; }
   function backupView(st) {
     var k = st.bk, open = st.bkOpen ? ' open' : '', h;
@@ -3146,6 +3183,11 @@
           if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = 'Tap again to send v' + v + ' again'; setTimeout(function () { if (b.isConnected) { b.dataset.armed = ''; b.textContent = 'Send again'; } }, 4000); break; }
           markBusy(b, 'Sending…'); prCall('admin_slip_resend', { p_order: b.dataset.id }, function (d) { return d.reference + ' slip v' + d.version + ' sent again'; }); break;
         case 'k-printed': slipPrinted(b); break;
+        case 'mir-show': case 'mir-new':
+          if (a === 'mir-new' && b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = 'tap again to make a new code'; setTimeout(function () { if (b.isConnected) { b.dataset.armed = ''; b.textContent = 'make a new code'; } }, 4000); break; }
+          var mst = S.settings; sb.rpc(a === 'mir-new' ? 'mirror_new_code' : 'mirror_setup_code').then(function (r) { clearBusy(); if (r.error) throw r.error; if (!r.data.ok) { toast(r.data.message, true); return; } mst.mirCode = r.data.code; mst.s5BcOpen = true; if (a === 'mir-new') toast('New code made. Paste it into the Sheet: Cake backup, then Change the access code.'); view(); }).catch(fail); break;
+        case 'mir-hide': S.settings.mirCode = null; view(); break;
+        case 'mir-copy': (navigator.clipboard ? navigator.clipboard.writeText(S.settings.mirCode) : Promise.reject()).then(function () { toast('Code copied'); }, function () { toast('Select the code and copy it.', true); }); break;
         case 'save-staff': var uid = b.dataset.id; sb.rpc('admin_set_staff', { p_user: uid, p_name: val('tm-n-' + uid), p_role: val('tm-r-' + uid), p_active: document.getElementById('tm-a-' + uid).checked }).then(function (r) { if (r.error) throw r.error; if (!r.data.ok) throw userErr(r.data.message); toast('Team updated'); loadSettings(); }).catch(fail); break;
       }
     } catch (err) { fail(err); }
