@@ -148,7 +148,7 @@
     var tabs = [['today', 'Today'], ['orders', 'Orders'], ['calendar', 'Calendar']];
     if (can('manager', 'front_of_house')) tabs.push(['kitchen', 'Kitchen']);
     if (can('manager', 'front_of_house')) tabs.push(['new', 'New order']);
-    if (can('marketing')) tabs.push(['dash', 'Dashboard']);
+    if (can('marketing', 'manager')) tabs.push(['dash', 'Dashboard']);
     if (can('manager')) tabs.push(['register', 'Register']);
     if (can('manager', 'front_of_house', 'finance', 'marketing')) tabs.push(['customers', 'Customers']);
     if (can('manager')) tabs.push(['settings', 'Settings']);
@@ -250,6 +250,19 @@
     }).catch(function (e) { if (errKind(e) === 'expired') return sessionExpired(); show('Could not connect. Nothing was changed. Try again.'); });
   }
 
+  // Sign out after 12 hours without use, so a shared tablet is not left signed in for good. An unfinished order is kept.
+  var IDLE_MS = 12 * 3600e3, idleAt = 0;
+  function idleTouch() { var n = Date.now(); if (n - idleAt < 60000) return; idleAt = n; try { localStorage.setItem('ccs-active', String(n)); } catch (e) {} }
+  function idleLast() { try { return Number(localStorage.getItem('ccs-active')) || 0; } catch (e) { return 0; } }
+  function idleCheck() {
+    if (!S.me) return false; var last = idleLast();
+    if (!last || Date.now() - last < IDLE_MS) return false;
+    if (S.sheet && S.sheet.type === 'new' && draftHasContent()) saveDraft();
+    S.sheetHist = false; sheetClose('pop'); sb.auth.signOut().then(function () { S.me = null; loginView('You were signed out after 12 hours without use. Sign in again to carry on.'); });
+    return true;
+  }
+  ['pointerdown', 'keydown'].forEach(function (ev) { document.addEventListener(ev, idleTouch, { passive: true, capture: true }); });
+  setInterval(idleCheck, 60000);
   function boot() {
     root.innerHTML = '<p class="ccs-loading" style="padding:40px">Loading…</p>';
     sb.auth.getSession().then(function (r) {
@@ -259,6 +272,8 @@
         if (p.error) throw p.error;
         if (!p.data || !p.data.active) { sb.auth.signOut(); return loginView('This login has not been given access yet. Ask an admin to add you to the team.'); }
         S.me = p.data;
+        if (idleCheck()) return;
+        idleAt = 0; idleTouch();
         if (sess.user.user_metadata && sess.user.user_metadata.must_change_password) return passwordView(true);
         return sb.rpc('get_order_setup', { p_location: 'corner-cafe' }).then(function (s) {
           if (s.error) throw s.error; S.setup = s.data;
@@ -571,7 +586,7 @@
     var links = '';
     if (can('manager', 'front_of_house')) links += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-tab="kitchen">Kitchen</button>';
     if (can('manager', 'front_of_house', 'finance', 'marketing')) links += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-tab="customers">Customers</button>';
-    if (can('marketing')) links += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-tab="dash">Dashboard</button>';
+    if (can('marketing', 'manager')) links += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-tab="dash">Dashboard</button>';
     if (can('manager')) links += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-tab="register">Cake register</button>';
     if (can('manager')) links += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-tab="settings">Settings</button>';
     if (links) h += '<div class="ccs-more-links">' + links + '</div>';

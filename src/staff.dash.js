@@ -89,7 +89,7 @@
       return dxTap(r.list, r.t, '<span class="dx-bl">' + esc(r.l) + '</span><span class="dx-bt"><i style="width:' + Math.round(r.v / max * 100) + '%"></i></span><b>' + fmt(r) + '</b>', 'dx-brow');
     }).join('') + '</div>';
   }
-  function dxSec(id, title, note, body, open) { var isOpen = DX['o' + id] != null ? DX['o' + id] : open; return '<details class="dx-sec"' + (isOpen ? ' open' : '') + ' data-dxsec="' + id + '"><summary><span>' + title + '</span>' + (note ? '<em>' + note + '</em>' : '') + '</summary><div class="dx-body">' + body + '</div></details>'; }
+  function dxSec(id, title, note, body) { DX.secs.push([id, title, note, body]); return ''; }
   function dxGroup(list, keyFn) { var g = {}; list.forEach(function (o) { keyFn(o).forEach(function (k) { var e = g[k[0]] = g[k[0]] || { l: k[0], q: 0, v: 0, list: [] }; e.q += k[1]; e.v += k[2]; if (e.list.indexOf(o) < 0) e.list.push(o); }); }); return Object.keys(g).map(function (k) { return g[k]; }); }
   function dxFlag(t) { return '<p class="dx-flag">' + t + '</p>'; }
   // ----- main view -----
@@ -103,11 +103,11 @@
       if (fl > ok) bad.push(k[1] + ' could not be read at ' + when(x.fail_at) + (x.fail_msg ? ': ' + x.fail_msg : '') + '.');
       else if (!ok || now - ok > lim) bad.push(k[1] + ' has not been read since ' + (ok ? when(x.ok_at) : 'setup') + '. New entries and changes in it are not shown yet.');
     });
-    return '<p class="ccs-sub">Last read: ' + esc(parts.join(' · ')) + '.</p>' + (bad.length ? '<p class="ccs-note" role="alert"><b>Not up to date.</b> ' + esc(bad.join(' ')) + (long ? ' The sheets are read every 5 minutes by the Google script. If this stays, check the script is still switched on.' : '') + '</p>' : '');
+    return '<p class="ccs-sub dx-read">Last read: ' + esc(parts.join(' · ')) + '.</p>' + (bad.length ? '<p class="ccs-note" role="alert"><b>Not up to date.</b> ' + esc(bad.join(' ')) + (long ? ' The sheets are read every 5 minutes by the Google script. If this stays, check the script is still switched on.' : '') + '</p>' : '');
   }
   function dashView() {
     var d = dxState(); d.drills = {};
-    var h = '<div class="ccs-head"><div><h1 class="ccs-title">Dashboard</h1><p class="ccs-sub">View only. From the cake register: both order sheets, the website and this app.' + (d.data ? ' Figures as of ' + esc(stamp(d.data.generated_at)) + '.' : '') + '</p>' + (d.data ? dxSync(d.data.sync) : '') + '</div>' +
+    var h = '<div class="ccs-head"><div><h1 class="ccs-title">Dashboard</h1><p class="ccs-sub">' + (d.data ? 'Figures as of ' + esc(stamp(d.data.generated_at)) + '. ' : '') + 'View only.</p>' + (d.data ? dxSync(d.data.sync) : '') + '</div>' +
       '<div class="dx-acts"><button type="button" class="ccs-btn ccs-ghost ccs-small" data-act="dx-refresh">Refresh</button>' + (d.data ? '<button type="button" class="ccs-btn ccs-ghost ccs-small" data-act="dx-export">Export summary</button>' : '') + '</div></div>';
     if (d.err) return h + '<div class="ccs-empty"><b>' + esc(d.err) + '</b><button type="button" class="ccs-btn" data-act="dx-refresh">Try again</button></div>';
     if (!d.data) return h + '<p class="ccs-loading">Loading the dashboard…</p>';
@@ -115,12 +115,14 @@
     var prods = []; data.orders.forEach(function (o) { (o.it || []).forEach(function (i) { if (prods.indexOf(i[0]) < 0) prods.push(i[0]); }); }); prods.sort();
     var chans = []; data.orders.forEach(function (o) { if (chans.indexOf(o.src) < 0) chans.push(o.src); });
     var sel = function (id, label, opts, cur) { return '<label class="ccs-field dx-f"><span class="ccs-label">' + label + '</span><select class="ccs-input" id="' + id + '" data-dx="' + id + '">' + opts.map(function (o) { return '<option value="' + esc(o[0]) + '"' + (o[0] === cur ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('') + '</select></label>'; };
-    h += '<div class="dx-filters">' + sel('dx-p', 'Period', DX_PERIODS, f.p) +
+    var fsum = [(DX_PERIODS.filter(function (x) { return x[0] === f.p; })[0] || ['', ''])[1], f.prod === 'all' ? 'All cakes' : f.prod, f.ch === 'all' ? 'All channels' : (SOURCE_LABEL[f.ch] || f.ch)].join(' · ');
+    h += '<button type="button" class="ccs-btn ccs-ghost dx-ftoggle" data-act="dx-filters" aria-expanded="' + !!d.fopen + '">Filters: ' + esc(fsum) + '</button>';
+    h += '<div class="dx-filters' + (d.fopen ? '' : ' is-closed') + '">' + sel('dx-p', 'Period', DX_PERIODS, f.p) +
       (f.p === 'c' ? '<label class="ccs-field dx-f"><span class="ccs-label">From</span><input class="ccs-input" type="date" id="dx-from" data-dx="dx-from" value="' + esc(f.from) + '"></label><label class="ccs-field dx-f"><span class="ccs-label">To</span><input class="ccs-input" type="date" id="dx-to" data-dx="dx-to" value="' + esc(f.to) + '"></label>' : '') +
       sel('dx-b', 'Count by', DX_BASIS, f.b) +
       sel('dx-prod', 'Cake', [['all', 'All cakes']].concat(prods.map(function (p) { return [p, p]; })), f.prod) +
       sel('dx-ch', 'Channel', [['all', 'All channels']].concat(chans.map(function (c) { return [c, SOURCE_LABEL[c] || c]; })), f.ch) + '</div>';
-    var cur = dxSales(r.from, r.to), cs = dxSum(cur), ps = r.pf ? dxSum(dxSales(r.pf, r.pt)) : null, cmp = ps ? ' vs ' + r.cmp : '';
+    var cur = dxSales(r.from, r.to), cs = dxSum(cur), ps = r.pf ? dxSum(dxSales(r.pf, r.pt)) : null;
     var rec = cur.filter(function (o) { return o.cp === 'recorded'; }), asm = cur.filter(function (o) { return o.cp === 'assumed'; });
     var got = dxIn(r.from, r.to), pgot = r.pf ? dxIn(r.pf, r.pt) : null, cx = got.filter(function (o) { return o.off; });
     var t = today(), up = data.orders.filter(function (o) { return o.open && o.pd >= t && dxMatch(o); }), upv = up.reduce(function (s, o) { return s + dxValue(o); }, 0), upc = up.filter(function (o) { return o.st === 'confirmed'; }).length;
@@ -128,16 +130,23 @@
     data.orders.forEach(function (o) { if (!dxMatch(o)) return; var g = 0, rf = 0; (o.pay || []).forEach(function (p) { if (!inRange(p[2], r.from, r.to)) return; if (p[0] === 'refund') rf += dnum(p[1]); else if (p[0] !== 'adjustment') g += dnum(p[1]); }); if (g) { cash += g; cashList.push(o); } if (rf) { refunds += rf; refList.push(o); } });
     var owing = data.orders.filter(function (o) { return o.live && dxMatch(o) && (o.st === 'confirmed' || o.st === 'completed') && dnum(o.bal) > 0.005; }), owed = owing.reduce(function (s, o) { return s + dnum(o.bal); }, 0);
     var basisWord = byOrder ? 'order date' : 'pickup date';
-    h += '<p class="dx-period">' + (r.all ? 'All recorded history' : esc(nice(r.from) + ' to ' + nice(r.to))) + ', by ' + basisWord + (ps ? '. Compared with ' + esc(r.cmp) + '.' : '.') + (f.prod !== 'all' ? ' Showing ' + esc(f.prod) + ' only.' : '') + '</p>';
-    h += '<div class="ccs-kpis dx-kpis dx-kpis8">' +
-      dxKpi('Orders received', int(got.length), pgot ? change(got.length, pgot.length) + cmp : 'Every order, any status', got, 'Orders received') +
-      dxKpi('Completed sales', int(cs.n), int(rec.length) + ' recorded in the app, ' + int(asm.length) + ' assumed from the sheets', cur, 'Completed sales') +
-      dxKpi('Sales value', m0(cs.v), ps ? change(cs.v, ps.v) + cmp : int(cs.c) + ' cakes, average ' + m0(cs.aov), cur, 'Completed sales', 'good') +
-      dxKpi('Payments collected', data.anyPay ? m0(cash) : 'Not recorded', data.anyPay ? 'Money taken in this period' : 'No payments entered in the app yet', cashList, 'Orders with payments in this period') +
-      dxKpi('Outstanding', m0(owed), owing.length + (owing.length === 1 ? ' order' : ' orders') + ' owing, as of today', owing, 'Orders with money still owed', owing.length ? 'deposit' : '') +
-      dxKpi('Cancellations', int(cx.length), got.length ? Math.round(cx.length / got.length * 100) + '% of orders received' : 'None', cx, 'Cancelled orders', cx.length ? 'action' : '') +
-      dxKpi('Refunds', m0(refunds), refList.length + (refList.length === 1 ? ' order' : ' orders') + ' in this period', refList, 'Refunded orders', refunds ? 'action' : '') +
-      dxKpi('Booked ahead', m0(upv), up.length + ' to come: ' + upc + ' confirmed, ' + (up.length - upc) + ' not yet', up, 'Orders still to come', 'deposit') + '</div>';
+    var period = '<p class="dx-period">' + (r.all ? 'All recorded history' : esc(nice(r.from) + ' to ' + nice(r.to))) + ', by ' + basisWord + (ps ? '. Compared with ' + esc(r.cmp) + '.' : '.') + (f.prod !== 'all' ? ' Showing ' + esc(f.prod) + ' only.' : '') + '</p>';
+    // Overview: four figures, each with its change and a small trend line, then the month chart with channels and top cakes
+    var months = dxMonths(r), wk = dxWeeks(up); d.cmpShort = ps ? 'vs ' + r.cmp : '';
+    var ov = '<div class="dx-top">' +
+      dxHead('Sales value', m0(cs.v), dxDelta(cs.v, ps && ps.v), int(cs.n) + ' completed sales (' + int(rec.length) + ' recorded in the app, ' + int(asm.length) + ' assumed from the sheets)', months.map(function (x) { return x.s.v; }), cur, 'Completed sales') +
+      dxHead('Cakes sold', int(cs.c), dxDelta(cs.c, ps && ps.c), 'In completed sales', months.map(function (x) { return x.s.c; }), cur, 'Completed sales') +
+      dxHead('Average order', m0(cs.aov), dxDelta(cs.aov, ps && ps.aov), 'Sales value per completed sale', months.map(function (x) { return x.s.aov; }), cur, 'Completed sales') +
+      dxHead('Booked ahead', m0(upv), null, up.length + ' to come: ' + upc + ' confirmed, ' + (up.length - upc) + ' not yet', wk.map(function (x) { return x.vv; }), up, 'Orders still to come') + '</div>';
+    ov += '<div class="dx-minis">' +
+      dxMini('Orders received', int(got.length) + (pgot ? ' <i>' + esc(dxDelta(got.length, pgot.length).t) + '</i>' : ''), got, 'Orders received') +
+      dxMini('Payments collected', data.anyPay ? m0(cash) : 'Not recorded', cashList, 'Orders with payments in this period') +
+      dxMini('Outstanding', m0(owed) + ' <i>' + owing.length + (owing.length === 1 ? ' order' : ' orders') + '</i>', owing, 'Orders with money still owed') +
+      dxMini('Cancellations', int(cx.length) + (got.length ? ' <i>' + Math.round(cx.length / got.length * 100) + '%</i>' : ''), cx, 'Cancelled orders') +
+      dxMini('Refunds', m0(refunds), refList, 'Refunded orders') + '</div>';
+    // Main row: the month chart, with channels and top cakes beside it
+    ov += '<div class="dx-main">' + dxMonthly(r, months) + '<div class="dx-side">' + dxChannelsCard(cur) + dxTopCard(cur) + '</div></div>';
+    // Details: one section at a time
     var flags = [], lo = data.left_out || {};
     if (lo.needs_review) flags.push(int(lo.needs_review) + ' records are waiting for a manager to review them (possible duplicates, missing or conflicting dates, possible tests). They are not counted until a decision is made.');
     var nAsm = data.orders.filter(function (o) { return o.cp === 'assumed'; }).length;
@@ -154,29 +163,89 @@
     if (Object.keys(cov).length > 1) flags.push('The sheets cover different dates by channel: ' + Object.keys(cov).map(function (k) { return (SOURCE_LABEL[k] || k) + ' ' + ml(cov[k][0]) + ' to ' + ml(cov[k][1]); }).join('; ') + '. Months outside those dates look lower because orders were not recorded, not because sales fell.');
     flags.push('Prices are shown as charged. Tax treatment is not confirmed.');
     if (data.tests_excluded) flags.push(data.tests_excluded + ' test ' + (data.tests_excluded === 1 ? 'order is' : 'orders are') + ' left out of every figure.');
-    h += '<details class="dx-flags"><summary>' + flags.length + ' things to know about this data</summary>' + flags.map(dxFlag).join('') + '</details>';
-    h += dxMonthly(r) + dxProducts(cur) + dxChannels(cur) + dxCustomers(cur, r) + dxPayments(r) + dxUpcoming(up) + dxOps(r) + dxDiscounts(cur) + dxDemand(cur) + dxYear() + dxOrders(r) + dxDefs();
-    return h;
+    d.secs = [];
+    dxProducts(cur); dxUpcoming(up); dxCustomers(cur, r); dxPayments(r); dxOps(r); dxDiscounts(cur); dxDemand(cur); dxYear(); dxOrders(r);
+    dxSec('df', 'About the data', flags.length + ' things to know', '<p class="dx-ch">' + flags.length + ' things to know about this data</p>' + flags.map(dxFlag).join('') + dxDefs());
+    d.secs = [['ov', 'Overview', '', ''], ['cc', 'Channels and cakes', '', '<div class="dx-side dx-side-ph">' + dxChannelsCard(cur) + dxTopCard(cur) + '</div>']].concat(dxMerge(d.secs));
+    var keys = d.secs.map(function (x) { return x[0]; }), cs2 = secCur('dash', keys, 'ov'), sec = d.secs.filter(function (x) { return x[0] === cs2; })[0];
+    h += '<div class="dx-secs">' + secBar('dash', d.secs.map(function (x) { return [x[0], x[1]]; }), cs2, 'Dashboard sections') + '</div>' + period;
+    if (cs2 === 'ov') return h + '<div class="dx-ov">' + ov + '</div>';
+    return h + '<section class="dx-card dx-secbody" aria-label="' + esc(sec[1]) + '"><div class="dx-card-h"><h2>' + esc(sec[1]) + '</h2>' + (sec[2] ? '<span>' + sec[2] + '</span>' : '') + '</div>' + sec[3] + '</section>';
   }
-  function dxMonthly(r) {
-    var t = today(), end = r.all ? t : (r.to > t ? t : r.to), rows = [], tbl = '';
+  // ----- headline pieces -----
+  function dxDelta(cur, prev) {
+    if (prev == null) return { t: '', c: '' };
+    if (!prev) return cur ? { t: 'New', c: 'up' } : { t: 'No change', c: 'flat' };
+    var p = Math.round((cur - prev) / prev * 100);
+    return p > 0 ? { t: 'Up ' + p + '%', c: 'up' } : p < 0 ? { t: 'Down ' + (-p) + '%', c: 'down' } : { t: 'No change', c: 'flat' };
+  }
+  function dxSpark(vals) {
+    vals = vals.filter(function (v) { return isFinite(v); }); if (vals.length < 2) return '';
+    var max = Math.max.apply(null, vals), min = Math.min.apply(null, vals), rg = (max - min) || 1;
+    var pts = vals.map(function (v, i) { return (i / (vals.length - 1) * 100).toFixed(1) + ',' + (28 - (v - min) / rg * 24).toFixed(1); }).join(' ');
+    return '<svg class="dx-spark" viewBox="0 0 100 30" preserveAspectRatio="none" aria-hidden="true"><polyline points="' + pts + '" vector-effect="non-scaling-stroke"/></svg>';
+  }
+  function dxHead(label, value, delta, sub, spark, list, title) {
+    var cmp = DX.cmpShort ? ' ' + DX.cmpShort : '';
+    return dxTap(list, title, '<span class="dx-hl">' + label + '</span><b class="dx-hv">' + value + '</b>' +
+      (delta && delta.t ? '<span class="dx-hd is-' + delta.c + '">' + esc(delta.t) + '<em>' + esc(cmp) + '</em></span>' : '<span class="dx-hd is-none">&nbsp;</span>') +
+      dxSpark(spark) + '<span class="dx-hs">' + esc(sub) + '</span>', 'dx-head');
+  }
+  function dxMini(label, value, list, title) { return dxTap(list, title, '<span>' + label + '</span><b>' + value + '</b>', 'dx-mini'); }
+  // 13 months ending with the selected period, with the same month last year
+  function dxMonths(r) {
+    var t = today(), end = r.all ? t : (r.to > t ? t : r.to), rows = [];
     for (var i = 12; i >= 0; i--) {
       var ms = dxMonthStart(dxAddMonths(end, -i)), me = dxMonthEnd(ms), list = dxSales(ms, me), s = dxSum(list);
       var ly = dxSales(dxMonthStart(dxAddMonths(ms, -12)), dxMonthEnd(dxAddMonths(ms, -12))), lys = ly.length ? dxSum(ly) : null;
       rows.push({ l: MON[+ms.slice(5, 7) - 1] + (ms.slice(5, 7) === '01' || i === 12 ? ' ' + ms.slice(2, 4) : ''), ms: ms, s: s, ly: lys, list: list, t: MON[+ms.slice(5, 7) - 1] + ' ' + ms.slice(0, 4) + ' sales', dim: ms === dxMonthStart(t) });
     }
-    rows.forEach(function (x, k) {
+    rows.end = end; return rows;
+  }
+  function dxWeeks(up) {
+    var t = today(), ws = addDays(t, -((new Date(t + 'T12:00:00Z').getUTCDay() + 6) % 7)), out = [];
+    for (var w = 0; w < 6; w++) { var a = addDays(ws, w * 7), b = addDays(a, 6), wl = up.filter(function (o) { return o.pd >= a && o.pd <= b; }); out.push({ vv: wl.reduce(function (s, o) { return s + dxValue(o); }, 0) }); }
+    return out;
+  }
+  // Bars for this period, a grey line for the same month last year
+  function dxChart(rows, metric) {
+    var val = function (x) { return metric === 'c' ? x.s.c : x.s.v; }, lyv = function (x) { return x.ly ? (metric === 'c' ? x.ly.c : x.ly.v) : null; };
+    var max = rows.reduce(function (m, x) { return Math.max(m, val(x), lyv(x) || 0); }, 0) || 1, n = rows.length;
+    var fmt = function (v) { return metric === 'c' ? int(v) : v >= 1000 ? '$' + (v / 1000).toFixed(1) + 'k' : m0(v); };
+    var segs = [], seg = [];
+    rows.forEach(function (x, i) { var v = lyv(x); if (v == null) { if (seg.length) segs.push(seg); seg = []; return; } seg.push(((i + 0.5) / n * 100).toFixed(2) + ',' + (100 - v / max * 100).toFixed(2)); });
+    if (seg.length) segs.push(seg);
+    var line = segs.map(function (sg) { return sg.length > 1 ? '<polyline points="' + sg.join(' ') + '" vector-effect="non-scaling-stroke"/>' : '<circle cx="' + sg[0].split(',')[0] + '" cy="' + sg[0].split(',')[1] + '" r="0.9"/>'; }).join('');
+    return '<div class="dx-chart"><div class="dx-cc-cols" style="grid-template-columns:repeat(' + n + ',minmax(0,1fr))">' + rows.map(function (x) {
+      var v = val(x);
+      return dxTap(x.list, x.t, '<span class="dx-cv">' + (v ? fmt(v) : '') + '</span><span class="dx-cb"><i style="height:' + Math.max(v ? 2 : 0, v / max * 100).toFixed(1) + '%"></i></span><span class="dx-cl"><span class="dx-cl-l">' + esc(x.l) + '</span><span class="dx-cl-s">' + esc(x.l.charAt(0)) + '</span></span>', 'dx-cc' + (x.dim ? ' is-dim' : ''));
+    }).join('') + '</div>' + (segs.length ? '<svg class="dx-ly" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">' + line + '</svg>' : '') + '</div>';
+  }
+  function dxMonthly(r, rows) {
+    var t = today(), end = rows.end, tbl = '', metric = DX.metric || 'v';
+    if (DX.table) rows.forEach(function (x, k) {
       var p = k ? rows[k - 1].s : null;
       tbl += '<tr><td>' + esc(MON[+x.ms.slice(5, 7) - 1] + ' ' + x.ms.slice(0, 4)) + (x.dim ? ' (to date)' : '') + '</td><td class="ccs-num">' + int(x.s.c) + '</td><td class="ccs-num">' + (p ? (x.s.c - p.c >= 0 ? '+' : '') + int(x.s.c - p.c) + ' (' + change(x.s.c, p.c) + ')' : '') + '</td><td class="ccs-num">' + m0(x.s.v) + '</td><td class="ccs-num">' + (p ? (x.s.v - p.v >= 0 ? '+' : '-') + m0(Math.abs(x.s.v - p.v)) + ' (' + change(x.s.v, p.v) + ')' : '') + '</td><td class="ccs-num">' + (x.ly ? change(x.s.v, x.ly.v) : '<span class="ccs-hint">No data</span>') + '</td></tr>';
     });
     var ms0 = dxMonthStart(t), dayN = +t.slice(8), lmS = dxMonthStart(dxAddMonths(t, -1)), lmE = dxAddMonths(t, -1);
-    var mtd = dxSum(dxSales(ms0, t)), lmtd = dxSum(dxSales(lmS, lmE)), lyl = dxSales(dxAddMonths(ms0, -12), dxAddMonths(t, -12)), lyt = lyl.length ? dxSum(lyl) : null;
-    var body = '<div class="dx-mtd"><b>This month, 1 to ' + dayN + ' ' + MON[+t.slice(5, 7) - 1] + '</b><span>' + int(mtd.c) + ' cakes, ' + m0(mtd.v) + '</span><span>Same days last month: ' + int(lmtd.c) + ' cakes, ' + m0(lmtd.v) + ' (' + change(mtd.v, lmtd.v) + ' sales)</span>' + (lyt ? '<span>Same days last year: ' + int(lyt.c) + ' cakes, ' + m0(lyt.v) + ' (' + change(mtd.v, lyt.v) + ' sales)</span>' : '<span class="ccs-hint">No sales recorded for these dates last year.</span>') + '</div>' +
-      '<p class="dx-ch">Sales value by month</p>' + dxCols(rows.map(function (x) { return { l: x.l, v: x.s.v, list: x.list, t: x.t, dim: x.dim }; }), true) +
-      '<p class="dx-ch">Cakes in completed sales by month</p>' + dxCols(rows.map(function (x) { return { l: x.l, v: x.s.c, list: x.list, t: x.t, dim: x.dim }; })) +
-      '<div class="ccs-table-wrap"><table class="ccs-table dx-table"><thead><tr><th>Month</th><th class="ccs-num">Cakes</th><th class="ccs-num">Change</th><th class="ccs-num">Sales value</th><th class="ccs-num">Change</th><th class="ccs-num">Value vs last year</th></tr></thead><tbody>' + tbl + '</tbody></table></div>' +
-      '<p class="ccs-hint">The current month is incomplete. Use the month-to-date figures above for a fair comparison. Months follow the date chosen in Count by.</p>';
-    return dxSec('mo', 'Month by month', '13 months to ' + esc(MON[+end.slice(5, 7) - 1] + ' ' + end.slice(0, 4)), body, true);
+    var mtd = dxSum(dxSales(ms0, t)), lmtd = dxSum(dxSales(lmS, lmE)), anyLy = rows.some(function (x) { return x.ly; });
+    var tg = function (k, l) { return '<button type="button" class="ccs-chip dx-tg" data-act="dx-metric" data-v="' + k + '" aria-pressed="' + (metric === k) + '">' + l + '</button>'; };
+    return '<section class="dx-card dx-month" aria-label="Sales by month"><div class="dx-card-h"><h2>Sales by month</h2><div class="dx-card-acts">' + tg('v', 'Sales value') + tg('c', 'Cakes') +
+      '<button type="button" class="ccs-link" data-act="dx-table">' + (DX.table ? 'Show chart' : 'Show table') + '</button></div></div>' +
+      (DX.table ? '<div class="ccs-table-wrap"><table class="ccs-table dx-table"><thead><tr><th>Month</th><th class="ccs-num">Cakes</th><th class="ccs-num">Change</th><th class="ccs-num">Sales value</th><th class="ccs-num">Change</th><th class="ccs-num">Value vs last year</th></tr></thead><tbody>' + tbl + '</tbody></table></div>'
+        : dxChart(rows, metric) + '<p class="dx-legend"><span class="dx-key-bar"></span>This period' + (anyLy ? '<span class="dx-key-line"></span>Same month last year' : '') + '<span class="dx-key-dim"></span><span class="dx-key-dimt">' + esc(MON[+t.slice(5, 7) - 1]) + ' so far</span></p>') +
+      '</section>';
+  }
+  function dxChannelsCard(cur) {
+    var g = dxGroup(cur, function (o) { return [[SOURCE_LABEL[o.src] || o.src, dxCakes(o), dxValue(o)]]; }).sort(function (a, b) { return b.v - a.v; });
+    var tv = g.reduce(function (s, x) { return s + x.v; }, 0) || 1;
+    return '<section class="dx-card" aria-label="Sales by channel"><div class="dx-card-h"><h2>By channel</h2><span>Share of sales value</span></div>' +
+      (g.length ? dxBars(g.map(function (x) { return { l: x.l, v: x.v, list: x.list, t: x.l + ' orders', p: Math.round(x.v / tv * 100) }; }), function (x) { return x.p + '% · ' + m0(x.v); }) : '<p class="ccs-quiet">No completed sales in this period.</p>') + '</section>';
+  }
+  function dxTopCard(cur) {
+    var g = dxGroup(cur, function (o) { return dxItems(o).map(function (i) { var q = dnum(i[3]) || 1; return [i[0], q, dnum(i[4]) * q]; }); }).sort(function (a, b) { return b.v - a.v; }).slice(0, 4);
+    return '<section class="dx-card" aria-label="Top cakes"><div class="dx-card-h"><h2>Top cakes</h2><span>By sales value</span></div>' +
+      (g.length ? dxBars(g.map(function (x) { return { l: x.l, v: x.v, q: x.q, list: x.list, t: x.l }; }), function (x) { return int(x.q) + ' · ' + m0(x.v); }) : '<p class="ccs-quiet">No completed sales in this period.</p>') + '</section>';
   }
   function dxProducts(cur) {
     var by = function (fn) { return dxGroup(cur, function (o) { return dxItems(o).map(function (i) { var q = dnum(i[3]) || 1; return [fn(i), q, dnum(i[4]) * q]; }); }); };
@@ -327,7 +396,16 @@
       ['Outstanding', 'Confirmed or completed app orders where less has been paid than the agreed price, as of today.'], ['Cancellations', 'Orders marked cancelled or declined, in the period.'], ['Refunds', 'Refunds recorded in the app, by the date given.'],
       ['Booked ahead', 'Orders with a pickup date from today that are not cancelled. Never counted as sales.'],
       ['New and returning', 'Matched by mobile number. New means the customer\'s first ever completed sale falls in the period.'], ['Comparisons', 'This month is compared with the same days of last month. Other periods are compared with the same length of time just before.'], ['Changes to orders', 'Amended orders use their latest price. Every change stays in the order\'s history and in the register.']];
-    return dxSec('df', 'How the figures are worked out', '', '<dl class="ccs-kv dx-defs">' + d.map(function (x) { return '<dt>' + x[0] + '</dt><dd>' + x[1] + '</dd>'; }).join('') + '</dl>');
+    return '<p class="dx-ch">How the figures are worked out</p>' + ('<dl class="ccs-kv dx-defs">' + d.map(function (x) { return '<dt>' + x[0] + '</dt><dd>' + x[1] + '</dd>'; }).join('') + '</dl>');
+  }
+  // Fewer, broader sections so the buttons fit on one row: pricing joins payments, the year table joins patterns
+  function dxMerge(secs) {
+    var by = {}; secs.forEach(function (x) { by[x[0]] = x; });
+    var join = function (into, from, title) { if (!by[into] || !by[from]) return; by[into][3] += '<hr class="dx-hr">' + '<div class="dx-card-h"><h2>' + esc(by[from][1]) + '</h2>' + (by[from][2] ? '<span>' + by[from][2] + '</span>' : '') + '</div>' + by[from][3]; if (title) by[into][1] = title; secs.splice(secs.indexOf(by[from]), 1); };
+    join('pa', 'di', 'Payments and pricing'); join('de', 'yr', 'Patterns');
+    var order = ['up', 'pr', 'cu', 'pa', 'op', 'de', 'ol', 'df'];
+    secs.sort(function (a, b) { return order.indexOf(a[0]) - order.indexOf(b[0]); });
+    return secs;
   }
   function dashSheet() {
     var dr = S.sheet.drill, list = dr.l.slice().sort(function (a, b) { return a.pd < b.pd ? 1 : -1; }), s = dxSum(list);
@@ -350,6 +428,9 @@
     else if (a === 'dx-export') dxExport();
     else if (a === 'dx-psort') { DX.psort = v; dxKeep(); view(); }
     else if (a === 'dx-year') { DX.year = v; dxKeep(); view(); }
+    else if (a === 'dx-metric') { DX.metric = v; view(); }
+    else if (a === 'dx-filters') { DX.fopen = !DX.fopen; view(); }
+    else if (a === 'dx-table') { DX.table = !DX.table; view(); }
     else if (a === 'dx-drill') { var dr = DX.drills[v]; if (!dr) return; S.sheet = { type: 'dash', drill: dr }; S.panel = null; S.dirty = {}; sheetOpen(); renderSheet(); }
   }
   function dxKeep() { root.querySelectorAll('[data-dxsec]').forEach(function (el) { DX['o' + el.dataset.dxsec] = el.open; }); }
