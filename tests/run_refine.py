@@ -15,7 +15,9 @@ async def newpage(b, vp=TAB, role='front_of_house'):
     return ctx, pg, errs
 async def js(pg, sel):
     r = await pg.evaluate(f"(function(){{var e=document.querySelector({sel!r}); if(e) e.click(); return !!e}})()"); await pg.wait_for_timeout(280); return r
-async def tab(pg, t): await js(pg, f'.ccs-nav [data-tab="{t}"]'); await pg.wait_for_timeout(250)
+async def tab(pg, t):
+    if t == 'new': await pg.evaluate("[].slice.call(document.querySelectorAll('[data-tab=new]')).filter(function(e){return e.offsetParent}).pop().click()"); await pg.wait_for_timeout(450); return
+    await js(pg, f'.ccs-nav [data-tab="{t}"]'); await pg.wait_for_timeout(250)
 async def stage(pg): return await pg.inner_text('.sl-progress')
 async def nxt(pg): await js(pg, '.sl-stepbar [data-act="sl-next"]')
 async def heights(pg, sel): return await pg.evaluate(f"[].slice.call(document.querySelectorAll({sel!r})).filter(function(e){{return e.getBoundingClientRect().height>0}}).map(function(e){{return Math.round(e.getBoundingClientRect().height)}})")
@@ -51,7 +53,7 @@ async def main():
         h = await heights(pg, '#n-name'); check('text fields are at least 60 px', h and min(h) >= 60, h)
         h = await heights(pg, '.sl-stepbar .ccs-btn'); check('Back and Next are 64 px', len(h) == 2 and min(h) >= 64, h)
         h = await heights(pg, '.sl-live .sl-chg'); check('Change links on the slip are at least 48 px', h and min(h) >= 48, h)
-        small = await pg.evaluate("[].slice.call(document.querySelectorAll('#ccs-main button, #ccs-main input')).filter(function(e){var r=e.getBoundingClientRect();return r.height>0&&r.height<48}).map(function(e){return (e.textContent||e.id).trim().slice(0,20)+':'+Math.round(e.getBoundingClientRect().height)})")
+        small = await pg.evaluate("[].slice.call(document.querySelectorAll('#ccs-sheet .ccs-sheet-body button, #ccs-sheet .ccs-sheet-body input')).filter(function(e){var r=e.getBoundingClientRect();return r.height>0&&r.height<48}).map(function(e){return (e.textContent||e.id).trim().slice(0,20)+':'+Math.round(e.getBoundingClientRect().height)})")
         check('nothing on the order screen is under 48 px', not small, small)
         await pg.fill('#n-name', 'Refine Test Guest'); await nxt(pg)
         await pg.fill('#n-phone', '912 0777'); await pg.wait_for_timeout(450); await js(pg, '[data-act="sl-opt"][data-v="no"]'); await nxt(pg)
@@ -65,9 +67,9 @@ async def main():
         check('reaches step 8', 'Step 8' in await stage(pg), await stage(pg))
         await js(pg, '[data-act="n-submit"]'); await pg.wait_for_timeout(800)
         check('order saved once', await pg.evaluate("window.__calls.filter(function(c){return c[1]==='staff_create_order'}).length") == 1)
-        check('saved screen offers Go to orders', await pg.locator('#ccs-main [data-tab="orders"]').count() == 1)
-        await js(pg, '#ccs-main [data-tab="orders"]')
-        check('Go to orders opens the order list', await pg.locator('.ccs-head .ccs-title').inner_text() == 'Cake orders')
+        check('after saving, back on Today with the new order marked at the top of Needs attention', await pg.locator('#ccs-sheet.ccs-open').count() == 0 and await pg.locator('.ccs-dash-head').count() == 1 and await pg.locator('.ccs-mini.is-new').count() == 1)
+        await js(pg, '.ccs-nav [data-tab="orders"]')
+        check('Orders opens the order list', await pg.locator('.ccs-head .ccs-title').inner_text() == 'Cake orders')
         check('no page errors (tablet)', not errs, errs)
         await ctx.close()
         # ---- other screens ----

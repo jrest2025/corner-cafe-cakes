@@ -161,7 +161,6 @@
     if (S.me && S.me.role === 'kitchen') return [['kitchen', 'Kitchen']];
     var tabs = [['today', 'Today'], ['orders', 'Orders'], ['calendar', 'Calendar']];
     if (can('manager', 'front_of_house')) tabs.push(['kitchen', 'Kitchen']);
-    if (can('manager', 'front_of_house')) tabs.push(['new', 'New order']);
     if (can('marketing', 'manager')) tabs.push(['dash', 'Dashboard']);
     if (can('manager')) tabs.push(['register', 'Register']);
     if (can('manager', 'finance', 'marketing')) tabs.push(['customers', 'Customers']);
@@ -181,7 +180,7 @@
   }
   function shell() {
     root.innerHTML =
-      '<div class="ccs-app' + (S.me.role === 'kitchen' ? ' is-single' : '') + '">' + (S.me.role === 'kitchen' ? '' : '<div class="ccs-topbar"><button type="button" class="ccs-btn ccs-ghost ccs-menubtn" data-menu="open" aria-controls="ccs-side" aria-expanded="false">Menu</button><span class="ccs-topbrand">Corner Café <small>Cakes</small></span></div><div class="ccs-menushade" data-menu="close"></div>') + '<aside class="ccs-side" id="ccs-side"><div class="ccs-brand">Corner Café<small>Cakes</small></div>' +
+      '<div class="ccs-app' + (S.me.role === 'kitchen' ? ' is-single' : '') + '">' + (S.me.role === 'kitchen' ? '' : '<div class="ccs-topbar"><button type="button" class="ccs-btn ccs-ghost ccs-menubtn" data-menu="open" aria-controls="ccs-side" aria-expanded="false">Menu</button><span class="ccs-topbrand">Corner Café <small>Cakes</small></span></div><div class="ccs-menushade" data-menu="close"></div>') + '<aside class="ccs-side" id="ccs-side"><div class="ccs-brand">Corner Café<small>Cakes</small></div>' + (can('manager', 'front_of_house') ? '<button type="button" class="ccs-btn ccs-new ccs-topnew" data-tab="new">' + NAV_ICON['new'] + 'New order</button>' : '') +
       '<nav class="ccs-nav" aria-label="Sections">' + navHtml() + '</nav>' +
       '<div class="ccs-who"><span class="ccs-avatar" aria-hidden="true">' + esc((S.me.full_name || '?').trim().charAt(0).toUpperCase()) + '</span><span class="ccs-who-name">' + esc(S.me.full_name) + '<small>' + esc((ROLES.filter(function (r) { return r[0] === S.me.role; })[0] || ['', ''])[1]) + '</small></span><button type="button" class="ccs-signout" data-act="signout">Sign out</button></div></aside>' +
       '<main class="ccs-main" id="ccs-main"></main></div>' +
@@ -305,8 +304,9 @@
           var s = rr[0]; accessSet(rr[1]);
           if (s.error) throw s.error; S.setup = s.data;
           loadDraft();
-          S.tab = S.me.role === 'kitchen' || location.hash === '#kitchen' ? 'kitchen' : location.hash === '#new' && can('manager', 'front_of_house') ? 'new' : 'today';
+          S.tab = S.me.role === 'kitchen' || location.hash === '#kitchen' ? 'kitchen' : 'today';
           shell();
+          if (location.hash === '#new' && can('manager', 'front_of_house')) newStart();
           if (S.tab === 'kitchen') loadKitchen(); else loadOrders();
           mirLoad(); setInterval(mirLoad, 5 * 60000);
         });
@@ -315,7 +315,7 @@
   }
 
   // ---------- orders ----------
-  var ORDER_LIST = 'id,reference,revision,order_status,payment_status,production_status,fulfilment_method,delivery_zone,order_type,source,required_date,required_time,estimate_total,final_total,deposit_required,has_dietary,rush_override,created_at,contact_name,contact_phone,contact_email,customers(full_name,phone),order_items(product_name,variant,size_inch,quantity,finish,occasion)';
+  var ORDER_LIST = 'id,reference,revision,order_status,payment_status,production_status,fulfilment_method,delivery_zone,order_type,source,required_date,required_time,estimate_total,final_total,deposit_required,has_dietary,rush_override,created_at,contact_name,contact_phone,contact_email,customers(full_name,phone),order_items(product_name,variant,size_inch,quantity,finish,occasion,dietary_note)';
   // Each order keeps its own contact details. Show those, and keep the profile for the link and comparison.
   function withContact(r) {
     var rows = r && r.data ? (Array.isArray(r.data) ? r.data : [r.data]) : [];
@@ -424,8 +424,9 @@
   function orderCard(o) {
     var i = firstItem(o), c = o.customers, st = STATUS[o.order_status] || ['', 'off'];
     var late = isOverdue(o), tags = (validRef(o.reference) ? '' : '<span class="ccs-pill s-alert">No order number</span>') + (late ? '<span class="ccs-pill s-alert">Overdue</span>' : '') + pill(o.order_status, o.fulfilment_method);
-    if (o.has_dietary) tags += '<span class="ccs-pill s-alert">Dietary or allergy</span>';
+    if (o.has_dietary) tags += dietUnsure(o) ? '<span class="ccs-pill s-alert">Allergies to check</span>' : '<span class="ccs-pill s-alert">Dietary or allergy</span>';
     if (o.order_type === 'custom') tags += '<span class="ccs-tag t-info">Custom</span>';
+    if (NEEDS.indexOf(o.order_status) > -1 && !o.contact_email) tags += '<span class="ccs-tag t-info">No email</span>';
     if (o.rush_override) tags += '<span class="ccs-pill s-flag">Short notice</span>';
     if (o.revision) tags += '<span class="ccs-pill s-amend">Amended</span>';
     if (o.order_status === 'confirmed' || o.order_status === 'completed') tags += payPill(o.payment_status);
@@ -433,7 +434,7 @@
     if (o.fulfilment_method === 'delivery') tags += '<span class="ccs-tag t-info">Delivery' + (o.delivery_zone ? ', ' + esc(o.delivery_zone) : '') + '</span>';
     return '<button type="button" class="ccs-card k-' + st[1] + (late || o.has_dietary ? ' is-red' : '') + '" data-act="open-order" data-id="' + o.id + '">' +
       '<span class="ccs-when"><b>' + esc(nice(o.required_date) + (String(o.required_date).slice(0, 4) !== today().slice(0, 4) ? ' ' + String(o.required_date).slice(0, 4) : '')) + '</b><span>' + esc(t12(o.required_time)) + '</span></span>' +
-      '<span class="ccs-what"><b>' + esc(cakeLine(i)) + '</b><span class="ccs-meta">' + esc(c ? c.full_name : 'Customer details hidden') + ' · ' + esc(o.reference) + ' · ' + esc(SOURCE_LABEL[o.source]) + '</span><span class="ccs-tags">' + tags + '</span>' + nextHtml(o) + '</span>' +
+      '<span class="ccs-what"><b>' + esc(cakeLine(i)) + '</b><span class="ccs-meta">' + esc(c ? c.full_name : 'Customer details hidden') + ' · ' + esc(o.reference) + ' · ' + esc(SOURCE_LABEL[o.source]) + (receivedAgo(o) ? ' · ' + esc(receivedAgo(o)) : '') + '</span><span class="ccs-tags">' + tags + '</span>' + nextHtml(o) + '</span>' +
       '<span class="ccs-price">' + money(o.final_total != null ? o.final_total : o.estimate_total) + '<small>' + (o.final_total != null ? 'agreed' : (o.order_type === 'custom' ? 'from' : 'price')) + '</small></span></button>';
   }
   function ordersView() {
@@ -476,10 +477,10 @@
   function plural(n, one, many) { return n + ' ' + (n === 1 ? one : many); }
   function miniRow(o, showTime) {
     var i = firstItem(o), c = o.customers, st = STATUS[o.order_status] || ['', 'off'];
-    return '<button type="button" class="ccs-mini k-' + st[1] + (isOverdue(o) || o.has_dietary ? ' is-red' : '') + '" data-act="open-order" data-id="' + o.id + '">' +
+    return '<button type="button" class="ccs-mini k-' + st[1] + (isOverdue(o) || o.has_dietary ? ' is-red' : '') + (o.id === S.justAdded ? ' is-new' : '') + '" data-act="open-order" data-id="' + o.id + '">' +
       '<span class="ccs-mini-t">' + (showTime ? esc(t12(o.required_time)) : esc(nice(o.required_date)) + '<small>' + esc(t12(o.required_time)) + '</small>') + '</span>' +
-      '<span class="ccs-mini-m"><b>' + esc(cakeLine(i)) + '</b><span>' + esc(c ? c.full_name : '') + ' · ' + esc(o.reference) + '</span>' + nextHtml(o) + '</span>' +
-      '<span class="ccs-mini-r">' + (o.order_status === 'confirmed' ? stagePill(o.production_status) : pill(o.order_status, o.fulfilment_method)) + ((o.order_status === 'confirmed' || o.order_status === 'awaiting_deposit') && o.payment_status !== 'paid' && can('manager', 'finance', 'front_of_house') ? payPill(o.payment_status) : '') + (o.fulfilment_method === 'delivery' ? '<span class="ccs-pill s-info">Delivery</span>' : '') + (o.has_dietary ? '<span class="ccs-pill s-alert">Dietary or allergy</span>' : '') + '</span></button>';
+      '<span class="ccs-mini-m"><b>' + esc(cakeLine(i)) + '</b><span>' + esc(c ? c.full_name : '') + ' · ' + esc(o.reference) + (receivedShort(o) ? ' · ' + esc(receivedShort(o)) : '') + '</span>' + nextHtml(o) + '</span>' +
+      '<span class="ccs-mini-r">' + (o.order_status === 'confirmed' ? stagePill(o.production_status) : pill(o.order_status, o.fulfilment_method)) + ((o.order_status === 'confirmed' || o.order_status === 'awaiting_deposit') && o.payment_status !== 'paid' && can('manager', 'finance', 'front_of_house') ? payPill(o.payment_status) : '') + (o.fulfilment_method === 'delivery' ? '<span class="ccs-pill s-info">Delivery</span>' : '') + (o.has_dietary && !dietUnsure(o) ? '<span class="ccs-pill s-alert">Dietary or allergy</span>' : '') + reviewFlags(o) + '</span></button>';
   }
   function todayView() {
     var t = today(), wkEnd = addDays(t, 6), money_ = can('manager', 'finance', 'front_of_house');
@@ -492,7 +493,7 @@
     var overdue = S.orders.filter(isOverdue).sort(function (a, b) { return (a.required_date + a.required_time) < (b.required_date + b.required_time) ? -1 : 1; });
     if (overdue.length && can('manager', 'front_of_house', 'finance')) h += '<section class="ccs-panel-card ccs-overdue tp-card" aria-label="Overdue"><div class="ccs-card-head"><h2>Overdue (' + overdue.length + ')</h2>' + (overdue.length > 3 ? '<button type="button" class="ccs-link" data-act="goto" data-v="overdue">See all ' + overdue.length + '</button>' : '') + '</div><p class="ccs-hint">Hand over, cancel or change the date.</p><div class="ccs-minis">' + overdue.slice(0, 3).map(function (o) { return miniRow(o, false); }).join('') + '</div></section>';
     var live = S.orders.filter(function (o) { return o.order_status !== 'declined' && o.order_status !== 'cancelled'; });
-    var needs = S.orders.filter(function (o) { return NEEDS.indexOf(o.order_status) > -1; }).sort(function (a, b) { return (a.required_date + a.required_time) < (b.required_date + b.required_time) ? -1 : 1; });
+    var needs = S.orders.filter(function (o) { return NEEDS.indexOf(o.order_status) > -1; }).sort(function (a, b) { if (a.id === S.justAdded) return -1; if (b.id === S.justAdded) return 1; return (a.required_date + a.required_time) < (b.required_date + b.required_time) ? -1 : 1; });
     var todays = live.filter(function (o) { return o.required_date === t; }).sort(function (a, b) { return a.required_time < b.required_time ? -1 : 1; });
     var collected = todays.filter(function (o) { return o.order_status === 'completed'; }).length;
     var week = live.filter(function (o) { return o.required_date >= t && o.required_date <= wkEnd && OPEN.concat(['completed']).indexOf(o.order_status) > -1; });
@@ -542,6 +543,7 @@
       if (r.error) throw r.error;
       if (!S.sheet || S.sheet.id !== id) return;
       S.sheet.data = r.data;
+      if (can('manager', 'front_of_house')) mailLoad(id);
       if (r.data.customer_id) orderFuLoad(id);
       if (r.data.brief_version) slipLoad([id]);
       var att = r.data.order_attachments || [];
@@ -576,6 +578,7 @@
     if (S.sheetHist) { S.sheetHist = false; if (how !== 'pop' && how !== 'replace') { S.ignorePop = true; try { history.back(); } catch (x) { S.ignorePop = false; } } }
   }
   function goTab(t, fromPop) {
+    if (t === 'new') { newStart(); return; }
     if (!fromPop && S.sheet && hasTyping()) { toast('Save or cancel your changes first.', true); return; }
     var hadSheet = S.sheetHist;
     S.tab = t; sheetClose(hadSheet && !fromPop ? 'replace' : 'pop');
@@ -685,6 +688,7 @@
     if (o.internal_notes) h += '<section class="ccs-box"><h3>Team notes</h3><p style="white-space:pre-wrap;font-size:15px">' + esc(o.internal_notes) + '</p></section>';
     h += changeHistory(o);
     var dz = !S.panel && S.sheet.danger && S.sheet.danger.length ? '<section class="ccs-box ccs-other"><h3>Other actions</h3><p class="ccs-hint">These change or remove the order. Each one asks before anything happens.</p><div class="ccs-actions-row ccs-more-row">' + S.sheet.danger.map(function (m) { return '<button type="button" class="ccs-link ccs-red" data-act="panel" data-v="' + m[0] + '">' + m[1] + '</button>'; }).join('') + '</div></section>' : '';
+    h += mailBox(o);
     h += '<section class="ccs-box"><h3>Activity</h3>' + (S.sheet.showHistory ? '<div class="ccs-history">' + (o.order_events || []).slice().sort(function (a, b) { return a.at < b.at ? -1 : 1; }).map(function (e) { return '<div><span>' + esc(stamp(e.at)) + '</span><span style="color:var(--ccs-ink)">' + esc(eventText(e)) + '</span></div>'; }).join('') + '</div>' : '<button type="button" class="ccs-link" data-act="history">Show history (' + (o.order_events || []).length + ')</button>') + '</section>' + dz;
     // One section at a time below the key facts and actions, so the panel fits the screen
     return secSplit(h, cut, 'order', { cake: 'Cake', when: deliv ? 'Delivery' : 'Collection', kitchen: 'Kitchen', customer: 'Customer', payment: 'Payment', history: 'History' }, !!S.panel) + '</div>';
@@ -707,6 +711,64 @@
     return head + secBar(group, parts.map(function (p) { return [p[0], labels[p[0]] || p[0]]; }), cur) + '<div class="ccs-secbody" role="tabpanel">' + body + '</div>';
   }
   function kv(k, v) { return v ? '<dt>' + esc(k) + '</dt><dd>' + esc(v) + '</dd>' : ''; }
+  // ---------- customer emails on an order (status only) ----------
+  var MAIL_KIND = { guest_received: 'Order received', guest_confirmed: 'Order confirmed', guest_deposit_needed: 'Deposit needed', guest_declined: 'Order declined', guest_cancelled: 'Order cancelled', guest_thanks: 'Thank you and review' };
+  function mailLoad(id) {
+    var sh = S.sheet; sh.mail = { loading: true };
+    sb.rpc('staff_order_emails', { p_order: id }).then(function (r) {
+      if (S.sheet !== sh) return;
+      sh.mail = r.error || !r.data || !r.data.ok ? { err: true } : r.data; renderSheet();
+    }, function () { if (S.sheet === sh) { sh.mail = { err: true }; renderSheet(); } });
+  }
+  function mailStatus(m) {
+    if (m.status === 'sent') return 'Sent ' + stamp(m.sent_at || m.created_at);
+    if (m.status === 'failed') return m.attempts >= 5 ? 'Not sent: it failed and will not retry' : 'Not sent yet: it failed and will retry';
+    if (m.status === 'sending') return 'Sending now';
+    return 'Waiting to send';
+  }
+  function mailBox(o) {
+    if (!can('manager', 'front_of_house')) return '';
+    var M = S.sheet.mail, h = '<section class="ccs-box ccs-mailbox"><h3>Customer emails</h3>';
+    if (!o.contact_email) return h + '<p class="ccs-hint">No email address on this order, so no emails are sent. Add one with Amend order if the customer wants emails.</p></section>';
+    if (!M || M.loading) return h + '<p class="ccs-loading">Checking emails…</p></section>';
+    if (M.err) return h + '<p class="ccs-hint">Could not check the emails for this order. <button type="button" class="ccs-link" data-act="mail-reload">Try again</button></p></section>';
+    if (!M.guest_emails) h += '<p class="ccs-hint">Customer emails are switched off, so none are sent automatically.</p>';
+    h += M.emails.length ? '<ul class="ccs-maillist">' + M.emails.map(function (m) {
+      return '<li class="' + (m.status === 'failed' ? 'is-failed' : m.status === 'sent' ? 'is-sent' : '') + '"><b>' + esc(MAIL_KIND[m.kind] || m.kind) + '</b><span>' + esc(mailStatus(m)) + '</span><small>' + esc(m.to) + '</small></li>';
+    }).join('') + '</ul>' : '<p class="ccs-hint">No emails sent yet. Sent to ' + esc(o.contact_email) + '.</p>';
+    if (M.guest_emails) h += (S.sheet.mailErr ? '<p class="ccs-err" role="alert">' + esc(S.sheet.mailErr) + '</p>' : '') + '<button type="button" class="ccs-btn ccs-ghost ccs-small" data-act="mail-resend">Send the latest email again</button>';
+    return h + '</section>';
+  }
+  function mailResend() {
+    var sh = S.sheet, o = sh && sh.data; if (!o) return;
+    sh.mailErr = null;
+    sb.rpc('staff_resend_email', { p_order: o.id }).then(function (r) {
+      if (S.sheet !== sh) return;
+      if (r.error) throw r.error;
+      if (!r.data.ok) { sh.mailErr = r.data.message; clearBusy(); return renderSheet(); }
+      toast((MAIL_KIND[r.data.kind] || 'Email') + ' email on its way to ' + r.data.to); mailLoad(o.id);
+    }).catch(fail);
+  }
+  // How long ago an order came in, for orders still waiting for review
+  function receivedShort(o) {
+    if (NEEDS.indexOf(o.order_status) < 0 || !o.created_at) return '';
+    var m = Math.max(0, Math.round((Date.now() - new Date(o.created_at).getTime()) / 60000));
+    return m < 1 ? 'just now' : m < 60 ? m + ' min ago' : m < 1440 ? Math.round(m / 60) + ' hr ago' : nice((o.created_at || '').slice(0, 10));
+  }
+  function receivedAgo(o) {
+    if (NEEDS.indexOf(o.order_status) < 0 || !o.created_at) return '';
+    var m = Math.max(0, Math.round((Date.now() - new Date(o.created_at).getTime()) / 60000));
+    return 'Received ' + (m < 1 ? 'just now' : m < 60 ? m + (m === 1 ? ' minute' : ' minutes') + ' ago' : m < 1440 ? Math.round(m / 60) + (Math.round(m / 60) === 1 ? ' hour' : ' hours') + ' ago' : nice((o.created_at || '').slice(0, 10)));
+  }
+  // Review flags for an order still waiting: what needs checking before it can be confirmed
+  function dietUnsure(o) { var i = firstItem(o) || {}; return !!(o.has_dietary && /^Allergies not confirmed yet/.test(i.dietary_note || '')); }
+  function reviewFlags(o) {
+    if (NEEDS.indexOf(o.order_status) < 0) return '';
+    var f = '';
+    if (dietUnsure(o)) f += '<span class="ccs-pill s-alert">Allergies to check</span>';
+    if (!o.contact_email) f += '<span class="ccs-tag t-info">No email</span>';
+    return f;
+  }
   function eventText(e) {
     var d = e.detail || {}, who = e.actor_label || 'System';
     var map = { created: 'Order placed (' + (SOURCE_LABEL[d.source] || d.source) + ')', confirmed: 'Confirmed' + (d.final_total != null ? ' at ' + money(d.final_total) : '') + (d.reason ? ' (' + d.reason + ')' : ''),
@@ -716,6 +778,7 @@
       brief_printed: 'Kitchen slip v' + d.version + (d.new_version ? ' printed' : ' reprinted') + (d.changes && d.changes.length ? ' (changed: ' + d.changes.join(', ') + ')' : ''),
       fulfilment: d.method === 'delivery' ? 'Set to delivery, ' + (d.zone || '') + ', fee ' + money(d.fee) : 'Set to collection',
       assigned: d.to ? 'Assigned to ' + d.to : 'Assignment cleared', amended: 'Amended, revision ' + d.revision + (d.reason ? ' (' + d.reason + ')' : ''), kitchen_ack: 'Kitchen acknowledged the changes', candles_changed: 'Candles ' + (d.to ? (d.from ? 'changed to “' + d.to + '”' : 'added: “' + d.to + '”') : 'removed'), deleted: 'Deleted', restored: 'Restored after being deleted', imported: 'Brought in from the Google Sheet', sheet_linked: 'Linked to its Google Sheet row' };
+    map.email_resent = 'Customer email sent again (' + (MAIL_KIND[d.kind] || d.kind || 'latest') + ') to ' + (d.to || '');
     if (e.kind === 'collected') map.collected = (d.method === 'delivery' ? 'Delivered' : 'Collected') + (d.to ? ', received by ' + d.to : '');
     return (map[e.kind] || e.kind) + (d.note ? ': ' + d.note : '') + ' · ' + who;
   }
@@ -1382,7 +1445,7 @@
   function phPicker(id, label, link) { return '<label class="' + (link ? 'ccs-link ccs-phlink' : 'ccs-btn ccs-ghost ccs-phadd') + '"><input type="file" id="' + id + '" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" multiple class="ccs-sr">' + label + '</label>'; }
   function freshDraft() { return { key: uuid(), source: 'walk_in', step: 0, reached: 0, phone: '', matches: null, customer: null, isNew: false, name: '', email: '', whatsapp: true, optIn: null,
     product: null, variant: null, size: null, finish: 'standard', design: '', photos: [], phErr: null, message: '', candles: '', occasion: null, diet: null, diets: [], dietNote: '', notes: '', qty: 1,
-    date: '', time: '', rush: '', rushBy: '', fromCal: false, method: 'collection', zone: null, address: '', fee: '', contact: '', confirmNow: true, askDeposit: false, deposit: '', payNow: false, payAmount: '', payMethod: 'cash', result: null, err: null, errField: null }; }
+    date: '', time: '', rush: '', rushBy: '', fromCal: false, method: 'collection', zone: null, address: '', fee: '', contact: '', confirmNow: false, askDeposit: false, deposit: '', payNow: false, payAmount: '', payMethod: 'cash', result: null, err: null, errField: null }; }
   var D = freshDraft();
   // Unfinished walk-in orders are kept on this device for 12 hours, per staff login, and cleared at sign out (U6)
   function draftKey() { return S.me ? 'ccs-draft-' + S.me.user_id : null; }
@@ -1550,7 +1613,7 @@
       '<div class="ccs-total"><span>' + (custom ? 'Starting price before custom design' : 'Price') + '</span><b>' + money(price) + '</b></div>';
     if (custom) h += '<p class="ccs-note">Custom cakes are saved as Needs a quote. Confirm the final price from the order once the design is priced.</p>';
     else {
-      h += '<label class="ccs-check"><input type="checkbox" data-nc="confirmNow"' + (D.confirmNow ? ' checked' : '') + '> Confirm the order now (the customer is here or has agreed the price)</label>';
+      h += '<label class="ccs-check"><input type="checkbox" data-nc="confirmNow"' + (D.confirmNow ? ' checked' : '') + '> The customer is here and has agreed the price: confirm it now</label>' + (D.confirmNow ? '' : '<p class="ccs-hint">Otherwise it is saved as received and waits in Needs attention for review.</p>');
       if (D.confirmNow) {
         h += D.askDeposit ? '<div class="ccs-field"><label class="ccs-label" for="n-dep">Deposit needed (FJD)</label><input class="ccs-input" id="n-dep" inputmode="decimal" data-n="deposit" value="' + esc(D.deposit) + '"><div class="ccs-chips"><button type="button" class="ccs-chip" data-act="n-dep" data-v="half">Half (' + money(Math.round(price / 2)) + ')</button><button type="button" class="ccs-chip" data-act="n-dep" data-v="full">Full (' + money(price) + ')</button></div></div>' + ferr('deposit')
           : '<button type="button" class="ccs-link" data-act="n-askdep">+ Ask for a deposit</button>';
@@ -1695,8 +1758,8 @@
     h += slLine('Candles', 4, esc(D.candles), ciEd, { id: 'sl-st-4' });
     if (slStage() !== 4) h += slLine('Inscription', 4, D.message ? '“' + esc(D.message) + '”' : '', null, { change: false });
     // Stage 6: dietary
-    var dv = D.diet === 'no' ? 'No dietary needs' : D.diet === 'yes' ? esc([].concat(D.diets, D.dietNote ? [D.dietNote] : []).join(', ') || 'Yes') : '';
-    var dEd = '<div class="ccs-chips"><button type="button" class="ccs-chip" data-act="n-diet" data-v="no" aria-pressed="' + (D.diet === 'no') + '">No dietary needs</button><button type="button" class="ccs-chip" data-act="n-diet" data-v="yes" aria-pressed="' + (D.diet === 'yes') + '">Yes, dietary need or allergy</button></div>' +
+    var dv = D.diet === 'no' ? 'No dietary needs' : D.diet === 'unsure' ? 'Not sure yet: check with the customer' : D.diet === 'yes' ? esc([].concat(D.diets, D.dietNote ? [D.dietNote] : []).join(', ') || 'Yes') : '';
+    var dEd = '<div class="ccs-chips"><button type="button" class="ccs-chip" data-act="n-diet" data-v="no" aria-pressed="' + (D.diet === 'no') + '">No dietary needs</button><button type="button" class="ccs-chip" data-act="n-diet" data-v="yes" aria-pressed="' + (D.diet === 'yes') + '">Yes, dietary need or allergy</button><button type="button" class="ccs-chip" data-act="n-diet" data-v="unsure" aria-pressed="' + (D.diet === 'unsure') + '">Not sure, check later</button></div>' + (D.diet === 'unsure' ? '<p class="ccs-note ccs-unsure" role="status">The order is saved as an allergy order and flagged. The kitchen slip says: Allergies not confirmed yet. Check with the customer before baking.</p>' : '') +
       (D.diet === 'yes' ? '<div class="ccs-chips">' + DIETS.map(function (d) { return '<button type="button" class="ccs-chip" data-act="n-diets" data-v="' + esc(d) + '" aria-pressed="' + (D.diets.indexOf(d) > -1) + '">' + esc(d) + '</button>'; }).join('') + '</div><input class="ccs-input" data-n="dietNote" id="n-dnote" placeholder="Details for the kitchen" value="' + esc(D.dietNote) + '">' : '') + ferr('diet') + slActions(5);
     h += slLine('Dietary or allergy', 5, dv, dEd, { req: true, id: 'sl-st-5' });
     // Stage 7: remarks
@@ -1715,7 +1778,7 @@
       var miss = slipMissing();
       h += '<section class="sl-pay" id="sl-st-7"><h2 class="sl-h">Read over the slip, then save</h2>' + (miss.length ? '<p class="ccs-err" role="alert">Still to finish: ' + esc(miss.map(function (x) { return x[0]; }).join(', ')) + '. Tap Change on that line.</p>' : '') +
         stepPay(true) + (D.err && !D.errField ? '<p class="ccs-err" role="alert">' + esc(D.err) + '</p>' : '') + (D.err && D.errField === 'stage' ? '<p class="ccs-err" role="alert">' + esc(D.err) + '</p>' : '') +
-        '<button type="button" class="ccs-btn ccs-good ccs-wide" data-act="n-submit"' + (S.busy ? ' disabled' : '') + '>' + (S.busy ? 'Saving…' : 'Create order' + (dTotal() != null ? ' · ' + money(dTotal()) : '')) + '</button></section>';
+        '<button type="button" class="ccs-btn ccs-good ccs-wide" data-act="n-submit"' + (S.busy ? ' disabled' : '') + '>' + (S.busy ? 'Saving…' : (D.confirmNow && D.finish !== 'custom' ? 'Save and confirm' : 'Save cake order') + (dTotal() != null ? ' · ' + money(dTotal()) : '')) + '</button></section>';
     }
     return h;
   }
@@ -1754,7 +1817,7 @@
       ed = '<label class="sl-k" for="n-candles">Candles</label><input class="ccs-input" id="n-candles" maxlength="60" data-n="candles" placeholder="For example: number 30 candle" value="' + esc(D.candles) + '">' + ferr('candles') +
         (p && !p.supports_message ? '<span class="ccs-hint">' + esc(p.name) + ' does not take a written message.</span>' : '<label class="sl-k" for="n-msg">Inscription</label><input class="ccs-input" id="n-msg" maxlength="40" data-n="message" value="' + esc(D.message) + '" placeholder="Words written on the cake"><span class="ccs-hint">Up to 40 characters, copied exactly by the kitchen.</span>' + ferr('message')) + slActions(4, true);
     } else if (cur === 5) {
-      ed = '<div class="ccs-chips"><button type="button" class="ccs-chip" data-act="n-diet" data-v="no" aria-pressed="' + (D.diet === 'no') + '">No dietary needs</button><button type="button" class="ccs-chip" data-act="n-diet" data-v="yes" aria-pressed="' + (D.diet === 'yes') + '">Yes, dietary need or allergy</button></div>' +
+      ed = '<div class="ccs-chips"><button type="button" class="ccs-chip" data-act="n-diet" data-v="no" aria-pressed="' + (D.diet === 'no') + '">No dietary needs</button><button type="button" class="ccs-chip" data-act="n-diet" data-v="yes" aria-pressed="' + (D.diet === 'yes') + '">Yes, dietary need or allergy</button><button type="button" class="ccs-chip" data-act="n-diet" data-v="unsure" aria-pressed="' + (D.diet === 'unsure') + '">Not sure, check later</button></div>' + (D.diet === 'unsure' ? '<p class="ccs-note ccs-unsure" role="status">The order is saved as an allergy order and flagged. The kitchen slip says: Allergies not confirmed yet. Check with the customer before baking.</p>' : '') +
         (D.diet === 'yes' ? '<div class="ccs-chips">' + DIETS.map(function (d) { return '<button type="button" class="ccs-chip" data-act="n-diets" data-v="' + esc(d) + '" aria-pressed="' + (D.diets.indexOf(d) > -1) + '">' + esc(d) + '</button>'; }).join('') + '</div><input class="ccs-input" data-n="dietNote" id="n-dnote" placeholder="Details for the kitchen" value="' + esc(D.dietNote) + '">' : '') + ferr('diet') + slActions(5);
     } else if (cur === 6) {
       ed = '<span class="sl-k">Occasion</span><div class="ccs-chips">' + OCCASIONS.map(function (o) { return '<button type="button" class="ccs-chip" data-act="n-occ" data-v="' + o + '" aria-pressed="' + (D.occasion === o) + '">' + o + '</button>'; }).join('') + '</div>' +
@@ -1776,10 +1839,10 @@
     var ct = D.customer ? esc(D.customer.phone || '') + (D.optIn === true || D.optIn === false ? '<small>' + (D.optIn ? 'Agreed to cake offers and reminders' : 'No offers or reminders') + '</small>' : D.custConsent && D.custConsent.ok ? '<small>Agreed to cake offers and reminders</small>' : '') : esc(D.phone.trim());
     if (ct && !D.customer && (D.optIn === true || D.optIn === false)) ct += '<small>' + (D.optIn ? 'Agreed to cake offers and reminders' : 'No offers or reminders') + '</small>';
     var wv = D.date && D.time ? esc(nice(D.date, true)) + ', ' + esc(t12(D.time)) + '<small>' + (dl ? 'Delivery to ' + esc(D.zone || '') + (D.address ? ', ' + esc(D.address) : '') : 'Collect from café') + (tooSoon() ? ' · Short notice, approved by ' + esc(D.rushBy) : '') + '</small>' : '';
-    var dv = D.diet === 'no' ? 'No dietary needs' : D.diet === 'yes' ? esc([].concat(D.diets, D.dietNote ? [D.dietNote] : []).join(', ') || 'Yes') : '';
+    var dv = D.diet === 'no' ? 'No dietary needs' : D.diet === 'unsure' ? 'Not sure yet: check with the customer' : D.diet === 'yes' ? esc([].concat(D.diets, D.dietNote ? [D.dietNote] : []).join(', ') || 'Yes') : '';
     var rv = [D.occasion ? esc(D.occasion) + (D.occFor ? ' for ' + esc(D.occFor) : '') : '', esc(D.notes)].filter(Boolean).join(' · ');
     var live = '<aside class="sl-live" aria-label="The order slip so far"><div class="sl-band"><div class="sl-logo">' + SLIP_LOGO + '</div><div class="sl-hours">MONDAY - SUNDAY<br>8AM - 9PM</div></div>' +
-      (D.diet === 'yes' ? '<div class="sl-ldiet">Dietary or allergy: ' + dv + '</div>' : '') +
+      (D.diet === 'yes' ? '<div class="sl-ldiet">Dietary or allergy: ' + dv + '</div>' : D.diet === 'unsure' ? '<div class="sl-ldiet">Allergies not confirmed yet. Check with the customer before baking.</div>' : '') +
       '<div class="sl-llines">' +
       line('Guest Name', 1, nm) + line('Contact', 2, ct) + line(dl ? 'Delivery' : 'Pickup', 3, wv) +
       line('Type of cake', 0, p ? esc(D.variant || p.name) + (D.finish === 'custom' ? ' · Custom design' + (D.design.trim() ? '<small>' + esc(D.design.trim()) + '</small>' : '') : '') : '') +
@@ -1794,7 +1857,7 @@
     var bar = '<div class="sl-stepbar">' + (cur > 0 ? '<button type="button" class="ccs-btn ccs-ghost" data-act="sl-back">Back</button>' : '<span></span>') +
       '<div class="sl-stepbar-r">' + (opt && cur < 7 ? '<button type="button" class="ccs-btn ccs-ghost" data-act="sl-skip">Skip</button>' : '') +
       (cur < 7 ? '<button type="button" class="ccs-btn" data-act="sl-next"><span class="sl-nxlong">Next: ' + esc(cur === 3 && slPhone() && !(D.whenPart === 'time' && D.date) ? (D.method === 'delivery' ? 'Delivery time' : 'Pickup time') : SL_STAGES[nx]) + '</span><span class="sl-nxshort">Next</span></button>'
-        : '<button type="button" class="ccs-btn ccs-good" data-act="n-submit"' + (S.busy ? ' disabled' : '') + '>' + (S.busy ? 'Saving…' : 'Create order' + (dTotal() != null ? ' · ' + money(dTotal()) : '')) + '</button>') + '</div></div>';
+        : '<button type="button" class="ccs-btn ccs-good" data-act="n-submit"' + (S.busy ? ' disabled' : '') + '>' + (S.busy ? 'Saving…' : (D.confirmNow && D.finish !== 'custom' ? 'Save and confirm' : 'Save cake order') + (dTotal() != null ? ' · ' + money(dTotal()) : '')) + '</button>') + '</div></div>';
     var head = '<div class="sl-stephead"><p class="sl-progress">New order · Step ' + (cur + 1) + ' of 8</p><h2 class="sl-steptitle">' + (cur === 3 && slPhone() ? (D.whenPart === 'time' && D.date ? (D.method === 'delivery' ? 'Delivery time' : 'Pickup time') : (D.method === 'delivery' ? 'Delivery date' : 'Pickup date')) : SL_STAGES[cur]) + '</h2>' +
       '<ol class="sl-dots" aria-hidden="true">' + SL_STAGES.map(function (x, i) { return '<li class="' + (i === cur ? 'is-now' : seen[i] && !slNeeds(i).length ? 'is-done' : '') + '"></li>'; }).join('') + '</ol>' +
       '<button type="button" class="ccs-link sl-viewbtn" data-act="sl-view">' + (D.showSlip ? 'Back to this step' : 'View slip') + '</button></div>';
@@ -1858,7 +1921,7 @@
         return;
       }
       S.wl = {}; loadOrders(true); if (p.rush && p.rush.approved_by) rememberName(p.rush.approved_by);
-      if (newInSheet()) { calSaved(r.data); return; }
+      if (newInSheet()) { if (D.fromCal) calSaved(r.data); else homeSaved(r.data, !!((D.email || '').trim() || (D.customer && D.customer.email))); return; }
       D.result = r.data; view(); toast(r.data.reference + ' saved');
     }).catch(function (e) {
       S.busy = false; console.error(e); var k = errKind(e);
@@ -2146,6 +2209,25 @@
     if (D.reached >= 3 && D.time) D.step = nextOpen(0);
     S.sheet = { type: 'new' }; S.panel = null; S.panelErr = null; S.dirty = {}; sheetOpen(); renderSheet();
     var sbody = document.querySelector('#ccs-sheet .ccs-sheet-body'); if (sbody) sbody.scrollTop = 0;
+  }
+  // New order opens in a panel over the current screen (side workspace on wide screens, full screen on phones)
+  function newStart() {
+    if (!can('manager', 'front_of_house')) return;
+    if (newInSheet()) return;
+    if (S.sheet && hasTyping()) { toast('Save or cancel your changes first.', true); return; }
+    if (D.result) D = freshDraft();
+    D.fromCal = false; D.err = null; D.errField = null; D.confirmReset = false;
+    S.sheet = { type: 'new' }; S.panel = null; S.panelErr = null; S.dirty = {}; sheetOpen(); renderSheet();
+    var sbody = document.querySelector('#ccs-sheet .ccs-sheet-body'); if (sbody) sbody.scrollTop = 0;
+  }
+  // Saved from the New order panel: back to Today, with the new order at the top of Needs attention
+  function homeSaved(r, hadEmail) {
+    D = freshDraft(); clearDraft();
+    sheetClose();
+    S.justAdded = r.order_id; clearTimeout(homeSaved.t); homeSaved.t = setTimeout(function () { S.justAdded = null; if (S.tab === 'today' || S.tab === 'orders') view(); }, 12000);
+    if (S.tab !== 'today') goTab('today'); else view();
+    var where = r.status === 'confirmed' ? 'Confirmed. It is under Due today or the week ahead.' : r.status === 'awaiting_deposit' ? 'Waiting for the deposit, at the top of Needs attention.' : 'It is at the top of Needs attention for review.';
+    toast(r.reference + ' saved. ' + where + (hadEmail ? '' : ' No email address was given, so no email was sent.'));
   }
   // Saved from the calendar panel: close it, stay on the day and mark the new order
   function calSaved(r) {
@@ -3320,7 +3402,7 @@
         case 'n-next': goStep(nextOpen(Number(v))); break;
         case 'n-finish': D.finish = v; refreshStep(); break;
         case 'n-occ': D.occasion = D.occasion === v ? null : v; D.occOpen = false; refreshStep(); break;
-        case 'n-diet': D.diet = v; if (v === 'no') { D.diets = []; D.dietNote = ''; } D.errField = null; refreshStep(); break;
+        case 'n-diet': D.diet = v; if (v !== 'yes') { D.diets = []; if (v === 'no') D.dietNote = ''; } D.errField = null; refreshStep(); break;
         case 'n-diets': var k = D.diets.indexOf(v); if (k > -1) D.diets.splice(k, 1); else D.diets.push(v); refreshStep(); break;
         case 'n-finish-next':
           if (D.finish === 'custom' && D.design.trim().length < 3) { D.err = 'Describe the design for the kitchen.'; D.errField = 'design'; refreshStep(); break; }
@@ -3362,6 +3444,8 @@
         case 'tm-gen': var gid = b.dataset.for || 'tm-new-p', gi = document.getElementById(gid); if (gi) { gi.value = makePassword(); gi.focus(); } break;
         case 'tm-reset': S.settings.resetFor = b.dataset.id || null; S.settings.resetErr = null; S.settings.tmOpen = true; view(); break;
         case 'tm-add': teamAdd(); break;
+        case 'mail-resend': mailResend(); break;
+        case 'mail-reload': if (S.sheet && S.sheet.data) { mailLoad(S.sheet.data.id); renderSheet(); } break;
         case 'tm-rm': S.settings.rmFor = b.dataset.id || null; S.settings.rmErr = null; S.settings.tmOpen = true; view(); break;
         case 'tm-rm-yes': teamRemove(b.dataset.id); break;
         case 'lv-add': lvClear(); S.settings.lvEdit = { id: null, name: '', grants: [] }; S.settings.lvErr = null; S.settings.lvOpen = true; view(); break;

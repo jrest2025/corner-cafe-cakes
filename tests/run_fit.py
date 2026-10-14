@@ -11,6 +11,8 @@ ALLOW = {'orders': 120, 'kitchen': 30, 'customers': 400, 'register': 450, 'setti
 for k, v in res.items():
     size, screen = k.split(' ', 1)
     over = max(v.values()) if v else 0
+    # New order now opens as a panel over the dashboard: what has to fit is the panel, not the page behind it
+    if screen.startswith('new') and 'panel' in v: over = v['panel']
     lim = ALLOW.get(screen, 20)
     if size != 'phone' and screen in ('customers', 'register', 'settings', 'customer'): lim = min(lim, 80)
     check(f'{k}: fits the screen (over by {over} px, allowed {lim})', over <= lim, v)

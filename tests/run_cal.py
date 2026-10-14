@@ -92,7 +92,7 @@ async def desktop(b, errs):
     await fill_new_customer_and_cake(pg)
     await finish_rest(pg)
     main = await pg.inner_text('#ccs-sheet')
-    check('desk When step already filled from the slot', '3:00pm' in main and 'Create order' in main and 'Step 8 of 8' in main, main[:600])
+    check('desk When step already filled from the slot', '3:00pm' in main and 'Save cake order' in main and 'Step 8 of 8' in main, main[:600])
     await pg.screenshot(path=str(OUT / 'desk-4-new.png'), full_page=True)
     # double tap guard
     await pg.evaluate("var b=document.querySelector('[data-act=\"n-submit\"]'); b.click(); b.click();"); await pg.wait_for_timeout(400)

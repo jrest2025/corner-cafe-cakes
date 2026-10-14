@@ -53,7 +53,8 @@ async def main():
         check('saved screen gives the order number CC-1009 and says it needs a price', 'CC-1009' in t and ('quote' in t.lower() or 'needs' in t.lower()), t[:200])
         await shot(pg, 'saved')
         # 2. Price and confirm it
-        await js(pg, '#ccs-main [data-tab="orders"]'); await pg.wait_for_timeout(600)
+        check('after saving, back on Today with CC-1009 first under Needs attention', await pg.locator('#ccs-sheet.ccs-open').count() == 0 and 'CC-1009' in await pg.inner_text('.ccs-mini.is-new'))
+        await js(pg, '.ccs-nav [data-tab="orders"]'); await pg.wait_for_timeout(600)
         t = await pg.inner_text('#ccs-main')
         check('Orders: it waits under Needs attention with its next action', 'CC-1009' in t and 'Give a price, then confirm' in t)
         await shot(pg, 'orders-needs-attention')

@@ -92,7 +92,7 @@
 .cco-chip:active { transform: scale(.97); }
 .cco-chip[aria-pressed="true"] { background: var(--o-esp); border-color: var(--o-esp); color: #FFFFFF; }
 .cco-chip:disabled { opacity: .4; cursor: not-allowed; }
-.cco-yesno { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.cco-yesno { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .cco-yesno .cco-chip { border-radius: var(--o-r-sm); min-height: 50px; }
 
 .cco-link { appearance: none; background: none; border: 0; padding: 8px 0; font-weight: 600; font-size: 15px; color: var(--o-honey-ink); cursor: pointer; justify-self: start; text-align: left; display: inline-flex; align-items: center; gap: 8px; }

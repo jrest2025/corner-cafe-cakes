@@ -1636,3 +1636,24 @@ body.ccs-is-off #cc-staff .ccs-side { top: var(--ccs-offh, 44px); }
 #cc-staff .ccs-lvtick:has(input:checked) { border-color: #5f7a4a; background: #F4F7F1; }
 #cc-staff .ccs-rmbox { display: grid; gap: 8px; margin-top: 8px; border-color: #E8B4AA; background: #FDF6F4; }
 #cc-staff .ccs-rmbox p { margin: 0; }
+
+/* Stage 1, Order Received */
+/* New order lives in the phone top bar (never in the bottom menu); wide screens use the button at the top right of each page */
+#cc-staff .ccs-topnew { display: none; }
+@media (max-width: 759px) {
+  #cc-staff .ccs-topnew { display: inline-flex; margin-left: auto; margin-right: 8px; min-height: 44px; padding: 0 14px; font-size: 16px; width: auto; flex: none; }
+  #cc-staff .ccs-topnew svg { width: 18px; height: 18px; }
+}
+/* The order just taken is marked for a few seconds at the top of Needs attention */
+#cc-staff .ccs-mini.is-new { box-shadow: 0 0 0 3px #5f7a4a; }
+/* Allergies not sure: a calm note under the choice */
+#cc-staff .ccs-unsure { margin-top: 8px; }
+/* Customer emails on an order */
+#cc-staff .ccs-maillist { list-style: none; margin: 4px 0 12px; padding: 0; display: grid; gap: 8px; }
+#cc-staff .ccs-maillist li { display: grid; grid-template-columns: minmax(140px, 1fr) 2fr; gap: 2px 12px; padding: 8px 12px; border: 1px solid #E6EBF1; border-radius: 8px; }
+#cc-staff .ccs-maillist li b { color: var(--ccs-ink); font-size: 15px; }
+#cc-staff .ccs-maillist li span { font-size: 15px; color: #34425A; }
+#cc-staff .ccs-maillist li small { grid-column: 2; font-size: 13px; color: #526176; overflow-wrap: anywhere; }
+#cc-staff .ccs-maillist li.is-failed { border-color: #E8B4AA; background: #FDF6F4; }
+#cc-staff .ccs-maillist li.is-failed span { color: #A2402B; font-weight: 600; }
+@media (max-width: 520px) { #cc-staff .ccs-maillist li { grid-template-columns: 1fr; } #cc-staff .ccs-maillist li small { grid-column: 1; } }

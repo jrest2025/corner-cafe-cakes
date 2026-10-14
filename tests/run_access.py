@@ -97,7 +97,7 @@ async def main():
         # someone on a custom level sees exactly what was ticked
         ctx, pg, errs = await start(b, 'front_of_house', "window.__grants=['front_of_house','marketing']; window.__levelName='Supervisor';")
         tabs = await pg.evaluate("[].slice.call(document.querySelectorAll('.ccs-nav [data-tab]')).map(function(x){return x.dataset.tab})")
-        check('custom level: counter screens plus Dashboard and Customers, no Settings or Register', {'today', 'orders', 'calendar', 'kitchen', 'new', 'dash', 'customers'} <= set(tabs) and 'settings' not in tabs and 'register' not in tabs, tabs)
+        check('custom level: counter screens plus Dashboard and Customers, no Settings or Register', {'today', 'orders', 'calendar', 'kitchen', 'dash', 'customers'} <= set(tabs) and 'settings' not in tabs and 'register' not in tabs, tabs)
         await pg.evaluate("window.__ccsOpenMore ? window.__ccsOpenMore() : document.querySelector('.ccs-nav [data-tab=more]').click()"); await pg.wait_for_timeout(400)
         check('More shows the level name', 'Supervisor' in await pg.inner_text('body'))
         check('no page errors (custom level)', not errs, errs); await ctx.close()
