@@ -1659,3 +1659,6 @@ body.ccs-is-off #cc-staff .ccs-side { top: var(--ccs-offh, 44px); }
 @media (max-width: 520px) { #cc-staff .ccs-maillist li { grid-template-columns: 1fr; } #cc-staff .ccs-maillist li small { grid-column: 1; } }
 /* Price table: the chosen price is always dark with white text (it must win over the light button style) */
 #cc-staff .sl-wrap .sl-cell[aria-pressed="true"], #cc-staff .sl-cell[aria-pressed="true"], #cc-staff .sl-wrap .sl-cell[aria-pressed="true"]:hover { background: #111; border-color: #111; color: #fff; font-weight: 700; }
+/* New order: what to ask the customer about the look */
+#cc-staff .ccs-asklist { margin: 4px 0 6px; padding-left: 20px; line-height: 1.5; }
+#cc-staff .ccs-asklist li { margin: 0; }
