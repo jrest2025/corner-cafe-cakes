@@ -1581,3 +1581,39 @@ body.ccs-is-off #cc-staff .ccs-side { top: var(--ccs-offh, 44px); }
   #cc-staff .kp-bar .ccs-secbar { margin-bottom: 8px; }
   #cc-staff .ccs-kcard { padding: 12px; }
 }
+
+/* ===== Cockpit refinement on the rest of the app: order panel, Customers, Settings ===== */
+/* Order panel: the order number never breaks across lines; action labels are never cut off */
+#ccs-sheet .ccs-sheet-head .ccs-title { white-space: nowrap; flex: none; }
+@media (max-width: 759px) {
+  /* Phone: order number and close on the first line, status labels on the second */
+  #ccs-sheet .ccs-sheet-head { flex-wrap: wrap; row-gap: 6px; column-gap: 8px; }
+  #ccs-sheet .ccs-sheet-head > .ccs-title { order: 0; }
+  #ccs-sheet .ccs-sheet-head > .ccs-x { order: 1; margin-left: auto; }
+  #ccs-sheet .ccs-sheet-head::after { content: ""; order: 2; flex-basis: 100%; height: 0; }
+  #ccs-sheet .ccs-sheet-head > :not(.ccs-title):not(.ccs-x) { order: 3; }
+  #ccs-sheet .ccs-actions-row .ccs-btn { white-space: normal !important; line-height: 1.2; min-height: 48px; height: auto; padding-top: 8px; padding-bottom: 8px; overflow: visible; text-overflow: clip; }
+}
+/* Settings, tablet and desktop: one grouped menu (no separate box per item), current item marked with a bar */
+@media (min-width: 760px) {
+  #cc-staff .ccs-setnav { gap: 0; border: 1px solid #DCE3EB; border-radius: 12px; overflow: hidden; background: #fff; align-self: start; }
+  #cc-staff .ccs-setnav .ccs-secbtn { border: 0; border-bottom: 1px solid #E6EBF1; border-radius: 0; min-height: 48px; padding: 8px 16px; box-shadow: none; background: #fff; }
+  #cc-staff .ccs-setnav .ccs-secbtn:last-child { border-bottom: 0; }
+  #cc-staff .ccs-setnav .ccs-secbtn[aria-selected="true"] { background: #F1F5EC; color: #3f5a2c; box-shadow: inset 4px 0 0 #5f7a4a; }
+}
+/* Settings, phone: one row that scrolls sideways instead of six rows of buttons */
+@media (max-width: 759px) {
+  #cc-staff .ccs-setnav { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; gap: 8px; padding-bottom: 2px; margin-bottom: 8px; -webkit-overflow-scrolling: touch; }
+  #cc-staff .ccs-setnav::-webkit-scrollbar { display: none; }
+  #cc-staff .ccs-setnav .ccs-secbtn { flex: none; white-space: nowrap; }
+  #cc-staff .ccs-setnav.has-more { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent); }
+}
+/* Customers: reminders and list tools read as one group; phone keeps search and Add customer on one row */
+#cc-staff .ccs-rem { margin-bottom: 8px; }
+#cc-staff .ccs-ctool { margin: 0 0 16px; }
+@media (max-width: 759px) {
+  #cc-staff .ccs-ctool { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; }
+  #cc-staff .ccs-ctool > .ccs-show { grid-column: 1 / -1; }
+  #cc-staff .ccs-ctool .ccs-ctool-actions { justify-self: end; }
+}
+@media (max-width: 759px) { #cc-staff .ccs-ctool .ccs-tools-menu { left: auto; right: 0; } }

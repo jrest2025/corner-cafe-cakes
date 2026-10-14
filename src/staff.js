@@ -201,8 +201,8 @@
   // Tab rows that scroll sideways get a soft fade at the edge that still has more to show
   function moreState(el) { var r = el.scrollWidth - el.clientWidth - el.scrollLeft > 4; el.classList.toggle('has-more', r); }
   function markMore(m) {
-    [].slice.call(m.querySelectorAll('.ccs-tabs, .ccs-secbar, .ccs-segs')).forEach(moreState);
-    if (!markMore.on) { markMore.on = 1; document.addEventListener('scroll', function (e) { var t = e.target; if (t && t.classList && (t.classList.contains('ccs-tabs') || t.classList.contains('ccs-secbar') || t.classList.contains('ccs-segs'))) moreState(t); }, true); window.addEventListener('resize', function () { var mm = document.getElementById('ccs-main'); if (mm) markMore(mm); }); }
+    [].slice.call(m.querySelectorAll('.ccs-tabs, .ccs-secbar, .ccs-segs, .ccs-setnav')).forEach(moreState);
+    if (!markMore.on) { markMore.on = 1; document.addEventListener('scroll', function (e) { var t = e.target; if (t && t.classList && (t.classList.contains('ccs-tabs') || t.classList.contains('ccs-secbar') || t.classList.contains('ccs-segs') || t.classList.contains('ccs-setnav'))) moreState(t); }, true); window.addEventListener('resize', function () { var mm = document.getElementById('ccs-main'); if (mm) markMore(mm); }); }
   }
   // One page header on every screen (UI refinement Batch 1): title on the left, New order alone at the top right,
   // and any search, filters or tools in one toolbar row underneath. Phones use the New order button in the bottom bar.
