@@ -8,7 +8,7 @@
   var DIETS = ['Vegetarian (eggless)', 'Gluten-free', 'Nut allergy', 'Other'];
   var MAX_PHOTOS = 5;
   var SETUP = null, KEY = uid();
-  var S = { flavour: null, variant: null, size: null, showServes: false, finish: null, design: '', photos: [], msgOpen: false, message: '', occOpen: false, occasion: null,
+  var S = { flavour: null, variant: null, size: null, showServes: false, finish: null, design: '', photos: [], msgOpen: false, message: '', occOpen: false, occasion: null, candOpen: false, candles: '', noteOpen: false, notes: '',
     diet: null, diets: [], dietNote: '', date: null, time: null, name: '', phone: '', whatsapp: true, emailOpen: false, email: '', updates: false, detailsOk: false, know: true, sending: false, howOpen: false, dateNote: '' };
   var open = 0, reached = 0, errors = {}, formError = null, fresh = {}, animStep = -1;
 
@@ -101,6 +101,10 @@
         }
         if (S.occOpen) h += '<div class="cco-field' + enter('occ') + '"><span class="cco-lbl"><span>Occasion</span><span class="cco-lbl-r">' + opt() + '<button type="button" class="cco-hide" data-act="occClose">Hide</button></span></span><div class="cco-chips" role="group" aria-label="Occasion">' + OCCASIONS.map(function (o) { return '<button type="button" class="cco-chip" data-act="occasion" data-v="' + o + '" aria-pressed="' + (S.occasion === o) + '">' + o + '</button>'; }).join('') + '</div></div>';
         else h += '<button type="button" class="cco-link" data-act="occOpen"><span class="cco-plus" aria-hidden="true">' + (S.occasion ? '✓' : '+') + '</span>' + (S.occasion ? 'Occasion: ' + esc(S.occasion) : 'Tell us the occasion') + '</button>';
+        if (S.candOpen) h += '<div class="cco-field' + enter('cand') + '"><div class="cco-lbl"><label for="cco-candles">Candles</label><span class="cco-lbl-r">' + opt() + '<button type="button" class="cco-hide" data-act="candClose">Hide</button></span></div><input type="text" class="cco-input" id="cco-candles" data-in="candles" maxlength="60" value="' + esc(S.candles) + '" placeholder="For example, number 3 candle"' + described('candles') + '>' + err('candles') + '</div>';
+        else h += '<button type="button" class="cco-link" data-act="candOpen"><span class="cco-plus" aria-hidden="true">' + (S.candles.trim() ? '✓' : '+') + '</span>' + (S.candles.trim() ? 'Candles: ' + esc(S.candles.trim()) : 'Add candles') + '</button>';
+        if (S.noteOpen) h += '<div class="cco-field' + enter('note') + '"><div class="cco-lbl"><label for="cco-notes">Anything else we should know</label><span class="cco-lbl-r">' + opt() + '<button type="button" class="cco-hide" data-act="noteClose">Hide</button></span></div><textarea class="cco-input" id="cco-notes" data-in="notes" maxlength="300" rows="3" placeholder="For example, it is a surprise, please do not call before 5pm"' + described('notes') + '>' + esc(S.notes) + '</textarea>' + err('notes') + '</div>';
+        else h += '<button type="button" class="cco-link" data-act="noteOpen"><span class="cco-plus" aria-hidden="true">' + (S.notes.trim() ? '✓' : '+') + '</span>' + (S.notes.trim() ? 'Note added' : 'Add a note for our team') + '</button>';
         h += '</div><div class="cco-field"><span class="cco-lbl" id="cco-diet-l"><span>Any dietary needs or allergies?</span></span><div class="cco-yesno" role="group" aria-labelledby="cco-diet-l"><button type="button" class="cco-chip" data-act="diet" data-v="no" aria-pressed="' + (S.diet === 'no') + '">No</button><button type="button" class="cco-chip" data-act="diet" data-v="yes" aria-pressed="' + (S.diet === 'yes') + '">Yes</button></div>' + err('diet') + '</div>';
         if (S.diet === 'yes') h += '<div class="cco-sub' + enter('diet') + '"><span class="cco-sub-q">Which apply?</span><div class="cco-chips">' + DIETS.map(function (d) { return '<button type="button" class="cco-chip" data-act="diets" data-v="' + esc(d) + '" aria-pressed="' + (S.diets.indexOf(d) > -1) + '">' + esc(d) + '</button>'; }).join('') + '</div><div class="cco-field">' + lbl('cco-dnote', 'Anything our team should know', true) + '<input type="text" class="cco-input" data-in="dietNote" id="cco-dnote" value="' + esc(S.dietNote) + '" placeholder="For example, severe peanut allergy"></div><span class="cco-hint">Our team confirms what can be prepared before your order is confirmed.</span></div>';
         return h + '<button type="button" class="cco-primary" data-act="next2">Continue</button>';
@@ -137,6 +141,8 @@
         if (S.finish === 'custom') d.push('<span class="cco-rv-d">' + esc(S.design.trim()) + '</span>');
         if (S.message.trim()) d.push('<span class="cco-rv-d">Message: “' + esc(S.message.trim()) + '”</span>');
         if (S.occasion) d.push('<span class="cco-rv-d">Occasion: ' + esc(S.occasion) + '</span>');
+        if (S.candles.trim()) d.push('<span class="cco-rv-d">Candles: ' + esc(S.candles.trim()) + '</span>');
+        if (S.notes.trim()) d.push('<span class="cco-rv-d">Note: ' + esc(S.notes.trim()) + '</span>');
         d.push(S.diet === 'yes' ? '<span class="cco-rv-d cco-alert">Dietary: ' + esc([S.diets.join(', '), S.dietNote.trim()].filter(Boolean).join('. ')) + '</span>' : '<span class="cco-rv-d">No dietary needs</span>');
         if (photos.length) d.push('<span class="cco-rv-thumbs">' + photos.map(function (p) { return p.url ? '<img src="' + p.url + '" alt="' + esc(p.name) + '">' : ''; }).join('') + '</span><span class="cco-rv-d">' + photos.length + ' photo' + (photos.length > 1 ? 's' : '') + ' attached</span>');
         h += row('', 'Design and dietary', S.finish === 'custom' ? 'Custom design' : 'Standard finish', d.join(''), 2, true);
@@ -293,7 +299,7 @@
   }
 
   // ---------- send ----------
-  var FIELD_STEP = { product: 0, variant: 0, size: 1, finish: 2, design: 2, message: 2, diet: 2, date: 3, time: 3, name: 4, phone: 4, email: 4 };
+  var FIELD_STEP = { product: 0, variant: 0, size: 1, finish: 2, design: 2, message: 2, candles: 2, notes: 2, diet: 2, date: 3, time: 3, name: 4, phone: 4, email: 4 };
   function checkDetails() {
     errors = {}; formError = null;
     if (S.name.trim().length < 2) errors.name = 'Enter your name.';
@@ -304,7 +310,7 @@
   function send() {
     errors = {}; formError = null;
     S.sending = true; render();
-    var p = { idempotency_key: KEY, location: 'corner-cafe', product_code: S.flavour, variant: S.variant, size_inch: S.size, finish: S.finish, design: S.design, message: S.message, occasion: S.occasion,
+    var p = { idempotency_key: KEY, location: 'corner-cafe', product_code: S.flavour, variant: S.variant, size_inch: S.size, finish: S.finish, design: S.design, message: S.message, occasion: S.occasion, candles: S.candles.trim(), notes: S.notes.trim(),
       has_dietary: S.diet, dietary: S.diet === 'yes' ? S.diets : [], dietary_note: S.dietNote, date: S.date, time: S.time, attachments: donePhotos().map(function (x) { return x.path; }),
       customer: { name: S.name.trim(), phone: S.phone.trim(), email: S.email.trim(), whatsapp: S.whatsapp, opt_in: S.updates } };
     sb.rpc('submit_online_order', { p: p }).then(function (r) {
@@ -368,6 +374,10 @@
     if (a === 'how') { S.howOpen = !S.howOpen; return render(); }
     if (a === 'msgClose') { S.msgOpen = false; return render(); }
     if (a === 'occClose') { S.occOpen = false; return render(); }
+    if (a === 'candClose') { S.candOpen = false; return render(); }
+    if (a === 'noteClose') { S.noteOpen = false; return render(); }
+    if (a === 'candOpen') { S.candOpen = true; fresh.cand = true; return render('#cco-candles'); }
+    if (a === 'noteOpen') { S.noteOpen = true; fresh.note = true; return render('#cco-notes'); }
     if (a === 'copyRef') { copyRef(b); return; }
     if (a === 'msgOpen') { S.msgOpen = true; fresh.msg = true; return render('#cco-message'); }
     if (a === 'occOpen') { S.occOpen = true; fresh.occ = true; return render(); }

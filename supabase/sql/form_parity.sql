@@ -1,0 +1,3 @@
+-- Applied 14 Oct as migration form_parity_candles_photos.
+-- submit_online_order accepts candles (60 characters); staff_add_photos(order, paths) adds inspiration photos to an existing order.
+-- See the migration of that name for the exact text.

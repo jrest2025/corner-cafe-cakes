@@ -625,7 +625,10 @@
       kv('Finish', i.finish === 'custom' ? 'Custom design' : 'Standard finish') + kv('Design', i.design_description) +
       kv('Message', i.cake_message ? '“' + i.cake_message + '”' : '') + kv('Candles', i.candles) + kv('Occasion', i.occasion) + kv('Serves', i.serves_label) + kv('Notes', o.customer_notes) + '</dl>' +
       (can('manager', 'front_of_house') && OPEN.indexOf(o.order_status) > -1 ? '<button type="button" class="ccs-link" data-act="panel" data-v="candles">' + (i.candles ? 'Change candles' : 'Add candles') + '</button>' : '') +
-      (S.sheet.photos.length ? '<div class="ccs-photos">' + S.sheet.photos.map(function (u) { return '<a href="' + esc(u) + '" target="_blank" rel="noopener"><img src="' + esc(u) + '" alt="Reference photo"></a>'; }).join('') + '</div>' : ((o.order_attachments || []).length ? '<p class="ccs-hint">Loading reference photos…</p>' : '')) + '</section>';
+      (S.sheet.photos.length ? '<div class="ccs-photos">' + S.sheet.photos.map(function (u) { return '<a href="' + esc(u) + '" target="_blank" rel="noopener"><img src="' + esc(u) + '" alt="Reference photo"></a>'; }).join('') + '</div>' : ((o.order_attachments || []).length ? '<p class="ccs-hint">Loading reference photos…</p>' : '')) +
+      (can('manager', 'front_of_house') && OPEN.indexOf(o.order_status) > -1 ? phThumbs(S.sheet.addPh || [], 'o-phx') + (S.sheet.phErr ? '<p class="ccs-err" role="alert">' + esc(S.sheet.phErr) + '</p>' : '') +
+        ((i.finish === 'custom' || (o.order_attachments || []).length) && (o.order_attachments || []).length + phLive(S.sheet.addPh || []).length < 10 ? phPicker('o-photos', (o.order_attachments || []).length ? 'Add more photos' : 'Add inspiration photos', true) : '') +
+        (o.brief_version && (phLive(S.sheet.addPh || []).length || (S.phAdded || {})[o.id]) ? '<p class="ccs-hint">Slip v' + o.brief_version + ' was printed. After adding photos, print a new slip so the kitchen sees them.</p>' : '') : '') + '</section>';
     var deliv = o.fulfilment_method === 'delivery', closedSt = ['completed', 'declined', 'cancelled'].indexOf(o.order_status) > -1;
     cut.push(['when', h.length]);
     h += '<section class="ccs-box"><h3>' + (deliv ? 'Delivery' : 'Collection') + '</h3><p class="ccs-big">' + esc(nice(o.required_date, true)) + ' at ' + esc(t12(o.required_time)) + '</p>' +
@@ -1297,8 +1300,55 @@
   }
 
   // ---------- new order (staff guided flow) ----------
+  // Photos added to an order that already exists (for example, sent later on WhatsApp). Saved once every upload has finished.
+  function orderPhotos(files) {
+    var sh = S.sheet; if (!sh || sh.type !== 'order' || !sh.data) return;
+    sh.addPh = sh.addPh || []; var id = sh.id, have = (sh.data.order_attachments || []).length;
+    sh.phErr = phUpload(sh.addPh, files, 10 - have, function () {
+      if (S.sheet !== sh) return;
+      if (phBusy(sh.addPh)) return renderSheet();
+      var ready = sh.addPh.filter(function (x) { return x.status === 'done' && !x.sent; });
+      if (!ready.length) return renderSheet();
+      ready.forEach(function (x) { x.sent = true; });
+      sb.rpc('staff_add_photos', { p_order: id, p_paths: ready.map(function (x) { return x.path; }) }).then(function (r) {
+        if (r.error) throw r.error;
+        if (!r.data.ok) { ready.forEach(function (x) { x.sent = false; }); if (S.sheet === sh) { sh.phErr = r.data.message; renderSheet(); } return; }
+        toast(r.data.added === 1 ? '1 photo added to ' + r.data.reference : r.data.added + ' photos added to ' + r.data.reference);
+        S.phAdded = S.phAdded || {}; S.phAdded[id] = true;
+        if (S.sheet === sh) openOrder(id);
+      }).catch(function (e) { ready.forEach(function (x) { x.sent = false; }); fail(e); });
+    });
+    renderSheet();
+  }
+  // ---------- inspiration photos: same rules as the website form (photos only, 5 MB each) ----------
+  var PH_TYPES = /^image\/(jpeg|png|webp|heic|heif)$/;
+  function phLive(list) { return list.filter(function (x) { return x.status !== 'failed'; }); }
+  function phBusy(list) { return list.filter(function (x) { return x.status === 'busy'; }).length; }
+  function phUpload(list, files, max, done) {
+    var errs = [];
+    [].slice.call(files || []).forEach(function (file) {
+      if (phLive(list).length >= max) { if (errs.indexOf('max') < 0) errs.push('max'); return; }
+      if (file.type && !PH_TYPES.test(file.type)) { errs.push(file.name + ' is not a photo. Choose a JPEG, PNG, WebP or HEIC image.'); return; }
+      if (file.size > 5 * 1024 * 1024) { errs.push(file.name + ' is over 5 MB. Choose a smaller photo.'); return; }
+      var safe = file.name.toLowerCase().replace(/[^a-z0-9.]+/g, '-').slice(-60) || 'photo.jpg', ph = { name: file.name, path: 'incoming/' + uuid() + '/' + safe, url: null, status: 'busy' };
+      try { ph.url = URL.createObjectURL(file); } catch (e) {}
+      list.push(ph);
+      sb.storage.from('cake-references').upload(ph.path, file, { contentType: file.type || 'image/jpeg', upsert: false })
+        .then(function (r) { ph.status = r.error ? 'failed' : 'done'; done(); }, function () { ph.status = 'failed'; done(); });
+    });
+    return errs.map(function (x) { return x === 'max' ? 'You can add up to ' + max + ' photos.' : x; }).join(' ') || null;
+  }
+  function phThumbs(list, act) {
+    if (!list.length) return '';
+    return '<div class="ccs-phlist">' + list.map(function (x, i) {
+      return '<div class="ccs-ph' + (x.status === 'failed' ? ' is-failed' : '') + '">' + (x.url ? '<img src="' + esc(x.url) + '" alt="">' : '<span class="ccs-ph-name">' + esc(x.name) + '</span>') +
+        '<span class="ccs-ph-st">' + (x.status === 'busy' ? 'Uploading…' : x.status === 'failed' ? 'Upload failed' : 'Added') + '</span>' +
+        '<button type="button" class="ccs-ph-x" data-act="' + act + '" data-v="' + i + '" aria-label="Remove ' + esc(x.name) + '">×</button></div>';
+    }).join('') + '</div>';
+  }
+  function phPicker(id, label, link) { return '<label class="' + (link ? 'ccs-link ccs-phlink' : 'ccs-btn ccs-ghost ccs-phadd') + '"><input type="file" id="' + id + '" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" multiple class="ccs-sr">' + label + '</label>'; }
   function freshDraft() { return { key: uuid(), source: 'walk_in', step: 0, reached: 0, phone: '', matches: null, customer: null, isNew: false, name: '', email: '', whatsapp: true, optIn: null,
-    product: null, variant: null, size: null, finish: 'standard', design: '', message: '', candles: '', occasion: null, diet: null, diets: [], dietNote: '', notes: '', qty: 1,
+    product: null, variant: null, size: null, finish: 'standard', design: '', photos: [], phErr: null, message: '', candles: '', occasion: null, diet: null, diets: [], dietNote: '', notes: '', qty: 1,
     date: '', time: '', rush: '', rushBy: '', fromCal: false, method: 'collection', zone: null, address: '', fee: '', contact: '', confirmNow: true, askDeposit: false, deposit: '', payNow: false, payAmount: '', payMethod: 'cash', result: null, err: null, errField: null }; }
   var D = freshDraft();
   // Unfinished walk-in orders are kept on this device for 12 hours, per staff login, and cleared at sign out (U6)
@@ -1316,6 +1366,7 @@
       var d = JSON.parse(raw);
       if (!d || !d.saved || Date.now() - d.saved > 12 * 3600 * 1000) { localStorage.removeItem(k); return; }
       D = Object.assign(freshDraft(), d, { matches: null, result: null, restored: true });
+      D.photos = (D.photos || []).filter(function (x) { return x.status === 'done'; }).map(function (x) { return { name: x.name, path: x.path, url: null, status: 'done' }; });
       if (D.customer && D.custConsent === undefined) setTimeout(function () { if (D.customer) slConsent(D.customer.id); }, 0);
     } catch (e) {}
   }
@@ -1645,7 +1696,10 @@
         '<p class="sl-k" style="margin:0 0 8px">Tap the price for the cake and size</p>' + slTable();
       if (p && p.variants.length) ed += '<div class="sl-sub"><span class="sl-k">' + esc(p.choice_label || 'Which flavour?') + '</span><div class="ccs-chips">' + p.variants.map(function (v) { return '<button type="button" class="ccs-chip" data-act="n-var" data-v="' + esc(v) + '" aria-pressed="' + (D.variant === v) + '">' + esc(v) + '</button>'; }).join('') + '</div></div>';
       if (p) ed += '<div class="sl-sub"><span class="sl-k">Finish</span><div class="ccs-chips"><button type="button" class="ccs-chip" data-act="n-finish" data-v="standard" aria-pressed="' + (D.finish !== 'custom') + '">Standard finish</button>' + (p.supports_custom ? '<button type="button" class="ccs-chip" data-act="n-finish" data-v="custom" aria-pressed="' + (D.finish === 'custom') + '">Custom design</button>' : '') + '</div></div>';
-      if (p && D.finish === 'custom') ed += '<div class="sl-sub"><label class="sl-k" for="n-design">Design details <em class="sl-req">Required</em></label><textarea class="ccs-input sl-design" id="n-design" data-n="design" rows="3" placeholder="Colours, theme, toppers, writing style">' + esc(D.design) + '</textarea>' + ferr('design') + '<span class="ccs-hint">A custom cake is priced by the team after the order is placed.</span></div>';
+      if (p && D.finish === 'custom') ed += '<div class="sl-sub"><label class="sl-k" for="n-design">Design details <em class="sl-req">Required</em></label><textarea class="ccs-input sl-design" id="n-design" data-n="design" rows="3" placeholder="Colours, theme, toppers, writing style">' + esc(D.design) + '</textarea>' + ferr('design') + '<span class="ccs-hint">A custom cake is priced by the team after the order is placed.</span></div>' +
+        '<div class="sl-sub"><span class="sl-k">Inspiration photos <em class="sl-opt">Optional</em></span>' + phThumbs(D.photos, 'sl-phx') +
+        (phLive(D.photos).length < 5 ? phPicker('n-photos', D.photos.length ? 'Add more photos' : 'Add photos') : '') +
+        (D.phErr ? '<p class="ccs-err" role="alert">' + esc(D.phErr) + '</p>' : '') + '<span class="ccs-hint">Up to 5 photos, 5 MB each. They go on the order and the kitchen slip.</span></div>';
       if (D.size) ed += '<div class="sl-sub sl-qty"><label class="sl-k" for="n-qty">How many cakes</label><input class="ccs-input" id="n-qty" type="number" min="1" max="50" value="' + D.qty + '" data-n="qty"></div>';
       ed += ferr('product') + ferr('size') + ferr('variant') + slActions(0);
     } else if (cur === 1) {
@@ -1747,11 +1801,12 @@
   function slipJump() { var m = slipMissing(); if (m.length) slGo(m[0][1]); }
   function submitOrder() {
     var L = S.setup.location, price = dTotal(), custom = D.finish === 'custom';
+    if (custom && phBusy(D.photos)) { D.err = 'Photos are still uploading. Wait a moment, then save again.'; D.errField = null; return refreshStep(); }
     var dep = D.confirmNow && !custom && D.askDeposit ? num(D.deposit) : null;
     var payAmt = D.payNow ? num(D.payAmount) : null;
     if (D.payNow && (!payAmt || payAmt <= 0)) { D.err = 'Enter the amount the customer is paying.'; D.errField = 'payment'; return refreshStep(); }
     var p = { idempotency_key: D.key, location: 'corner-cafe', source: D.source, product_code: D.product, variant: D.variant, size_inch: D.size, quantity: D.qty,
-      finish: D.finish, design: D.design, message: D.message, candles: D.candles, occasion: D.occasion, has_dietary: D.diet, dietary: D.diet === 'yes' ? D.diets : [], dietary_note: D.dietNote, notes: D.notes,
+      finish: D.finish, design: D.design, attachments: custom ? D.photos.filter(function (x) { return x.status === 'done'; }).map(function (x) { return x.path; }) : [], message: D.message, candles: D.candles, occasion: D.occasion, has_dietary: D.diet, dietary: D.diet === 'yes' ? D.diets : [], dietary_note: D.dietNote, notes: D.notes,
       date: D.date, time: D.time, rush: tooSoon() ? { reason: D.rush, approved_by: D.rushBy } : null, confirm_now: D.confirmNow && !custom, deposit_required: dep,
       payment: payAmt ? { amount: payAmt, method: D.payMethod, kind: dep ? 'deposit' : (payAmt >= price ? 'full' : 'deposit') } : null,
       delivery: D.method === 'delivery' ? { method: 'delivery', zone: D.zone, address: D.address, fee: zoneObj() && zoneObj().fee == null ? num(D.fee) : null, contact: D.contact } : { method: 'collection' } };
@@ -3193,6 +3248,8 @@
           if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = 'Tap again to send v' + v + ' again'; setTimeout(function () { if (b.isConnected) { b.dataset.armed = ''; b.textContent = 'Send again'; } }, 4000); break; }
           markBusy(b, 'Sending…'); prCall('admin_slip_resend', { p_order: b.dataset.id }, function (d) { return d.reference + ' slip v' + d.version + ' sent again'; }); break;
         case 'k-printed': slipPrinted(b); break;
+        case 'sl-phx': var px = D.photos.splice(Number(v), 1)[0]; if (px && px.url) { try { URL.revokeObjectURL(px.url); } catch (x2) {} } if (!phLive(D.photos).filter(function (x) { return x.status === 'failed'; }).length) D.phErr = null; saveDraft(); refreshStep(); break;
+        case 'o-phx': if (S.sheet && S.sheet.addPh) { S.sheet.addPh.splice(Number(v), 1); S.sheet.phErr = null; renderSheet(); } break;
         case 'mir-show': case 'mir-new':
           if (a === 'mir-new' && b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = 'tap again to make a new code'; setTimeout(function () { if (b.isConnected) { b.dataset.armed = ''; b.textContent = 'make a new code'; } }, 4000); break; }
           var mst = S.settings; sb.rpc(a === 'mir-new' ? 'mirror_new_code' : 'mirror_setup_code').then(function (r) { clearBusy(); if (r.error) throw r.error; if (!r.data.ok) { toast(r.data.message, true); return; } mst.mirCode = r.data.code; mst.s5BcOpen = true; if (a === 'mir-new') toast('New code made. Paste it into the Sheet: Cake backup, then Change the access code.'); view(); }).catch(fail); break;
@@ -3204,7 +3261,7 @@
   });
   root.addEventListener('input', function (e) {
     var t = e.target; setTypedIn(t);
-    if (t.id && t.closest && t.closest('#ccs-sheet') && t.type !== 'checkbox' && !newInSheet()) S.dirty[t.id] = t.value;
+    if (t.id && t.closest && t.closest('#ccs-sheet') && t.type !== 'checkbox' && t.type !== 'file' && !newInSheet()) S.dirty[t.id] = t.value;
     if (t.id === 'ccs-q') { S.q = t.value; searchOlder(t.value); var m = document.getElementById('ccs-main'); var pos = t.selectionStart; view(); var n = document.getElementById('ccs-q'); n.focus(); try { n.setSelectionRange(pos, pos); } catch (x) {} return; }
     if (t.id === 'ccs-cq') { S.cust.q = t.value; clearTimeout(searchTimer); searchTimer = setTimeout(function () { loadCustomers().then(function () { var n = document.getElementById('ccs-cq'); if (n) { n.focus(); n.setSelectionRange(n.value.length, n.value.length); } }); }, 350); return; }
     if ((t.dataset.mf || t.dataset.mfs || t.dataset.mfv != null) && S.mf) { mfInput(t); return; }
@@ -3226,6 +3283,8 @@
     if (S.mf && (d.mfsa != null || d.mfva != null || d.mfc)) { if (d.mfsa != null) S.mf.f.sizes[Number(d.mfsa)].active = e.target.checked; else if (d.mfva != null) S.mf.f.flavours[Number(d.mfva)].active = e.target.checked; else S.mf.f[d.mfc] = e.target.checked; S.dirty['mf-ck'] = 1; return; }
   });
   root.addEventListener('change', function (e) {
+    if (e.target.id === 'n-photos') { D.phErr = phUpload(D.photos, e.target.files, 5, function () { saveDraft(); refreshStep(); }); e.target.value = ''; refreshStep(); return; }
+    if (e.target.id === 'o-photos') { orderPhotos(e.target.files); e.target.value = ''; return; }
     var k = e.target.dataset.nc; if (!k) return; D[k] = e.target.checked; D.restored = false;
     if (k === 'confirmNow' && !D.confirmNow) { D.askDeposit = false; D.deposit = ''; }
     refreshStep();

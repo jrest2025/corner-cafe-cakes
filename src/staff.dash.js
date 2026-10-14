@@ -5,6 +5,7 @@
   var DX = null;
   var MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   var WD = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  var WDF = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'], MONF = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   var DX_PERIODS = [['m', 'This month to date'], ['lm', 'Last month'], ['3m', 'Last 3 months'], ['y', 'This year to date'], ['12', 'Last 12 months'], ['all', 'All time'], ['c', 'Choose dates']];
   var DX_STATUS = [['all', 'All statuses'], ['completed', 'Completed sales'], ['open', 'Still to come'], ['off', 'Cancelled']];
   var DX_BASIS = [['p', 'Pickup date'], ['o', 'Order date']];
@@ -77,17 +78,22 @@
   function dxKey(list) { var k = 'k' + Object.keys(DX.drills).length; DX.drills[k] = list; return k; }
   function dxTap(list, title, inner, cls) { return list && list.length ? '<button type="button" class="' + cls + ' dx-tap" data-act="dx-drill" data-v="' + dxKey({ t: title, l: list }) + '">' + inner + '</button>' : '<div class="' + cls + '">' + inner + '</div>'; }
   function dxKpi(label, value, sub, list, title, tone) { return dxTap(list, title, '<span class="ccs-kpi-l">' + label + '</span><b class="ccs-kpi-n">' + value + '</b><span class="ccs-kpi-s">' + sub + '</span>', 'ccs-kpi dx-kpi' + (tone ? ' t-' + tone : '')); }
-  function dxCols(rows, money) {
-    var max = rows.reduce(function (m, r) { return Math.max(m, r.v); }, 0) || 1;
-    return '<div class="dx-cols" style="grid-template-columns:repeat(' + rows.length + ',minmax(0,1fr))">' + rows.map(function (r) {
-      return dxTap(r.list, r.t, '<span class="dx-colv">' + (money ? m0(r.v) : int(r.v)) + '</span><span class="dx-colbar"><i style="height:' + Math.max(r.v ? 3 : 0, Math.round(r.v / max * 100)) + '%"></i></span><span class="dx-coll">' + esc(r.l) + '</span>', 'dx-col' + (r.dim ? ' is-dim' : ''));
-    }).join('') + '</div>';
+  // Charts: the highest bar is drawn in strong green and named in words underneath; the rest are a lighter green
+  // Every bar equal to the highest is marked (ties are all shown)
+  function dxTops(rows) { var m = 0; rows.forEach(function (r) { if (!r.dim && r.v > m) m = r.v; }); return rows.map(function (r) { return m > 0 && !r.dim && r.v === m; }); }
+  function dxAnd(a) { return a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1]; }
+  function dxCols(rows, money, word) {
+    var max = rows.reduce(function (m, r) { return Math.max(m, r.v); }, 0) || 1, tops = dxTops(rows), f = function (v) { return money ? m0(v) : int(v); };
+    var names = rows.filter(function (r, i) { return tops[i]; }).map(function (r) { return '<b>' + esc(r.full || r.l) + '</b>'; });
+    return '<div class="dx-plot"><div class="dx-cols" style="grid-template-columns:repeat(' + rows.length + ',minmax(0,1fr))">' + rows.map(function (r, i) {
+      return dxTap(r.list, r.t, '<span class="dx-colv">' + f(r.v) + '</span><span class="dx-colbar"><i style="height:' + Math.max(r.v ? 3 : 0, Math.round(r.v / max * 100)) + '%"></i></span><span class="dx-coll">' + esc(r.l) + '</span>', 'dx-col' + (tops[i] ? ' is-top' : '') + (r.dim ? ' is-dim' : ''));
+    }).join('') + '</div>' + (names.length && names.length < rows.length ? '<p class="dx-peak"><i></i><span>' + (word || 'Highest') + ': ' + dxAnd(names) + ', ' + f(rows[tops.indexOf(true)].v) + (names.length > 1 ? ' each' : '') + '</span></p>' : '') + '</div>';
   }
   function dxBars(rows, fmt) {
-    var max = rows.reduce(function (m, r) { return Math.max(m, r.v); }, 0) || 1;
-    return '<div class="dx-bars">' + rows.map(function (r) {
-      return dxTap(r.list, r.t, '<span class="dx-bl">' + esc(r.l) + '</span><span class="dx-bt"><i style="width:' + Math.round(r.v / max * 100) + '%"></i></span><b>' + fmt(r) + '</b>', 'dx-brow');
-    }).join('') + '</div>';
+    var max = rows.reduce(function (m, r) { return Math.max(m, r.v); }, 0) || 1, tops = dxTops(rows), n = tops.filter(Boolean).length;
+    return '<div class="dx-plot"><div class="dx-bars">' + rows.map(function (r, i) {
+      return dxTap(r.list, r.t, '<span class="dx-bl">' + esc(r.l) + '</span><span class="dx-bt"><i style="width:' + Math.round(r.v / max * 100) + '%"></i></span><b>' + fmt(r) + '</b>', 'dx-brow' + (tops[i] && n < rows.length ? ' is-top' : ''));
+    }).join('') + '</div></div>';
   }
   function dxSec(id, title, note, body) { DX.secs.push([id, title, note, body]); return ''; }
   function dxGroup(list, keyFn) { var g = {}; list.forEach(function (o) { keyFn(o).forEach(function (k) { var e = g[k[0]] = g[k[0]] || { l: k[0], q: 0, v: 0, list: [] }; e.q += k[1]; e.v += k[2]; if (e.list.indexOf(o) < 0) e.list.push(o); }); }); return Object.keys(g).map(function (k) { return g[k]; }); }
@@ -307,12 +313,12 @@
   function dxUpcoming(up) {
     var t = today(), pend = up.filter(function (o) { return o.st !== 'confirmed'; }); up = up.filter(function (o) { return o.st === 'confirmed'; });
     var days = [], weeks = [];
-    for (var i = 0; i < 14; i++) { var d = addDays(t, i), l = up.filter(function (o) { return o.pd === d; }); days.push({ l: (i === 0 ? 'Today' : WD[(new Date(d + 'T12:00:00Z').getUTCDay() + 6) % 7]) + ' ' + +d.slice(8), v: l.reduce(function (s, o) { return s + dxCakes(o); }, 0), list: l, t: nice(d, true) + ' pickups' }); }
+    for (var i = 0; i < 14; i++) { var d = addDays(t, i), l = up.filter(function (o) { return o.pd === d; }); days.push({ l: (i === 0 ? 'Today' : WD[(new Date(d + 'T12:00:00Z').getUTCDay() + 6) % 7]) + ' ' + +d.slice(8), full: (i === 0 ? 'Today' : WDF[(new Date(d + 'T12:00:00Z').getUTCDay() + 6) % 7]) + ' ' + +d.slice(8), v: l.reduce(function (s, o) { return s + dxCakes(o); }, 0), list: l, t: nice(d, true) + ' pickups' }); }
     var ws = addDays(t, -((new Date(t + 'T12:00:00Z').getUTCDay() + 6) % 7));
     for (var w = 0; w < 6; w++) { var a = addDays(ws, w * 7), b = addDays(a, 6), wl = up.filter(function (o) { return o.pd >= a && o.pd <= b; }); weeks.push({ l: (w === 0 ? 'This week' : 'w/c ' + nice(a).replace(/^\w+ /, '')), v: wl.reduce(function (s, o) { return s + dxCakes(o); }, 0), vv: wl.reduce(function (s, o) { return s + dxValue(o); }, 0), list: wl, t: 'Week of ' + nice(a) }); }
     var body = '<div class="ccs-kpis dx-kpis dx-kpis-s">' + dxKpi('Confirmed to collect', int(up.length), up.reduce(function (s, o) { return s + dxCakes(o); }, 0) + ' cakes, ' + m0(up.reduce(function (s, o) { return s + dxValue(o); }, 0)), up, 'Confirmed orders to collect', 'good') +
       dxKpi('Not yet confirmed', int(pend.length), m0(pend.reduce(function (s, o) { return s + dxValue(o); }, 0)) + ' if all go ahead', pend, 'Orders not yet confirmed', pend.length ? 'action' : '') + '</div>' +
-      '<p class="dx-ch">Confirmed cakes per day, next 14 days</p>' + dxCols(days) + '<p class="dx-ch">Confirmed cakes per week</p>' + dxBars(weeks, function (x) { return int(x.v) + ' cakes · ' + m0(x.vv); }) +
+      '<p class="dx-ch">Confirmed cakes per day, next 14 days</p>' + dxCols(days, false, 'Busiest day') + '<p class="dx-ch">Confirmed cakes per week</p>' + dxBars(weeks, function (x) { return int(x.v) + ' cakes · ' + m0(x.vv); }) +
       '<p class="ccs-hint">Booked business is not counted as sales until the pickup date has passed (sheet orders) or the cake is handed over (app orders). Sheet orders show as not yet confirmed until staff confirm them in the app.</p>';
     return dxSec('up', 'Upcoming business', int(up.length) + ' confirmed · ' + int(pend.length) + ' waiting', body);
   }
@@ -346,17 +352,17 @@
     var wd = [0, 0, 0, 0, 0, 0, 0], wl = [[], [], [], [], [], [], []];
     cur.forEach(function (o) { var k = (new Date(o.pd + 'T12:00:00Z').getUTCDay() + 6) % 7; wd[k] += dxCakes(o); wl[k].push(o); });
     var mon = [], all = DX.data.orders.filter(function (o) { return o.sale && dxMatch(o); }), yrs = {};
-    for (var m = 0; m < 12; m++) mon.push({ l: MON[m], v: 0, list: [], t: MON[m] + ', all years', y: {} });
+    for (var m = 0; m < 12; m++) mon.push({ l: MON[m], full: MONF[m], v: 0, list: [], t: MON[m] + ', all years', y: {} });
     all.forEach(function (o) { var k = +o.pd.slice(5, 7) - 1; mon[k].v += dxCakes(o); mon[k].list.push(o); mon[k].y[o.pd.slice(0, 7)] = 1; yrs[o.pd.slice(0, 4)] = 1; });
     var tm = today().slice(0, 7); mon.forEach(function (x) { delete x.y[tm]; var n = Object.keys(x.y).length; x.v = n ? Math.round(x.v / n) : 0; });
     var lead = cur.filter(function (o) { return o.odok && o.od <= o.pd; }).map(function (o) { return daysBetween(o.od, o.pd); }).sort(function (a, b) { return a - b; });
     var bk = [['Same day', 0, 0], ['1 to 2 days', 1, 2], ['3 to 6 days', 3, 6], ['1 to 2 weeks', 7, 13], ['2 weeks or more', 14, 1e6]];
-    var body = '<div class="dx-grid2"><div><p class="dx-ch">Cakes by pickup day</p>' + dxCols(WD.map(function (n, k) { return { l: n, v: wd[k], list: wl[k], t: n + ' pickups' }; })) + '</div>' +
+    var body = '<div class="dx-grid2"><div><p class="dx-ch">Cakes by pickup day</p>' + dxCols(WD.map(function (n, k) { return { l: n, full: WDF[k], v: wd[k], list: wl[k], t: n + ' pickups' }; }), false, 'Busiest day') + '</div>' +
       '<div><p class="dx-ch">Ordered how far ahead</p>' + (lead.length ? dxBars(bk.map(function (b) { var n = lead.filter(function (x) { return x >= b[1] && x <= b[2]; }).length; return { l: b[0], v: n }; }), function (x) { return Math.round(x.v / lead.length * 100) + '%'; }) + '<p class="ccs-hint">Typical gap: ' + lead[Math.floor(lead.length / 2)] + ' days between ordering and pickup (' + lead.length + ' orders with a reliable order date).</p>' : '<p class="ccs-hint">No orders with a reliable order date in this period.</p>') + '</div></div>' +
-      '<p class="dx-ch">Seasonal pattern: average cakes per month, ' + Object.keys(yrs).sort().join(' to ').replace(/ to .* to /, ' to ') + '</p>' + dxCols(mon) +
+      '<p class="dx-ch">Seasonal pattern: average cakes per month, ' + Object.keys(yrs).sort().join(' to ').replace(/ to .* to /, ' to ') + '</p>' + dxCols(mon, false, 'Busiest month') +
       '<p class="ccs-hint">The seasonal chart averages every complete month on record, not just the selected period, so busy and quiet months can be compared fairly.</p>';
     var top = wd.indexOf(Math.max.apply(null, wd));
-    return dxSec('de', 'Demand patterns', cur.length ? 'Busiest pickup day: ' + WD[top] : '', body);
+    return dxSec('de', 'Demand patterns', cur.length ? 'Busiest pickup day: ' + WDF[top] : '', body);
   }
   function dxYear() {
     var y = DX.year, years = DX.data.years.slice(); if (years.indexOf(y) < 0) years.push(y); years.sort();
