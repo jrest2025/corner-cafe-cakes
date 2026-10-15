@@ -4,6 +4,7 @@
 
 // Kitchen slip PDF layout (shipped with this function); the logo is fetched from one pinned commit and is optional
 import { buildSlipPdf, slipFileName, SLIP_REF } from "./slip_pdf.js";
+import { slipEmailHtml } from "./slip_email.js";
 // Customer emails: Corner Café logo and layout, plain-text version, cross-selling only where allowed
 import { buildGuest } from "./guest_emails.ts";
 const SLIP_LOGO_URL = "https://cdn.jsdelivr.net/gh/jrest2025/corner-cafe-cakes@6879294bbce62e730bdf5b1af8c2b3e931a06fb5/dist/brand/slip-logo-white.png";
@@ -299,15 +300,8 @@ async function kitchenSlip(m: any, d: any) {
   const when = `${new Date(s.date + "T12:00:00Z").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" }).replace(",", "")} ${t12(s.time)}`;
   const diet = s.has_dietary ? ([] as string[]).concat(s.dietary || [], s.dietary_note ? [s.dietary_note] : []).join(", ") || "See the slip" : "";
   const subject = `Kitchen slip ${o.reference} v${v} · ${dl ? "Delivery" : "Pickup"} ${when}` + (diet ? " · ALLERGY" : "") + (v > 1 ? " · REPLACES v" + (v - 1) : "");
-  const html = `<!doctype html><html><body style="margin:0;font-family:Arial,Helvetica,sans-serif;color:${INK};background:#ffffff">` +
-    `<div style="max-width:520px;padding:20px 16px"><div style="font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:${MUTED}">Kitchen slip v${v}</div>` +
-    `<div style="font-size:30px;font-weight:bold;margin:2px 0 12px">${esc(o.reference)}</div>` +
-    (diet ? `<div style="border-left:5px solid ${RED};padding:8px 12px;margin:0 0 12px;color:${RED};font-weight:bold">Allergy or dietary need: ${esc(diet)}</div>` : "") +
-    (v > 1 ? `<p style="margin:0 0 12px;font-weight:bold">This replaces v${v - 1}. Throw the old slip away.</p>` : "") +
-    `<p style="margin:0 0 6px;font-size:15px">${dl ? "Delivery" : "Pickup"}: <b>${esc(longDate(s.date))}, ${esc(t12(s.time))}</b></p>` +
-    `<p style="margin:0 0 14px;font-size:15px">Cake: <b>${esc((s.variant || s.cake) + (s.size ? `, ${s.size} inch` : ""))}</b></p>` +
-    `<p style="margin:0 0 6px;font-size:15px">Print the attached PDF: <b>${esc(name)}.pdf</b></p>` +
-    `<p style="margin:16px 0 0;font-size:12px;color:${MUTED}">Sent when ${esc(br.printed_by_label || "staff")} pressed Print in the cake staff app. Staff only.</p></div></body></html>`;
+  // The email body reads like a kitchen docket; the attached PDF stays the official printed slip
+  const html = slipEmailHtml({ s, version: v, changes: br.changes || [], fileName: name, sentBy: br.printed_by_label });
   return { subject, html, attachments: [{ filename: name + ".pdf", content: b64(pdf) }] };
 }
 
