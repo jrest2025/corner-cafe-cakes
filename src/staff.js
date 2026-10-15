@@ -2099,7 +2099,7 @@
       var miss = slipMissing();
       h += '<section class="sl-pay" id="sl-st-7"><h2 class="sl-h">Read over the slip, then save</h2>' + (miss.length ? '<p class="ccs-err" role="alert">Still to finish: ' + esc(miss.map(function (x) { return x[0]; }).join(', ')) + '. Tap Change on that line.</p>' : '') +
         stepPay(true) + (D.err && !D.errField ? '<p class="ccs-err" role="alert">' + esc(D.err) + '</p>' : '') + (D.err && D.errField === 'stage' ? '<p class="ccs-err" role="alert">' + esc(D.err) + '</p>' : '') +
-        '<button type="button" class="ccs-btn ccs-good ccs-wide" data-act="n-submit"' + (S.busy ? ' disabled' : '') + '>' + (S.busy ? 'Saving…' : saveLabel() + (dTotal() != null ? ' · ' + money(dTotal()) : '')) + '</button></section>';
+        '<button type="button" class="ccs-btn ccs-good ccs-wide" data-act="n-submit"' + (S.busy ? ' disabled' : '') + '>' + (S.busy ? 'Saving…' : saveText()) + '</button></section>';
     }
     return h;
   }
@@ -2186,7 +2186,7 @@
     var bar = '<div class="sl-stepbar">' + (cur > 0 ? '<button type="button" class="ccs-btn ccs-ghost" data-act="sl-back">Back</button>' : '<span></span>') +
       '<div class="sl-stepbar-r">' + (opt && cur < 7 ? '<button type="button" class="ccs-btn ccs-ghost" data-act="sl-skip">Skip</button>' : '') +
       (cur < 7 ? '<button type="button" class="ccs-btn" data-act="sl-next"><span class="sl-nxlong">Next: ' + esc(cur === 3 && slPhone() && !(D.whenPart === 'time' && D.date) ? (D.method === 'delivery' ? 'Delivery time' : 'Pickup time') : SL_STAGES[nx]) + '</span><span class="sl-nxshort">Next</span></button>'
-        : '<button type="button" class="ccs-btn ccs-good" data-act="n-submit"' + (S.busy ? ' disabled' : '') + '>' + (S.busy ? 'Saving…' : saveLabel() + (dTotal() != null ? ' · ' + money(dTotal()) : '')) + '</button>') + '</div></div>';
+        : '<button type="button" class="ccs-btn ccs-good" data-act="n-submit"' + (S.busy ? ' disabled' : '') + '>' + (S.busy ? 'Saving…' : saveText()) + '</button>') + '</div></div>';
     var head = '<div class="sl-stephead"><p class="sl-progress">New order · Step ' + (slPos(cur) + 1) + ' of ' + SL_ORDER.length + '</p><h2 class="sl-steptitle">' + (cur === 3 && slPhone() ? (D.whenPart === 'time' && D.date ? (D.method === 'delivery' ? 'Delivery time' : 'Pickup time') : (D.method === 'delivery' ? 'Delivery date' : 'Pickup date')) : cur === 0 && D.req ? 'Custom cake details' : SL_STAGES[cur]) + '</h2>' +
       '<ol class="sl-dots" aria-hidden="true">' + SL_ORDER.map(function (i) { return '<li class="' + (i === cur ? 'is-now' : seen[i] && !slNeeds(i).length ? 'is-done' : '') + '"></li>'; }).join('') + '</ol>' +
       '<button type="button" class="ccs-link sl-viewbtn" data-act="sl-view">' + (D.showSlip ? 'Back to this step' : 'View slip') + '</button>' + (cur === 0 && !D.req ? reqButton('sl-headreq') : '') + '</div>';
@@ -2230,6 +2230,15 @@
     if (D.payPlan === 'full') return 'Save, paid and confirmed';
     if (D.payPlan === 'deposit') return 'Save and confirm';
     return D.confirmNow && D.payPlan === 'later' ? 'Save and confirm' : 'Save cake order';
+  }
+  // The save button names the money being recorded, so a wrong amount or method is caught before saving
+  function saveText() {
+    var t = dTotal();
+    if (STEPPER && !D.req && D.finish !== 'custom' && (D.payPlan === 'full' || D.payPlan === 'deposit')) {
+      var amt = D.payPlan === 'full' ? t : num(D.payAmount);
+      if (amt > 0) return 'Save: ' + money(amt) + (D.payPlan === 'deposit' ? ' deposit' : ' paid') + ' by ' + payMethodLabel(D.payMethod);
+    }
+    return saveLabel() + (t != null ? ' · ' + money(t) : '');
   }
   function submitOrder() {
     var L = S.setup.location, price = dTotal(), custom = D.finish === 'custom';
@@ -3873,6 +3882,7 @@
     if (k === 'name' && SLIP) nameSearch();
     if (SLIP && D.errField === null && D.err == null) { var se = document.querySelector('#ccs-slipform .sl-ed .ccs-err'); if (se && t.closest('.sl-ed')) se.remove(); }
     if (k === 'date') refreshStep();
+    if (k === 'payAmount' && !S.busy) root.querySelectorAll('[data-act="n-submit"]').forEach(function (b) { b.textContent = saveText(); });
     if (SLIP && STEPPER && k !== 'date') slLiveSoon();
     saveDraft();
   });
