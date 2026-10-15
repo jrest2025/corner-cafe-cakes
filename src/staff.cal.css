@@ -1733,3 +1733,6 @@ body.ccs-is-off #cc-staff .ccs-side { top: var(--ccs-offh, 44px); }
   #cc-staff .sl-headreq { display: none; }
   #cc-staff .sl-bodyreq { display: inline-flex; }
 }
+#cc-staff .sl-reqhead { display: flex; align-items: center; justify-content: space-between; gap: 8px 12px; flex-wrap: wrap; padding: 10px 12px; border: 1px solid #d7dde5; border-radius: 10px; background: #f6f7f9; }
+#cc-staff .sl-reqhead .sl-k { margin: 0; font-size: 17px; }
+#cc-staff .sl-reqhead .ccs-link { min-height: 40px; }

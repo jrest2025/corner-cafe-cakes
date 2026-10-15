@@ -1960,16 +1960,13 @@
     slSeen()[s] = true; slGo(slNextStage(s));
   }
   // Custom cake not on the menu: one button under the price table, then its own short set of fields
-  function reqFlavours() { var out = []; ((S.setup && S.setup.products) || []).forEach(function (p) { (p.variants.length ? p.variants : [p.name]).forEach(function (v) { if (out.indexOf(v) < 0) out.push(v); }); }); return out; }
   function reqButton(cls) {
     return '<button type="button" class="ccs-chip ccs-reqbtn ' + (cls || '') + '" data-act="n-req" aria-pressed="' + !!D.req + '" title="For a cake not on the menu: any size, shape, flavour or design. The price can be added later.">Custom cake (not on the list)</button>';
   }
   function reqFields() {
-    var fl = reqFlavours();
     return '<div class="sl-sub"><label class="sl-k" for="n-design">What should it look like? <em class="sl-req">Required</em></label><textarea class="ccs-input sl-design" id="n-design" data-n="design" rows="3" placeholder="Shape, colours, theme, toppers, writing style">' + esc(D.design) + '</textarea>' + ferr('design') + '</div>' +
       '<div class="sl-sub"><label class="sl-k" for="n-sizenote">Size or servings <em class="sl-req">Required</em></label><input class="ccs-input" id="n-sizenote" data-n="sizeNote" maxlength="80" value="' + esc(D.sizeNote || '') + '" placeholder="For example: 10 inch, or about 30 people, two tiers">' + ferr('size_note') + '</div>' +
-      '<div class="sl-sub"><span class="sl-k">Flavour</span><div class="ccs-chips">' + fl.map(function (f) { return '<button type="button" class="ccs-chip" data-act="n-reqflav" data-v="' + esc(f) + '" aria-pressed="' + (D.variant === f) + '">' + esc(f) + '</button>'; }).join('') + '</div>' +
-        '<input class="ccs-input sl-flavother" id="n-flav" data-n="variant" maxlength="80" value="' + esc(fl.indexOf(D.variant) > -1 ? '' : (D.variant || '')) + '" placeholder="Or write another flavour" aria-label="Another flavour">' + ferr('variant') + '</div>' +
+      '<div class="sl-sub"><label class="sl-k" for="n-flav">Flavour <em class="sl-opt">Optional</em></label><input class="ccs-input" id="n-flav" data-n="variant" maxlength="80" value="' + esc(D.variant || '') + '" placeholder="For example: chocolate, or vanilla with passionfruit">' + ferr('variant') + '</div>' +
       '<div class="sl-sub"><span class="sl-k">Inspiration photos <em class="sl-opt">Optional</em></span>' + phThumbs(D.photos, 'sl-phx') +
         (phLive(D.photos).length < 5 ? phPicker('n-photos', D.photos.length ? 'Add more photos' : 'Add photos') : '') +
         (D.phErr ? '<p class="ccs-err" role="alert">' + esc(D.phErr) + '</p>' : '') + '<span class="ccs-hint">Up to 5 photos, 5 MB each. They go on the order and the kitchen slip.</span></div>' +
@@ -2082,7 +2079,8 @@
     var ed = '';
     if (cur === 0) {
       ed = '<p class="sl-k" style="margin:0 0 8px">How did they order?</p><div class="ccs-chips" role="group" aria-label="How they ordered" style="margin-bottom:14px">' + SOURCES.map(function (s) { return '<button type="button" class="ccs-chip" data-act="n-source" data-v="' + s[0] + '" aria-pressed="' + (D.source === s[0]) + '">' + s[1] + '</button>'; }).join('') + '</div>' +
-        '<div class="sl-pickhead"><p class="sl-k">Tap the price for the cake and size</p>' + reqButton('sl-bodyreq') + '</div>' + slTable();
+        (D.req ? '<div class="sl-reqhead"><p class="sl-k">Custom cake order</p><button type="button" class="ccs-link" data-act="n-unreq">Choose a menu cake instead</button></div>'
+          : '<div class="sl-pickhead"><p class="sl-k">Tap the price for the cake and size</p>' + reqButton('sl-bodyreq') + '</div>' + slTable());
       if (D.req) ed += '<p class="sl-ask"><b>Ask the customer:</b> who is the cake for, any colours or theme, and do they have a photo? Write the answers in What should it look like.</p>' + reqFields();
       if (p && p.variants.length) ed += '<div class="sl-sub"><span class="sl-k">' + esc(p.choice_label || 'Which flavour?') + '</span><div class="ccs-chips">' + p.variants.map(function (v) { return '<button type="button" class="ccs-chip" data-act="n-var" data-v="' + esc(v) + '" aria-pressed="' + (D.variant === v) + '">' + esc(v) + '</button>'; }).join('') + '</div></div>';
       if (p) ed += '<div class="sl-sub"><span class="sl-k">Finish</span><div class="ccs-chips"><button type="button" class="ccs-chip" data-act="n-finish" data-v="standard" aria-pressed="' + (D.finish !== 'custom') + '">Standard finish</button>' + (p.supports_custom ? '<button type="button" class="ccs-chip" data-act="n-finish" data-v="custom" aria-pressed="' + (D.finish === 'custom') + '">Custom design</button>' : '') + '</div></div>';
@@ -2153,9 +2151,9 @@
       '<div class="sl-stepbar-r">' + (opt && cur < 7 ? '<button type="button" class="ccs-btn ccs-ghost" data-act="sl-skip">Skip</button>' : '') +
       (cur < 7 ? '<button type="button" class="ccs-btn" data-act="sl-next"><span class="sl-nxlong">Next: ' + esc(cur === 3 && slPhone() && !(D.whenPart === 'time' && D.date) ? (D.method === 'delivery' ? 'Delivery time' : 'Pickup time') : SL_STAGES[nx]) + '</span><span class="sl-nxshort">Next</span></button>'
         : '<button type="button" class="ccs-btn ccs-good" data-act="n-submit"' + (S.busy ? ' disabled' : '') + '>' + (S.busy ? 'Saving…' : (D.req ? 'Save custom cake' : D.confirmNow && D.finish !== 'custom' ? 'Save and confirm' : 'Save cake order') + (dTotal() != null ? ' · ' + money(dTotal()) : '')) + '</button>') + '</div></div>';
-    var head = '<div class="sl-stephead"><p class="sl-progress">New order · Step ' + (cur + 1) + ' of 8</p><h2 class="sl-steptitle">' + (cur === 3 && slPhone() ? (D.whenPart === 'time' && D.date ? (D.method === 'delivery' ? 'Delivery time' : 'Pickup time') : (D.method === 'delivery' ? 'Delivery date' : 'Pickup date')) : SL_STAGES[cur]) + '</h2>' +
+    var head = '<div class="sl-stephead"><p class="sl-progress">New order · Step ' + (cur + 1) + ' of 8</p><h2 class="sl-steptitle">' + (cur === 3 && slPhone() ? (D.whenPart === 'time' && D.date ? (D.method === 'delivery' ? 'Delivery time' : 'Pickup time') : (D.method === 'delivery' ? 'Delivery date' : 'Pickup date')) : cur === 0 && D.req ? 'Custom cake details' : SL_STAGES[cur]) + '</h2>' +
       '<ol class="sl-dots" aria-hidden="true">' + SL_STAGES.map(function (x, i) { return '<li class="' + (i === cur ? 'is-now' : seen[i] && !slNeeds(i).length ? 'is-done' : '') + '"></li>'; }).join('') + '</ol>' +
-      '<button type="button" class="ccs-link sl-viewbtn" data-act="sl-view">' + (D.showSlip ? 'Back to this step' : 'View slip') + '</button>' + (cur === 0 ? reqButton('sl-headreq') : '') + '</div>';
+      '<button type="button" class="ccs-link sl-viewbtn" data-act="sl-view">' + (D.showSlip ? 'Back to this step' : 'View slip') + '</button>' + (cur === 0 && !D.req ? reqButton('sl-headreq') : '') + '</div>';
     return '<div class="sl-stepper' + (D.showSlip ? ' show-slip' : '') + '"><section class="sl-stepmain" id="sl-st-' + cur + '">' + head + '<div class="sl-stepbody">' + ed + '</div>' + bar + '</section>' + live + '</div>';
   }
   // The slip beside the step follows the typing, without redrawing the field being typed in
@@ -3743,7 +3741,7 @@
         case 'n-paym': D.payMethod = v; refreshStep(); break;
         case 'n-submit': if (SLIP && slipMissing().length) { toast('Still to finish: ' + slipMissing().map(function (x) { return x[0]; }).join(', '), true); slipJump(); break; } submitOrder(); break;
         case 'n-req': D.req = true; D.product = null; D.size = null; D.variant = null; D.finish = 'custom'; D.confirmNow = false; if (D.errField === 'product' || D.errField === 'size') { D.err = null; D.errField = null; } refreshStep(); break;
-        case 'n-reqflav': D.variant = D.variant === v ? null : v; refreshStep(); break;
+        case 'n-unreq': D.req = false; D.finish = 'standard'; D.variant = null; D.sizeNote = ''; D.reqPrice = ''; refreshStep(); break;
         case 'n-cell': (function () { var pr = v.split('|'), code = pr[0], inch = Number(pr[1]); if (D.req) { D.req = false; D.finish = 'standard'; D.variant = null; } if (D.product !== code) { D.product = code; D.variant = null; } D.size = inch; D.restored = false; if (D.errField === 'product' || D.errField === 'size') { D.err = null; D.errField = null; } refreshStep(); })(); break;
         case 'n-unpick': D.customer = null; D.phone = ''; D.matches = null; D.nameMatches = null; D.name = ''; D.optIn = null; D.sl = 1; refreshStep(); setTimeout(function () { var f = document.getElementById('n-name'); if (f) f.focus(); }, 30); break;
         case 'sl-jump': slipJump(); break;
