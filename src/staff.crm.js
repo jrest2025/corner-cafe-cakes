@@ -7,7 +7,7 @@
   var WS_DUE = [['today', 'Today'], ['tomorrow', 'Tomorrow'], ['3', 'In 3 days'], ['7', 'Next week'], ['other', 'Other date']];
   var WS_HINT = 'Internal only. Never shown to the customer, in emails or on kitchen slips. Keep it factual. No card numbers, passwords or health details. Allergies go on the order.';
 
-  function wsCanRead() { return can('manager', 'front_of_house', 'marketing', 'finance'); }
+  function wsCanRead() { return canP('cust.view'); }
   function wsForm() {
     var s = S.sheet;
     if (!s.wsForm) s.wsForm = { kind: 'note', tone: null, follow: false, dueKind: 'tomorrow', idem: uuid(), tidem: uuid() };
@@ -324,7 +324,7 @@
   S.fu = { data: null, at: 0, loading: false, err: false, all: false };
   function fuStale() { S.fu.at = 0; }
   function fuLoad() {
-    if (!can('manager', 'front_of_house', 'marketing') || S.fu.loading) return;
+    if (!canP('cust.followup') || S.fu.loading) return;
     S.fu.loading = true;
     sb.rpc('my_followups', { p_days: 7, p_all: !!S.fu.all }).then(function (r) {
       S.fu.loading = false; if (r.error) throw r.error;
@@ -332,10 +332,10 @@
     }).catch(function (e) { S.fu.loading = false; S.fu.err = true; S.fu.at = Date.now(); console.error(e); if (S.tab === 'today') view(); });
   }
   function fuPanel() {
-    if (!can('manager', 'front_of_house', 'marketing')) return '';
+    if (!canP('cust.followup')) return '';
     if (!S.fu.loading && Date.now() - S.fu.at > 60000) setTimeout(fuLoad, 0);
     var d = S.fu.data, t = today();
-    var head = '<div class="ccs-card-head"><h2>Follow-ups</h2>' + (can('manager') ? '<button type="button" class="ccs-link" data-act="ws-fu-all">' + (S.fu.all ? 'Show only mine' : 'Show everyone\'s') + '</button>' : '') + '</div>';
+    var head = '<div class="ccs-card-head"><h2>Follow-ups</h2>' + (canP('cust.oversee') ? '<button type="button" class="ccs-link" data-act="ws-fu-all">' + (S.fu.all ? 'Show only mine' : 'Show everyone\'s') + '</button>' : '') + '</div>';
     if (S.fu.err && !d) return '<section class="ccs-panel-card ws-fu">' + head + '<p class="ccs-quiet">Could not load follow-ups. <button type="button" class="ccs-link" data-act="ws-fu-reload">Try again</button></p></section>';
     if (!d) return '<section class="ccs-panel-card ws-fu">' + head + '<p class="ccs-loading">Loading…</p></section>';
     var list = d.tasks || [];
@@ -436,7 +436,7 @@
   }
   function clToolbar() {
     var c = clState(), g = clGroup(), nf = Object.keys(c.flt).length;
-    var mayExport = can('manager', 'marketing'), mayGroup = can('manager', 'marketing');
+    var mayExport = canP('cust.export'), mayGroup = canP('cust.export');
     var h = '<div class="ccs-ctool">' + clShowSelect() +
       '<button type="button" class="ccs-btn ccs-ghost ccs-small" data-act="ws-cm-panel" data-v="filter" aria-expanded="' + (c.panel === 'filter') + '">Filters' + (nf ? ' (' + nf + ')' : '') + '</button>' +
       (c.loaded ? '<span class="ccs-ccount"><b>' + c.count + '</b> customer' + (c.count === 1 ? '' : 's') + (c.count > c.rows.length ? ', showing the latest ' + c.rows.length : '') + '</span>' : '<span class="ccs-ccount"></span>') +
@@ -445,7 +445,7 @@
       '<span class="ccs-tools"><button type="button" class="ccs-btn ccs-ghost ccs-small" data-act="ws-cm-tools" aria-haspopup="true" aria-expanded="' + !!c.tools + '">Tools</button>' +
       (c.tools ? '<span class="ccs-tools-menu" role="menu">' +
         (mayExport && c.loaded && c.count ? '<button type="button" role="menuitem" data-act="ws-cm-panel" data-v="export"><b>Export a contact list</b><span>Only guests who agreed to that channel</span></button>' : '') +
-        (can('manager') ? '<button type="button" role="menuitem" data-act="ws-cm-dups"><b>Possible duplicates</b><span>Guests entered twice</span></button>' : '') +
+        (canP('cust.merge') ? '<button type="button" role="menuitem" data-act="ws-cm-dups"><b>Possible duplicates</b><span>Guests entered twice</span></button>' : '') +
         '<button type="button" role="menuitem" data-act="ws-cm-s5-log"><b>Export log</b><span>Who exported or printed what</span></button></span>' : '') +
       '</span></span></div>';
     if (g) h += '<p class="ccs-hint cm-gline">Saved group <b>' + esc(g.name) + '</b>, made by ' + esc(g.by) + (g.updated_by ? ', last changed by ' + esc(g.updated_by) : '') + '. The list is worked out fresh each time, so new customers who match join it.</p>';
@@ -724,7 +724,7 @@
   var S5_ROLE_NAME = { admin: 'Admin', manager: 'Manager', front_of_house: 'Counter', kitchen: 'Kitchen', finance: 'Finance', marketing: 'Marketing' };
   function s5MaySection(k) {
     if (k === 'notes') return wsCanRead();
-    if (k === 'consent') return can('manager', 'front_of_house', 'marketing');
+    if (k === 'consent') return canP('cust.consent');
     return true;
   }
   function s5ReportPanel() {
@@ -914,8 +914,8 @@
   var CRM_OUT = [['interested', 'Interested'], ['quote', 'Wants a quote'], ['later', 'Will order later'], ['ordered', 'Has already ordered'], ['not_interested', 'Not interested'], ['no_answer', 'No answer'], ['left_message', 'Left a message']];
   var CRM_CH = [['phone', 'Phone call'], ['whatsapp', 'WhatsApp'], ['email', 'Email'], ['in_person', 'In person']];
   var CRM_NEXT = [['1', 'Tomorrow'], ['3', 'In 3 days'], ['7', 'Next week'], ['14', 'In 2 weeks'], ['other', 'Other date']];
-  function crmCan() { return can('manager', 'front_of_house', 'marketing'); }
-  function crmSec() { if (!crmCan()) return 'all'; var st = secStore('crm'); var v = st.crm; return ['ov', 'fu', 'all'].indexOf(v) > -1 ? v : (can('manager', 'marketing') ? 'ov' : 'fu'); }
+  function crmCan() { return canP('cust.followup'); }
+  function crmSec() { if (!crmCan()) return 'all'; var st = secStore('crm'); var v = st.crm; return ['ov', 'fu', 'all'].indexOf(v) > -1 ? v : (canP('cust.oversee') || canP('mgmt.analytics') ? 'ov' : 'fu'); }
   function crmLoad(force) {
     var c = S.crm; if (!crmCan() || c.loading) return;
     if (!force && c.at && Date.now() - c.at < 60000) return;
@@ -1110,3 +1110,97 @@
       }).catch(function (e) { clearBusy(); fail(e); });
     }
   }
+
+  // ---------- Settings: Permissions (switches by level, exceptions by person) ----------
+  // The server decides; this screen only shows and changes switches through admin_perms, admin_level_perm and admin_staff_perm.
+  S.perm = { data: null, loading: false, err: null, tab: 'levels', level: null, user: null, ask: null };
+  var PM_MOD = [['customers', 'Customers'], ['orders', 'Orders'], ['kitchen', 'Kitchen'], ['management', 'Management and administration']];
+  function permLoad() {
+    var p = S.perm; if (p.loading) return; p.loading = true;
+    sb.rpc('admin_perms').then(function (r) {
+      p.loading = false; if (r.error) throw r.error;
+      if (!r.data || !r.data.ok) { p.err = (r.data && r.data.message) || 'Permissions could not load.'; } else { p.data = r.data; p.err = null; }
+      if (S.tab === 'settings') view();
+    }).catch(function (e) {
+      p.loading = false; console.error(e);
+      p.err = /admin_perms|does not exist|PGRST202/.test(String((e && (e.message || e.code)) || '')) ? 'The switches are not set up yet. The database update needs to be run first.' : 'Permissions could not load. Check the connection and try again.';
+      if (S.tab === 'settings') view();
+    });
+  }
+  function permView() {
+    if (!canP('staff.permissions')) return '';
+    var p = S.perm, d = p.data;
+    if (!d && !p.loading && !p.err) setTimeout(permLoad, 0);
+    var h = '<details' + (p.open ? ' open' : '') + ' data-pmopen><summary>Permissions <span>Switches for each level and person</span></summary><div class="ccs-set-body">';
+    if (p.err && !d) return h + '<p class="ccs-quiet">' + esc(p.err) + ' <button type="button" class="ccs-link" data-act="pm-reload">Try again</button></p></div></details>';
+    if (!d) return h + '<p class="ccs-loading">Loading…</p></div></details>';
+    h += '<p class="ccs-hint">Everything is off unless switched on. A switch removed for one person always wins. Every change is kept in the audit log. People see the change on their screens after they refresh.</p>';
+    h += '<div class="ccs-chips pm-tabs" role="group" aria-label="Show"><button type="button" class="ccs-chip" data-act="pm-tab" data-v="levels" aria-pressed="' + (p.tab === 'levels') + '">By level</button><button type="button" class="ccs-chip" data-act="pm-tab" data-v="people" aria-pressed="' + (p.tab === 'people') + '">By person</button></div>';
+    if (p.msg) h += '<p class="ccs-err" role="alert">' + esc(p.msg) + '</p>';
+    return h + (p.tab === 'people' ? permPeople(d) : permLevels(d)) + '</div></details>';
+  }
+  function permRowMeta(c) { return '<span class="pm-l"><b>' + esc(c.label) + '</b>' + (c.help ? '<small>' + esc(c.help) + '</small>' : '') + '</span>'; }
+  function permSwitch(on, act, attrs, label) { return '<button type="button" class="pm-sw' + (on ? ' is-on' : '') + '" role="switch" aria-checked="' + on + '" aria-label="' + esc(label) + '" data-act="' + act + '" ' + attrs + '><i></i><span>' + (on ? 'On' : 'Off') + '</span></button>'; }
+  function permLevels(d) {
+    var p = S.perm, lv = d.levels.filter(function (l) { return l.id === p.level; })[0] || d.levels[0]; p.level = lv.id;
+    var h = '<div class="ccs-chips pm-pick" role="group" aria-label="Level">' + d.levels.map(function (l) { return '<button type="button" class="ccs-chip" data-act="pm-level" data-v="' + l.id + '" aria-pressed="' + (l.id === lv.id) + '">' + esc(l.name) + ' <span class="ccs-n">' + l.people + '</span></button>'; }).join('') + '</div>';
+    h += '<p class="ccs-hint">' + esc(lv.name) + (lv.built_in ? ' is built in' : ' is a template you can change or delete under Access levels') + '. ' + lv.people + (lv.people === 1 ? ' person is' : ' people are') + ' on it.</p>';
+    return h + PM_MOD.map(function (m) {
+      var cs = d.catalogue.filter(function (c) { return c.module === m[0]; }), live = cs.some(function (c) { return c.live; });
+      return '<section class="pm-mod"><h4>' + m[1] + (live ? '' : ' <span class="pm-later">Follows the level\'s ticks for now</span>') + '</h4>' + cs.map(function (c) {
+        var on = lv.perms.indexOf(c.key) > -1, ask = p.ask && p.ask.kind === 'level' && p.ask.key === c.key && p.ask.id === lv.id;
+        var ctl = c.live ? permSwitch(on, 'pm-lv', 'data-k="' + c.key + '" data-on="' + (!on) + '"', c.label + ' for ' + lv.name) : '<span class="pm-ro">' + (on ? 'Yes' : 'No') + '</span>';
+        return '<div class="pm-row' + (c.live ? '' : ' is-ro') + '">' + permRowMeta(c) + ctl + '</div>' + (ask ? permAsk(c, lv.name) : '');
+      }).join('') + '</section>';
+    }).join('');
+  }
+  function permAsk(c, who) {
+    var a = S.perm.ask;
+    return '<div class="ccs-panel pm-ask" role="alert"><p><b>' + (a.undo ? 'Undo the exception for ' + esc(who) + '?' : (a.on ? 'Switch on' : 'Switch off') + ' ' + esc(c.label) + ' for ' + esc(who) + '?') + '</b>' + (a.undo ? ' They go back to what their level allows.' : '') + (c.risky && a.on ? ' This gives access to sensitive customer information or team settings.' : '') + '</p>' +
+      (a.kind === 'person' && a.allow !== null ? '<label class="ccs-label" for="pm-reason">Reason (kept in the audit log)</label><input class="ccs-input" id="pm-reason" maxlength="200" value="' + esc(a.reason || '') + '" placeholder="For example: covering the manager this week">' : '') +
+      '<div class="ccs-actions-row"><button type="button" class="ccs-btn' + (a.on || a.undo ? '' : ' ccs-danger') + '" data-act="pm-yes">' + (a.undo ? 'Yes, undo it' : a.on ? 'Yes, switch on' : 'Yes, switch off') + '</button><button type="button" class="ccs-btn ccs-ghost" data-act="pm-no">Cancel</button></div></div>';
+  }
+  function permPeople(d) {
+    var p = S.perm, staff = d.staff || [], u = staff.filter(function (x) { return x.user_id === p.user; })[0] || staff[0];
+    if (!u) return '<p class="ccs-quiet">No staff yet.</p>';
+    p.user = u.user_id;
+    var lv = d.levels.filter(function (l) { return l.id === u.level_id; })[0] || { perms: [] }, ov = {};
+    (u.overrides || []).forEach(function (o) { ov[o.key] = o; });
+    var h = '<div class="ccs-chips pm-pick" role="group" aria-label="Person">' + staff.map(function (x) { return '<button type="button" class="ccs-chip" data-act="pm-user" data-v="' + x.user_id + '" aria-pressed="' + (x.user_id === u.user_id) + '">' + esc(x.name) + (x.me ? ' (you)' : '') + '</button>'; }).join('') + '</div>';
+    h += '<dl class="ccs-kv pm-who"><dt>Access level</dt><dd>' + esc(u.level || 'None') + '</dd><dt>Restaurant</dt><dd>' + esc(u.location || 'Corner Café') + '</dd><dt>Account</dt><dd>' + (u.active ? 'Can sign in' : 'Switched off') + '</dd><dt>Last sign-in</dt><dd>' + (u.last_sign_in ? esc(stamp(u.last_sign_in)) : 'Not yet') + '</dd><dt>Exceptions</dt><dd>' + ((u.overrides || []).length ? (u.overrides || []).length + ' set for this person' : 'None, everything comes from the level') + '</dd></dl>';
+    return h + PM_MOD.map(function (m) {
+      var cs = d.catalogue.filter(function (c) { return c.module === m[0]; }), live = cs.some(function (c) { return c.live; });
+      return '<section class="pm-mod"><h4>' + m[1] + (live ? '' : ' <span class="pm-later">Follows the level\'s ticks for now</span>') + '</h4>' + cs.map(function (c) {
+        var fromLv = lv.perms.indexOf(c.key) > -1, o = ov[c.key], on = o ? o.allow : fromLv;
+        var src = o ? '<span class="pm-src ' + (o.allow ? 'is-add' : 'is-rem') + '">' + (o.allow ? 'Added for this person' : 'Removed for this person') + '</span><small class="pm-why">' + esc(o.reason + (o.by ? ' · ' + o.by : '') + (o.at ? ', ' + stamp(o.at) : '')) + '</small>' : '<span class="pm-src">From the level</span>';
+        var act = !c.live ? '' : o ? '<button type="button" class="ccs-link" data-act="pm-ov" data-k="' + c.key + '" data-allow="">Undo exception</button>' : '<button type="button" class="ccs-link" data-act="pm-ov" data-k="' + c.key + '" data-allow="' + (!fromLv) + '">' + (fromLv ? 'Remove for this person' : 'Add for this person') + '</button>';
+        var ask = p.ask && p.ask.kind === 'person' && p.ask.key === c.key && p.ask.id === u.user_id;
+        return '<div class="pm-row pm-prow' + (c.live ? '' : ' is-ro') + '">' + permRowMeta(c) + '<span class="pm-state"><b class="' + (on ? 'is-on' : '') + '">' + (on ? 'On' : 'Off') + '</b>' + src + '</span><span class="pm-act">' + act + '</span></div>' + (ask ? permAsk(c, u.name) : '');
+      }).join('') + '</section>';
+    }).join('');
+  }
+  function permAct(a, b, v) {
+    var p = S.perm, d = p.data;
+    if (a === 'pm-reload') { p.err = null; permLoad(); view(); return; }
+    if (a === 'pm-tab') { p.tab = v; p.ask = null; p.msg = null; view(); return; }
+    if (a === 'pm-level') { p.level = v; p.ask = null; p.msg = null; view(); return; }
+    if (a === 'pm-user') { p.user = v; p.ask = null; p.msg = null; view(); return; }
+    if (a === 'pm-no') { p.ask = null; view(); return; }
+    if (a === 'pm-lv') { p.ask = { kind: 'level', id: p.level, key: b.dataset.k, on: b.dataset.on === 'true' }; p.msg = null; view(); return; }
+    if (a === 'pm-ov') { var al = b.dataset.allow === '' ? null : b.dataset.allow === 'true'; p.ask = { kind: 'person', id: p.user, key: b.dataset.k, allow: al, on: al === true, undo: al === null }; p.msg = null; view(); setTimeout(function () { var r = document.getElementById('pm-reason'); if (r) r.focus(); }, 30); return; }
+    if (a === 'pm-yes') {
+      var k = p.ask; if (!k) return;
+      var reason = (document.getElementById('pm-reason') || {}).value || '';
+      if (k.kind === 'person' && k.allow !== null && !reason.trim()) { k.reason = reason; p.msg = 'Add a short reason.'; view(); return; }
+      markBusy(b, 'Saving…');
+      var call = k.kind === 'level' ? sb.rpc('admin_level_perm', { p_level: k.id, p_key: k.key, p_on: k.on, p_confirm: true })
+        : sb.rpc('admin_staff_perm', { p_user: k.id, p_key: k.key, p_allow: k.allow, p_reason: reason.trim() || null, p_confirm: true });
+      call.then(function (r) {
+        clearBusy(); if (r.error) throw r.error;
+        if (!r.data.ok) { p.msg = r.data.message; p.ask = null; view(); return; }
+        toast('Saved'); p.ask = null; p.msg = null; permLoad();
+        sb.rpc('my_access').then(function (m) { accessSet(m); view(); }, function () {});
+      }).catch(function (e) { clearBusy(); fail(e); });
+    }
+  }
+  document.addEventListener('toggle', function (e) { var d = e.target; if (d && d.dataset && d.dataset.pmopen !== undefined) S.perm.open = d.open; }, true);

@@ -66,7 +66,12 @@
   // What the signed-in person can do: the abilities of their access level (falls back to their single role)
   function grants() { return (S.me && S.me.grants && S.me.grants.length) ? S.me.grants : (S.me ? [S.me.role] : []); }
   function can() { if (!S.me) return false; var g = grants(); if (g.indexOf('admin') > -1) return true; for (var i = 0; i < arguments.length; i++) if (g.indexOf(arguments[i]) > -1) return true; return false; }
-  function accessSet(r) { var A = r && r.data; S.me.grants = A && A.ok && A.grants && A.grants.length ? A.grants : [S.me.role]; S.me.level_name = A && A.ok ? A.level_name || '' : ''; }
+  function accessSet(r) { var A = r && r.data; S.me.grants = A && A.ok && A.grants && A.grants.length ? A.grants : [S.me.role]; S.me.level_name = A && A.ok ? A.level_name || '' : ''; S.me.perms = A && A.ok && Array.isArray(A.perms) ? A.perms : null; }
+  // Switches (Settings, Permissions). Until the database has them, each switch follows the old level ticks.
+  var PERM_LEGACY = { 'cust.view': ['manager', 'front_of_house', 'finance', 'marketing'], 'cust.create': ['manager', 'front_of_house'], 'cust.edit': ['manager', 'front_of_house'], 'cust.consent': ['manager', 'front_of_house', 'marketing'],
+    'cust.history': ['manager', 'front_of_house', 'finance', 'marketing'], 'cust.comms': ['manager'], 'cust.followup': ['manager', 'front_of_house', 'marketing'], 'cust.oversee': ['manager'], 'cust.merge': ['manager'], 'cust.export': ['manager', 'marketing'],
+    'mgmt.analytics': ['marketing'], 'staff.permissions': ['admin'] };
+  function canP(k) { if (!S.me) return false; if (S.me.perms) return S.me.perms.indexOf(k) > -1; var r = PERM_LEGACY[k]; return r ? can.apply(null, r) : false; }
   // Abilities an admin can tick for an access level (each one is an existing set of permissions in the database)
   var ABIL = [
     ['front_of_house', 'Counter work', 'Today, orders, calendar, the kitchen board, taking new orders and payments, handing over cakes. Cannot cancel an order that has money paid on it.'],
@@ -170,7 +175,7 @@
     if (can('manager', 'front_of_house')) tabs.push(['kitchen', 'Kitchen']);
     if (can('marketing', 'manager')) tabs.push(['dash', 'Dashboard']);
     if (can('manager')) tabs.push(['register', 'Register']);
-    if (can('manager', 'finance', 'marketing')) tabs.push(['customers', 'Customers']);
+    if (canP('cust.view') && can('manager', 'finance', 'marketing')) tabs.push(['customers', 'Customers']);
     if (can('manager')) tabs.push(['settings', 'Settings']);
     tabs.push(['more', 'More']);
     return tabs;
@@ -623,7 +628,7 @@
     h += '<section class="ccs-box"><h3>Signed in</h3><p class="ccs-big">' + esc(S.me.full_name || '') + '</p><p class="ccs-hint">' + esc(role) + '</p></section>';
     var links = '';
     if (can('manager', 'front_of_house')) links += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-tab="kitchen">Kitchen</button>';
-    if (can('manager', 'finance', 'marketing')) links += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-tab="customers">Customers</button>';
+    if (canP('cust.view') && can('manager', 'finance', 'marketing')) links += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-tab="customers">Customers</button>';
     if (can('marketing', 'manager')) links += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-tab="dash">Dashboard</button>';
     if (can('manager')) links += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-tab="register">Cake register</button>';
     if (can('manager')) links += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-tab="settings">Settings</button>';
@@ -691,7 +696,7 @@
         (o.profile && o.profile.full_name && o.profile.full_name !== c.full_name ? kv('Profile name', o.profile.full_name + ' (the name on this order is kept as it was)') : '') +
         (S.sheet.custOrders != null ? kv('History', S.sheet.custOrders > 1 ? 'Returning customer, ' + S.sheet.custOrders + ' orders' : 'First order') : '') + '</dl>' +
         '<div class="ccs-actions-row"><a class="ccs-btn ccs-ghost" href="' + esc(waLink(c.phone)) + '" target="_blank" rel="noopener">WhatsApp</a><a class="ccs-btn ccs-ghost" href="tel:' + esc(digits(c.phone)) + '">Call</a>' +
-        (can('manager', 'finance', 'marketing') ? '<button type="button" class="ccs-btn ccs-ghost" data-act="open-customer" data-id="' + c.id + '">Customer profile</button>' : '') + '</div>' + orderFuBox(o) + '</section>';
+        (canP('cust.view') && can('manager', 'finance', 'marketing') ? '<button type="button" class="ccs-btn ccs-ghost" data-act="open-customer" data-id="' + c.id + '">Customer profile</button>' : '') + '</div>' + orderFuBox(o) + '</section>';
     }
     h += mailBox(o);
     cut.push(['payment', h.length]);
@@ -2740,11 +2745,11 @@
   }
   function customersView() {
     var c = clState();
-    if (c.mode === 'dups' && can('manager')) return clDupsView();
+    if (c.mode === 'dups' && canP('cust.merge')) return clDupsView();
     if (c.mode === 'log') return s5LogView();
     var h = '<div class="ccs-head"><div><h1 class="ccs-title">Customers</h1><p class="ccs-sub">Spend counts collected orders only.</p></div>' +
       '<div class="ccs-headacts"><input class="ccs-input ccs-search" id="ccs-cq" aria-label="Search customers" type="search" placeholder="Name, mobile, email or C-number" value="' + esc(c.q) + '">' +
-      (can('manager', 'front_of_house') ? '<button type="button" class="ccs-btn ccs-ghost" data-act="cust-new">Add customer</button>' : '') + '</div></div>';
+      (canP('cust.create') ? '<button type="button" class="ccs-btn ccs-ghost" data-act="cust-new">Add customer</button>' : '') + '</div></div>';
     if (c.q.trim().length >= 2) h += '<p class="ccs-hint cm-gline">Search results. Clear the search to use filters and groups.</p>';
     else { var cs = crmSec(); h += crmBar(cs); if (cs !== 'all') return h + crmView(cs); h += remindersBox() + clToolbar(); }
     if (!c.loaded) return h + (c.loadErr ? loadErr(c.loadErr, 'cust-reload') : '<p class="ccs-loading">Loading customers…</p>');
@@ -2815,7 +2820,7 @@
   function customerSheet() {
     var d = S.sheet.data;
     if (!d) return sheetHead(S.sheet.err ? 'Customer' : 'Loading…') + '<div class="ccs-sheet-body">' + (S.sheet.err ? loadErr(S.sheet.err, 'cust-reopen') : '<p class="ccs-loading">Loading customer…</p>') + '</div>';
-    var s = d.sum, c = d.c, editor = can('manager', 'front_of_house');
+    var s = d.sum, c = d.c, editor = canP('cust.edit');
     var segs = [['seg_repeat', 'Repeat'], ['seg_first_time', 'First-time'], ['seg_high_value', 'High value'], ['seg_inactive', 'Inactive'], ['seg_birthday_buyer', 'Birthday buyer'], ['seg_corporate', 'Corporate']].filter(function (x) { return s[x[0]]; });
     var h = sheetHead(esc(c.full_name)) + '<div class="ccs-sheet-body">';
     h += '<p class="ccs-hint">Customer ' + esc(custNo(c.customer_no)) + (c.archived_at ? ' · Archived' : '') + '</p>';
@@ -2842,7 +2847,7 @@
         row('Groups', segs.map(function (x) { return x[1]; }).join(', ')) + row('Marketing', mk) + '</tbody></table>' +
         '<div class="ccs-actions-row ccs-more-row">' +
         (editor ? '<button type="button" class="ccs-btn ccs-ghost" data-act="cust-edit">Edit details</button>' : '') +
-        (can('manager') ? '<button type="button" class="ccs-btn ccs-ghost" data-act="cust-history">' + (S.sheet.hist ? 'Hide change history' : 'Change history') + '</button>' : '') +
+        (canP('cust.comms') ? '<button type="button" class="ccs-btn ccs-ghost" data-act="cust-history">' + (S.sheet.hist ? 'Hide change history' : 'Change history') + '</button>' : '') +
         '<button type="button" class="ccs-btn ccs-ghost" data-act="ws-cm-s5-rep" aria-expanded="' + !!S.sheet.rep + '">Customer report</button></div>';
       h += s5ReportPanel();
       if (S.sheet.hist) h += customerHistory();
@@ -3241,6 +3246,7 @@
       '<button type="button" class="ccs-btn ccs-ghost" data-act="save-zones">Save delivery areas</button><div class="ccs-row" style="align-items:end">' + sf('dz-new-n', 'New area', '', 'text') + sf('dz-new-f', 'Fee (FJD)', '') + '<button type="button" class="ccs-btn ccs-ghost" data-act="add-zone">Add area</button></div></div></details>';
     h += s5PermView(st) + s5BackupCheckView(st) + alertsView(st) + printView(st);
     h += levelsView(st);
+    h += permView();
     if (st.team) {
       var tm = st.tmDraft || {};
       h += '<details' + (st.tmOpen ? ' open' : '') + '><summary>Team and access <span>' + st.team.filter(function (u) { return u.active; }).length + ' with access</span></summary><div class="ccs-set-body">';
@@ -3647,6 +3653,7 @@
     var a = b.dataset.act, v = b.dataset.v;
     if (a.indexOf('dx-') === 0) { try { dashAct(a, b, v); } catch (err) { fail(err); } return; }
     if (a.indexOf('rg-') === 0) { try { regAct(a, b, v); } catch (err) { fail(err); } return; }
+    if (a.indexOf('pm-') === 0) { try { permAct(a, b, v); } catch (err) { fail(err); } return; }
     if (a === 'ws-cm-tools') { S.cust.tools = !S.cust.tools; view(); return; }
     if (a.indexOf('ws-cm-') === 0) { if (S.cust) S.cust.tools = false; try { clAct(a, b, v); } catch (err) { fail(err); } return; }
     if (SET_SAVES[a] && b.closest('.ccs-set details')) S.setSaved = setSec(b);
