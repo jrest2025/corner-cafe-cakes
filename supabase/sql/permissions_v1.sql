@@ -98,17 +98,17 @@ language sql stable set search_path = public as $$
   ) k where k in (select key from public.permissions)) end
 $$$X$;
 execute $X$insert into public.level_permissions (level_id, perm_key)
-select l.id, k from public.access_levels l, unnest(public._perm_defaults(l.grants)) k
+select l.id, k from public.access_levels l, unnest(public._perm_defaults(l.grants::text[])) k
 where not exists (select 1 from public.level_permissions lp where lp.level_id = l.id)
 on conflict do nothing$X$;
 execute $X$create or replace function public._level_perm_sync() returns trigger
 language plpgsql security definer set search_path = public as $$
 begin
   if tg_op = 'INSERT' then
-    insert into public.level_permissions (level_id, perm_key) select new.id, k from unnest(public._perm_defaults(new.grants)) k on conflict do nothing;
+    insert into public.level_permissions (level_id, perm_key) select new.id, k from unnest(public._perm_defaults(new.grants::text[])) k on conflict do nothing;
   elsif new.grants is distinct from old.grants then
     delete from public.level_permissions lp using public.permissions p where lp.level_id = new.id and p.key = lp.perm_key and not p.live;
-    insert into public.level_permissions (level_id, perm_key) select new.id, k from unnest(public._perm_defaults(new.grants)) k join public.permissions p on p.key = k and not p.live on conflict do nothing;
+    insert into public.level_permissions (level_id, perm_key) select new.id, k from unnest(public._perm_defaults(new.grants::text[])) k join public.permissions p on p.key = k and not p.live on conflict do nothing;
   end if;
   return new;
 end $$$X$;
@@ -210,7 +210,7 @@ end $$$X$;
 execute $X$revoke all on function public.admin_perms(), public.admin_level_perm(uuid,text,boolean,boolean), public.admin_staff_perm(uuid,text,boolean,text,boolean) from public, anon$X$;
 execute $X$grant execute on function public.admin_perms(), public.admin_level_perm(uuid,text,boolean,boolean), public.admin_staff_perm(uuid,text,boolean,text,boolean) to authenticated$X$;
 execute $X$insert into public.access_levels (name, grants, built_in, sort)
-select x.n, x.g, false, x.s from (values ('Supervisor', array['front_of_house']::text[], 4), ('Restaurant Manager', array['manager']::text[], 5), ('Group Management', array['manager','finance','marketing']::text[], 6)) x(n, g, s)
+select x.n, x.g, false, x.s from (values ('Supervisor', array['front_of_house']::public.staff_role[], 4), ('Restaurant Manager', array['manager']::public.staff_role[], 5), ('Group Management', array['manager','finance','marketing']::public.staff_role[], 6)) x(n, g, s)
 where not exists (select 1 from public.access_levels l where lower(l.name) = lower(x.n))$X$;
 execute $X$insert into public.level_permissions (level_id, perm_key) select id, 'cust.oversee' from public.access_levels where name = 'Supervisor' on conflict do nothing$X$;
 execute $X$do $migrate$
