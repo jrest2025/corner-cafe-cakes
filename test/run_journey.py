@@ -83,6 +83,7 @@ async def main():
         # 5. Make it in the kitchen
         await js(pg, '#ccs-sheet [data-act="close"]'); await pg.wait_for_timeout(300)
         await pg.evaluate("(function(){var e=[].slice.call(document.querySelectorAll('[data-tab=kitchen]')).pop(); e&&e.click()})()"); await pg.wait_for_timeout(700)
+        await js(pg, '[data-act="k-range"][data-v="7"]'); await pg.wait_for_timeout(300)  # the cake is due later this week
         check('kitchen board shows the cake under To start', 'CC-1009' in await pg.inner_text('.ccs-col-start'))
         await shot(pg, 'kitchen-to-start')
         for _ in range(6):

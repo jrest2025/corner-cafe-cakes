@@ -2025,3 +2025,8 @@ body.ccs-is-off #cc-staff .ccs-side { top: var(--ccs-offh, 44px); }
   #cc-staff .tp-ovn b { font-size: 22px; } #cc-staff .tp-ovn span { font-size: 12px; }
 }
 @media (max-width: 340px) { #cc-staff .tp-acts { grid-template-columns: minmax(0, 1fr); } }
+/* Kitchen: three large cards above the board */
+#cc-staff .kp-acts { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+#cc-staff .kp-focus { margin: 4px 0 8px; font-size: 14px; color: #526176; }
+@media (max-width: 900px) { #cc-staff .kp-acts { grid-template-columns: minmax(0, 1fr); } #cc-staff .kp-act { min-height: 96px; } }
+@media (max-width: 640px) { #cc-staff .kp-act { grid-template-columns: 40px minmax(0, 1fr); grid-template-rows: auto; min-height: 0; align-items: center; } }

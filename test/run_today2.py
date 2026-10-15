@@ -66,7 +66,7 @@ async def main():
         await ctx.close()
         ctx, pg = await page(b, {'width': 1280, 'height': 900}, errs, 'kitchen')
         t = await pg.inner_text('#ccs-main')
-        check('kitchen: lands on the kitchen board, unchanged', await pg.locator('.tp-act').count() == 0 and 'What would you like to do' not in t)
+        check('kitchen: lands on the kitchen board with its own cards', await pg.locator('.kp-act').count() == 3 and 'What would you like to do' not in t)
         await ctx.close()
         check('no page errors', not errs, errs)
         await b.close()

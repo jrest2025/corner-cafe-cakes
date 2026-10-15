@@ -1320,7 +1320,7 @@
 
   // ---------- kitchen screen ----------
   function loadKitchen(silent) {
-    return sb.rpc('kitchen_board', { p_from: null, p_days: S.kit.days }).then(function (r) {
+    return sb.rpc('kitchen_board', { p_from: null, p_days: 7 }).then(function (r) {
       if (r.error) throw r.error;
       if (!r.data.ok) throw userErr(r.data.message);
       S.kit.data = r.data; S.kit.loaded = true; S.kit.err = null; S.kit.fails = 0; S.kit.at = Date.now();
@@ -1366,11 +1366,25 @@
   }
   function kitchenView() {
     var K = S.kit, t = today();
-    var h = '<div class="ccs-head"><div><h1 class="ccs-title">Kitchen</h1><p class="ccs-sub">' + esc(nice(t, true)) + '. Confirmed cakes only.</p>' + (K.loaded ? freshLine(K.at, K.fails, 'k-reload') : '') + '</div>' +
+    var h = '<div class="ccs-head tp-head"><div><p class="ccs-eyebrow">Corner Café · Kitchen</p><h1 class="ccs-title">What\'s on today?</h1><p class="tp-sub">' + esc(nice(t, true)) + '. Confirmed cakes only.</p>' + (K.loaded ? freshLine(K.at, K.fails, 'k-reload') : '') + '</div>' +
       '<div class="ccs-chips ccs-segs" role="group" aria-label="Range">' + [[2, 'Today and tomorrow'], [7, 'Next 7 days']].map(function (c) { return '<button type="button" class="ccs-chip" data-act="k-range" data-v="' + c[0] + '" aria-pressed="' + (K.days === c[0]) + '">' + c[1] + '</button>'; }).join('') + '</div>' +
       '<button type="button" class="ccs-chip ccs-kdone-chip" data-act="k-done" aria-pressed="' + !!K.showDone + '">Show handed over</button></div>';
     if (!K.loaded) return h + (K.err ? loadErr(K.err, 'k-reload') : '<p class="ccs-loading">Loading the kitchen board…</p>');
-    var rows = K.data.orders || [];
+    var all = K.data.orders || [], lastDay = addDays(t, K.days - 1);
+    // Three large cards, counted from the same board rows they open
+    var nowH = Number(new Intl.DateTimeFormat('en-GB', { timeZone: TZ, hour: 'numeric', minute: 'numeric', hour12: false }).format(new Date()).replace(':', '.'));
+    var open = all.filter(function (r) { return r.status === 'confirmed'; });
+    var mk = open.filter(function (r) { return r.date <= t && r.stage !== 'ready'; }), rdy = open.filter(function (r) { return r.stage === 'ready'; }), soon = open.filter(function (r) { return r.date > t; });
+    var hr = function (r) { var p = String(r.time || '23:59').split(':'); return Number(p[0]) + Number(p[1] || 0) / 100; };
+    var near = mk.filter(function (r) { return r.date < t || hr(r) - nowH <= 3; });
+    var kc = function (v, icon, title, sub, count) { return '<button type="button" class="tp-act kp-act" data-act="k-card" data-v="' + v + '"><span class="tp-ic" aria-hidden="true"><svg viewBox="0 0 24 24">' + icon + '</svg></span><span class="tp-at"><b>' + title + '</b><span>' + sub + '</span><em>' + count + '</em></span><span class="tp-go" aria-hidden="true">›</span></button>'; };
+    h += '<div class="tp-acts kp-acts" role="group" aria-label="What\'s on today?">' +
+      kc('today', '<path d="M4 20h16M6 20v-6h12v6M8 14v-3h8v3M12 11V8M12 8c-1-1.2-1-2.4 0-3.5 1 1.1 1 2.3 0 3.5z"/>', 'To make today', 'Due today or late, not ready yet.', mk.length ? mk.length + (mk.length === 1 ? ' cake' : ' cakes') : 'Nothing left to make today') +
+      kc('ready', '<circle cx="12" cy="12" r="8"/><path d="M8.5 12.2l2.4 2.4 4.6-5"/>', 'Ready to hand over', 'Marked Ready, waiting for the customer.', rdy.length ? rdy.length + (rdy.length === 1 ? ' cake' : ' cakes') : 'None waiting') +
+      kc('soon', '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>', 'Coming up', 'The next 7 days, so prep can start early.', soon.length ? soon.length + (soon.length === 1 ? ' cake' : ' cakes') : 'Nothing booked yet') + '</div>';
+    if (near.length) h += '<div class="tp-urgent" role="status"><button type="button" class="tp-urg" data-act="k-card" data-v="today"><b>!</b><span>' + near.length + (near.length === 1 ? ' cake is late or due in the next 3 hours and is' : ' cakes are late or due in the next 3 hours and are') + ' not ready yet.</span><em>View</em></button></div>';
+    var rows = all.filter(function (r) { return r.date <= lastDay && (!K.focus || (r.date <= t && r.status === 'confirmed' && r.stage !== 'ready')); });
+    if (K.focus) h += '<p class="kp-focus">Showing cakes to make today, including late ones. <button type="button" class="ccs-link" data-act="k-focus-off">Show all</button></p>';
     var groups = {}; KCOLS.forEach(function (c) { groups[c[0]] = []; });
     rows.forEach(function (r) {
       if (r.status === 'completed') return groups.done.push(r);
@@ -3771,7 +3785,9 @@
         case 'k-ready': kitStage('ready', val('k-qc').trim()); break;
         case 'k-assign': kitAssign(); break;
         case 'k-done': S.kit.showDone = !S.kit.showDone; view(); break;
-        case 'k-range': S.kit.days = Number(v); S.kit.loaded = false; view(); loadKitchen(); break;
+        case 'k-range': S.kit.days = Number(v); S.kit.focus = null; view(); break;
+        case 'k-card': var KK = S.kit; KK.focus = v === 'today' ? 'today' : null; if (v === 'ready') { secStore('kitP').kitP = 'ready'; KK.days = 7; } if (v === 'soon') { KK.days = 7; } if (v === 'today') { KK.days = 2; } view(); setTimeout(function () { var bd = document.querySelector('.kp-bar') || document.querySelector('.ccs-board'); if (bd && bd.scrollIntoView) bd.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 30); break;
+        case 'k-focus-off': S.kit.focus = null; view(); break;
         case 'k-refresh': loadKitchen(); break;
         case 'am-set': amendSet(b.dataset.f, v); break;
         case 'am-diet': var dl_ = S.am.diets.indexOf(v); if (dl_ > -1) S.am.diets.splice(dl_, 1); else S.am.diets.push(v); S.am.preview = null; renderSheet(); break;
