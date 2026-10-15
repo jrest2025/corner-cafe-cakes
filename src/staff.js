@@ -457,7 +457,7 @@
       upcoming: S.orders.filter(function (o) { return o.required_date >= t && OPEN.indexOf(o.order_status) > -1; }).length,
       overdue: S.orders.filter(isOverdue).length
     };
-    var chips = [['action', 'Needs attention', counts.action], ['today', 'Today', counts.today], ['upcoming', 'Upcoming', counts.upcoming]];
+    var chips = [['action', 'Waiting on you', counts.action], ['today', 'Today', counts.today], ['upcoming', 'Upcoming', counts.upcoming]];
     if (counts.overdue || S.filter === 'overdue') chips.push(['overdue', 'Overdue', counts.overdue]);
     chips.push(['deposit', 'Payments due', null], ['recent', 'All, 45 days back and ahead', null]);
     if (S.filter === 'day' && S.day) chips.push(['day', dayLabel(S.day), null]);
@@ -488,41 +488,61 @@
     return '<button type="button" class="ccs-kpi' + (tone ? ' t-' + tone : '') + '" data-act="' + act + '" data-v="' + v + '"><span class="ccs-kpi-l">' + label + '</span><b class="ccs-kpi-n">' + num + '</b><span class="ccs-kpi-s">' + sub + '</span></button>';
   }
   function plural(n, one, many) { return n + ' ' + (n === 1 ? one : many); }
-  function miniRow(o, showTime) {
+  var NEXT_BTN = { awaiting_review: 'Check and confirm', awaiting_quote: 'Add the price', awaiting_approval: 'Record their yes', awaiting_deposit: 'Record the deposit' };
+  function miniRow(o, showTime, withAct) {
     var i = firstItem(o), c = o.customers, st = STATUS[o.order_status] || ['', 'off'];
     return '<button type="button" class="ccs-mini k-' + st[1] + (isOverdue(o) || o.has_dietary ? ' is-red' : '') + (o.id === S.justAdded ? ' is-new' : '') + '" data-act="open-order" data-id="' + o.id + '">' +
       '<span class="ccs-mini-t">' + (showTime ? esc(t12(o.required_time)) : esc(nice(o.required_date)) + '<small>' + esc(t12(o.required_time)) + '</small>') + '</span>' +
-      '<span class="ccs-mini-m"><b>' + esc(cakeLine(i)) + '</b><span>' + esc(c ? c.full_name : '') + ' · ' + esc(o.reference) + (receivedShort(o) ? ' · ' + esc(receivedShort(o)) : '') + '</span>' + nextHtml(o) + '</span>' +
+      '<span class="ccs-mini-m"><b>' + esc(cakeLine(i)) + '</b><span>' + esc(c ? c.full_name : '') + ' · ' + esc(o.reference) + (receivedShort(o) ? ' · ' + esc(receivedShort(o)) : '') + '</span>' + (withAct && NEXT_BTN[o.order_status] && can('manager', 'front_of_house') ? '' : nextHtml(o)) + (withAct && NEXT_BTN[o.order_status] && (o.order_status === 'awaiting_deposit' ? can('manager', 'finance', 'front_of_house') : can('manager', 'front_of_house')) ? '<span class="tp-nb">' + NEXT_BTN[o.order_status] + '</span>' : '') + '</span>' +
       '<span class="ccs-mini-r">' + (o.order_status === 'confirmed' ? stagePill(o.production_status) : pill(o.order_status, o.fulfilment_method)) + ((o.order_status === 'confirmed' || o.order_status === 'awaiting_deposit') && o.payment_status !== 'paid' && can('manager', 'finance', 'front_of_house') ? payPill(o.payment_status) : '') + (o.fulfilment_method === 'delivery' ? '<span class="ccs-pill s-info">Delivery</span>' : '') + (o.has_dietary && !dietUnsure(o) ? '<span class="ccs-pill s-alert">Dietary or allergy</span>' : '') + reviewFlags(o) + '</span></button>';
   }
   function todayView() {
     var t = today(), wkEnd = addDays(t, 6), money_ = can('manager', 'finance', 'front_of_house');
     var first = ((S.me && S.me.full_name) || '').trim().split(' ')[0];
-    var h = '<div class="ccs-dash-head"><div><p class="ccs-eyebrow">' + esc(nice(t, true)) + '</p><h1 class="ccs-title">' + greet() + (first ? ', ' + esc(first) : '') + '</h1>' + (S.loaded ? freshLine(S.ordAt, S.ordFails, 'reload-orders') : '') + '</div>' +
+    var who = (S.me && S.me.level_name) || (can('admin') ? 'Admin' : can('manager') ? 'Manager' : 'Counter');
+    var h = '<div class="ccs-dash-head tp-head"><div><p class="ccs-eyebrow">Corner Café · ' + esc(who) + '</p><h1 class="ccs-title">' + greet() + '! What would you like to do?</h1><p class="tp-sub">' + esc(nice(t, true)) + '</p>' + (S.loaded ? freshLine(S.ordAt, S.ordFails, 'reload-orders') : '') + '</div>' +
       (can('manager', 'front_of_house') ? '<button type="button" class="ccs-btn ccs-btn-hero ccs-new" data-tab="new">' + NAV_ICON['new'] + 'New order</button>' : '') + '</div>';
-    h += '<div class="tp-find"><input class="ccs-input ccs-search" id="tp-q" type="search" aria-label="Find an order" placeholder="Find an order: name or mobile" autocomplete="off"></div>';
     if (draftHasContent() && can('manager', 'front_of_house')) h += '<div class="ccs-note ccs-draftbar"><span>Unfinished order' + (draftWho() ? ' for ' + esc(draftWho()) : '') + '.</span><button type="button" class="ccs-btn ccs-ghost" data-tab="new">Continue it</button></div>';
     if (!S.loaded) return h + (S.ordErr ? loadErr(S.ordErr, 'reload-orders') : '<p class="ccs-loading">Loading today…</p>');
     if (S.mir && can('manager') && (S.mir.state === 'attention' || S.mir.state === 'not_set_up')) h += '<p class="ccs-note ccs-mirnote">' + (S.mir.state === 'not_set_up' ? 'The backup Google Sheet is not set up yet.' : 'The backup Google Sheet has not updated since ' + esc(when(S.mir.last_ack_at) || 'it was set up') + '.') + ' <button type="button" class="ccs-link" data-tab="settings">Check backup</button></p>';
     var overdue = S.orders.filter(isOverdue).sort(function (a, b) { return (a.required_date + a.required_time) < (b.required_date + b.required_time) ? -1 : 1; });
-    if (overdue.length && can('manager', 'front_of_house', 'finance')) h += '<section class="ccs-panel-card ccs-overdue tp-card" aria-label="Overdue"><div class="ccs-card-head"><h2>Overdue (' + overdue.length + ')</h2>' + (overdue.length > 3 ? '<button type="button" class="ccs-link" data-act="goto" data-v="overdue">See all ' + overdue.length + '</button>' : '') + '</div><p class="ccs-hint">Hand over, cancel or change the date.</p><div class="ccs-minis">' + overdue.slice(0, 3).map(function (o) { return miniRow(o, false); }).join('') + '</div></section>';
+    // Level 2: only what is genuinely urgent, one line each
+    var soonUnconf = S.orders.filter(function (o) { return NEEDS.indexOf(o.order_status) > -1 && o.required_date >= t && o.required_date <= addDays(t, 2); });
+    var urg = [];
+    if (overdue.length && can('manager', 'front_of_house', 'finance')) urg.push(['overdue', overdue.length + (overdue.length === 1 ? ' collection is overdue.' : ' collections are overdue.') + ' Hand over, cancel or change the date.']);
+    if (soonUnconf.length) urg.push(['action', soonUnconf.length + (soonUnconf.length === 1 ? ' order for the next 2 days is' : ' orders for the next 2 days are') + ' not confirmed yet.']);
+    var urgH = !urg.length ? '' : '<div class="tp-urgent" role="status">' + urg.map(function (u) { return '<button type="button" class="tp-urg" data-act="goto" data-v="' + u[0] + '"><b>!</b><span>' + esc(u[1]) + '</span><em>View</em></button>'; }).join('') + '</div>';
     var live = S.orders.filter(function (o) { return o.order_status !== 'declined' && o.order_status !== 'cancelled'; });
+    var needs0 = S.orders.filter(function (o) { return NEEDS.indexOf(o.order_status) > -1; }), todays0 = live.filter(function (o) { return o.required_date === t; });
+    var done0 = todays0.filter(function (o) { return o.order_status === 'completed'; }).length, toConfirm = S.orders.filter(function (o) { return o.order_status === 'awaiting_review' || o.order_status === 'awaiting_approval'; });
+    var orderer = can('manager', 'front_of_house');
+    // Level 1: four large actions. Counts use the same lists they open.
+    var card = function (attrs, icon, title, sub, count) { return '<button type="button" class="tp-act" ' + attrs + '><span class="tp-ic" aria-hidden="true"><svg viewBox="0 0 24 24">' + icon + '</svg></span><span class="tp-at"><b>' + title + '</b><span>' + sub + '</span>' + (count ? '<em>' + count + '</em>' : '') + '</span><span class="tp-go" aria-hidden="true">›</span></button>'; };
+    h += '<div class="tp-acts" role="group" aria-label="What would you like to do?">' +
+      (orderer ? card('data-tab="new"', '<path d="M4 20h16M6 20v-6h12v6M8 14v-3h8v3M12 11V8M12 8c-1-1.2-1-2.4 0-3.5 1 1.1 1 2.3 0 3.5z"/><path d="M18 4v4M16 6h4"/>', 'New cake order', 'Someone wants to order a cake.', '') : '') +
+      card('data-act="tp-find"', '<circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/>', 'Find an order', 'Check or update an order.', '') +
+      card('data-act="goto" data-v="today"', '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4M9 15l2 2 4-4"/>', 'Today\'s pickups', 'Cakes going out today.', todays0.length ? todays0.length + (todays0.length === 1 ? ' cake due' : ' cakes due') + ' · ' + done0 + ' handed over' : 'No cakes due today') +
+      card('data-act="goto" data-v="action"', '<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4h6v3H9zM9 12h6M9 16h4"/>', 'Waiting on you', 'Orders that need your attention.', needs0.length ? needs0.length + (needs0.length === 1 ? ' order needs action' : ' orders need action') : 'All caught up') + '</div>' + urgH;
     var needs = S.orders.filter(function (o) { return NEEDS.indexOf(o.order_status) > -1; }).sort(function (a, b) { if (a.id === S.justAdded) return -1; if (b.id === S.justAdded) return 1; return (a.required_date + a.required_time) < (b.required_date + b.required_time) ? -1 : 1; });
     var todays = live.filter(function (o) { return o.required_date === t; }).sort(function (a, b) { return a.required_time < b.required_time ? -1 : 1; });
     var collected = todays.filter(function (o) { return o.order_status === 'completed'; }).length;
     var week = live.filter(function (o) { return o.required_date >= t && o.required_date <= wkEnd && OPEN.concat(['completed']).indexOf(o.order_status) > -1; });
     var owing = live.filter(function (o) { return o.order_status === 'awaiting_deposit' || (o.order_status === 'confirmed' && o.payment_status !== 'paid'); });
     var weekValue = week.filter(function (o) { return o.order_status === 'confirmed' || o.order_status === 'completed'; }).reduce(function (s, o) { return s + orderTotal(o); }, 0);
-    h += '<div class="ccs-kpis ccs-kpis-row">' +
+    h += '<section class="tp-ov" aria-label="Today\'s overview"><h2>Today\'s overview</h2><div class="tp-ovn">' +
+      '<button type="button" data-act="goto" data-v="today"><b>' + todays0.length + '</b><span>Cakes due today</span></button>' +
+      '<button type="button" data-act="goto" data-v="today"><b>' + done0 + '</b><span>Handed over</span></button>' +
+      '<button type="button" data-act="goto" data-v="action"><b>' + toConfirm.length + '</b><span>Waiting to confirm</span></button></div></section>';
+    if (can('manager')) h += '<div class="ccs-kpis ccs-kpis-row">' +
       tile('goto', 'upcoming', 'Next 7 days', week.length, week.length ? 'Cakes to make' : 'Nothing booked', '') +
       (money_ ? tile('goto', 'deposit', 'Payments due', owing.length, owing.length ? 'Orders with a balance' : 'All paid', '') : '') +
       (money_ ? tile('goto', 'upcoming', 'Booked this week', money(weekValue), 'Confirmed orders', '') : '') + '</div>';
     // Fits the screen: Needs action and Due today side by side, the rest one at a time (phones: all one at a time)
     var CAP = 2, P = [];
-    P.push(['needs', 'Needs attention', needs.length, '<section class="ccs-panel-card tp-card tp-needs"><div class="ccs-card-head"><h2>Needs attention' + (needs.length ? ' (' + needs.length + ')' : '') + '</h2>' + (needs.length > CAP ? '<button type="button" class="ccs-link" data-act="goto" data-v="action">See all ' + needs.length + '</button>' : '') + '</div>' +
-      (needs.length ? '<div class="ccs-minis">' + needs.slice(0, CAP).map(function (o) { return miniRow(o, false); }).join('') + '</div>' : '<p class="ccs-quiet">Nothing needs attention.</p>') + '</section>']);
+    P.push(['needs', 'Waiting on you', needs.length, '<section class="ccs-panel-card tp-card tp-needs"><div class="ccs-card-head"><h2>Waiting on you' + (needs.length ? ' (' + needs.length + ')' : '') + '</h2>' + (needs.length > CAP ? '<button type="button" class="ccs-link" data-act="goto" data-v="action">See all ' + needs.length + '</button>' : '') + '</div>' +
+      (needs.length ? '<div class="ccs-minis">' + needs.slice(0, CAP).map(function (o) { return miniRow(o, false, true); }).join('') + '</div>' : '<p class="ccs-quiet">You\'re all caught up. Nothing needs your attention.</p>') + '</section>']);
     P.push(['due', 'Due today', todays.length, '<section class="ccs-panel-card tp-card"><div class="ccs-card-head"><h2>Due today' + (todays.length ? ' (' + todays.length + ')' : '') + '</h2>' + (todays.length > CAP ? '<button type="button" class="ccs-link" data-act="goto" data-v="today">See all ' + todays.length + '</button>' : '') + (todays.length ? '<span class="ccs-hint">' + collected + ' of ' + todays.length + ' handed over</span>' : '') + '</div>' +
-      (todays.length ? '<div class="ccs-minis">' + todays.slice(0, CAP).map(function (o) { return miniRow(o, true); }).join('') + '</div>' : '<p class="ccs-quiet">No cakes due today.</p>') + '</section>']);
+      (todays.length ? '<div class="ccs-minis">' + todays.slice(0, CAP).map(function (o) { return miniRow(o, true); }).join('') + '</div>' : '<p class="ccs-quiet">No cakes are due for collection today.</p>') + '</section>']);
     // seven day strip
     var strip = '';
     for (var d = 0; d < 7; d++) {
@@ -3692,6 +3712,7 @@
           }); break;
         case 'reload-orders': S.ordErr = null; if (!S.loaded) view(); loadOrders(false); break;
         case 'goto': S.filter = v; S.q = ''; goTab('orders'); window.scrollTo(0, 0); break;
+        case 'tp-find': S.q = ''; goTab('orders'); window.scrollTo(0, 0); setTimeout(function () { var q = document.getElementById('ccs-q'); if (q) q.focus(); }, 30); break;
         case 'day': S.filter = 'day'; S.day = v; S.q = ''; goTab('orders'); window.scrollTo(0, 0); break;
         case 'open-order': if (b.tagName === 'A') return; openOrder(b.dataset.id); break;
         case 'close': if (hasTyping() && !confirmDiscard(b, 'Tap again to discard your changes')) break; S.dirty = {}; sheetClose(); break;

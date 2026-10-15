@@ -1988,3 +1988,40 @@ body.ccs-is-off #cc-staff .ccs-side { top: var(--ccs-offh, 44px); }
 #cc-staff .pm-prow { grid-template-columns: minmax(0, 1fr) 220px 170px; }
 #cc-staff .pm-act { text-align: right; }
 @media (max-width: 640px) { #cc-staff .pm-prow { grid-template-columns: minmax(0, 1fr) auto; } #cc-staff .pm-act { text-align: left; } }
+/* Today: action-first (four large actions, urgent line, small overview, lists below) */
+#cc-staff .tp-head .ccs-eyebrow { text-transform: uppercase; letter-spacing: .06em; font-size: 13px; color: #526176; }
+#cc-staff .tp-head .ccs-title { font-size: 28px; line-height: 1.2; }
+#cc-staff .tp-sub { margin: 2px 0 0; font-size: 15px; color: #526176; }
+#cc-staff .tp-acts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 14px 0 12px; }
+#cc-staff .tp-act { appearance: none; font: inherit; text-align: left; background: #fff; border: 1px solid #DCE3EB; border-radius: 14px; padding: 18px 18px 16px; min-height: 132px;
+  display: grid; grid-template-columns: 48px minmax(0, 1fr) 20px; gap: 14px; align-items: center; cursor: pointer; color: #34425A; transition: border-color .15s, box-shadow .15s; }
+#cc-staff .tp-act:hover { border-color: #A9B6C6; box-shadow: 0 6px 18px -12px rgba(16,24,40,.25); }
+#cc-staff .tp-act:focus-visible { outline: 3px solid var(--ds-primary); outline-offset: 2px; }
+#cc-staff .tp-ic { width: 48px; height: 48px; border-radius: 12px; background: var(--ds-select-bg); display: grid; place-items: center; }
+#cc-staff .tp-ic svg { width: 26px; height: 26px; fill: none; stroke: var(--ds-primary-press); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+#cc-staff .tp-at { display: grid; gap: 3px; }
+#cc-staff .tp-at b { font-size: 20px; color: #243247; line-height: 1.2; }
+#cc-staff .tp-at span { font-size: 15px; color: #526176; }
+#cc-staff .tp-at em { font-style: normal; font-size: 14px; font-weight: 600; color: #243247; margin-top: 4px; }
+#cc-staff .tp-go { font-size: 26px; color: #8A96A8; line-height: 1; }
+#cc-staff .tp-urgent { display: grid; gap: 6px; margin: 0 0 12px; }
+#cc-staff .tp-urg { appearance: none; font: inherit; text-align: left; width: 100%; display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px 12px; border: 0; border-left: 3px solid #B45309; background: #FFFAEB; border-radius: 0 8px 8px 0; color: #34425A; font-size: 15px; cursor: pointer; }
+#cc-staff .tp-urg b { width: 22px; height: 22px; border-radius: 50%; background: #B45309; color: #fff; display: grid; place-items: center; font-size: 13px; }
+#cc-staff .tp-urg em { font-style: normal; font-weight: 600; color: var(--ds-primary); font-size: 14px; }
+#cc-staff .tp-ov { background: #fff; border: 1px solid #DCE3EB; border-radius: 14px; padding: 12px 16px; margin: 0 0 12px; }
+#cc-staff .tp-ov h2 { font-size: 16px; margin: 0 0 6px; color: #243247; }
+#cc-staff .tp-ovn { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+#cc-staff .tp-ovn button { appearance: none; font: inherit; text-align: left; background: none; border: 0; padding: 4px 6px; border-radius: 8px; cursor: pointer; display: grid; }
+#cc-staff .tp-ovn button:hover { background: #F4F6F9; }
+#cc-staff .tp-ovn b { font-size: 28px; color: #243247; font-variant-numeric: tabular-nums; line-height: 1.1; } #cc-staff .tp-ovn span { font-size: 14px; color: #526176; }
+#cc-staff .tp-nb { display: inline-block; margin-top: 6px; padding: 5px 12px; border-radius: 999px; background: var(--ds-primary); color: #fff; font-size: 13px; font-weight: 600; width: max-content; }
+@media (max-width: 640px) {
+  #cc-staff .tp-head .ccs-title { font-size: 22px; }
+  #cc-staff .tp-acts { gap: 8px; margin-top: 10px; }
+  #cc-staff .tp-act { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto; min-height: 128px; padding: 14px 12px; gap: 8px; align-content: start; }
+  #cc-staff .tp-go { display: none; }
+  #cc-staff .tp-ic { width: 40px; height: 40px; } #cc-staff .tp-ic svg { width: 22px; height: 22px; }
+  #cc-staff .tp-at b { font-size: 17px; } #cc-staff .tp-at span { font-size: 13px; line-height: 1.3; } #cc-staff .tp-at em { font-size: 13px; }
+  #cc-staff .tp-ovn b { font-size: 22px; } #cc-staff .tp-ovn span { font-size: 12px; }
+}
+@media (max-width: 340px) { #cc-staff .tp-acts { grid-template-columns: minmax(0, 1fr); } }
