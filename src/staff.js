@@ -169,6 +169,7 @@
 
   // ---------- boot ----------
   var NAV_ICON = {
+    attn: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0-6 6v4l-2 3v1h16v-1l-2-3V9a6 6 0 0 0-6-6zm-2 16a2 2 0 0 0 4 0z"/></svg>',
     today: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13h6V4H4zm0 7h6v-5H4zm10 0h6v-9h-6zm0-16v5h6V4z"/></svg>',
     orders: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10a2 2 0 0 1 2 2v14l-7-3-7 3V6a2 2 0 0 1 2-2z"/></svg>',
     new: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z"/></svg>',
@@ -182,7 +183,7 @@
   };
   function navTabs() {
     if (kitchenOnly()) return [['kitchen', 'Kitchen']];
-    var tabs = [['today', 'Today'], ['orders', 'Orders'], ['calendar', 'Calendar']];
+    var tabs = [['today', 'Today'], ['attn', 'Needs attention'], ['orders', 'Orders'], ['calendar', 'Calendar']];
     if (canP('kit.view')) tabs.push(['kitchen', 'Kitchen']);
     if (canP('mgmt.analytics')) tabs.push(['dash', 'Dashboard']);
     if (canP('mgmt.reports')) tabs.push(['register', 'Register']);
@@ -196,9 +197,9 @@
     var needs = needsCount();
     // On phones, Customers and Settings move under More so the bottom bar keeps 5 large tabs (U15)
     return navTabs().map(function (t) {
-      var where = t[0] === 'more' ? ' ccs-nav-phone' : (t[0] === 'customers' || t[0] === 'settings' || t[0] === 'kitchen' || t[0] === 'dash' || t[0] === 'register') ? ' ccs-nav-wide' : '';
+      var where = t[0] === 'more' ? ' ccs-nav-phone' : (t[0] === 'attn' || t[0] === 'customers' || t[0] === 'settings' || t[0] === 'kitchen' || t[0] === 'dash' || t[0] === 'register') ? ' ccs-nav-wide' : '';
       return '<button type="button" class="ccs-nav-item' + (t[0] === 'new' ? ' ccs-nav-new' : '') + where + '" data-tab="' + t[0] + '"' + (S.tab === t[0] ? ' aria-current="page"' : '') + '>' + NAV_ICON[t[0]] + '<span>' + t[1] + '</span>' +
-        (t[0] === 'orders' && needs ? '<span class="ccs-count">' + needs + '</span>' : '') + '</button>';
+        (t[0] === 'orders' && needs ? '<span class="ccs-count">' + needs + '</span>' : '') + (t[0] === 'attn' && S.loaded && attnCount() ? '<span class="ccs-count at-count">' + attnCount() + '</span>' : '') + '</button>';
     }).join('');
   }
   function shell() {
@@ -253,6 +254,7 @@
   }
   function viewInner(m) {
     if (S.tab === 'today') m.innerHTML = todayView();
+    else if (S.tab === 'attn') m.innerHTML = attnView();
     else if (S.tab === 'orders') m.innerHTML = ordersView();
     else if (S.tab === 'new') m.innerHTML = newView();
     else if (S.tab === 'customers') m.innerHTML = customersView();
@@ -370,14 +372,14 @@
         var after = S.orders.filter(function (o) { return NEEDS.indexOf(o.order_status) > -1; }).length;
         if (silent && after > before) toast('New order waiting for review');
         refreshNav();
-        if (S.tab === 'orders' || S.tab === 'today') view();
+        if (S.tab === 'orders' || S.tab === 'today' || S.tab === 'attn') view();
       }).catch(function (e) {
         console.error(e);
         if (errKind(e) === 'expired') return sessionExpired();
         S.ordFails = (S.ordFails || 0) + 1;
         if (!S.loaded) S.ordErr = errKind(e) === 'offline' ? 'No internet connection, so we couldn\'t load the orders.' : 'We couldn\'t load the orders. Try again.';
         if (!silent && S.loaded) loadFail(e);
-        if ((!S.loaded || S.ordFails >= 2) && (S.tab === 'orders' || S.tab === 'today')) view();
+        if ((!S.loaded || S.ordFails >= 2) && (S.tab === 'orders' || S.tab === 'today' || S.tab === 'attn')) view();
       });
   }
   // Orders search also looks on the server for older orders (U3)
@@ -502,6 +504,49 @@
   }
 
 
+  // ---------- attention centre: one list of everything that needs someone, filtered to what this login can act on ----------
+  // Each order shows once, in its most urgent group, with every reason it needs attention.
+  function attnGroups() {
+    if (!S.loaded) return [];
+    var t = today(), t2 = addDays(t, 2);
+    var nowM = (function () { var p = new Intl.DateTimeFormat('en-GB', { timeZone: TZ, hour: 'numeric', minute: 'numeric', hour12: false }).format(new Date()).split(':'); return Number(p[0]) * 60 + Number(p[1]); })();
+    var mins = function (o) { var p = String(o.required_time || '23:59').split(':'); return Number(p[0]) * 60 + Number(p[1] || 0); };
+    var live = S.orders.filter(function (o) { return OPEN.indexOf(o.order_status) > -1; });
+    var paid = function (o) { return o.payment_status === 'paid'; };
+    var dueWord = function (d) { return d === t ? 'today' : d === addDays(t, 1) ? 'tomorrow' : nice(d); };
+    var G = [
+      ['overdue', 'Overdue', 'is-red', canP('ord.status') || canP('ord.payments'), function (o) { return isOverdue(o) ? 'Was due ' + nice(o.required_date) + ', ' + t12(o.required_time) + '. Hand over, cancel or change the date.' : ''; }],
+      ['soon', 'Due within 3 hours, not ready', 'is-red', canP('ord.status') || canP('kit.view'), function (o) { return o.order_status === 'confirmed' && o.production_status !== 'ready' && o.required_date === t && mins(o) - nowM <= 180 ? (mins(o) < nowM ? 'Late: was due ' : 'Due ') + t12(o.required_time) + '. Kitchen: ' + (STAGE_LABEL[o.production_status] || 'Not started').toLowerCase() + '.' : ''; }],
+      ['unconf', 'Not confirmed, due in the next 2 days', 'is-amber', canP('ord.status'), function (o) { return o.order_status !== 'confirmed' && o.required_date >= t && o.required_date <= t2 ? 'Due ' + dueWord(o.required_date) + ', ' + t12(o.required_time) + ', and not confirmed yet.' : ''; }],
+      ['waiting', 'Waiting on you', '', canP('ord.status') || canP('ord.payments'), function (o) { var n = NEEDS.indexOf(o.order_status) > -1 ? nextStep(o) : null; return n ? n[0] + '.' : ''; }],
+      ['pay', 'Balance still to pay', '', canP('ord.payments'), function (o) { return o.order_status === 'confirmed' && !paid(o) && (o.production_status === 'ready' || o.required_date <= t2) ? (o.production_status === 'ready' ? 'Cake is ready. ' : 'Due ' + dueWord(o.required_date) + '. ') + 'Take the balance before handing over.' : ''; }],
+      ['allergy', 'Allergies to check', '', canP('ord.edit') || canP('ord.status'), function (o) { return dietUnsure(o) && o.required_date >= t ? 'The customer has not confirmed the allergies yet.' : ''; }],
+      ['data', 'Missing details', '', canP('ord.edit'), function (o) { return !validRef(o.reference) ? 'No valid order number.' : NEEDS.indexOf(o.order_status) > -1 && !o.contact_email ? 'No email address, so the customer gets no updates.' : ''; }]
+    ].filter(function (g) { return g[3]; });
+    var out = G.map(function (g) { return { key: g[0], title: g[1], tone: g[2], rows: [] }; }), seen = {};
+    live.forEach(function (o) {
+      var why = [], first = -1;
+      G.forEach(function (g, k) { var r = g[4](o); if (r && (first < 0 || g[0] !== 'waiting')) { why.push(r); if (first < 0) first = k; } });
+      if (first > -1 && !seen[o.id]) { seen[o.id] = 1; out[first].rows.push({ o: o, why: why }); }
+    });
+    out.forEach(function (g) { g.rows.sort(function (a, b) { return (a.o.required_date + a.o.required_time) < (b.o.required_date + b.o.required_time) ? -1 : 1; }); });
+    return out.filter(function (g) { return g.rows.length; });
+  }
+  function attnCount() { return attnGroups().reduce(function (n, g) { return n + g.rows.length; }, 0); }
+  function attnView() {
+    var t = today(), gs = attnGroups(), n = gs.reduce(function (x, g) { return x + g.rows.length; }, 0);
+    var h = '<div class="ccs-head"><div><h1 class="ccs-title">Needs attention</h1><p class="ccs-sub">' + esc(nice(t, true)) + '. Only what your login can act on.</p>' + (S.loaded ? freshLine(S.ordAt, S.ordFails, 'reload-orders') : '') + '</div></div>';
+    if (!S.loaded) return h + (S.ordErr ? loadErr(S.ordErr, 'reload-orders') : '<p class="ccs-loading">Loading…</p>');
+    if (!n) return h + '<div class="ccs-empty"><b>Nothing needs attention right now.</b><span>Late cakes, unconfirmed orders, payments and allergies to check will show here as they come up.</span></div>';
+    h += '<div class="at-sum" role="group" aria-label="Jump to">' + gs.map(function (g) { return '<button type="button" class="at-jump ' + g.tone + '" data-act="at-jump" data-v="' + g.key + '"><b>' + g.rows.length + '</b><span>' + esc(g.title) + '</span></button>'; }).join('') + '</div>';
+    h += gs.map(function (g) {
+      return '<section class="at-group ' + g.tone + '" id="at-' + g.key + '"><h2>' + esc(g.title) + ' <span>' + g.rows.length + '</span></h2><div class="at-rows">' + g.rows.map(function (r) {
+        return '<div class="at-row"><p class="at-why">' + r.why.map(esc).join(' <span aria-hidden="true">·</span> ') + '</p>' + miniRow(r.o, false, true) + '</div>';
+      }).join('') + '</div></section>';
+    }).join('');
+    return h;
+  }
+
   // ---------- today dashboard ----------
   function greet() { var h = Number(new Intl.DateTimeFormat('en-GB', { timeZone: TZ, hour: 'numeric', hour12: false }).format(new Date())); return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'; }
   function orderTotal(o) { return Number(o.final_total != null ? o.final_total : o.estimate_total) || 0; }
@@ -532,6 +577,7 @@
     if (overdue.length && (canP('ord.status') || canP('ord.payments'))) urg.push(['overdue', overdue.length + (overdue.length === 1 ? ' collection is overdue.' : ' collections are overdue.') + ' Hand over, cancel or change the date.']);
     if (soonUnconf.length) urg.push(['action', soonUnconf.length + (soonUnconf.length === 1 ? ' order for the next 2 days is' : ' orders for the next 2 days are') + ' not confirmed yet.']);
     var urgH = !urg.length ? '' : '<div class="tp-urgent" role="status">' + urg.map(function (u) { return '<button type="button" class="tp-urg" data-act="goto" data-v="' + u[0] + '"><b>!</b><span>' + esc(u[1]) + '</span><em>View</em></button>'; }).join('') + '</div>';
+    var atN = attnCount(); if (atN) urgH += '<p class="at-todaylink"><button type="button" class="ccs-link" data-tab="attn">See everything that needs attention (' + atN + ')</button></p>';
     var live = S.orders.filter(function (o) { return o.order_status !== 'declined' && o.order_status !== 'cancelled'; });
     var needs0 = S.orders.filter(function (o) { return NEEDS.indexOf(o.order_status) > -1; }), todays0 = live.filter(function (o) { return o.required_date === t; });
     var done0 = todays0.filter(function (o) { return o.order_status === 'completed'; }).length, toConfirm = S.orders.filter(function (o) { return o.order_status === 'awaiting_review' || o.order_status === 'awaiting_approval'; });
@@ -644,7 +690,7 @@
     if (S.tab === 'dash') dashLoad();
     if (S.tab === 'register') regLoad();
     if (S.tab === 'kitchen') loadKitchen();
-    if (S.tab === 'orders' || S.tab === 'today') loadOrders(true);
+    if (S.tab === 'orders' || S.tab === 'today' || S.tab === 'attn') loadOrders(true);
     if (S.tab === 'calendar') calLoad();
   }
   window.addEventListener('popstate', function (e) {
@@ -667,6 +713,7 @@
     var h = sheetHead('More') + '<div class="ccs-sheet-body">';
     h += '<section class="ccs-box"><h3>Signed in</h3><p class="ccs-big">' + esc(S.me.full_name || '') + '</p><p class="ccs-hint">' + esc(role) + '</p></section>';
     var links = '';
+    if (!kitchenOnly()) links += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-tab="attn">Needs attention' + (attnCount() ? ' (' + attnCount() + ')' : '') + '</button>';
     if (canP('kit.view')) links += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-tab="kitchen">Kitchen</button>';
     if (canP('nav.customers') && canP('cust.view')) links += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-tab="customers">Customers</button>';
     if (canP('mgmt.analytics')) links += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-tab="dash">Dashboard</button>';
@@ -4086,6 +4133,7 @@
         case 'k-range': S.kit.days = Number(v); S.kit.focus = null; view(); break;
         case 'k-card': var KK = S.kit; if (v === 'soon') { var kc5 = kitCalState(); kc5.v = 'list'; kc5.a = addDays(today(), 1); secStore('kitM').kitM = 'cal'; view(); break; } secStore('kitM').kitM = 'board'; KK.focus = v === 'today' ? 'today' : null; if (v === 'ready') { secStore('kitP').kitP = 'ready'; KK.days = 7; } if (v === 'soon') { KK.days = 7; } if (v === 'today') { KK.days = 2; } view(); setTimeout(function () { var bd = document.querySelector('.kp-bar') || document.querySelector('.ccs-board'); if (bd && bd.scrollIntoView) bd.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 30); break;
         case 'k-focus-off': S.kit.focus = null; view(); break;
+        case 'at-jump': { var aj = document.getElementById('at-' + v); if (aj && aj.scrollIntoView) aj.scrollIntoView({ behavior: 'smooth', block: 'start' }); break; }
         case 'k-mode': secStore('kitM').kitM = v; if (v !== 'board') S.kit.focus = null; view(); break;
         case 'k-cal-view': { var kc1 = kitCalState(); kc1.v = v; view(); break; }
         case 'k-cal-f': kitCalState().f = v; view(); break;
