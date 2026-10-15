@@ -666,7 +666,11 @@
       S.sheet.data = r.data; renderSheet();
     }).catch(loadFail);
   }
+  // Remember what was tapped, so closing the review puts staff back exactly where they were
+  function sheetFrom() { var a = document.activeElement, s = document.getElementById('ccs-sheet'); if (!a || !a.dataset || (s && s.contains(a))) return; var id = a.dataset.id, act = a.dataset.act; S.sheetFrom = { el: a, sel: id && act ? '[data-act="' + act + '"][data-id="' + id + '"]' : null }; }
+  function sheetReturn() { var f = S.sheetFrom; S.sheetFrom = null; if (!f) return; var t = f.el && document.body.contains(f.el) ? f.el : f.sel ? document.querySelector('#ccs-main ' + f.sel) : null; if (t && t.focus) try { t.focus({ preventScroll: true }); } catch (x) {} }
   function sheetOpen() {
+    if (!(S.sheetHist)) sheetFrom();
     var s = document.getElementById('ccs-sheet'), sh = document.getElementById('ccs-shade'); if (s) { s.classList.add('ccs-open'); sh.classList.add('ccs-open'); }
     if (!S.sheetHist) { S.sheetHist = true; try { history.pushState({ ccs: 'sheet' }, ''); } catch (x) {} }
   }
@@ -676,6 +680,7 @@
     if (S.sheet && S.sheet.type === 'new' && draftHasContent()) { saveDraft(); toast('Unfinished order kept. Tap New order on the same day to carry on.'); } if (S.cal) S.cal.pre = null;
     if (wasSheet && S.tab === 'calendar' && S.me) setTimeout(function () { calLoad(true); }, 0);
     S.sheet = null; S.panel = null; S.dirty = {}; var s = document.getElementById('ccs-sheet'), sh = document.getElementById('ccs-shade'); if (s) { s.classList.remove('ccs-open'); sh.classList.remove('ccs-open'); }
+    if (wasSheet && how !== 'replace') setTimeout(sheetReturn, 0); else S.sheetFrom = null;
     if (S.sheetHist) { S.sheetHist = false; if (how !== 'pop' && how !== 'replace') { S.ignorePop = true; try { history.back(); } catch (x) { S.ignorePop = false; } } }
   }
   function goTab(t, fromPop) {
@@ -728,11 +733,30 @@
     var el = document.getElementById('ccs-sheet'); if (!el || !S.sheet) return;
     var body = S.sheet.type === 'new' ? sheetHead('New order') + '<div class="ccs-sheet-body ccs-newsheet">' + newView() + '</div>' : S.sheet.type === 'cal' ? calSheet() : S.sheet.type === 'order' ? orderSheet() : S.sheet.type === 'customer' ? customerSheet() : S.sheet.type === 'custnew' ? newCustomerSheet() : S.sheet.type === 'kitchen' ? kitchenSheet() : S.sheet.type === 'more' ? moreSheet() : S.sheet.type === 'dash' ? dashSheet() : S.sheet.type === 'reg' ? regSheet() : S.sheet.type === 'menu' ? menuSheet() : S.sheet.type === 'staff' ? staffSheet() : S.sheet.type === 'pw' ? sheetHead('Change my password') + '<div class="ccs-sheet-body"><form class="ccs-box ccs-pwform" id="ccs-pw">' + pwFields(S.pwErr) + '</form></div>' : '';
     var keep = el.querySelector('.ccs-sheet-body'), top = keep ? keep.scrollTop : 0, focus = captureFocus(el);
+    var cols = [].slice.call(el.querySelectorAll('.os-main, .os-detail')).map(function (c) { return c.scrollTop; });
+    // Order, kitchen and customer reviews: a centred pop-up on large screens, a wide panel on tablets, full screen on phones
+    el.classList.toggle('is-review', ['order', 'kitchen', 'customer'].indexOf(S.sheet.type) > -1);
     el.innerHTML = body;
     // put back anything staff were typing (the screen refreshes itself every minute) (U2)
     Object.keys(S.dirty).forEach(function (id) { var inp = document.getElementById(id); if (inp && el.contains(inp) && inp.value !== S.dirty[id]) inp.value = S.dirty[id]; });
     var nb = el.querySelector('.ccs-sheet-body'); if (nb) nb.scrollTop = top;
+    [].slice.call(el.querySelectorAll('.os-main, .os-detail')).forEach(function (c, k) { if (cols[k] != null) c.scrollTop = cols[k]; });
+    pinMainAction(el);
     if (!restoreFocus(focus)) { var f = el.querySelector('[data-autofocus]'); if (f) f.focus(); }
+  }
+  // Phones and tablets: when the main button scrolls out of view, the same button stays pinned at the bottom.
+  // It presses the real button, so permissions, saving and double-tap protection are unchanged.
+  function pinMainAction(el) {
+    if (pinMainAction.io) { pinMainAction.io.disconnect(); pinMainAction.io = null; }
+    var main = S.sheet && S.sheet.type === 'order' && !S.panel ? el.querySelector('.os-main .ccs-actions .ccs-btn.ccs-good, .os-main .ccs-actions .ccs-actions-row > .ccs-btn:not(.ccs-ghost):not([disabled])') : null;
+    var body = el.querySelector('.ccs-sheet-body');
+    if (!main || !body || main.disabled || !('IntersectionObserver' in window)) return;
+    var pin = document.createElement('div'); pin.className = 'os-pin'; pin.hidden = true;
+    pin.innerHTML = '<button type="button" class="ccs-btn ' + (main.classList.contains('ccs-good') ? 'ccs-good' : '') + '">' + esc(main.textContent) + '</button>';
+    pin.firstChild.addEventListener('click', function () { main.click(); });
+    el.appendChild(pin);
+    pinMainAction.io = new IntersectionObserver(function (en) { pin.hidden = window.innerWidth >= 1280 || en[0].isIntersecting; }, { root: body, threshold: 0 });
+    pinMainAction.io.observe(main);
   }
   function sheetHead(title, extra) { return '<div class="ccs-sheet-head"><h2 class="ccs-title">' + title + '</h2>' + (extra || '') + '<button type="button" class="ccs-x" data-act="close" aria-label="Close">×</button></div>'; }
   function paidTotal(o) { return (o.payments || []).reduce(function (s, p) { return s + Number(p.amount); }, 0); }
@@ -814,7 +838,10 @@
     var cur = secCur(group, parts.map(function (p) { return p[0]; }));
     var body = parts.filter(function (p) { return p[0] === cur; })[0][1], lab = labels[cur] || cur;
     body = body.replace('<h3>' + lab + '</h3>', '');
-    return head + secBar(group, parts.map(function (p) { return [p[0], labels[p[0]] || p[0]]; }), cur) + '<div class="ccs-secbody" role="tabpanel">' + body + '</div>';
+    var bar = secBar(group, parts.map(function (p) { return [p[0], labels[p[0]] || p[0]]; }), cur);
+    // The order review: key facts and actions on the left, details on the right (side by side only on large screens)
+    if (group === 'order') { var cutAt = head.indexOf('<div class="ccs-sheet-body">') + '<div class="ccs-sheet-body">'.length; return head.slice(0, cutAt).replace('<div class="ccs-sheet-body">', '<div class="ccs-sheet-body os-grid">') + '<div class="os-main">' + head.slice(cutAt) + '</div><div class="os-detail">' + bar + '<div class="ccs-secbody" role="tabpanel">' + body + '</div></div>'; }
+    return head + bar + '<div class="ccs-secbody" role="tabpanel">' + body + '</div>';
   }
   function kv(k, v) { return v ? '<dt>' + esc(k) + '</dt><dd>' + esc(v) + '</dd>' : ''; }
   // ---------- customer emails on an order (status only) ----------
@@ -4394,6 +4421,22 @@
     if (e.key !== 'Escape' || !S.sheet) return;
     if (hasTyping()) { toast('Save or cancel your changes first.', true); return; }
     if (S.panel) { S.panel = null; S.panelErr = null; S.am = null; renderSheet(); } else sheetClose();
+  });
+  // Tab stays inside the open review
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Tab' || !S.sheet || LB) return;
+    var sh = document.getElementById('ccs-sheet'); if (!sh || !sh.classList.contains('ccs-open')) return;
+    var f = [].slice.call(sh.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')).filter(function (x) { return x.offsetParent; });
+    if (!f.length) return;
+    var at = f.indexOf(document.activeElement);
+    if (at < 0) { e.preventDefault(); f[0].focus(); return; }
+    if (!e.shiftKey && at === f.length - 1) { e.preventDefault(); f[0].focus(); } else if (e.shiftKey && at === 0) { e.preventDefault(); f[f.length - 1].focus(); }
+  });
+  // Phones: the review fits above the on-screen keyboard, and the field being typed in stays in view
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', function () { var sh = document.getElementById('ccs-sheet'); if (sh) sh.style.setProperty('--vvh', window.visualViewport.height + 'px'); });
+  document.addEventListener('focusin', function (e) {
+    var sh = document.getElementById('ccs-sheet'), t = e.target; if (!sh || !sh.contains(t) || !/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || window.innerWidth >= 760) return;
+    setTimeout(function () { if (document.activeElement === t && t.scrollIntoView) t.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 320);
   });
   function tick() { if (!S.me || document.visibilityState !== 'visible') return; if (S.tab === 'kitchen') loadKitchen(true); else loadOrders(true); if (S.tab === 'calendar' && !S.sheet) calLoad(true); }
   setInterval(tick, 60000);

@@ -2257,3 +2257,37 @@ body.ccs-is-off #cc-staff .ccs-side { top: var(--ccs-offh, 44px); }
 #cc-staff .at-todaylink { margin: 6px 0 0; font-size: 15px; }
 #cc-staff .ccs-nav-item .at-count { background: var(--ds-danger); color: #fff; }
 @media (max-width: 759px) { #cc-staff .at-sum { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* ---------- Review pop-up: order, kitchen and customer ---------- */
+/* Phones: full screen, slides up like a bottom sheet, sized to the space above the keyboard */
+@media (max-width: 759px) {
+  #ccs-sheet.is-review { width: 100%; top: auto; bottom: 0; height: var(--vvh, 100dvh); max-height: 100dvh; border-radius: 0; transform: translateY(100%); }
+  #ccs-sheet.is-review.ccs-open { transform: none; }
+  body.ccs-is-off #ccs-sheet.is-review { height: calc(var(--vvh, 100dvh) - var(--ccs-offh, 44px)); }
+}
+/* Tablets: a wider panel from the right */
+@media (min-width: 760px) and (max-width: 1279px) {
+  #ccs-sheet.is-review { width: min(860px, 88vw); }
+}
+/* Large screens: a centred pop-up; the dashboard stays where it was behind it */
+@media (min-width: 1280px) {
+  #ccs-sheet.is-review { top: 50%; left: 50%; right: auto; bottom: auto; width: min(800px, 92vw); height: auto; max-height: min(90dvh, 940px); min-height: min(680px, 90dvh); border-radius: 16px; transform: translate(-50%, -48%) scale(.98); opacity: 0; transition: transform .2s cubic-bezier(.2,.8,.2,1), opacity .2s, visibility 0s linear .2s; box-shadow: 0 24px 64px -12px rgba(16,24,40,.35); }
+  #ccs-sheet.is-review.ccs-open { transform: translate(-50%, -50%); opacity: 1; transition: transform .2s cubic-bezier(.2,.8,.2,1), opacity .2s; }
+  #ccs-sheet.is-review:has(.os-grid) { width: min(1180px, 94vw); }
+  #ccs-sheet.is-review .ccs-sheet-body.os-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 0; padding: 0; overflow: hidden; align-content: stretch; }
+  #ccs-sheet.is-review .os-main, #ccs-sheet.is-review .os-detail { overflow-y: auto; overscroll-behavior: contain; padding: 16px 18px 24px; display: grid; gap: 10px; align-content: start; min-height: 0; }
+  #ccs-sheet.is-review .os-detail { border-left: 1px solid var(--ds-divider, #DCE3EB); background: #FCFCFD; }
+  #ccs-sheet.is-review .os-detail .ccs-secbar { position: sticky; top: -16px; z-index: 2; background: #FCFCFD; padding-top: 4px; }
+  #ccs-sheet.is-review .ccs-sheet-body { min-height: 0; }
+  #ccs-sheet.is-review .os-main .ccs-ostrip { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  #ccs-sheet.is-review .os-main .ccs-ostrip > div:nth-child(1), #ccs-sheet.is-review .os-main .ccs-ostrip > div:nth-child(2) { grid-column: span 3; }
+  #ccs-sheet.is-review .os-main .ccs-ostrip > div:nth-child(n+3) { grid-column: span 2; }
+}
+/* Below large screens the two parts simply follow each other */
+#ccs-sheet .os-main, #ccs-sheet .os-detail { display: grid; gap: 10px; align-content: start; min-width: 0; }
+
+#ccs-sheet.is-review .ccs-sheet-head > .ccs-x { margin-left: auto; }
+#ccs-sheet .os-pin { flex: none; padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px)); background: #fff; border-top: 1px solid var(--ds-divider, #DCE3EB); box-shadow: 0 -8px 20px -14px rgba(16,24,40,.3); }
+#ccs-sheet .os-pin[hidden] { display: none; }
+#ccs-sheet .os-pin .ccs-btn { width: 100%; min-height: 52px; font-size: 17px; }
+@media (pointer: coarse) { #cc-staff .ov-srow.dx-tap, #cc-staff .ov-drow.dx-tap { min-height: 44px; } }
