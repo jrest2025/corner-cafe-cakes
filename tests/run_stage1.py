@@ -28,8 +28,7 @@ async def take(pg, name, phone, diet='no', email=None):
     if email and await pg.locator('#n-email').count(): await pg.fill('#n-email', email)
     await js(pg, '[data-act="sl-opt"][data-v="no"]'); await nxt(pg)
     await js(pg, '#sl-st-3 .ccs-datechips [data-act="n-date"]:not(.ccs-chip-soon)'); await js(pg, '#sl-st-3 [data-act="n-time"][data-v="15:00"]'); await nxt(pg)
-    await js(pg, '.sl-stepbar [data-act="sl-skip"]')
-    await js(pg, f'[data-act="n-diet"][data-v="{diet}"]')
+    await js(pg, f'[data-act="n-diet"][data-v="{diet}"]'); await pg.wait_for_timeout(500)
 
 async def main():
     async with async_playwright() as p:
@@ -58,7 +57,8 @@ async def main():
         check('allergies offer No, Yes and Not sure', await pg.locator('[data-act="n-diet"][data-v="unsure"]').count() == 1)
         check('Not sure explains what happens', 'Allergies not confirmed yet. Check with the customer before baking.' in t, t[-600:])
         await nxt(pg); await js(pg, '.sl-stepbar [data-act="sl-skip"]')
-        check('reaches Check and save', 'Step 8 of 8' in await stage(pg), await stage(pg))
+        check('reaches Check and save', 'Step 7 of 7' in await stage(pg), await stage(pg))
+        await js(pg, '[data-act="n-plan"][data-v="later"]')
         live = await pg.inner_text('.sl-live')
         check('slip preview shows the allergy check line', 'Allergies not confirmed yet' in live)
         cb = pg.locator('[data-nc="confirmNow"]')
@@ -77,10 +77,20 @@ async def main():
         await pg.screenshot(path=str(OUT / 'back-on-today.png'))
         # confirm now changes the button
         await new_btn(pg)
-        await take(pg, 'Counter Paying Guest', '912 0556', diet='no'); await nxt(pg); await js(pg, '.sl-stepbar [data-act="sl-skip"]')
-        await pg.check('[data-nc="confirmNow"]'); await pg.wait_for_timeout(250)
+        await take(pg, 'Counter Paying Guest', '912 0556', diet='no'); await js(pg, '.sl-stepbar [data-act="sl-skip"]')
+        await js(pg, '[data-act="n-plan"][data-v="later"]'); await pg.check('[data-nc="confirmNow"]'); await pg.wait_for_timeout(250)
         btn = await pg.inner_text('[data-act="n-submit"]')
         check('ticking confirm now changes the button to Save and confirm', btn.startswith('Save and confirm'), btn)
+        await js(pg, '[data-act="n-plan"][data-v="full"]')
+        btn = await pg.inner_text('[data-act="n-submit"]'); txt = await pg.inner_text('.sl-stepmain')
+        check('Paid in full: Paid by offers Cash, EFTPOS, M-PAiSA and Bank transfer', all(w in txt for w in ['Cash', 'EFTPOS', 'M-PAiSA', 'Bank transfer']), txt[-400:])
+        check('Paid in full: the button says Save, paid and confirmed', btn.startswith('Save, paid and confirmed'), btn)
+        await js(pg, '[data-act="n-paym"][data-v="mpaisa"]')
+        await js(pg, '[data-act="n-submit"]'); await pg.wait_for_timeout(900)
+        c = await creates(pg)
+        check('Paid in full by M-PAiSA: confirmed with a full payment', c and c[-1].get('confirm_now') and c[-1].get('payment') == {'amount': 95, 'method': 'mpaisa', 'kind': 'full'}, c[-1] if c else None)
+        toast = await pg.inner_text('#ccs-toast')
+        check('saved message names the day and offers Open order', 'Open order' in toast and ' for ' in toast, toast)
         check('no page errors (take order)', not errs, errs); await ctx.close()
 
         # 3. Customer emails on an order, and review flags

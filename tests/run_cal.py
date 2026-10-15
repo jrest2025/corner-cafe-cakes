@@ -46,9 +46,9 @@ async def fill_new_customer_and_cake(pg, qty='2'):
 async def finish_rest(pg):
     for _ in range(6):
         st = await pg.inner_text('.sl-progress')
-        if 'Step 8' in st: break
-        if 'Step 4' in st or 'Step 5' in st or 'Step 7' in st: await js(pg, '[data-act="sl-skip"]') if await pg.locator('[data-act="sl-skip"]').count() else await js(pg, '[data-act="sl-next"]')
-        elif 'Step 6' in st: await js(pg, '[data-act="n-diet"][data-v="no"]'); await js(pg, '[data-act="sl-next"]')
+        if 'Step 7 of 7' in st: await js(pg, '[data-act="n-plan"][data-v="later"]'); break
+        if 'Step 4' in st or 'Step 6' in st: await js(pg, '[data-act="sl-skip"]') if await pg.locator('[data-act="sl-skip"]').count() else await js(pg, '[data-act="sl-next"]')
+        elif 'Step 5' in st: await js(pg, '[data-act="n-diet"][data-v="no"]'); await pg.wait_for_timeout(500)
         else: await js(pg, '[data-act="sl-next"]')
 
 async def desktop(b, errs):
@@ -92,7 +92,7 @@ async def desktop(b, errs):
     await fill_new_customer_and_cake(pg)
     await finish_rest(pg)
     main = await pg.inner_text('#ccs-sheet')
-    check('desk When step already filled from the slot', '3:00pm' in main and 'Save cake order' in main and 'Step 8 of 8' in main, main[:600])
+    check('desk When step already filled from the slot', '3:00pm' in main and 'Save cake order' in main and 'Step 7 of 7' in main, main[:600])
     await pg.screenshot(path=str(OUT / 'desk-4-new.png'), full_page=True)
     # double tap guard
     await pg.evaluate("var b=document.querySelector('[data-act=\"n-submit\"]'); b.click(); b.click();"); await pg.wait_for_timeout(400)

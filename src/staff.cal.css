@@ -1736,3 +1736,10 @@ body.ccs-is-off #cc-staff .ccs-side { top: var(--ccs-offh, 44px); }
 #cc-staff .sl-reqhead { display: flex; align-items: center; justify-content: space-between; gap: 8px 12px; flex-wrap: wrap; padding: 10px 12px; border: 1px solid #d7dde5; border-radius: 10px; background: #f6f7f9; }
 #cc-staff .sl-reqhead .sl-k { margin: 0; font-size: 17px; }
 #cc-staff .sl-reqhead .ccs-link { min-height: 40px; }
+/* New order: pickup times as a compact grid so they fit on a counter tablet */
+#cc-staff .sl-stepbody .ccs-timegrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+#cc-staff .sl-stepbody .ccs-timegrid .ccs-chip { min-height: 44px; padding: 0 8px; justify-content: center; }
+/* Saved toast with Open order */
+#cc-staff .ccs-toast.has-action { pointer-events: auto; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+#cc-staff .ccs-toast-act { min-height: 40px; padding: 0 16px; border-radius: 999px; border: 0; background: #fff; color: #111; font: 600 15px/1 inherit; cursor: pointer; pointer-events: auto; }
+#cc-staff .sl-payplan .ccs-chip { min-height: 48px; }

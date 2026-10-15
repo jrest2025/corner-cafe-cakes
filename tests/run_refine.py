@@ -49,7 +49,7 @@ async def main():
         h = await heights(pg, '.sl-stepbar .ccs-btn'); check('Next is 64 px', h and min(h) >= 64, h)
         h = await heights(pg, '.ccs-menubtn'); check('Menu button is at least 48 px', not h or min(h) >= 48, h)
         await js(pg, '[data-act="n-cell"][data-v="cheesecake|8"]'); await nxt(pg)
-        check('Next moves to step 2', 'Step 2 of 8' in await stage(pg), await stage(pg))
+        check('Next moves to step 2', 'Step 2 of 7' in await stage(pg), await stage(pg))
         h = await heights(pg, '#n-name'); check('text fields are at least 60 px', h and min(h) >= 60, h)
         h = await heights(pg, '.sl-stepbar .ccs-btn'); check('Back and Next are 64 px', len(h) == 2 and min(h) >= 64, h)
         h = await heights(pg, '.sl-live .sl-chg'); check('Change links on the slip are at least 48 px', h and min(h) >= 48, h)
@@ -60,12 +60,12 @@ async def main():
         await js(pg, '.ccs-datechips [data-act="n-date"]:not(.ccs-chip-soon)'); await js(pg, '[data-act="n-time"][data-v="15:00"]'); await nxt(pg)
         for _ in range(6):
             st = await stage(pg)
-            if 'Step 8' in st: break
-            if 'Step 6' in st: await js(pg, '[data-act="n-diet"][data-v="no"]'); await nxt(pg)
+            if 'Step 7 of 7' in st: break
+            if 'Step 5' in st: await js(pg, '[data-act="n-diet"][data-v="no"]'); await pg.wait_for_timeout(500)
             elif await pg.locator('.sl-stepbar [data-act="sl-skip"]').count(): await js(pg, '.sl-stepbar [data-act="sl-skip"]')
             else: await nxt(pg)
-        check('reaches step 8', 'Step 8' in await stage(pg), await stage(pg))
-        await js(pg, '[data-act="n-submit"]'); await pg.wait_for_timeout(800)
+        check('reaches the last step', 'Step 7 of 7' in await stage(pg), await stage(pg))
+        await js(pg, '[data-act="n-plan"][data-v="later"]'); await js(pg, '[data-act="n-submit"]'); await pg.wait_for_timeout(800)
         check('order saved once', await pg.evaluate("window.__calls.filter(function(c){return c[1]==='staff_create_order'}).length") == 1)
         check('after saving, back on Today with the new order marked at the top of Needs attention', await pg.locator('#ccs-sheet.ccs-open').count() == 0 and await pg.locator('.ccs-dash-head').count() == 1 and await pg.locator('.ccs-mini.is-new').count() == 1)
         await js(pg, '.ccs-nav [data-tab="orders"]')
