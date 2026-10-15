@@ -17,10 +17,10 @@
     sb.rpc('dashboard_register').then(function (r) {
       d.loading = false;
       if (r.error) throw r.error;
-      if (!r.data || !r.data.ok) d.err = (r.data && r.data.message) || 'The dashboard could not load.';
+      if (!r.data || !r.data.ok) d.err = (r.data && r.data.message) || 'We couldn\'t load the dashboard. Try again.';
       else { d.data = r.data; dxPrep(); }
       if (S.tab === 'dash') view();
-    }).catch(function (e) { console.error(e); d.loading = false; if (errKind(e) === 'expired') return sessionExpired(); d.err = 'The dashboard could not load. Check the connection and try again.'; if (S.tab === 'dash') view(); });
+    }).catch(function (e) { console.error(e); d.loading = false; if (errKind(e) === 'expired') return sessionExpired(); d.err = 'We couldn\'t load the dashboard. Check the connection and try again.'; if (S.tab === 'dash') view(); });
   }
   function dnum(v) { v = Number(v); return isFinite(v) ? v : 0; }
   function dxPrep() {
@@ -219,7 +219,7 @@
     done: '<circle cx="12" cy="12" r="8"/><path d="M8.5 12.2l2.4 2.4 4.6-5"/>'
   };
   function ovIcon(k) { return '<span class="ov-ic" aria-hidden="true"><svg viewBox="0 0 24 24">' + OV_ICON[k] + '</svg></span>'; }
-  function ovHour(h) { return (h % 12 || 12) + (h < 12 ? ' am' : ' pm'); }
+  function ovHour(h) { return (h % 12 || 12) + (h < 12 ? ' AM' : ' PM'); }
   function ovDay(iso) { return (new Date(iso + 'T12:00:00Z').getUTCDay() + 6) % 7; }
   function ovShort(iso) { return +iso.slice(8, 10) + ' ' + MON[+iso.slice(5, 7) - 1]; }
   // Time buckets across the period (day, week or month), each with the matching bucket of the period before
@@ -341,7 +341,7 @@
     lo = Math.max(Math.min(lo, 9), 6); hi = Math.min(Math.max(hi, 17), 21);
     var max = 0, best = null; Object.keys(cell).forEach(function (k) { if (cell[k].length > max) { max = cell[k].length; best = k; } });
     var hrs = []; for (var h = lo; h <= hi; h++) hrs.push(h);
-    var grid = '<div class="ov-heat" style="grid-template-columns:40px repeat(' + hrs.length + ',minmax(0,1fr))"><span></span>' + hrs.map(function (h) { return '<span class="ov-hx">' + ((h - lo) % 2 ? '' : (h % 12 || 12) + (h < 12 ? 'a' : 'p')) + '</span>'; }).join('') +
+    var grid = '<div class="ov-heat" style="grid-template-columns:40px repeat(' + hrs.length + ',minmax(0,1fr))"><span></span>' + hrs.map(function (h) { return '<span class="ov-hx">' + ((h - lo) % 2 ? '' : (h % 12 || 12) + (h < 12 ? ' AM' : ' PM')) + '</span>'; }).join('') +
       WD.map(function (d, di) {
         return '<span class="ov-hy">' + d + '</span>' + hrs.map(function (h) {
           var l = cell[di + '|' + h] || [], c = l.length, step = c ? Math.min(OV_HEAT.length - 1, Math.floor((c / max) * OV_HEAT.length - 0.0001)) : -1;

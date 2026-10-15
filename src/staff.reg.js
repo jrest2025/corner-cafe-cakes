@@ -22,9 +22,9 @@
     g.loading = true; g.err = null; view();
     sb.rpc('register_review_list').then(function (r) {
       g.loading = false; if (r.error) throw r.error;
-      if (!r.data || !r.data.ok) g.err = (r.data && r.data.message) || 'The register could not load.'; else g.data = r.data;
+      if (!r.data || !r.data.ok) g.err = (r.data && r.data.message) || 'We couldn\'t load the register. Try again.'; else g.data = r.data;
       if (S.tab === 'register') view();
-    }).catch(function (e) { console.error(e); g.loading = false; if (errKind(e) === 'expired') return sessionExpired(); g.err = 'The register could not load. Check the connection and try again.'; if (S.tab === 'register') view(); });
+    }).catch(function (e) { console.error(e); g.loading = false; if (errKind(e) === 'expired') return sessionExpired(); g.err = 'We couldn\'t load the register. Check the connection and try again.'; if (S.tab === 'register') view(); });
     cmLoad();
   }
   // ---------- which customer each old sheet order belongs to ----------
@@ -35,9 +35,9 @@
     var g = rgState(); if (!can('manager')) return; g.cm = g.cm || { data: null, err: null, open: null, msg: null, matches: null, phone: '', note: '' };
     sb.rpc('register_customer_review').then(function (r) {
       if (r.error) throw r.error;
-      if (!r.data || !r.data.ok) g.cm.err = (r.data && r.data.message) || 'Customer matching could not load.'; else { g.cm.data = r.data; g.cm.err = null; }
+      if (!r.data || !r.data.ok) g.cm.err = (r.data && r.data.message) || 'We couldn\'t load customer matching. Try again.'; else { g.cm.data = r.data; g.cm.err = null; }
       if (S.tab === 'register') view();
-    }).catch(function (e) { console.error(e); g.cm.err = 'Customer matching could not load. Check the connection and try again.'; if (S.tab === 'register') view(); });
+    }).catch(function (e) { console.error(e); g.cm.err = 'We couldn\'t load customer matching. Check the connection and try again.'; if (S.tab === 'register') view(); });
   }
   function cmCard(c) {
     var m = RG.cm, k = c.rec_key, opening = m.open === k;

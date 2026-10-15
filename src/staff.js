@@ -15,8 +15,10 @@
   function addDays(iso, n) { var d = new Date(iso + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); }
   function nice(iso, long) { if (!iso) return ''; return new Date(iso + 'T12:00:00Z').toLocaleDateString('en-GB', long ? { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' } : { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }); }
   function dayLabel(iso) { var t = today(); if (iso === t) return 'Today'; if (iso === addDays(t, 1)) return 'Tomorrow'; return nice(iso, true); }
-  function t12(t) { if (!t) return ''; var p = String(t).slice(0, 5).split(':').map(Number); return (p[0] % 12 || 12) + ':' + String(p[1]).padStart(2, '0') + (p[0] < 12 ? 'am' : 'pm'); }
-  function stamp(ts) { var d = new Date(ts); return d.toLocaleString('en-GB', { timeZone: TZ, day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true }).replace(/\s([ap]m)$/i, '$1'); }
+  function t12(t) { if (!t) return ''; var p = String(t).slice(0, 5).split(':').map(Number); return (p[0] % 12 || 12) + ':' + String(p[1]).padStart(2, '0') + (p[0] < 12 ? ' AM' : ' PM'); }
+  // Times always read like 7:30 PM
+  function apFix(s) { return String(s).replace(/\s?([ap])\.?m\.?$/i, function (m, x) { return ' ' + x.toUpperCase() + 'M'; }); }
+  function stamp(ts) { var d = new Date(ts); return d.toLocaleString('en-GB', { timeZone: TZ, day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true }).replace(/\s?([ap])\.?m\.?$/i, function (m, x) { return ' ' + x.toUpperCase() + 'M'; }); }
   function uuid() { return (crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) { var r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 3 | 8)).toString(16); })); }
   function digits(s) { return String(s || '').replace(/\D/g, ''); }
   function waLink(phone) { var d = digits(phone); if (d.length === 7) d = '679' + d; return 'https://wa.me/' + d; }
@@ -115,16 +117,16 @@
   function readErr(e, what) {
     console.error(e); clearBusy(); var k = errKind(e);
     if (k === 'expired') { sessionExpired(); return null; }
-    return k === 'offline' ? 'No internet connection, so ' + what + ' could not load.' : k === 'denied' ? 'Your login cannot see ' + what + '. Ask a manager.' : what.charAt(0).toUpperCase() + what.slice(1) + ' could not load.';
+    return k === 'offline' ? 'No internet connection, so we couldn\'t load ' + what + '. Try again when you\'re back online.' : k === 'denied' ? 'Your login cannot see ' + what + '. Ask a manager.' : 'We couldn\'t load ' + what + '. Try again.';
   }
   // Reads get their own wording: nothing was being saved (A6)
   function loadFail(e) {
     console.error(e); clearBusy();
     var k = errKind(e);
     if (k === 'expired') return sessionExpired();
-    toast(k === 'offline' ? 'No internet connection, so this could not load. Nothing has changed.' :
+    toast(k === 'offline' ? 'No internet connection, so we couldn\'t refresh this. Nothing has changed.' :
       k === 'denied' ? 'Your login cannot see this. Ask a manager.' :
-      'This could not load. Try again. If it keeps happening, tell a manager.', true);
+      'We couldn\'t refresh this. Try again. If it keeps happening, tell a manager.', true);
   }
   function sessionExpired() {
     saveDraft();
@@ -354,7 +356,7 @@
         console.error(e);
         if (errKind(e) === 'expired') return sessionExpired();
         S.ordFails = (S.ordFails || 0) + 1;
-        if (!S.loaded) S.ordErr = errKind(e) === 'offline' ? 'No internet connection, so orders could not load.' : 'Orders could not load.';
+        if (!S.loaded) S.ordErr = errKind(e) === 'offline' ? 'No internet connection, so we couldn\'t load the orders.' : 'We couldn\'t load the orders. Try again.';
         if (!silent && S.loaded) loadFail(e);
         if ((!S.loaded || S.ordFails >= 2) && (S.tab === 'orders' || S.tab === 'today')) view();
       });
@@ -392,7 +394,7 @@
     if (!O.rows.length) return '';
     return '<p class="ccs-day">Older orders</p><div class="ccs-list">' + O.rows.map(orderCard).join('') + '</div>';
   }
-  function clockAt(ts) { return new Date(ts).toLocaleTimeString('en-GB', { timeZone: TZ, hour: 'numeric', minute: '2-digit', hour12: true }).replace(' ', ''); }
+  function clockAt(ts) { return apFix(new Date(ts).toLocaleTimeString('en-GB', { timeZone: TZ, hour: 'numeric', minute: '2-digit', hour12: true })); }
   // Freshness: when the list was last updated, and a warning once refreshes keep failing (A7)
   function freshLine(at, fails, act) {
     if (!at) return '';
@@ -500,8 +502,7 @@
     var t = today(), wkEnd = addDays(t, 6), money_ = can('manager', 'finance', 'front_of_house');
     var first = ((S.me && S.me.full_name) || '').trim().split(' ')[0];
     var who = (S.me && S.me.level_name) || (can('admin') ? 'Admin' : can('manager') ? 'Manager' : 'Counter');
-    var h = '<div class="ccs-dash-head tp-head"><div><p class="ccs-eyebrow">Corner Café · ' + esc(who) + '</p><h1 class="ccs-title">' + greet() + '! What would you like to do?</h1><p class="tp-sub">' + esc(nice(t, true)) + '</p>' + (S.loaded ? freshLine(S.ordAt, S.ordFails, 'reload-orders') : '') + '</div>' +
-      (can('manager', 'front_of_house') ? '<button type="button" class="ccs-btn ccs-btn-hero ccs-new" data-tab="new">' + NAV_ICON['new'] + 'New order</button>' : '') + '</div>';
+    var h = '<div class="ccs-dash-head tp-head"><div><p class="ccs-eyebrow">Corner Café · ' + esc(who) + '</p><h1 class="ccs-title">' + greet() + '! What would you like to do?</h1><p class="tp-sub">' + esc(nice(t, true)) + '</p>' + (S.loaded ? freshLine(S.ordAt, S.ordFails, 'reload-orders') : '') + '</div></div>';
     if (draftHasContent() && can('manager', 'front_of_house')) h += '<div class="ccs-note ccs-draftbar"><span>Unfinished order' + (draftWho() ? ' for ' + esc(draftWho()) : '') + '.</span><button type="button" class="ccs-btn ccs-ghost" data-tab="new">Continue it</button></div>';
     if (!S.loaded) return h + (S.ordErr ? loadErr(S.ordErr, 'reload-orders') : '<p class="ccs-loading">Loading today…</p>');
     if (S.mir && can('manager') && (S.mir.state === 'attention' || S.mir.state === 'not_set_up')) h += '<p class="ccs-note ccs-mirnote">' + (S.mir.state === 'not_set_up' ? 'The backup Google Sheet is not set up yet.' : 'The backup Google Sheet has not updated since ' + esc(when(S.mir.last_ack_at) || 'it was set up') + '.') + ' <button type="button" class="ccs-link" data-tab="settings">Check backup</button></p>';
@@ -589,7 +590,7 @@
         if (S.sheet && S.sheet.id === id) { S.sheet.custOrders = c.count; renderSheet(); }
       });
       renderSheet();
-    }).catch(function (e) { if (errKind(e) === 'expired') return sessionExpired(); console.error(e); if (S.sheet && S.sheet.id === id) { S.sheet.err = errKind(e) === 'offline' ? 'No internet connection, so this order could not load.' : 'This order could not load.'; renderSheet(); } });
+    }).catch(function (e) { if (errKind(e) === 'expired') return sessionExpired(); console.error(e); if (S.sheet && S.sheet.id === id) { S.sheet.err = errKind(e) === 'offline' ? 'No internet connection, so we couldn\'t open this order.' : 'We couldn\'t open this order. Try again.'; renderSheet(); } });
   }
   // Someone else changed the order: fetch the latest version but keep the open panel and the typing (A3)
   var CONFLICT = 'Someone else updated this order a moment ago. The details are now up to date: check them, then tap again. Your typing is kept.';
@@ -1225,7 +1226,7 @@
     var SRC = { online: 'Website', walk_in: 'Walk-in', phone: 'Phone', whatsapp: 'WhatsApp', social: 'Social media', corporate: 'Corporate' };
     var at = x.ordered_at ? new Date(x.ordered_at) : null;
     var odate = at ? at.toLocaleDateString('en-GB', { timeZone: TZ, day: 'numeric', month: 'short', year: 'numeric' }) : '';
-    var otime = at ? at.toLocaleTimeString('en-GB', { timeZone: TZ, hour: 'numeric', minute: '2-digit', hour12: true }).replace(' ', '') : '';
+    var otime = at ? apFix(at.toLocaleTimeString('en-GB', { timeZone: TZ, hour: 'numeric', minute: '2-digit', hour12: true })) : '';
     return '<div class="ccs-slip ccs-slip-' + size + '">' +
       '<div class="sl-ordno"><span>Order</span><b>' + esc(s.reference) + '</b><i>v' + b.version + '</i></div>' +
       '<div class="sl-head"><div class="sl-logo">' + SLIP_LOGO + '</div><div class="sl-hours">MONDAY - SUNDAY<br>8AM - 9PM</div></div>' +
@@ -1246,7 +1247,7 @@
   // Printing or saving as PDF uses the page title as the file name, so the slip is named for the order
   function briefFileName(b) {
     var s = b.snapshot || {}, x = b.slip || {}, deliv = s.method === 'delivery', d = s.date ? new Date(s.date + 'T12:00:00Z') : null;
-    var tm = s.time ? (function (t) { var hh = Number(t.slice(0, 2)), mm = t.slice(3, 5); return ((hh % 12) || 12) + '.' + mm + (hh < 12 ? 'am' : 'pm'); })(String(s.time)) : '';
+    var tm = s.time ? (function (t) { var hh = Number(t.slice(0, 2)), mm = t.slice(3, 5); return ((hh % 12) || 12) + '.' + mm + (hh < 12 ? ' AM' : ' PM'); })(String(s.time)) : '';
     var parts = [s.reference, deliv ? 'Delivery' : 'Pickup', d ? d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }).replace(',', '') : '', tm,
       s.variant || s.cake || '', s.size ? s.size + ' inch' : '', x.name || s.customer || '', 'v' + (b.version || 1)];
     return parts.filter(Boolean).join(' ').replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim();
@@ -1331,7 +1332,7 @@
       console.error(e);
       if (errKind(e) === 'expired') return sessionExpired();
       var K = S.kit; K.fails = (K.fails || 0) + 1;
-      if (!K.loaded) K.err = errKind(e) === 'offline' ? 'No internet connection, so the kitchen board could not load.' : 'The kitchen board could not load.';
+      if (!K.loaded) K.err = errKind(e) === 'offline' ? 'No internet connection, so we couldn\'t load the kitchen board.' : 'We couldn\'t load the kitchen board. Try again.';
       if (!silent && K.loaded) loadFail(e);
       if ((!K.loaded || K.fails >= 2) && S.tab === 'kitchen') view();
       if (!K.loaded && S.sheet && S.sheet.type === 'kitchen') renderSheet();
@@ -1392,10 +1393,6 @@
       groups.start.push(r);
     });
     var late = rows.filter(function (r) { return r.late; }).length, todo = rows.filter(function (r) { return r.status === 'confirmed'; }).length;
-    h += '<div class="ccs-kpis ccs-kpis-k">' +
-      '<div class="ccs-kpi"><span class="ccs-kpi-l">Cakes to finish</span><b class="ccs-kpi-n">' + todo + '</b><span class="ccs-kpi-s">' + (K.days === 2 ? 'Today and tomorrow' : 'Next 7 days') + '</span></div>' +
-      '<div class="ccs-kpi' + (late ? ' t-late' : '') + '"><span class="ccs-kpi-l">Running late</span><b class="ccs-kpi-n">' + late + '</b><span class="ccs-kpi-s">' + (late ? 'Past due and not ready' : 'None') + '</span></div>' +
-      '</div>';
     if (!rows.length) return h + '<div class="ccs-empty"><b>No confirmed cakes in this range.</b><span>Cakes appear here once the counter confirms them.</span></div>';
     // Phones: one column at a time. Tablets: four columns that each fit the screen; Handed over shows on request (always on wide screens)
     var curK = secCur('kitP', KCOLS.map(function (c) { return c[0]; }), groups.qc.length ? 'qc' : groups.prog.length ? 'prog' : 'start');
@@ -1565,7 +1562,7 @@
   }
   function kitchenSheet() {
     var r = kitRow(S.sheet.id);
-    if (!r && S.sheet.kerr) return sheetHead('Cake') + '<div class="ccs-sheet-body">' + loadErr(S.kit.err || 'The kitchen board could not load.', 'k-reopen') + '</div>';
+    if (!r && S.sheet.kerr) return sheetHead('Cake') + '<div class="ccs-sheet-body">' + loadErr(S.kit.err || 'We couldn\'t load the kitchen board. Try again.', 'k-reopen') + '</div>';
     if (!r) return sheetHead('Loading…') + '<div class="ccs-sheet-body"><p class="ccs-loading">' + (S.kit.loaded ? 'This cake is not on the kitchen board. Only confirmed cakes due in the next 7 days, or late ones, are shown.' : 'Loading…') + '</p></div>';
     var idx = stageIndex(r.stage), done = r.status === 'completed', err = S.panelErr ? '<p class="ccs-err">' + esc(S.panelErr) + '</p>' : '';
     var h = sheetHead(esc(r.reference), stagePill(r.stage)) + '<div class="ccs-sheet-body">';
@@ -1663,7 +1660,7 @@
       '<button type="button" class="lb-btn" data-lb="fit">Fit to screen</button>' + (fs ? '<button type="button" class="lb-btn lb-fsbtn" data-lb="fs">Full screen</button>' : '') +
       '<button type="button" class="lb-btn lb-close" data-lb="close">Close</button></div></div>' +
       '<div class="lb-stage"><img class="lb-img" alt="" draggable="false"><p class="lb-load" role="status">Loading photo…</p>' +
-      '<div class="lb-err" hidden><p>This photo could not load. Check the connection.</p><button type="button" class="lb-btn" data-lb="retry">Try again</button></div>' +
+      '<div class="lb-err" hidden><p>We couldn\'t load this photo. Check the connection.</p><button type="button" class="lb-btn" data-lb="retry">Try again</button></div>' +
       '<button type="button" class="lb-nav lb-prev" data-lb="prev" aria-label="Previous photo">‹</button><button type="button" class="lb-nav lb-next" data-lb="next" aria-label="Next photo">›</button>' +
       '<span class="lb-zoom" aria-hidden="true"></span></div><div class="lb-strip" role="group" aria-label="All photos"></div>';
     document.body.appendChild(el);
@@ -2189,7 +2186,7 @@
       '<label class="sl-k" for="n-notes">Other notes</label><input class="ccs-input" id="n-notes" data-n="notes" value="' + esc(D.notes) + '" placeholder="Anything else for the order">' + slActions(6, D.finish !== 'custom');
     h += slLine('Remarks', 6, rv, rEd, { id: 'sl-st-6' });
     h += slLine('Order Taken by', 99, esc(me.full_name || 'You'), null, { filled: true, change: false });
-    h += slLine('Date', 99, esc(now.toLocaleDateString('en-GB', { timeZone: TZ, day: 'numeric', month: 'short', year: 'numeric' })) + ', ' + esc(now.toLocaleTimeString('en-GB', { timeZone: TZ, hour: 'numeric', minute: '2-digit', hour12: true }).replace(' ', '')), null, { filled: true, change: false });
+    h += slLine('Date', 99, esc(now.toLocaleDateString('en-GB', { timeZone: TZ, day: 'numeric', month: 'short', year: 'numeric' })) + ', ' + esc(now.toLocaleTimeString('en-GB', { timeZone: TZ, hour: 'numeric', minute: '2-digit', hour12: true }).replace(/\s?([ap])\.?m\.?$/i, function (m, x) { return ' ' + x.toUpperCase() + 'M'; })), null, { filled: true, change: false });
     h += '</div></div>';
     // Stage 8: read over, payment, save
     if (cur === 7) {
@@ -2277,7 +2274,7 @@
       line('Candles', 4, esc(D.candles)) + line('Inscription', 4, D.message ? '“' + esc(D.message) + '”' : '') +
       line('Dietary', 5, dv) + line('Remarks', 4, rv) +
       line('Order Taken by', 99, esc(me.full_name || 'You')) +
-      line('Date', 99, esc(now.toLocaleDateString('en-GB', { timeZone: TZ, day: 'numeric', month: 'short', year: 'numeric' })) + ', ' + esc(now.toLocaleTimeString('en-GB', { timeZone: TZ, hour: 'numeric', minute: '2-digit', hour12: true }).replace(' ', ''))) +
+      line('Date', 99, esc(now.toLocaleDateString('en-GB', { timeZone: TZ, day: 'numeric', month: 'short', year: 'numeric' })) + ', ' + esc(now.toLocaleTimeString('en-GB', { timeZone: TZ, hour: 'numeric', minute: '2-digit', hour12: true }).replace(/\s?([ap])\.?m\.?$/i, function (m, x) { return ' ' + x.toUpperCase() + 'M'; }))) +
       '</div></aside>';
     var nx = cur < 7 ? slNextStage(cur) : 7, opt = D.slOpt && D.slOpt[cur];
     var bar = '<div class="sl-stepbar">' + (cur > 0 ? '<button type="button" class="ccs-btn ccs-ghost" data-act="sl-back">Back</button>' : '<span></span>') +
@@ -2476,7 +2473,7 @@
       '<span class="ccs-cev-t">' + esc(t12(o.required_time)) + '</span><span class="ccs-cev-n">' + esc(who) + '</span>' +
       (full ? '<span class="ccs-cev-c">' + esc(cakeLine(i)) + '</span><span class="ccs-tags">' + pill(o.order_status, o.fulfilment_method) + (dl ? '<span class="ccs-tag t-info">Delivery</span>' : '') + (o.has_dietary ? '<span class="ccs-pill s-alert">Dietary or allergy</span>' : '') + (amendWaiting(o) ? '<span class="ccs-pill s-amend">Change for kitchen</span>' : '') + '</span>' : '') + '</button>';
   }
-  function calErrBox(act) { return '<div class="ccs-empty ccs-calerr" role="alert"><b>The calendar could not load.</b><span>This is a connection problem, not an empty day. Nothing has changed.</span><button type="button" class="ccs-btn" data-act="' + act + '">Try again</button></div>'; }
+  function calErrBox(act) { return '<div class="ccs-empty ccs-calerr" role="alert"><b>We couldn\'t load the calendar.</b><span>This is a connection problem, not an empty day. Nothing has changed.</span><button type="button" class="ccs-btn" data-act="' + act + '">Try again</button></div>'; }
 
   function calendarView() {
     var c = S.cal;
@@ -2755,7 +2752,7 @@
     sb.rpc('staff_reminders_due').then(function (r) {
       if (r.error) throw r.error; if (!r.data.ok) throw userErr(r.data.message);
       S.rem.busy = false; S.rem.rows = r.data.rows || []; S.rem.at = Date.now(); S.rem.err = null; if (S.tab === 'customers') view();
-    }).catch(function (e) { console.error(e); S.rem.busy = false; S.rem.err = 'Reminders could not load.'; if (S.tab === 'customers') view(); });
+    }).catch(function (e) { console.error(e); S.rem.busy = false; S.rem.err = 'We couldn\'t load the reminders. Try again.'; if (S.tab === 'customers') view(); });
   }
   function remText(r) {
     var first = String(r.name || '').trim().split(/\s+/)[0] || 'there', occ = String(r.reason || 'your celebration').replace(/ \(".*$/, '');
@@ -2933,7 +2930,7 @@
       '<label class="ccs-check"><input type="checkbox" id="ce-corp"' + (c.is_corporate ? ' checked' : '') + '> Corporate customer</label>' +
       ta('ce-addr', 'Usual delivery address (optional)', c.delivery_address) +
       '<div class="ccs-row">' + sel('ce-bday', 'Birthday day (optional)', days, c.birth_day) + sel('ce-bmonth', 'Birthday month', months, c.birth_month) + '</div><p class="ccs-hint">Day and month only. Never ask for the year.</p>' +
-      ta('ce-prefs', 'Preferences', c.preferences, 'For example: less sweet, prefers chocolate, collects after 5pm') +
+      ta('ce-prefs', 'Preferences', c.preferences, 'For example: less sweet, prefers chocolate, collects after 5 PM') +
       ta('ce-notes', 'Service notes', c.notes, 'Things that help the team. No health or personal details.');
   }
   // Cancel or close with unsaved typing needs a second tap, so nothing typed is lost by accident.
@@ -3060,7 +3057,7 @@
     if (can('admin')) { reqs.push(sb.rpc('admin_list_team')); reqs.push(sb.rpc('admin_deleted_orders')); reqs.push(sb.rpc('admin_levels')); }
     Promise.all(reqs).then(function (rs) { rs.forEach(function (r) { if (r.error) throw r.error; }); S.settings = { loc: rs[0].data, closed: rs[1].data || [], products: rs[2].data || [], zones: rs[3].data || [], team: rs[4] ? (rs[4].data && rs[4].data.team) || [] : null, deleted: rs[5] && rs[5].data && rs[5].data.ok ? rs[5].data.orders : null, levels: rs[6] && rs[6].data && rs[6].data.ok ? rs[6].data.levels : null }; if (S.tab === 'settings') view(); s5SettingsLoad(); prLoad(); mirLoad(); alLoad(); }).catch(function (e) {
       console.error(e); if (errKind(e) === 'expired') return sessionExpired();
-      S.setErr = errKind(e) === 'offline' ? 'No internet connection, so settings could not load.' : errKind(e) === 'denied' ? 'Your login cannot see these settings. Ask a manager.' : 'Settings could not load.';
+      S.setErr = errKind(e) === 'offline' ? 'No internet connection, so we couldn\'t load the settings.' : errKind(e) === 'denied' ? 'Your login cannot see these settings. Ask a manager.' : 'We couldn\'t load the settings. Try again.';
       if (S.tab === 'settings') view();
     });
   }
@@ -3278,18 +3275,23 @@
     h += '<details><summary>Delivery areas <span>' + st.zones.filter(function (z) { return z.active; }).length + ' areas</span></summary><div class="ccs-set-body"><p class="ccs-hint">Leave the fee blank where staff set the fee for each order. Website guests cannot choose delivery yet.</p>' +
       st.zones.map(function (z) { return '<div class="ccs-row" style="align-items:end">' + sf('dz-n-' + z.id, 'Area', z.name, 'text') + sf('dz-f-' + z.id, 'Fee (FJD)', z.fee == null ? '' : Number(z.fee)) + '<label class="ccs-check" style="padding-bottom:14px"><input type="checkbox" id="dz-a-' + z.id + '"' + (z.active ? ' checked' : '') + '> Offered</label></div>'; }).join('') +
       '<button type="button" class="ccs-btn ccs-ghost" data-act="save-zones">Save delivery areas</button><div class="ccs-row" style="align-items:end">' + sf('dz-new-n', 'New area', '', 'text') + sf('dz-new-f', 'Fee (FJD)', '') + '<button type="button" class="ccs-btn ccs-ghost" data-act="add-zone">Add area</button></div></div></details>';
-    h += s5PermView(st) + s5BackupCheckView(st) + alertsView(st) + printView(st);
-    h += levelsView(st);
-    h += permView();
+    h += (st.team ? '' : s5PermView(st)) + s5BackupCheckView(st) + alertsView(st) + printView(st);
     if (st.team) {
       var tm = st.tmDraft || {};
+      // One place for staff access: the team, the access levels, and the switches for each level and person
+      var unwrap = function (x) { return String(x || '').replace(/^<details[^>]*>\s*<summary>[\s\S]*?<\/summary>\s*<div class="ccs-set-body">/, '').replace(/<\/div>\s*<\/details>\s*$/, ''); };
+      var tt = ['team', 'levels', 'perms'].indexOf(st.tmTab) > -1 ? st.tmTab : 'team';
       h += '<details' + (st.tmOpen ? ' open' : '') + '><summary>Team and access <span>' + st.team.filter(function (u) { return u.active; }).length + ' with access</span></summary><div class="ccs-set-body">';
+      h += '<div class="ccs-chips pm-tabs" role="group" aria-label="Team and access">' + [['team', 'Team'], ['levels', 'Access levels'], ['perms', 'Permissions']].map(function (x) { return '<button type="button" class="ccs-chip" data-act="tm-tab" data-v="' + x[0] + '" aria-pressed="' + (tt === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div>';
+      if (tt === 'levels') h += unwrap(levelsView(st)) + '</div></details>';
+      else if (tt === 'perms') h += (canP('staff.permissions') ? unwrap(permView()) : '<p class="ccs-quiet">Your login cannot change permissions.</p>') + '</div></details>';
+      if (tt === 'team') {
       if (st.tmDone) h += '<div class="ccs-note" role="status"><b>' + esc(st.tmDone.name) + ' can now sign in.</b> Give them the staff page link, their email (' + esc(st.tmDone.email) + ') and the temporary password you set. They choose their own password when they first sign in.</div>';
       h += '<div class="ccs-box ccs-tmadd"><b style="color:var(--ccs-ink);font-size:18px">Add a staff member</b><div class="ccs-row">' +
         sf('tm-new-n', 'Name', tm.name || '', 'text') + sf('tm-new-e', 'Email', tm.email || '', 'email') +
         '<div class="ccs-field"><label class="ccs-label" for="tm-new-r">Access level</label><select class="ccs-input" id="tm-new-r">' + levelOptions(st, tm.level || levelIdFor(st, 'front_of_house')) + '</select></div></div>' +
         '<div class="ccs-row" style="align-items:end">' + sf('tm-new-p', 'Temporary password', tm.password || '', 'text') + '<button type="button" class="ccs-btn ccs-ghost" data-act="tm-gen">Make one for me</button></div>' +
-        '<p class="ccs-hint">What each level can do is listed under Access levels. Admin can do everything, including managing the team.</p>' +
+        '<p class="ccs-hint">What each level can do is under Access levels and Permissions, above. Admin can do everything, including managing the team.</p>' +
         (st.tmErr ? '<p class="ccs-err" role="alert">' + esc(st.tmErr) + '</p>' : '') +
         '<button type="button" class="ccs-btn" data-act="tm-add">Add staff member</button></div>';
       h += st.team.map(function (u) {
@@ -3303,6 +3305,7 @@
             ? '<div class="ccs-panel ccs-rmbox" role="alert"><p><b>Remove ' + esc(u.full_name || u.email) + ' from the team?</b></p><p class="ccs-hint">Their login stops working straight away and they leave this list. Orders and notes they made keep their name. To give them access again later, add them as a new staff member.</p>' + (st.rmErr ? '<p class="ccs-err" role="alert">' + esc(st.rmErr) + '</p>' : '') + '<div class="ccs-actions-row"><button type="button" class="ccs-btn ccs-danger" data-act="tm-rm-yes" data-id="' + u.user_id + '">Remove from team</button><button type="button" class="ccs-btn ccs-ghost" data-act="tm-rm" data-id="">Keep them</button></div></div>'
             : '<div class="ccs-actions-row"><button type="button" class="ccs-link ccs-red" data-act="tm-rm" data-id="' + u.user_id + '">Remove from team</button></div>') + '</div>';
       }).join('') + '</div></details>';
+      }
       h += deletedView(st);
     }
     return h + '</div>';
@@ -3314,7 +3317,7 @@
       if (S.settings !== st) return; if (r.error) throw r.error; if (!r.data.ok) throw userErr(r.data.message);
       st.al = r.data; st.alList = (r.data.new_order || []).slice(); if (!st.alList.length) st.alList.push(''); st.alErr = null;
       if (S.tab === 'settings') view();
-    }).catch(function (e) { if (S.settings !== st) return; st.alErr = errKind(e) === 'offline' ? 'No internet connection.' : 'Order alerts could not load.'; if (S.tab === 'settings') view(); });
+    }).catch(function (e) { if (S.settings !== st) return; st.alErr = errKind(e) === 'offline' ? 'No internet connection.' : 'We couldn\'t load the order alerts. Try again.'; if (S.tab === 'settings') view(); });
   }
   function alGrab() { var st = S.settings; if (!st || !st.alList) return; st.alList = st.alList.map(function (v, i) { var el = document.getElementById('al-e' + i); return el ? el.value : v; }); }
   function alertsView(st) {
@@ -3352,7 +3355,7 @@
       rs.forEach(function (r) { if (r.error) throw r.error; if (!r.data.ok) throw userErr(r.data.message); });
       st.prLog = rs[0].data.rows || []; if (rs[1]) st.pr = rs[1].data; st.prErr = null;
       if (S.tab === 'settings') view();
-    }).catch(function (e) { if (S.settings !== st) return; st.prErr = errKind(e) === 'offline' ? 'No internet connection.' : 'Kitchen printing could not load.'; if (S.tab === 'settings') view(); });
+    }).catch(function (e) { if (S.settings !== st) return; st.prErr = errKind(e) === 'offline' ? 'No internet connection.' : 'We couldn\'t load kitchen printing. Try again.'; if (S.tab === 'settings') view(); });
   }
   var PR_STATUS = { sent: 'Emailed', pending: 'Waiting to send', sending: 'Sending', failed: 'Could not be delivered' };
   function prRowStatus(x) { return x.status === 'failed' && x.attempts < 5 ? 'Delayed, trying again' : PR_STATUS[x.status] || x.status; }
@@ -3448,7 +3451,7 @@
   }
 
   // ---------- Google Sheet backup (old robot-account route, kept for reference; not shown) ----------
-  function when(iso) { return iso ? new Date(iso).toLocaleString('en-GB', { timeZone: 'Pacific/Fiji', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true }).replace(/\s([ap]m)$/i, '$1') : ''; }
+  function when(iso) { return iso ? new Date(iso).toLocaleString('en-GB', { timeZone: 'Pacific/Fiji', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true }).replace(/\s?([ap])\.?m\.?$/i, function (m, x) { return ' ' + x.toUpperCase() + 'M'; }) : ''; }
   function backupView(st) {
     var k = st.bk, open = st.bkOpen ? ' open' : '', h;
     if (!k) return '<details' + open + '><summary>Backup to Google Sheet <span>' + (st.bkErr ? 'Could not check' : 'Checking…') + '</span></summary><div class="ccs-set-body">' + (st.bkErr ? '<p class="ccs-err" role="alert">' + esc(st.bkErr) + '</p><button type="button" class="ccs-btn ccs-ghost" data-act="bk-reload">Try again</button>' : '<p class="ccs-loading">Checking…</p>') + '</div></details>';
@@ -3788,6 +3791,7 @@
         case 'k-range': S.kit.days = Number(v); S.kit.focus = null; view(); break;
         case 'k-card': var KK = S.kit; KK.focus = v === 'today' ? 'today' : null; if (v === 'ready') { secStore('kitP').kitP = 'ready'; KK.days = 7; } if (v === 'soon') { KK.days = 7; } if (v === 'today') { KK.days = 2; } view(); setTimeout(function () { var bd = document.querySelector('.kp-bar') || document.querySelector('.ccs-board'); if (bd && bd.scrollIntoView) bd.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 30); break;
         case 'k-focus-off': S.kit.focus = null; view(); break;
+        case 'tm-tab': S.settings.tmTab = v; S.settings.tmOpen = true; view(); break;
         case 'k-refresh': loadKitchen(); break;
         case 'am-set': amendSet(b.dataset.f, v); break;
         case 'am-diet': var dl_ = S.am.diets.indexOf(v); if (dl_ > -1) S.am.diets.splice(dl_, 1); else S.am.diets.push(v); S.am.preview = null; renderSheet(); break;

@@ -20,7 +20,7 @@
       if (r.error) throw r.error;
       if (!r.data.ok) { S.sheet.wsErr = r.data.message; renderSheet(); return; }
       S.sheet.ws = r.data; S.sheet.wsErr = null; renderSheet();
-    }).catch(function (e) { console.error(e); if (S.sheet && S.sheet.id === id) { S.sheet.wsErr = 'Notes and follow-ups could not load. Check the connection and try again.'; renderSheet(); } });
+    }).catch(function (e) { console.error(e); if (S.sheet && S.sheet.id === id) { S.sheet.wsErr = 'We couldn\'t load the notes and follow-ups. Check the connection and try again.'; renderSheet(); } });
   }
   function wsDueDate(kind) {
     var t = today();
@@ -80,7 +80,7 @@
     if (f.noteDone) return h + wsFollowFields(f) + wsAddTail(f);
     if (f.kind === 'feedback') h += '<div class="ccs-field"><span class="ccs-label">How was it?</span><div class="ccs-chips" role="group" aria-label="Feedback">' +
       [['positive', 'Happy'], ['neutral', 'Mixed'], ['negative', 'Complaint']].map(function (k) { return '<button type="button" class="ccs-chip" data-act="ws-tone" data-v="' + k[0] + '" aria-pressed="' + (f.tone === k[0]) + '">' + k[1] + '</button>'; }).join('') + '</div>' + wsErr('tone') + '</div>';
-    h += '<div class="ccs-field"><label class="ccs-label" for="ws-body">' + (f.kind === 'enquiry' ? 'What did they ask about?' : f.kind === 'feedback' ? 'What did they say?' : 'Note') + '</label><textarea class="ccs-input" id="ws-body" maxlength="2000" placeholder="' + (f.kind === 'enquiry' ? 'For example: asked about a three-tier wedding cake for 120 people in March' : f.kind === 'feedback' ? 'For example: loved the mocha cake, icing a little sweet' : 'For example: prefers collecting after 5pm') + '"></textarea>' + wsErr('body') + '<span class="ccs-hint">' + WS_HINT + '</span></div>';
+    h += '<div class="ccs-field"><label class="ccs-label" for="ws-body">' + (f.kind === 'enquiry' ? 'What did they ask about?' : f.kind === 'feedback' ? 'What did they say?' : 'Note') + '</label><textarea class="ccs-input" id="ws-body" maxlength="2000" placeholder="' + (f.kind === 'enquiry' ? 'For example: asked about a three-tier wedding cake for 120 people in March' : f.kind === 'feedback' ? 'For example: loved the mocha cake, icing a little sweet' : 'For example: prefers collecting after 5 PM') + '"></textarea>' + wsErr('body') + '<span class="ccs-hint">' + WS_HINT + '</span></div>';
     h += '<div class="ccs-row"><div class="ccs-field"><label class="ccs-label" for="ws-channel">How did it come in?</label><select class="ccs-input" id="ws-channel">' + WS_CHANNEL.map(function (c) { return '<option value="' + c[0] + '">' + c[1] + '</option>'; }).join('') + '</select></div>' +
       '<div class="ccs-field"><label class="ccs-label" for="ws-order">About an order (optional)</label><select class="ccs-input" id="ws-order"><option value="">Not about one order</option>' +
       d.orders.slice(0, 30).map(function (o) { return '<option value="' + o.id + '">' + esc(o.reference + ' · ' + nice(o.required_date) + ' · ' + cakeLine((o.order_items || [])[0])) + '</option>'; }).join('') + '</select>' + wsErr('order') + '</div></div>';
@@ -1119,11 +1119,11 @@
     var p = S.perm; if (p.loading) return; p.loading = true;
     sb.rpc('admin_perms').then(function (r) {
       p.loading = false; if (r.error) throw r.error;
-      if (!r.data || !r.data.ok) { p.err = (r.data && r.data.message) || 'Permissions could not load.'; } else { p.data = r.data; p.err = null; }
+      if (!r.data || !r.data.ok) { p.err = (r.data && r.data.message) || 'We couldn\'t load the permissions. Try again.'; } else { p.data = r.data; p.err = null; }
       if (S.tab === 'settings') view();
     }).catch(function (e) {
       p.loading = false; console.error(e);
-      p.err = /admin_perms|does not exist|PGRST202/.test(String((e && (e.message || e.code)) || '')) ? 'The switches are not set up yet. The database update needs to be run first.' : 'Permissions could not load. Check the connection and try again.';
+      p.err = /admin_perms|does not exist|PGRST202/.test(String((e && (e.message || e.code)) || '')) ? 'The switches are not set up yet. The database update needs to be run first.' : 'We couldn\'t load the permissions. Check the connection and try again.';
       if (S.tab === 'settings') view();
     });
   }

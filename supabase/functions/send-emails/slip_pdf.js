@@ -4,7 +4,7 @@
 
 const MM = 72 / 25.4;
 
-function t12(t) { const [h, m] = String(t || "").slice(0, 5).split(":").map(Number); if (isNaN(h)) return ""; return `${h % 12 || 12}:${String(m).padStart(2, "0")}${h < 12 ? "am" : "pm"}`; }
+function t12(t) { const [h, m] = String(t || "").slice(0, 5).split(":").map(Number); if (isNaN(h)) return ""; return `${h % 12 || 12}:${String(m).padStart(2, "0")}${h < 12 ? " AM" : " PM"}`; }
 function dot12(t) { return t12(t).replace(":", "."); }
 function longDate(d) { return d ? new Date(d + "T00:00:00Z").toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }) : ""; }
 function shortDate(d) { return d ? new Date(d + "T12:00:00Z").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" }).replace(",", "") : ""; }
@@ -12,7 +12,7 @@ function cents(v) { return v == null || v === "" ? "" : "$" + Number(v).toFixed(
 
 export const SLIP_REF = /^[A-Z]{1,4}-[0-9]{3,}$/;
 
-// File name the kitchen sees, the same pattern as the staff app's print: CC-1009 Pickup Mon 19 Oct 3.00pm Cheesecake 8 inch Mere Tavola v1
+// File name the kitchen sees, the same pattern as the staff app's print: CC-1009 Pickup Mon 19 Oct 3.00 PM Cheesecake 8 inch Mere Tavola v1
 export function slipFileName(s, slip, version) {
   const parts = [s.reference, s.method === "delivery" ? "Delivery" : "Pickup", shortDate(s.date), dot12(s.time), s.variant || s.cake || "", s.size ? s.size + " inch" : "", (slip && slip.name) || s.customer || "", "v" + (version || 1)];
   return parts.filter(Boolean).join(" ").replace(/[\\/:*?"<>|]+/g, " ").replace(/\s+/g, " ").trim();
@@ -71,7 +71,7 @@ async function renderSlip(PDFLib, { snapshot: s, slip, version, changes, printed
 
   // 3. Printed line, short notice, what changed
   const printed = new Date(printedAt || Date.now());
-  const pd = printed.toLocaleDateString("en-GB", { timeZone: "Pacific/Fiji", day: "numeric", month: "short" }) + ", " + printed.toLocaleTimeString("en-GB", { timeZone: "Pacific/Fiji", hour: "numeric", minute: "2-digit", hour12: true }).replace(" ", "");
+  const pd = printed.toLocaleDateString("en-GB", { timeZone: "Pacific/Fiji", day: "numeric", month: "short" }) + ", " + printed.toLocaleTimeString("en-GB", { timeZone: "Pacific/Fiji", hour: "numeric", minute: "2-digit", hour12: true }).replace(/\s?([ap])\.?m\.?$/i, (_m, x) => " " + x.toUpperCase() + "M");
   text(`Kitchen slip ${vtxt} · Printed ${pd}`, M, y, R, 7.5);
   if (s.rush) { const rw = width(B, "SHORT NOTICE", 7.5) + 8; page.drawRectangle({ x: W - M - rw, y: y - 3, width: rw, height: 12, borderColor: BLACK, borderWidth: 1.2 }); text("SHORT NOTICE", W - M - rw + 4, y, B, 7.5); }
   y -= 8;
@@ -117,7 +117,7 @@ async function renderSlip(PDFLib, { snapshot: s, slip, version, changes, printed
   if (dl) rows.push(["Deliver to", [s.area, sl.address].filter(Boolean).join(", ") + (sl.receiver ? ` (for ${sl.receiver})` : "")]);
   rows.push(["Price", priceTxt], ["Candles", s.candles], ["Inscription", s.message ? `“${s.message}”` : "", 12], ["Remarks", remarks.replace(/^ · /, "")],
     ["Order Taken by", (sl.taken_by || "") + (sl.source && sl.source !== "online" ? ` (${SRC[sl.source] || sl.source})` : "")],
-    ["Date", at ? at.toLocaleDateString("en-GB", { timeZone: "Pacific/Fiji", day: "numeric", month: "short", year: "numeric" }) + ", " + at.toLocaleTimeString("en-GB", { timeZone: "Pacific/Fiji", hour: "numeric", minute: "2-digit", hour12: true }).replace(" ", "") : ""]);
+    ["Date", at ? at.toLocaleDateString("en-GB", { timeZone: "Pacific/Fiji", day: "numeric", month: "short", year: "numeric" }) + ", " + at.toLocaleTimeString("en-GB", { timeZone: "Pacific/Fiji", hour: "numeric", minute: "2-digit", hour12: true }).replace(/\s?([ap])\.?m\.?$/i, (_m, x) => " " + x.toUpperCase() + "M") : ""]);
   const LW = 78;
   rows.forEach(([k, v, sz]) => {
     const size = sz || 9.5, lines = wrap(sz ? B : R, v || " ", size, CW - LW - 4);
