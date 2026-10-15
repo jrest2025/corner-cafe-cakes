@@ -1548,7 +1548,7 @@
   // A short chip inside a calendar day: time, cake, and what needs care
   function kitChip(r) {
     var marks = [];
-    if (r.late) marks.push('Late'); if (r.has_dietary) marks.push('Allergy'); if (r.finish === 'custom') marks.push('Custom'); if (r.stage === 'quality_check') marks.push('QC');
+    if (r.late) marks.push('Late'); if (r.has_dietary) marks.push('Allergy'); if (r.finish === 'custom' && !/^Custom cake/.test(kitCake(r))) marks.push('Custom'); if (r.stage === 'quality_check') marks.push('QC');
     var tone = r.status === 'completed' ? ' is-done' : r.stage === 'ready' ? ' is-ready' : r.late ? ' is-late' : '';
     return '<button type="button" class="kc-chip' + tone + '" data-act="open-kitchen" data-id="' + r.id + '"><span class="kc-t">' + esc(t12(r.time)) + '</span><b>' + esc(kitCake(r)) + '</b><span class="kc-s">' + esc(kitStageText(r)) + (marks.length ? ' · ' + esc(marks.join(', ')) : '') + '</span></button>';
   }
@@ -1584,7 +1584,7 @@
       var show = list.length > 4 ? list.slice(0, 3) : list;
       var bars = show.map(function (r) {
         var tone = r.status === 'completed' || r.stage === 'ready' ? ' is-done' : r.late ? ' is-late' : ['not_started', 'scheduled'].indexOf(r.stage) > -1 ? ' is-todo' : '';
-        var m = (r.has_dietary ? ' · Allergy' : '') + (r.finish === 'custom' ? ' · Custom' : '');
+        var m = (r.has_dietary ? ' · Allergy' : '') + (r.finish === 'custom' && !/^Custom cake/.test(kitCake(r)) ? ' · Custom' : '');
         return '<button type="button" class="kc-mbar' + tone + '" data-act="open-kitchen" data-id="' + r.id + '" title="' + esc(t12(r.time) + ' ' + kitCake(r) + ' · ' + kitStageText(r) + m) + '"><span class="kc-mt">' + esc(t12(r.time).replace(':00', '')) + '</span> ' + esc(kitCake(r)) + (m ? '<i>' + esc(m) + '</i>' : '') + '</button>';
       }).join('');
       return '<div class="kc-mday' + (d.slice(0, 7) !== mon ? ' is-out' : '') + (d === t ? ' is-today' : '') + (d < t ? ' is-past' : '') + (list.length ? ' has' : '') + (lt ? ' is-late' : '') + '">' +
