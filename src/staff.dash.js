@@ -112,9 +112,26 @@
     });
     return '<p class="ccs-sub dx-read">Last read: ' + esc(parts.join(' · ')) + '.</p>' + (bad.length ? '<p class="ccs-note" role="alert"><b>Not up to date.</b> ' + esc(bad.join(' ')) + (long ? ' The sheets are read every 5 minutes by the Google script. If this stays, check the script is still switched on.' : '') + '</p>' : '');
   }
+  // Where the figures are known to be incomplete: a sheet not read lately, or a sheet that stopped getting orders while it was busy.
+  // From that date on, figures are marked incomplete and no comparisons are shown, so nothing misleading appears.
+  function dxGap() {
+    var d = DX.data, t = today(), out = [], fiji = function (ts) { return new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date(ts)); };
+    var sy = d.sync, lim = ((sy && sy.stale_minutes) || 20) * 6e4;
+    [['online', 'Online sheet', 'online order sheet'], ['walkin', 'Walk-in sheet', 'walk-in sheet']].forEach(function (k) {
+      var list = d.orders.filter(function (o) { return o.sys === k[1]; }); if (!list.length) return;
+      var last = list.reduce(function (m, o) { return o.pd > m ? o.pd : m; }, '');
+      var busy = list.filter(function (o) { return o.pd > addDays(last, -60) && o.pd <= last; }).length;
+      if (busy >= 10 && last < addDays(t, -14)) out.push({ from: addDays(last, 1), why: 'no ' + k[2] + ' orders after ' + nice(last, true).replace(/^\w+ /, '') });
+      var x = sy && sy[k[0]], ok = x && x.ok_at ? Date.parse(x.ok_at) : 0, fl = x && x.fail_at ? Date.parse(x.fail_at) : 0;
+      if (sy && (!ok || fl > ok || Date.now() - ok > lim)) out.push({ from: ok ? fiji(x.ok_at) : '2000-01-01', why: 'the ' + k[2] + ' has not been read since ' + (ok ? nice(fiji(x.ok_at), true).replace(/^\w+ /, '') : 'setup') });
+    });
+    if (!out.length) return null;
+    out.sort(function (a, b) { return a.from < b.from ? -1 : 1; });
+    return { from: out[0].from, why: out.map(function (x) { return x.why; }) };
+  }
   function dashView() {
     var d = dxState(); d.drills = {};
-    var h = '<div class="ccs-head"><div><h1 class="ccs-title">Dashboard</h1><p class="ccs-sub"><span class="ccs-subtxt">' + (d.data ? 'Figures as of ' + esc(stamp(d.data.generated_at)) + '. ' : '') + 'View only.</span> <button type="button" class="ccs-link ccs-refresh" data-act="dx-refresh">Refresh</button>' + (d.data ? ' · <button type="button" class="ccs-link ccs-refresh" data-act="dx-export">Export summary</button>' : '') + '</p>' + (d.data ? dxSync(d.data.sync) : '') + '</div></div>';
+    var h = '<div class="ccs-head"><div><h1 class="ccs-title">Dashboard</h1><p class="ccs-sub"><span class="ccs-subtxt">' + (d.data ? 'Figures as of ' + esc(stamp(d.data.generated_at)) + '. ' : '') + 'View only.</span> <button type="button" class="ccs-link ccs-refresh" data-act="dx-refresh">Refresh</button>' + (d.data ? ' · <button type="button" class="ccs-link ccs-refresh" data-act="dx-export">Export summary</button>' : '') + '</p>' + '</div></div>';
     if (d.err) return h + '<div class="ccs-empty"><b>' + esc(d.err) + '</b><button type="button" class="ccs-btn" data-act="dx-refresh">Try again</button></div>';
     if (!d.data) return h + '<p class="ccs-loading">Loading the dashboard…</p>';
     var f = d.f, r = dxRange(), data = d.data, byOrder = f.b === 'o';
@@ -128,15 +145,20 @@
       sel('dx-b', 'Count by', DX_BASIS, f.b) +
       sel('dx-prod', 'Cake', [['all', 'All cakes']].concat(prods.map(function (p) { return [p, p]; })), f.prod) +
       sel('dx-ch', 'Channel', [['all', 'All channels']].concat(chans.map(function (c) { return [c, SOURCE_LABEL[c] || c]; })), f.ch) + '</div>';
-    var cur = dxSales(r.from, r.to), cs = dxSum(cur), ps = r.pf ? dxSum(dxSales(r.pf, r.pt)) : null;
+    var gap = dxGap(), hit = gap && !r.all && r.to >= gap.from, hitPrev = gap && r.pf && r.pt >= gap.from;
+    if (hit || hitPrev) { r.noCmp = true; }
+    d.gapHit = hit;
+    var cur = dxSales(r.from, r.to), cs = dxSum(cur), ps = r.pf && !r.noCmp ? dxSum(dxSales(r.pf, r.pt)) : null;
     var rec = cur.filter(function (o) { return o.cp === 'recorded'; }), asm = cur.filter(function (o) { return o.cp === 'assumed'; });
-    var got = dxIn(r.from, r.to), pgot = r.pf ? dxIn(r.pf, r.pt) : null, cx = got.filter(function (o) { return o.off; });
+    var got = dxIn(r.from, r.to), pgot = r.pf && !r.noCmp ? dxIn(r.pf, r.pt) : null, cx = got.filter(function (o) { return o.off; });
     var t = today(), up = data.orders.filter(function (o) { return o.open && o.pd >= t && dxMatch(o); }), upv = up.reduce(function (s, o) { return s + dxValue(o); }, 0), upc = up.filter(function (o) { return o.st === 'confirmed'; }).length;
     var cash = 0, cashList = [], refunds = 0, refList = [];
     data.orders.forEach(function (o) { if (!dxMatch(o)) return; var g = 0, rf = 0; (o.pay || []).forEach(function (p) { if (!inRange(p[2], r.from, r.to)) return; if (p[0] === 'refund') rf += dnum(p[1]); else if (p[0] !== 'adjustment') g += dnum(p[1]); }); if (g) { cash += g; cashList.push(o); } if (rf) { refunds += rf; refList.push(o); } });
     var owing = data.orders.filter(function (o) { return o.live && dxMatch(o) && (o.st === 'confirmed' || o.st === 'completed') && dnum(o.bal) > 0.005; }), owed = owing.reduce(function (s, o) { return s + dnum(o.bal); }, 0);
     var basisWord = byOrder ? 'order date' : 'pickup date';
-    var period = '<p class="dx-period">' + (r.all ? 'All recorded history' : esc(nice(r.from) + ' to ' + nice(r.to))) + ', by ' + basisWord + (ps ? '. Compared with ' + esc(r.cmp) + '.' : '.') + (f.prod !== 'all' ? ' Showing ' + esc(f.prod) + ' only.' : '') + '</p>';
+    var gapNote = gap ? '<div class="dx-gap" role="note"><p><b>' + (hit ? 'Figures from ' + esc(nice(gap.from, true).replace(/^\w+ /, '')) + ' are incomplete.' : 'Comparisons are hidden.') + '</b> ' + esc(dxAnd(gap.why).replace(/^./, function (c) { return c.toUpperCase(); })) + '. ' + (hit ? 'Changes and comparisons are hidden until this is fixed.' : 'The period before includes dates with missing orders.') +
+      ' <button type="button" class="ccs-link" data-act="dx-gapmore" aria-expanded="' + !!d.gapOpen + '">' + (d.gapOpen ? 'Hide details' : 'Details') + '</button></p>' + (d.gapOpen ? dxSync(data.sync, true) : '') + '</div>' : '';
+    var period = '<p class="dx-period">' + (r.all ? 'All recorded history' : esc(nice(r.from) + ' to ' + nice(r.to))) + ', by ' + basisWord + (ps ? '. Compared with ' + esc(r.cmp) + '.' : r.noCmp ? '. Not compared, because of missing orders.' : '.') + (f.prod !== 'all' ? ' Showing ' + esc(f.prod) + ' only.' : '') + '</p>';
     // Overview: the summary page (see ovView)
     d.cmpShort = ps ? 'vs ' + r.cmp : '';
     var ov = ovView(r, cur, cs, ps, got, pgot, owing);
@@ -163,8 +185,8 @@
     d.secs = [['ov', 'Overview', '', '']].concat(dxMerge(d.secs));
     var keys = d.secs.map(function (x) { return x[0]; }), cs2 = secCur('dash', keys, 'ov'), sec = d.secs.filter(function (x) { return x[0] === cs2; })[0];
     h += '<div class="dx-secs">' + secBar('dash', d.secs.map(function (x) { return [x[0], x[1]]; }), cs2, 'Dashboard sections') + '</div>' + period;
-    if (cs2 === 'ov') return h + '<div class="dx-ov">' + ov + '</div>';
-    return h + '<section class="dx-card dx-secbody" aria-label="' + esc(sec[1]) + '"><div class="dx-card-h"><h2>' + esc(sec[1]) + '</h2>' + (sec[2] ? '<span>' + sec[2] + '</span>' : '') + '</div>' + sec[3] + '</section>';
+    if (cs2 === 'ov') return h + gapNote + '<div class="dx-ov">' + ov + '</div>';
+    return h + gapNote + '<section class="dx-card dx-secbody" aria-label="' + esc(sec[1]) + '"><div class="dx-card-h"><h2>' + esc(sec[1]) + '</h2>' + (sec[2] ? '<span>' + sec[2] + '</span>' : '') + '</div>' + sec[3] + '</section>';
   }
   // ----- headline pieces -----
   function dxDelta(cur, prev) {
@@ -206,9 +228,9 @@
     if (r.all) { from = t; DX.data.orders.forEach(function (o) { var x = dxD(o); if (x && x < from) from = x; }); }
     return { from: from, to: to, days: daysBetween(from, to) + 1 };
   }
-  function ovUnit(sp) { var u = DX.unit; if (u === 'd' && sp.days > 120) u = null; if (u === 'w' && sp.days > 1200) u = null; return u || (sp.days <= 45 ? 'd' : sp.days <= 200 ? 'w' : 'm'); }
-  function ovBuckets(r) {
-    var sp = ovSpan(r), u = ovUnit(sp), out = [], a, b;
+  function ovUnit(sp, n) { var u = DX.unit; if (u === 'd' && sp.days > 120) u = null; if (u === 'w' && sp.days > 1200) u = null; return u || (sp.days <= 45 ? (n != null && n < 30 && sp.days > 14 ? 'w' : 'd') : sp.days <= 200 ? 'w' : 'm'); }
+  function ovBuckets(r, n) {
+    var sp = ovSpan(r), u = ovUnit(sp, n), out = [], a, b;
     if (u === 'd') for (a = sp.from; a <= sp.to; a = addDays(a, 1)) out.push({ a: a, b: a, l: ovShort(a), full: nice(a, true) });
     else if (u === 'w') { a = addDays(sp.from, -ovDay(sp.from)); for (; a <= sp.to; a = addDays(a, 7)) { b = addDays(a, 6); out.push({ a: a < sp.from ? sp.from : a, b: b > sp.to ? sp.to : b, l: ovShort(a), full: 'Week starting ' + nice(a, true) }); } }
     else { a = dxMonthStart(sp.from); for (; a <= sp.to; a = dxAddMonths(a, 1)) { b = dxMonthEnd(a); out.push({ a: a < sp.from ? sp.from : a, b: b > sp.to ? sp.to : b, l: MON[+a.slice(5, 7) - 1] + ' ' + a.slice(2, 4), full: MONF[+a.slice(5, 7) - 1] + ' ' + a.slice(0, 4) }); } }
@@ -217,7 +239,7 @@
       x.got = dxIn(x.a, x.b); x.sales = dxSales(x.a, x.b); x.s = dxSum(x.sales);
       x.done = x.got.filter(function (o) { return o.sale; }).length; x.off = x.got.filter(function (o) { return o.off; }).length;
       x.rate = x.done + x.off ? x.done / (x.done + x.off) * 100 : NaN;
-      if (r.pf) { var pa = u === 'm' ? dxAddMonths(x.a, -nm) : addDays(x.a, -len), pb = u === 'm' ? dxAddMonths(x.b, -nm) : addDays(x.b, -len); x.pn = dxIn(pa, pb).length; x.pv = dxSum(dxSales(pa, pb)).v; }
+      if (r.pf && !r.noCmp) { var pa = u === 'm' ? dxAddMonths(x.a, -nm) : addDays(x.a, -len), pb = u === 'm' ? dxAddMonths(x.b, -nm) : addDays(x.b, -len); x.pn = dxIn(pa, pb).length; x.pv = dxSum(dxSales(pa, pb)).v; }
     });
     out.unit = u; out.span = sp; return out;
   }
@@ -227,15 +249,16 @@
     if (points) { var d = Math.round(cur - prev); return d > 0 ? { t: 'Up ' + d + (d === 1 ? ' point' : ' points'), c: 'up' } : d < 0 ? { t: 'Down ' + (-d) + (d === -1 ? ' point' : ' points'), c: 'down' } : { t: 'No change', c: 'flat' }; }
     return dxDelta(cur, prev);
   }
-  function ovKpi(icon, label, value, delta, sub, spark, list, title) {
+  function ovKpi(icon, label, value, delta, sub, spark, list, title, prev) {
+    var dl = delta.t ? esc(delta.t) + (DX.cmpShort ? '<em> ' + esc(DX.cmpShort) + '</em>' : '') + (prev ? '<em class="ov-prev-v"> (was ' + esc(prev) + ')</em>' : '') : DX.gapHit ? '<span class="ov-inc">Incomplete<em>, not compared</em></span>' : '&nbsp;';
     return dxTap(list, title, '<span class="ov-kh">' + ovIcon(icon) + '<span class="ov-kl">' + label + '</span></span><b class="ov-kv">' + value + '</b>' +
-      '<span class="ov-kd is-' + (delta.c || 'none') + '">' + (delta.t ? esc(delta.t) + (DX.cmpShort ? '<em> ' + esc(DX.cmpShort) + '</em>' : '') : '&nbsp;') + '</span>' +
+      '<span class="ov-kd is-' + (delta.c || 'none') + '">' + dl + '</span>' +
       dxSpark(spark) + '<span class="ov-ks">' + esc(sub) + '</span>', 'ov-kpi');
   }
   // Orders or revenue over time: one measure at a time (switch between them), the period before as a dashed grey line
   function ovTrend(bk, r) {
     var tm = DX.tm || 'o', isV = tm === 'v', val = function (x) { return isV ? x.s.v : x.got.length; }, pv = function (x) { return isV ? x.pv : x.pn; };
-    var hasPrev = !!r.pf && bk.length > 1, n = bk.length;
+    var hasPrev = !!r.pf && !r.noCmp && bk.length > 1, n = bk.length;
     var max = ovNiceMax(bk.reduce(function (m, x) { return Math.max(m, val(x), hasPrev ? pv(x) || 0 : 0); }, 0));
     var fmt = function (v) { return isV ? m0(v) : int(v); }, ax = function (v) { return isV ? (v >= 1000 ? '$' + (v / 1000).toFixed(v % 1000 ? 1 : 0) + 'k' : '$' + Math.round(v)) : int(v); };
     var X = function (i) { return n === 1 ? 50 : i / (n - 1) * 100; }, Y = function (v) { return 100 - v / max * 100; };
@@ -269,7 +292,7 @@
   // Status of the orders in the period, as a ring with names, counts and shares
   function ovStatus(got) {
     var g = [['done', 'Completed', function (o) { return o.sale; }], ['come', 'Confirmed, to come', function (o) { return o.open && o.st === 'confirmed'; }], ['wait', 'Awaiting confirmation', function (o) { return !o.off && !o.sale && o.cp !== 'not_recorded' && !(o.open && o.st === 'confirmed'); }], ['off', 'Cancelled', function (o) { return o.off; }], ['unmarked', 'Past pickup, not marked collected', function (o) { return o.cp === 'not_recorded' && !o.off; }]];
-    var rows = g.map(function (x) { return { k: x[0], l: x[1], list: got.filter(x[2]) }; }).filter(function (x) { return x.list.length || x.k !== 'unmarked'; }), tot = got.length;
+    var rows = g.map(function (x) { return { k: x[0], l: x[1], list: got.filter(x[2]) }; }).filter(function (x) { return x.list.length; }), tot = got.length;
     var segs = rows.filter(function (x) { return x.list.length; }), gap = segs.length > 1 ? 0.8 : 0, acc = 0;
     var ring = '<svg class="ov-ring" viewBox="0 0 42 42" aria-hidden="true"><circle cx="21" cy="21" r="15.915" class="ov-ring-bg"/>' + segs.map(function (x) {
       var p = x.list.length / tot * 100, len = Math.max(p - gap, 0.4), s = '<circle cx="21" cy="21" r="15.915" stroke="' + OV_C[x.k] + '" stroke-dasharray="' + len.toFixed(2) + ' ' + (100 - len).toFixed(2) + '" stroke-dashoffset="' + (25 - acc - gap / 2).toFixed(2) + '"/>';
@@ -284,11 +307,12 @@
   }
   function ovTop(cur, prevList) {
     var grp = function (l) { return dxGroup(l, function (o) { return dxItems(o).map(function (i) { var q = dnum(i[3]) || 1; return [i[0], q, dnum(i[4]) * q]; }); }); };
-    var g = grp(cur).sort(function (a, b) { return b.v - a.v || b.q - a.q; }).slice(0, 5), pv = {};
+    var g = grp(cur).sort(function (a, b) { return (!b.v - !a.v) || b.v - a.v || b.q - a.q; }), pv = {};
+    var priced = g.filter(function (x) { return x.v > 0; }); g = priced.length >= 5 ? priced.slice(0, 5) : g.slice(0, 5);
     if (prevList) grp(prevList).forEach(function (x) { pv[x.l] = x.v; });
     var body = g.length ? '<div class="ov-top"><div class="ov-top-h"><span>Cake</span><span>Revenue</span><span>' + (prevList ? 'Change' : '') + '</span></div>' + g.map(function (x, k) {
-      var d = prevList ? dxDelta(x.v, pv[x.l] || 0) : { t: '', c: '' };
-      return dxTap(x.list, x.l, '<span class="ov-rank">' + (k + 1) + '</span><span class="ov-tn"><b>' + esc(x.l) + '</b><span>' + int(x.q) + (x.q === 1 ? ' cake' : ' cakes') + '</span></span><span class="ov-tv">' + m0(x.v) + '</span><span class="ov-tc is-' + (d.c || 'none') + '">' + esc(d.t || '') + '</span>', 'ov-trow');
+      var d = prevList && x.v > 0 ? dxDelta(x.v, pv[x.l] || 0) : { t: '', c: '' };
+      return dxTap(x.list, x.l, '<span class="ov-rank">' + (k + 1) + '</span><span class="ov-tn"><b>' + esc(x.l) + '</b><span>' + int(x.q) + (x.q === 1 ? ' cake' : ' cakes') + '</span></span><span class="ov-tv' + (x.v > 0 ? '' : ' is-np') + '">' + (x.v > 0 ? m0(x.v) : 'Not priced yet') + '</span>' + (x.v > 0 ? '<span class="ov-tc is-' + (d.c || 'none') + '">' + esc(d.t || '') + '</span>' : ''), 'ov-trow');
     }).join('') + '</div>' : '<p class="ccs-quiet">No completed sales in this period.</p>';
     return '<section class="dx-card" aria-label="Top selling cakes"><div class="dx-card-h"><h2>Top selling cakes</h2><span>By revenue</span></div>' + body + '</section>';
   }
@@ -366,21 +390,21 @@
     if (wait.length) out.push(dxTap(wait, 'Awaiting confirmation, next 7 days', '<b>' + int(wait.length) + (wait.length === 1 ? ' order' : ' orders') + '</b> for the next 7 days ' + (wait.length === 1 ? 'is' : 'are') + ' still waiting to be confirmed.', 'ov-in is-act'));
     if (ps && ps.v) { var p = Math.round((cs.v - ps.v) / ps.v * 100); out.push('<p class="ov-in">Revenue is <b>' + (p > 0 ? 'up ' + p + '%' : p < 0 ? 'down ' + (-p) + '%' : 'unchanged') + '</b> on the ' + esc(r.cmp) + ': ' + int(cs.n) + ' completed sales against ' + int(ps.n) + '.</p>'); }
     var g = dxGroup(cur, function (o) { return dxItems(o).map(function (i) { var q = dnum(i[3]) || 1; return [i[0], q, dnum(i[4]) * q]; }); }).sort(function (a, b) { return b.v - a.v; });
-    if (g.length > 1 && cs.v) out.push('<p class="ov-in"><b>' + esc(g[0].l) + '</b> brought in ' + Math.round(g[0].v / cs.v * 100) + '% of revenue (' + m0(g[0].v) + ').</p>');
-    if (cur.length >= 5) { var wd = [0, 0, 0, 0, 0, 0, 0]; cur.forEach(function (o) { wd[ovDay(o.pd)]++; }); var top = wd.indexOf(Math.max.apply(null, wd)); out.push('<p class="ov-in"><b>' + WDF[top] + '</b> is the busiest pickup day, with ' + wd[top] + ' of ' + cur.length + ' completed sales.</p>'); }
+    if (g.length > 1 && cs.v && cur.length >= 10) out.push('<p class="ov-in"><b>' + esc(g[0].l) + '</b> brought in ' + Math.round(g[0].v / cs.v * 100) + '% of revenue (' + m0(g[0].v) + ').</p>');
+    if (cur.length >= 20) { var wd = [0, 0, 0, 0, 0, 0, 0]; cur.forEach(function (o) { wd[ovDay(o.pd)]++; }); var top = wd.indexOf(Math.max.apply(null, wd)); out.push('<p class="ov-in"><b>' + WDF[top] + '</b> is the busiest pickup day, with ' + wd[top] + ' of ' + cur.length + ' completed sales.</p>'); }
     return '<section class="dx-card ov-ins" aria-label="Insights"><div class="dx-card-h"><h2>Insights</h2><span>Worked out from the figures</span></div>' + (out.length ? out.slice(0, 3).join('') : '<p class="ccs-quiet">Not enough orders in this period to say anything useful.</p>') + '</section>';
   }
   function ovView(r, cur, cs, ps, got, pgot, owing) {
-    var bk = ovBuckets(r), cx = got.filter(function (o) { return o.off; }), dn = got.filter(function (o) { return o.sale; });
+    var bk = ovBuckets(r, got.length), cx = got.filter(function (o) { return o.off; }), dn = got.filter(function (o) { return o.sale; });
     var rate = dn.length + cx.length ? dn.length / (dn.length + cx.length) * 100 : NaN, prate = NaN;
     if (pgot) { var pd = pgot.filter(function (o) { return o.sale; }).length, px = pgot.filter(function (o) { return o.off; }).length; prate = pd + px ? pd / (pd + px) * 100 : NaN; }
     var h = '<div class="ov-kpis">' +
-      ovKpi('orders', 'Total orders', int(got.length), ovDelta(got.length, pgot ? pgot.length : null), 'Every order in the period', bk.map(function (x) { return x.got.length; }), got, 'Orders in this period') +
-      ovKpi('money', 'Revenue', m0(cs.v), ovDelta(cs.v, ps ? ps.v : null), 'From ' + int(cs.n) + ' completed ' + (cs.n === 1 ? 'sale' : 'sales'), bk.map(function (x) { return x.s.v; }), cur, 'Completed sales') +
-      ovKpi('avg', 'Average order value', m0(cs.aov), ovDelta(cs.aov, ps ? ps.aov : null), 'Revenue per completed sale', bk.map(function (x) { return x.s.n ? x.s.aov : NaN; }), cur, 'Completed sales') +
-      ovKpi('done', 'Completion rate', isFinite(rate) ? Math.round(rate) + '%' : 'None yet', isFinite(rate) ? ovDelta(rate, isFinite(prate) ? prate : null, true) : { t: '', c: '' }, int(dn.length) + ' completed, ' + int(cx.length) + ' cancelled', bk.map(function (x) { return x.rate; }), cx, 'Cancelled orders') + '</div>';
+      ovKpi('orders', 'Total orders', int(got.length), ovDelta(got.length, pgot ? pgot.length : null), 'Every order in the period', bk.map(function (x) { return x.got.length; }), got, 'Orders in this period', pgot ? int(pgot.length) : '') +
+      ovKpi('money', 'Revenue', m0(cs.v), ovDelta(cs.v, ps ? ps.v : null), 'From ' + int(cs.n) + ' completed ' + (cs.n === 1 ? 'sale' : 'sales'), bk.map(function (x) { return x.s.v; }), cur, 'Completed sales', ps ? m0(ps.v) : '') +
+      ovKpi('avg', 'Average order value', m0(cs.aov), ovDelta(cs.aov, ps ? ps.aov : null), 'Revenue per completed sale', bk.map(function (x) { return x.s.n ? x.s.aov : NaN; }), cur, 'Completed sales', ps && ps.n ? m0(ps.aov) : '') +
+      ovKpi('done', 'Completion rate', isFinite(rate) ? Math.round(rate) + '%' : 'None yet', isFinite(rate) ? ovDelta(rate, isFinite(prate) ? prate : null, true) : { t: '', c: '' }, int(dn.length) + ' completed, ' + int(cx.length) + ' cancelled', bk.map(function (x) { return x.rate; }), cx, 'Cancelled orders', isFinite(prate) ? Math.round(prate) + '%' : '') + '</div>';
     h += '<div class="ov-row ov-r1">' + ovTrend(bk, r) + ovStatus(got) + '</div>';
-    h += '<div class="ov-row ov-r3">' + ovTop(cur, r.pf ? dxSales(r.pf, r.pt) : null) + ovCustomers(cur, r) + ovPeak(got, r) + '</div>';
+    h += '<div class="ov-row ov-r3">' + ovTop(cur, r.pf && !r.noCmp ? dxSales(r.pf, r.pt) : null) + ovCustomers(cur, r) + ovPeak(got, r) + '</div>';
     h += '<div class="ov-row ov-r3">' + ovAttention(owing) + ovRecent() + ovInsights(cur, cs, ps, r) + '</div>';
     return h;
   }
@@ -622,6 +646,7 @@
     else if (a === 'dx-year') { DX.year = v; dxKeep(); view(); }
     else if (a === 'dx-metric') { DX.metric = v; view(); }
     else if (a === 'dx-tm') { DX.tm = v; view(); }
+    else if (a === 'dx-gapmore') { DX.gapOpen = !DX.gapOpen; view(); }
     else if (a === 'dx-unit') { DX.unit = v; view(); }
     else if (a === 'dx-filters') { DX.fopen = !DX.fopen; view(); }
     else if (a === 'dx-table') { DX.table = !DX.table; view(); }
