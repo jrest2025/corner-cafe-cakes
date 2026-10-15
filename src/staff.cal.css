@@ -2406,3 +2406,25 @@ body.ccs-is-off #cc-staff .ccs-side { top: var(--ccs-offh, 44px); }
 #cc-staff .ccs-btn:active, #ccs-sheet .ccs-btn:active { transform: translateY(1px); }
 #cc-staff .ccs-nav-item .at-count.at-count { background: #B42318; color: #fff; }
 #cc-staff .ccs-nav-item .at-count.at-count { background: #B42318; color: #fff; }
+
+/* Shift handover */
+#cc-staff .ho-banner { margin: 12px 0 0; padding: 12px 14px; border-radius: 10px; background: var(--u-attn-bg); border: 1px solid var(--u-attn-line); color: var(--u-attn); }
+#cc-staff .ho-sec { background: var(--u-card); border: 1px solid var(--u-line); border-radius: 12px; box-shadow: var(--u-shadow); padding: 12px 14px; margin-top: 12px; display: grid; gap: 10px; }
+#cc-staff .ho-sec h2 { font-size: 17px; margin: 0; display: flex; align-items: center; gap: 8px; }
+#cc-staff .ho-sec h2 span { font-size: 13px; font-weight: 700; background: var(--u-quiet-bg); border-radius: 999px; padding: 1px 8px; color: var(--u-quiet); }
+#cc-staff .ho-note { border: 1px solid var(--u-line); border-radius: 10px; padding: 10px 12px; display: grid; gap: 6px; background: #fff; }
+#cc-staff .ho-note.is-open { border-color: var(--u-attn-line); box-shadow: inset 4px 0 0 var(--u-attn-dot); }
+#cc-staff .ho-meta { margin: 0; font-size: 14px; color: var(--u-ink2); }
+#cc-staff .ho-meta b { color: var(--u-ink); }
+#cc-staff .ho-text { margin: 0; font-size: 16px; line-height: 1.5; color: var(--u-ink); white-space: pre-wrap; }
+#cc-staff .ho-taken { margin: 0; font-size: 14px; color: var(--u-ok); font-weight: 600; }
+#cc-staff .ho-note .ccs-btn { justify-self: start; }
+#cc-staff .ho-write { display: grid; gap: 8px; padding-top: 10px; border-top: 1px solid var(--u-line); }
+#cc-staff .ho-write textarea { min-height: 90px; }
+#cc-staff .ho-chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; }
+#cc-staff .ho-who { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
+#cc-staff .ho-person { border: 1px solid var(--u-line); border-radius: 10px; padding: 10px 12px; display: grid; gap: 4px; font-size: 14px; color: var(--u-ink2); }
+#cc-staff .ho-person b { font-size: 15px; color: var(--u-ink); }
+#cc-staff .ho-person.is-none { border-color: var(--u-attn-line); }
+#cc-staff .ho-person.is-none b { color: var(--u-attn); }
+@media (max-width: 759px) { #cc-staff .kw-modes .ccs-chip { min-width: 0; padding-left: 8px; padding-right: 8px; } }

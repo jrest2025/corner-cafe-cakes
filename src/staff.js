@@ -174,6 +174,7 @@
 
   // ---------- boot ----------
   var NAV_ICON = {
+    handover: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h11l-3-3 1.4-1.4L19.8 9l-6.4 6.4L12 14l3-3H4zm16 10H9l3 3-1.4 1.4L4.2 15l6.4-6.4L12 10l-3 3h11z"/></svg>',
     attn: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0-6 6v4l-2 3v1h16v-1l-2-3V9a6 6 0 0 0-6-6zm-2 16a2 2 0 0 0 4 0z"/></svg>',
     today: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13h6V4H4zm0 7h6v-5H4zm10 0h6v-9h-6zm0-16v5h6V4z"/></svg>',
     orders: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10a2 2 0 0 1 2 2v14l-7-3-7 3V6a2 2 0 0 1 2-2z"/></svg>',
@@ -189,6 +190,7 @@
   function navTabs() {
     if (kitchenOnly()) return [['kitchen', 'Kitchen']];
     var tabs = [['today', 'Today'], ['attn', 'Needs attention'], ['orders', 'Orders'], ['calendar', 'Calendar']];
+    if (canP('ord.view') || canP('kit.view')) tabs.splice(2, 0, ['handover', 'Handover']);
     if (canP('kit.view')) tabs.push(['kitchen', 'Kitchen']);
     if (canP('mgmt.analytics') || canP('mgmt.reports')) tabs.push(['dash', 'Dashboard']);
     if (canP('mgmt.reports')) tabs.push(['register', 'Register']);
@@ -202,7 +204,7 @@
     var needs = needsCount();
     // On phones, Customers and Settings move under More so the bottom bar keeps 5 large tabs (U15)
     return navTabs().map(function (t) {
-      var where = t[0] === 'more' ? ' ccs-nav-phone' : (t[0] === 'attn' || t[0] === 'customers' || t[0] === 'settings' || t[0] === 'kitchen' || t[0] === 'dash' || t[0] === 'register') ? ' ccs-nav-wide' : '';
+      var where = t[0] === 'more' ? ' ccs-nav-phone' : (t[0] === 'attn' || t[0] === 'handover' || t[0] === 'customers' || t[0] === 'settings' || t[0] === 'kitchen' || t[0] === 'dash' || t[0] === 'register') ? ' ccs-nav-wide' : '';
       return '<button type="button" class="ccs-nav-item' + (t[0] === 'new' ? ' ccs-nav-new' : '') + where + '" data-tab="' + t[0] + '"' + (S.tab === t[0] ? ' aria-current="page"' : '') + '>' + NAV_ICON[t[0]] + '<span>' + t[1] + '</span>' +
         (t[0] === 'orders' && needs ? '<span class="ccs-count">' + needs + '</span>' : '') + (t[0] === 'attn' && S.loaded && attnCount() ? '<span class="ccs-count at-count">' + attnCount() + '</span>' : '') + '</button>';
     }).join('');
@@ -260,6 +262,7 @@
   function viewInner(m) {
     if (S.tab === 'today') m.innerHTML = todayView();
     else if (S.tab === 'attn') m.innerHTML = attnView();
+    else if (S.tab === 'handover') m.innerHTML = handoverView(false);
     else if (S.tab === 'orders') m.innerHTML = ordersView();
     else if (S.tab === 'new') m.innerHTML = newView();
     else if (S.tab === 'customers') m.innerHTML = customersView();
@@ -377,7 +380,7 @@
         var after = S.orders.filter(function (o) { return NEEDS.indexOf(o.order_status) > -1; }).length;
         if (silent && after > before) toast('New order waiting for review');
         refreshNav();
-        if (S.tab === 'orders' || S.tab === 'today' || S.tab === 'attn') view();
+        if (S.tab === 'orders' || S.tab === 'today' || S.tab === 'attn' || S.tab === 'handover') view();
       }).catch(function (e) {
         console.error(e);
         if (errKind(e) === 'expired') return sessionExpired();
@@ -552,6 +555,88 @@
     return h;
   }
 
+  // ---------- shift handover: built from live orders, plus a short note the next person marks as read ----------
+  var SHIFTS = [['morning', 'Morning'], ['afternoon', 'Afternoon'], ['evening', 'Evening']];
+  function shiftNow() { var h = Number(new Intl.DateTimeFormat('en-GB', { timeZone: TZ, hour: 'numeric', hour12: false }).format(new Date())); return h < 11 ? 'morning' : h < 16 ? 'afternoon' : 'evening'; }
+  function shiftName(k) { return ((SHIFTS.filter(function (x) { return x[0] === k; })[0]) || ['', ''])[1]; }
+  function hoLoad() {
+    S.ho = S.ho || {}; if (S.ho.loading) return; S.ho.loading = true;
+    sb.rpc('handover_list').then(function (r) {
+      S.ho.loading = false; if (r.error) throw r.error;
+      if (!r.data.ok) { S.ho.err = r.data.message; } else { S.ho.notes = r.data.notes || []; S.ho.loaded = true; S.ho.err = null; }
+      if (S.tab === 'handover' || (S.tab === 'kitchen' && kitMode() === 'hand')) view();
+    }).catch(function (e) { S.ho.loading = false; console.error(e); if (errKind(e) === 'expired') return sessionExpired(); S.ho.err = errKind(e) === 'offline' ? 'No internet connection, so the handover notes could not load.' : 'The handover notes could not load. Try again.'; if (S.tab === 'handover' || S.tab === 'kitchen') view(); });
+  }
+  function hoSave() {
+    var el = document.getElementById('ho-note'), note = el ? el.value.trim() : '';
+    if (note.length < 2) { S.ho.formErr = 'Write the handover note first.'; view(); var n = document.getElementById('ho-note'); if (n) n.focus(); return; }
+    S.ho.draft = note; S.ho.formErr = null;
+    sb.rpc('handover_add', { p_shift: S.ho.shift || shiftNow(), p_note: note }).then(function (r) {
+      clearBusy(); if (r.error) throw r.error;
+      if (!r.data.ok) { S.ho.formErr = r.data.message; return view(); }
+      S.ho.draft = ''; toast('Handover note saved'); S.ho.loaded = false; hoLoad();
+    }).catch(function (e) { clearBusy(); S.ho.formErr = errKind(e) === 'offline' ? 'No internet connection. The note is not saved yet. Try again.' : 'The note could not be saved. Try again.'; view(); });
+  }
+  function hoTake(id) {
+    sb.rpc('handover_take', { p_id: id }).then(function (r) {
+      clearBusy(); if (r.error) throw r.error;
+      if (!r.data.ok) { toast(r.data.message, true); return; }
+      toast(r.data.already ? 'Already taken over by ' + r.data.taken_by : 'Marked as read and taken over'); S.ho.loaded = false; hoLoad();
+    }).catch(fail);
+  }
+  function hoTime(iso) { return new Date(iso).toLocaleTimeString('en-GB', { timeZone: TZ, hour: 'numeric', minute: '2-digit', hour12: true }).replace(/\s?([ap])\.?m\.?$/i, function (_m, x) { return ' ' + x.toUpperCase() + 'M'; }); }
+  function hoDay(iso) { var d = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date(iso)); return d === today() ? 'Today' : d === addDays(today(), -1) ? 'Yesterday' : nice(d); }
+  function handoverView(inKitchen) {
+    var t = today(), H = S.ho || {}, cur = H.shift || shiftNow();
+    var h = inKitchen ? '' : '<div class="ccs-head"><div><h1 class="ccs-title">Shift handover</h1><p class="ccs-sub">' + esc(shiftName(shiftNow())) + ' shift · ' + esc(nice(t, true)) + '</p>' + (S.loaded ? freshLine(S.ordAt, S.ordFails, 'reload-orders') : '') + '</div></div>';
+    // 1. Notes: the newest one not yet taken over comes first, with the one button that matters
+    var notes = H.notes || [], open = notes.filter(function (n) { return !n.taken_at && !n.mine; });
+    h += '<section class="ho-sec ho-notes"><h2>Handover notes</h2>';
+    if (H.err) h += '<p class="ccs-err" role="alert">' + esc(H.err) + '</p>';
+    else if (!H.loaded) h += '<p class="ccs-loading">Loading notes…</p>';
+    else if (!notes.length) h += '<p class="ccs-quiet">No handover notes in the last 3 days.</p>';
+    else h += (H.all ? notes : notes.slice(0, 3)).map(function (n) {
+      var waiting = !n.taken_at && !n.mine;
+      return '<article class="ho-note' + (waiting ? ' is-open' : '') + '"><p class="ho-meta"><b>' + esc(n.by) + '</b> · ' + esc(shiftName(n.shift)) + ' shift · ' + esc(hoDay(n.at)) + ', ' + esc(hoTime(n.at)) + '</p>' +
+        '<p class="ho-text">' + esc(n.note) + '</p>' +
+        (n.taken_at ? '<p class="ho-taken">Read and taken over by ' + esc(n.taken_by) + ', ' + esc(hoDay(n.taken_at)) + ' ' + esc(hoTime(n.taken_at)) + '</p>' :
+          n.mine ? '<p class="ho-taken">Waiting for the next shift to read it.</p>' : '<button type="button" class="ccs-btn" data-act="ho-take" data-id="' + n.id + '">Read and taken over</button>') + '</article>';
+    }).join('') + (notes.length > 3 ? '<button type="button" class="ccs-link" data-act="ho-more">' + (H.all ? 'Show fewer' : 'Show all ' + notes.length + ' notes') + '</button>' : '');
+    h += '<div class="ho-write"><label class="ccs-label" for="ho-note">Write a handover note for the next shift</label>' +
+      '<div class="ccs-chips ccs-segs" role="group" aria-label="Your shift">' + SHIFTS.map(function (x) { return '<button type="button" class="ccs-chip" data-act="ho-shift" data-v="' + x[0] + '" aria-pressed="' + (cur === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div>' +
+      '<textarea class="ccs-input" id="ho-note" maxlength="1000" rows="3" placeholder="For example: CC-1012 is boxed in the fridge, customer collects 5:00 PM. Out of cream cheese.">' + esc(H.draft || '') + '</textarea>' +
+      (H.formErr ? '<p class="ccs-err" role="alert">' + esc(H.formErr) + '</p>' : '') +
+      '<div class="ccs-actions-row"><button type="button" class="ccs-btn" data-act="ho-save">Save handover note</button></div></div></section>';
+    if (open.length) h = '<p class="ho-banner" role="status"><b>' + open.length + (open.length === 1 ? ' handover note is' : ' handover notes are') + ' waiting for you to read.</b></p>' + h;
+    // 2. Still to finish this shift
+    var kd = S.kit && S.kit.data ? (S.kit.data.orders || []) : null, rows = '';
+    if (canP('ord.view') && S.loaded && !inKitchen) {
+      var due = S.orders.filter(function (o) { return o.required_date === t && OPEN.indexOf(o.order_status) > -1; }).sort(function (a, b) { return a.required_time < b.required_time ? -1 : 1; });
+      rows = due.map(function (o) { return miniRow(o, true); }).join('');
+      h += '<section class="ho-sec"><h2>Still to finish today <span>' + due.length + '</span></h2>' + (due.length ? '<div class="ccs-minis">' + rows + '</div>' : '<p class="ccs-quiet">Every cake due today is handed over.</p>') + '</section>';
+      var gs = attnGroups();
+      if (gs.length) h += '<section class="ho-sec"><h2>Exceptions to pass on</h2><div class="ho-chips">' + gs.map(function (g) { return '<button type="button" class="at-jump ' + g.tone + '" data-tab="attn"><b>' + g.rows.length + '</b><span>' + esc(g.title) + '</span></button>'; }).join('') + '</div></section>';
+    } else if (kd) {
+      var kdue = kd.filter(function (r) { return r.status === 'confirmed' && r.date <= t; }).sort(kitSort);
+      h += '<section class="ho-sec"><h2>Still to finish today <span>' + kdue.length + '</span></h2>' + (kdue.length ? '<div class="kw-lines">' + kdue.map(function (r) { return kitLine(r, kitWhy(r)); }).join('') + '</div>' : '<p class="ccs-quiet">Nothing left to finish today.</p>') + '</section>';
+    }
+    // 3. Special requests in the next 24 hours, and who is making what (from the kitchen board)
+    if (kd) {
+      var t1 = addDays(t, 1), soon = kd.filter(function (r) { return r.status === 'confirmed' && r.stage !== 'ready' && r.date <= t1; }).sort(kitSort);
+      var special = soon.filter(function (r) { return r.finish === 'custom' || r.message || r.method === 'delivery' || r.has_dietary || r.candles; });
+      h += '<section class="ho-sec"><h2>Special requests, today and tomorrow <span>' + special.length + '</span></h2>' + (special.length ? '<div class="kw-lines">' + special.map(function (r) {
+        var why = []; if (r.has_dietary) why.push('Allergy'); if (r.finish === 'custom') why.push('Custom design'); if (r.message) why.push('Writing: “' + r.message + '”'); if (r.method === 'delivery') why.push('Delivery' + (r.area ? ' to ' + r.area : ''));
+        return kitLine(r, why);
+      }).join('') + '</div>' : '<p class="ccs-quiet">No custom designs, writing, deliveries or allergies in the next two days.</p>') + '</section>';
+      var who = {}; soon.forEach(function (r) { var k = r.assignee || ''; (who[k] = who[k] || []).push(r); });
+      var names = Object.keys(who).sort(function (a, b) { return a === '' ? 1 : b === '' ? -1 : a.localeCompare(b); });
+      if (soon.length) h += '<section class="ho-sec"><h2>Who is making what</h2><div class="ho-who">' + names.map(function (k) {
+        return '<div class="ho-person' + (k ? '' : ' is-none') + '"><b>' + esc(k || 'Nobody yet') + '</b><span>' + who[k].map(function (r) { return esc(r.reference + ' ' + kitCake(r)); }).join('<br>') + '</span></div>';
+      }).join('') + '</div></section>';
+    }
+    return h;
+  }
+
   // ---------- today dashboard ----------
   function greet() { var h = Number(new Intl.DateTimeFormat('en-GB', { timeZone: TZ, hour: 'numeric', hour12: false }).format(new Date())); return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'; }
   function orderTotal(o) { return Number(o.final_total != null ? o.final_total : o.estimate_total) || 0; }
@@ -700,7 +785,8 @@
     if (S.tab === 'dash') dashLoad();
     if (S.tab === 'register') regLoad();
     if (S.tab === 'kitchen') loadKitchen();
-    if (S.tab === 'orders' || S.tab === 'today' || S.tab === 'attn') loadOrders(true);
+    if (S.tab === 'orders' || S.tab === 'today' || S.tab === 'attn' || S.tab === 'handover') loadOrders(true);
+    if (S.tab === 'handover') { hoLoad(); if (canP('kit.view')) loadKitchen(true); }
     if (S.tab === 'calendar') calLoad();
   }
   window.addEventListener('popstate', function (e) {
@@ -723,6 +809,7 @@
     var h = sheetHead('More') + '<div class="ccs-sheet-body">';
     h += '<section class="ccs-box"><h3>Signed in</h3><p class="ccs-big">' + esc(S.me.full_name || '') + '</p><p class="ccs-hint">' + esc(role) + '</p></section>';
     var links = '';
+    if (!kitchenOnly() && (canP('ord.view') || canP('kit.view'))) links += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-tab="handover">Shift handover</button>';
     if (!kitchenOnly()) links += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-tab="attn">Needs attention' + (attnCount() ? ' (' + attnCount() + ')' : '') + '</button>';
     if (canP('kit.view')) links += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-tab="kitchen">Kitchen</button>';
     if (canP('nav.customers') && canP('cust.view')) links += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-tab="customers">Customers</button>';
@@ -1425,7 +1512,7 @@
       S.kit.data = r.data; S.kit.loaded = true; S.kit.err = null; S.kit.fails = 0; S.kit.at = Date.now();
       slipLoad((r.data.orders || []).filter(function (x) { return x.brief_version > 0 && x.status === 'confirmed'; }).map(function (x) { return x.id; }));
       if (S.kit.cal && S.kit.cal.orders && S.tab === 'kitchen' && kitMode() === 'cal') kitCalLoad(true);
-      if (S.tab === 'kitchen') view();
+      if (S.tab === 'kitchen' || S.tab === 'handover') view();
       if (S.sheet && S.sheet.type === 'kitchen') renderSheet();
     }).catch(function (e) {
       console.error(e);
@@ -1465,7 +1552,7 @@
       (r.assignee ? '<span class="ccs-kc-who">Made by ' + esc(r.assignee) + '</span>' : '') + '</button>';
   }
   // ---------- kitchen workspace: Today, Board and Calendar from the same kitchen_board rows ----------
-  var KMODES = [['today', 'Today'], ['board', 'Board'], ['cal', 'Calendar']];
+  var KMODES = [['today', 'Today'], ['board', 'Board'], ['cal', 'Calendar'], ['hand', 'Handover']];
   function kitMode() { return secCur('kitM', KMODES.map(function (m) { return m[0]; }), 'today'); }
   function kitNextAction(r, cls) {
     if (r.status !== 'confirmed') return '';
@@ -1503,9 +1590,10 @@
   function kitSort(a, b) { return (a.late === b.late ? 0 : a.late ? -1 : 1) || (a.date < b.date ? -1 : a.date > b.date ? 1 : 0) || String(a.time || '').localeCompare(String(b.time || '')); }
   function kitchenView() {
     var K = S.kit, t = today(), mode = kitMode();
-    var h = '<div class="ccs-head tp-head kw-head"><div><p class="ccs-eyebrow">Corner Café · Kitchen</p><h1 class="ccs-title">' + (mode === 'cal' ? 'Production calendar' : mode === 'board' ? 'Production board' : 'What\'s on today?') + '</h1><p class="tp-sub">' + esc(nice(t, true)) + '. Confirmed cakes only.</p>' + (K.loaded ? freshLine(K.at, K.fails, 'k-reload') : '') + '</div>' +
+    var h = '<div class="ccs-head tp-head kw-head"><div><p class="ccs-eyebrow">Corner Café · Kitchen</p><h1 class="ccs-title">' + (mode === 'cal' ? 'Production calendar' : mode === 'board' ? 'Production board' : mode === 'hand' ? 'Shift handover' : 'What\'s on today?') + '</h1><p class="tp-sub">' + esc(nice(t, true)) + '. Confirmed cakes only.</p>' + (K.loaded ? freshLine(K.at, K.fails, 'k-reload') : '') + '</div>' +
       '<div class="ccs-chips ccs-segs kw-modes" role="group" aria-label="Kitchen view">' + KMODES.map(function (m) { return '<button type="button" class="ccs-chip" data-act="k-mode" data-v="' + m[0] + '" aria-pressed="' + (mode === m[0]) + '">' + m[1] + '</button>'; }).join('') + '</div></div>';
     if (mode === 'cal') return h + kitCalView();
+    if (mode === 'hand') { if (!S.ho || (!S.ho.loaded && !S.ho.loading && !S.ho.err)) setTimeout(hoLoad, 0); return h + handoverView(true); }
     if (!K.loaded) return h + (K.err ? loadErr(K.err, 'k-reload') : '<p class="ccs-loading">Loading the kitchen board…</p>');
     return h + (mode === 'board' ? kitBoardView() : kitTodayView());
   }
@@ -4040,7 +4128,7 @@
       boot();
     }).catch(function () { loginView('Could not connect. Check the internet connection.'); });
   });
-  var BUSY_ACTS = { 'do-delete': 'Deleting…', 'do-confirm': 'Saving…', 'do-decline': 'Saving…', 'do-cancel': 'Saving…', 'do-note': 'Saving…', 'do-waive': 'Saving…', 'do-collected': 'Saving…', 'do-fulfil': 'Saving…',
+  var BUSY_ACTS = { 'ho-save': 'Saving…', 'ho-take': 'Saving…', 'do-delete': 'Deleting…', 'do-confirm': 'Saving…', 'do-decline': 'Saving…', 'do-cancel': 'Saving…', 'do-note': 'Saving…', 'do-waive': 'Saving…', 'do-collected': 'Saving…', 'do-fulfil': 'Saving…',
     'do-brief': 'Sending…', 'do-pay': 'Saving…', 'k-stage': 'Saving…', 'k-next': 'Saving…', 'k-ready': 'Saving…', 'k-assign': 'Saving…', 'save-zones': 'Saving…', 'add-zone': 'Saving…', 'cust-save': 'Saving…', 'cn-save': 'Saving…', 'consent-ch': 'Saving…',
     'consent': 'Saving…', 'save-loc': 'Saving…', 'confirm-loc': 'Saving…', 'add-closed': 'Saving…', 'save-staff': 'Saving…', 'tm-add': 'Adding…', 'tm-reset-save': 'Saving…', 'bk-link': 'Linking…', 'bk-copy': 'Copying…', 'pr-save': 'Saving…', 'pr-test': 'Sending…', 'pr-ok': 'Saving…', 'k-printed': 'Saving…' };
   // Tablets and laptops: the menu is hidden and slides in from the Menu button, so the page has the full width
@@ -4167,6 +4255,10 @@
         case 'k-card': var KK = S.kit; if (v === 'soon') { var kc5 = kitCalState(); kc5.v = 'list'; kc5.a = addDays(today(), 1); secStore('kitM').kitM = 'cal'; view(); break; } secStore('kitM').kitM = 'board'; KK.focus = v === 'today' ? 'today' : null; if (v === 'ready') { secStore('kitP').kitP = 'ready'; KK.days = 7; } if (v === 'soon') { KK.days = 7; } if (v === 'today') { KK.days = 2; } view(); setTimeout(function () { var bd = document.querySelector('.kp-bar') || document.querySelector('.ccs-board'); if (bd && bd.scrollIntoView) bd.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 30); break;
         case 'k-focus-off': S.kit.focus = null; view(); break;
         case 'at-jump': { var aj = document.getElementById('at-' + v); if (aj && aj.scrollIntoView) aj.scrollIntoView({ behavior: 'smooth', block: 'start' }); break; }
+        case 'ho-shift': S.ho = S.ho || {}; S.ho.shift = v; var hn = document.getElementById('ho-note'); if (hn) S.ho.draft = hn.value; view(); break;
+        case 'ho-save': hoSave(); break;
+        case 'ho-take': hoTake(b.dataset.id); break;
+        case 'ho-more': S.ho.all = !S.ho.all; view(); break;
         case 'k-mode': secStore('kitM').kitM = v; if (v !== 'board') S.kit.focus = null; view(); break;
         case 'k-cal-view': { var kc1 = kitCalState(); kc1.v = v; view(); break; }
         case 'k-cal-f': kitCalState().f = v; view(); break;
