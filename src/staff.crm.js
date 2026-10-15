@@ -231,6 +231,7 @@
     }).catch(function (e) { clearBusy(); fail(e); });
   }
   function wsAct(a, b, v) {
+    if (a.indexOf('ws-crm-') === 0) return crmAct(a, b, v);
     var s = S.sheet, id = b.dataset.id;
     if (a === 'ws-open') { var tab = b.dataset.tab || 'notes'; openCustomer(id).then(function () { if (S.sheet && S.sheet.id === id) { S.sheet.tab = tab; renderSheet(); cpJump(tab); } }); if (S.sheet) S.sheet.tab = tab; return; }
     if (a === 'ws-fu-all') { S.fu.all = !S.fu.all; S.fu.at = 0; fuLoad(); return; }
@@ -904,3 +905,208 @@
     var d = e.target; if (!d || !d.dataset || !d.dataset.s5open || !S.settings) return;
     S.settings[d.dataset.s5open === 'perm' ? 's5PermOpen' : 's5BcOpen'] = d.open;
   }, true);
+
+  // ---------- Customer relationships: Overview and Follow-ups (CRM first release) ----------
+  // One call (crm_home) brings the figures, who to contact and why, and recent activity. Staff make every contact; nothing is sent automatically.
+  // Recording a contact (crm_record_contact) saves the note, closes or moves the follow-up, sets the next step and keeps the contact record, in one step.
+  S.crm = { data: null, at: 0, loading: false, err: null, all: false, open: null, f: 'all', rec: null };
+  var CRM_KIND = { task: 'Follow-up', quote: 'Quote waiting', occasion: 'Occasion coming up', last_year: 'Ordered this time last year', lapsed: 'Regular gone quiet' };
+  var CRM_OUT = [['interested', 'Interested'], ['quote', 'Wants a quote'], ['later', 'Will order later'], ['ordered', 'Has already ordered'], ['not_interested', 'Not interested'], ['no_answer', 'No answer'], ['left_message', 'Left a message']];
+  var CRM_CH = [['phone', 'Phone call'], ['whatsapp', 'WhatsApp'], ['email', 'Email'], ['in_person', 'In person']];
+  var CRM_NEXT = [['1', 'Tomorrow'], ['3', 'In 3 days'], ['7', 'Next week'], ['14', 'In 2 weeks'], ['other', 'Other date']];
+  function crmCan() { return can('manager', 'front_of_house', 'marketing'); }
+  function crmSec() { if (!crmCan()) return 'all'; var st = secStore('crm'); var v = st.crm; return ['ov', 'fu', 'all'].indexOf(v) > -1 ? v : (can('manager', 'marketing') ? 'ov' : 'fu'); }
+  function crmLoad(force) {
+    var c = S.crm; if (!crmCan() || c.loading) return;
+    if (!force && c.at && Date.now() - c.at < 60000) return;
+    c.loading = true;
+    sb.rpc('crm_home', { p_all: !!c.all }).then(function (r) {
+      c.loading = false; c.at = Date.now();
+      if (r.error) throw r.error;
+      if (!r.data || !r.data.ok) { c.err = (r.data && r.data.message) || 'Could not load.'; } else { c.data = r.data; c.err = null; }
+      if (S.tab === 'customers') view();
+    }).catch(function (e) {
+      c.loading = false; c.at = Date.now(); console.error(e);
+      c.err = /crm_home/.test(String(e && (e.message || e.hint || ''))) ? 'This part is not switched on yet. The database update needs to be run first.' : 'Could not load follow-ups. Check the connection and try again.';
+      if (S.tab === 'customers') view();
+    });
+  }
+  // Everyone to contact, in one list, most important first
+  function crmList() {
+    var d = S.crm.data; if (!d) return [];
+    var all = [].concat(d.tasks || [], d.quotes || [], d.occasions || [], d.last_year || [], d.lapsed || []);
+    var rank = { high: 0, normal: 1, low: 2 };
+    all.forEach(function (x, i) { x._k = x.kind + ':' + (x.task ? x.task.id : x.order_id || x.id) + ':' + i; x._later = x.kind === 'task' && x.task && x.task.due_on > d.today; });
+    return all.sort(function (a, b) { return (a._later - b._later) || (rank[a.pri] - rank[b.pri]) || 0; });
+  }
+  function crmBar(cur) {
+    if (!crmCan()) return '';
+    crmLoad(false);
+    var n = crmList().filter(function (x) { return !x._later; }).length;
+    return '<div class="crm-bar">' + secBar('crm', [['ov', 'Overview'], ['fu', 'Follow-ups', S.crm.data ? n : null], ['all', 'All customers']], cur, 'Customer sections') + '</div>';
+  }
+  function crmView(cs) {
+    var c = S.crm;
+    if (c.err && !c.data) return '<div class="ccs-empty"><b>' + esc(c.err) + '</b><button type="button" class="ccs-btn" data-act="ws-crm-reload">Try again</button></div>';
+    if (!c.data) return '<p class="ccs-loading">Loading…</p>';
+    return cs === 'ov' ? crmOverview() : crmFollow();
+  }
+  function crmDelta(cur, prev) { if (prev == null) return ''; if (!prev) return cur ? 'New' : 'Same as'; var p = Math.round((cur - prev) / prev * 100); return p > 0 ? 'Up ' + p + '%' : p < 0 ? 'Down ' + (-p) + '%' : 'Same as'; }
+  function crmKpi(label, value, sub, tone) { return '<div class="ov-kpi crm-kpi"><span class="ov-kh"><span class="ov-kl">' + label + '</span></span><b class="ov-kv' + (tone ? ' is-' + tone : '') + '">' + value + '</b><span class="ov-ks">' + sub + '</span></div>'; }
+  function crmOverview() {
+    var d = S.crm.data, k = d.kpi, list = crmList(), h = '';
+    if (k) {
+      var day = +d.today.slice(8), mName = MONF[+d.today.slice(5, 7) - 1];
+      var vs = function (cur, prev) { var t = crmDelta(cur, prev); return t === 'Same as' ? 'Same as the same days last month' : t ? t + ' on the same days last month' : ''; };
+      h += '<p class="crm-period">' + esc(mName) + ' so far (1 to ' + day + ' ' + esc(mName) + '), compared with the same days last month.</p>';
+      h += '<div class="ov-kpis crm-kpis">' +
+        crmKpi('Customers', int(k.customers), 'With at least one order, all time') +
+        crmKpi('New this month', int(k.new_month), esc(vs(k.new_month, k.new_prev)) || 'First order this month') +
+        crmKpi('Returning this month', int(k.returning_month), esc(vs(k.returning_month, k.returning_prev)) || 'Had bought before') +
+        crmKpi('Repeat purchase rate', (k.buyers ? Math.round(k.repeat_customers / k.buyers * 100) : 0) + '%', int(k.repeat_customers) + ' of ' + int(k.buyers) + ' customers have bought more than once') + '</div>';
+      h += '<div class="ov-kpis crm-kpis">' +
+        crmKpi('Revenue from returning customers', m0(dnum(k.returning_rev_month)), esc(vs(dnum(k.returning_rev_month), dnum(k.returning_rev_prev))) || 'This month') +
+        crmKpi('Follow-ups due today', int(k.fu_due_today), k.fu_due_today ? 'Across the team' : 'None due', '') +
+        crmKpi('Overdue follow-ups', int(k.fu_overdue), k.fu_overdue ? 'Past their due date' : 'None overdue', k.fu_overdue ? 'warn' : '') +
+        crmKpi('Contacts this month', int(k.contacts_month), int(k.reached_month) + ' reached, ' + int(k.ordered_month) + ' had ordered') + '</div>';
+    }
+    // Customers needing attention: each line opens Follow-ups filtered to it
+    var cnt = function (f) { return list.filter(f).length; };
+    var rows = [
+      ['late', 'Follow-ups overdue', cnt(function (x) { return x.kind === 'task' && x.task && x.task.overdue; }), 'Past their due date'],
+      ['today', 'Follow-ups due today', cnt(function (x) { return x.kind === 'task' && x.task && !x.task.overdue && !x._later; }), 'Set by the team'],
+      ['quote', 'Quotes waiting for a reply', (d.quotes || []).length, 'Quote sent, the customer has not answered'],
+      ['occasion', 'Occasions coming up', (d.occasions || []).length, 'Birthday or anniversary in the next 30 days, nothing ordered yet' + (d.occasions_no_permission ? '. ' + d.occasions_no_permission + ' more have not agreed to hear from us' : '')],
+      ['last_year', 'Ordered this time last year', (d.last_year || []).length, 'Nothing booked yet this year' + (d.last_year_no_permission ? '. ' + d.last_year_no_permission + ' more have not agreed to hear from us' : '')],
+      ['lapsed', 'Regulars gone quiet', (d.lapsed || []).length, '3 or more cakes, none in the last 4 months']
+    ];
+    h += '<div class="ov-row crm-row"><section class="dx-card ov-att" aria-label="Customers needing attention"><div class="dx-card-h"><h2>Customers needing attention</h2><span>As of today</span></div>' + rows.map(function (x) {
+      var on = x[2] > 0, inner = '<span class="ov-an' + (on ? ' is-on' : '') + '">' + int(x[2]) + '</span><span class="ov-at"><b>' + esc(x[1]) + '</b><span>' + esc(x[3]) + '</span></span>' + (on ? '<span class="ov-go" aria-hidden="true">View</span>' : '');
+      return on ? '<button type="button" class="ov-arow" data-act="ws-crm-go" data-v="' + x[0] + '">' + inner + '</button>' : '<div class="ov-arow">' + inner + '</div>';
+    }).join('') + '</section>';
+    h += '<section class="dx-card ov-rec" aria-label="Recent customer activity"><div class="dx-card-h"><h2>Recent customer activity</h2><span>Latest first</span></div>' +
+      ((d.recent || []).length ? d.recent.slice(0, 10).map(function (e) {
+        return '<button type="button" class="ov-ev" data-act="open-customer" data-id="' + esc(e.customer_id) + '"><span class="ov-et"><b>' + esc(e.name || 'Customer') + '</b><span>' + esc(e.text + (e.by ? ' · ' + e.by : '')) + '</span></span><span class="ov-ew">' + esc(stamp(e.at)) + '</span></button>';
+      }).join('') : '<p class="ccs-quiet">Nothing yet.</p>') + '</section></div>';
+    if (k) h += '<details class="ccs-more crm-defs"><summary>How these figures are worked out</summary><dl class="ccs-kv">' +
+      '<dt>Customers</dt><dd>Everyone with at least one order that was not cancelled, matched by mobile number.</dd>' +
+      '<dt>New this month</dt><dd>Customers whose first order is due or collected this month.</dd>' +
+      '<dt>Returning this month</dt><dd>Customers with a cake collected this month who had a cake collected before this month.</dd>' +
+      '<dt>Repeat purchase rate</dt><dd>Customers with two or more collected cakes, out of all customers with at least one, all time.</dd>' +
+      '<dt>Revenue from returning customers</dt><dd>Collected orders this month from customers who had a cake collected before that order.</dd>' +
+      '<dt>Contacts</dt><dd>Contacts recorded in Follow-ups. Reached means the customer answered. A call with no answer is counted as an attempt, not as reached.</dd>' +
+      '<dt>Occasions</dt><dd>Worked out from birthday and anniversary cakes ordered before. Only customers who agreed to hear from us are listed.</dd></dl>' +
+      '<p class="ccs-hint">Orders from the Google Sheets stopped coming in after 12 October, so returning customers and this month\'s figures are lower than they should be until that is fixed.</p></details>';
+    return h;
+  }
+  function crmFollow() {
+    var c = S.crm, d = c.data, all = crmList(), f = c.f;
+    var match = function (x) {
+      return f === 'all' ? true : f === 'late' ? x.kind === 'task' && x.task && x.task.overdue : f === 'today' ? x.kind === 'task' && !x._later && !(x.task && x.task.overdue) : x.kind === f;
+    };
+    var now_ = all.filter(function (x) { return !x._later; }), later = all.filter(function (x) { return x._later; });
+    var shown = now_.filter(match), soon = f === 'all' ? later : [];
+    var n = now_.length;
+    var h = '<div class="crm-fhead"><h2 class="crm-big">' + (n ? 'You have ' + n + (n === 1 ? ' customer' : ' customers') + ' to follow up today' : 'All caught up') + '</h2>' +
+      (d.is_manager ? '<button type="button" class="ccs-link" data-act="ws-crm-all">' + (c.all ? 'Show only mine' : 'Show everyone\'s follow-ups') + '</button>' : '') + '</div>';
+    if (!n && !later.length) return h + '<p class="ccs-quiet">Nobody needs contacting right now. New follow-ups appear here when a quote is waiting, an occasion is coming up, or the team sets one.</p>';
+    var chips = [['all', 'All'], ['late', 'Overdue'], ['today', 'Due today'], ['quote', 'Quotes'], ['occasion', 'Occasions'], ['last_year', 'Last year'], ['lapsed', 'Regulars']].map(function (x) {
+      var k = x[0] === 'all' ? n : now_.filter(function (y) { return x[0] === 'late' ? y.kind === 'task' && y.task && y.task.overdue : x[0] === 'today' ? y.kind === 'task' && !(y.task && y.task.overdue) : y.kind === x[0]; }).length;
+      return k || x[0] === 'all' || x[0] === f ? '<button type="button" class="ccs-chip" data-act="ws-crm-f" data-v="' + x[0] + '" aria-pressed="' + (f === x[0]) + '">' + x[1] + ' <span class="ccs-n">' + k + '</span></button>' : '';
+    }).join('');
+    h += '<p class="crm-note">Call, WhatsApp and Email only open your phone or email, and nothing is sent by the system. After each contact, tap What happened? so it is recorded.</p>';
+    h += '<div class="ccs-chips crm-chips" role="group" aria-label="Show">' + chips + '</div>';
+    h += '<div class="crm-cards">' + (shown.length ? shown.map(crmCard).join('') : '<p class="ccs-quiet">None in this group.</p>') + '</div>';
+    if (soon.length) h += '<h3 class="crm-h3">Coming up in the next 7 days</h3><div class="crm-cards">' + soon.map(crmCard).join('') + '</div>';
+    return h;
+  }
+  function crmFirst(name) { return String(name || '').trim().split(/\s+/)[0] || 'there'; }
+  function crmWaText(x) {
+    var hi = 'Bula ' + crmFirst(x.name) + ', it is Corner Café. ';
+    if (x.kind === 'quote') return hi + 'Just checking you received our quote for ' + (x.order_ref || 'your cake') + '. Happy to answer any questions or adjust it for you.';
+    if (x.kind === 'occasion') return hi + 'We remember your ' + String(x.reason || 'celebration').replace(/ \(".*?"\)/, '').replace(/ on .*$/, '').toLowerCase() + ' is coming up. Would you like us to make the cake again?';
+    if (x.kind === 'last_year') return hi + 'You ordered a cake with us around this time last year. If there is a celebration coming up again, we would love to make it.';
+    if (x.kind === 'lapsed') return hi + 'It has been a while. If you have a celebration coming up, we would love to make the cake.';
+    return hi;
+  }
+  function crmCard(x) {
+    var c = S.crm, open = c.open === x._k, sales = ['occasion', 'last_year', 'lapsed'].indexOf(x.kind) > -1;
+    var pri = { high: 'High priority', normal: 'Normal priority', low: 'Low priority' }[x.pri] || '';
+    var last = x.cake ? 'Last bought: ' + x.cake + (x.last_value != null ? ', ' + money(x.last_value) : '') + (x.last_date ? ', ' + nice(x.last_date) + ' ' + x.last_date.slice(0, 4) : '') : (x.orders ? '' : 'No cake collected yet');
+    var perm = sales ? [x.wa && 'WhatsApp', x.sms && 'SMS', x.em && 'email', x.call && 'phone calls'].filter(Boolean) : [];
+    var h = '<article class="crm-card' + (x.pri === 'high' ? ' is-high' : '') + (x._later ? ' is-later' : '') + '"><div class="crm-ctop"><div class="crm-who"><button type="button" class="crm-name" data-act="open-customer" data-id="' + esc(x.id) + '">' + esc(x.name || 'Customer') + '</button>' +
+      '<span class="crm-meta">' + esc(custNo(x.no) + (x.orders ? ' · ' + x.orders + (x.orders === 1 ? ' cake' : ' cakes') + ', ' + money(x.spend) : '')) + '</span></div><span class="crm-kind">' + esc(CRM_KIND[x.kind] || '') + '</span></div>' +
+      '<p class="crm-reason">' + esc(x.reason || '') + (x.order_ref && x.kind === 'task' ? ' · <button type="button" class="ccs-link" data-act="open-order" data-id="' + esc(x.order_id) + '">' + esc(x.order_ref) + '</button>' : '') + '</p>' +
+      '<p class="crm-pri"><b>' + esc(pri) + '</b>' + (x.why ? ': ' + esc(x.why) : '') + '</p>' +
+      (last ? '<p class="crm-last">' + esc(last) + '</p>' : '') +
+      (sales ? '<p class="crm-perm">' + (perm.length ? 'Agreed to hear from us by ' + esc(perm.join(', ')) + '.' : '') + '</p>' : '') +
+      (x.kind === 'quote' ? '<p class="crm-last">Quote ' + esc(x.order_ref) + (x.quote_value != null ? ', ' + money(x.quote_value) : '') + ' · <button type="button" class="ccs-link" data-act="open-order" data-id="' + esc(x.order_id) + '">Open the order</button></p>' : '');
+    var tel = x.phone ? '<a class="ccs-btn ccs-ghost crm-btn" href="tel:' + esc(digits(x.phone)) + '">Call</a><a class="ccs-btn ccs-ghost crm-btn" href="' + esc(waLink(x.phone) + '?text=' + encodeURIComponent(crmWaText(x))) + '" target="_blank" rel="noopener">WhatsApp</a>' : '';
+    var em = x.email ? '<a class="ccs-btn ccs-ghost crm-btn" href="mailto:' + esc(x.email) + '">Email</a>' : '';
+    if (!open) return h + '<div class="crm-acts">' + tel + em + '<button type="button" class="ccs-btn crm-btn" data-act="ws-crm-open" data-v="' + esc(x._k) + '">What happened?</button><button type="button" class="ccs-btn ccs-ghost crm-btn" data-act="ws-crm-later" data-v="' + esc(x._k) + '">Remind me later</button></div></article>';
+    return h + crmRecord(x) + '</article>';
+  }
+  function crmRecord(x) {
+    var r = S.crm.rec || {}, chip = function (key, list, cur) { return '<div class="ccs-chips crm-big-chips" role="group">' + list.map(function (o) { return '<button type="button" class="ccs-chip" data-act="ws-crm-set" data-k="' + key + '" data-v="' + o[0] + '" aria-pressed="' + (cur === o[0]) + '">' + o[1] + '</button>'; }).join('') + '</div>'; };
+    if (r.mode === 'later') return '<div class="ccs-panel crm-rec"><p class="crm-q">When should we remind you?</p>' + chip('next', CRM_NEXT.filter(function (o) { return o[0] !== '14'; }), r.next) +
+      (r.next === 'other' ? '<input class="ccs-input crm-date" id="crm-date" type="date" min="' + today() + '" max="' + addDays(today(), 400) + '" value="' + esc(r.date || '') + '">' : '') +
+      (r.err ? '<p class="ccs-err" role="alert">' + esc(r.err) + '</p>' : '') +
+      '<div class="crm-acts"><button type="button" class="ccs-btn crm-btn" data-act="ws-crm-save" data-v="' + esc(x._k) + '">Save reminder</button><button type="button" class="ccs-btn ccs-ghost crm-btn" data-act="ws-crm-close">Back</button></div></div>';
+    var needNext = ['interested', 'quote', 'later', 'no_answer', 'left_message'].indexOf(r.out) > -1;
+    return '<div class="ccs-panel crm-rec"><p class="crm-q">How did you contact them?</p>' + chip('ch', CRM_CH, r.ch) +
+      '<p class="crm-q">What happened?</p>' + chip('out', CRM_OUT, r.out) +
+      (needNext ? '<p class="crm-q">' + (r.out === 'no_answer' || r.out === 'left_message' ? 'When should we try again?' : 'When should we follow up next?') + '</p>' + chip('next', CRM_NEXT, r.next) +
+        (r.next === 'other' ? '<input class="ccs-input crm-date" id="crm-date" type="date" min="' + today() + '" max="' + addDays(today(), 400) + '" value="' + esc(r.date || '') + '">' : '') : '') +
+      (r.out === 'not_interested' && x.kind === 'quote' ? '<p class="ccs-hint">If they do not want the cake, also decline the quote on the order so it leaves the kitchen list.</p>' : '') +
+      '<label class="ccs-label" for="crm-note">Note (optional)</label><textarea class="ccs-input crm-ta" id="crm-note" maxlength="1000" placeholder="For example: wants a 2 kg chocolate cake for 40 people">' + esc(r.note || '') + '</textarea>' +
+      (r.err ? '<p class="ccs-err" role="alert">' + esc(r.err) + '</p>' : '') +
+      '<div class="crm-acts"><button type="button" class="ccs-btn crm-btn" data-act="ws-crm-save" data-v="' + esc(x._k) + '">Save</button><button type="button" class="ccs-btn ccs-ghost crm-btn" data-act="ws-crm-close">Back</button></div></div>';
+  }
+  function crmNextDate(r) { if (!r.next) return null; if (r.next === 'other') return r.date || null; return addDays(today(), +r.next); }
+  function crmKeep() { var r = S.crm.rec; if (!r) return; var n = document.getElementById('crm-note'); if (n) r.note = n.value; var dt = document.getElementById('crm-date'); if (dt) r.date = dt.value; }
+  function crmFind(k) { return crmList().filter(function (x) { return x._k === k; })[0]; }
+  function crmAct(a, b, v) {
+    var c = S.crm;
+    if (a === 'ws-crm-reload') { c.err = null; c.at = 0; crmLoad(true); view(); return; }
+    if (a === 'ws-crm-all') { c.all = !c.all; c.at = 0; crmLoad(true); return; }
+    if (a === 'ws-crm-go') { c.f = v; c.open = null; secStore('crm').crm = 'fu'; view(); return; }
+    if (a === 'ws-crm-f') { c.f = v; c.open = null; view(); return; }
+    if (a === 'ws-crm-close') { c.open = null; c.rec = null; view(); return; }
+    if (a === 'ws-crm-open' || a === 'ws-crm-later') {
+      var x0 = crmFind(v); if (!x0) return;
+      c.open = v; c.rec = a === 'ws-crm-later' ? { mode: 'later', next: '3', idem: uuid() } : { mode: 'rec', ch: x0.pref === 'email' ? 'email' : x0.pref === 'call' ? 'phone' : x0.pref === 'whatsapp' ? 'whatsapp' : 'phone', out: null, next: null, idem: uuid() };
+      view(); return;
+    }
+    if (a === 'ws-crm-set') {
+      crmKeep(); var r = c.rec; if (!r) return; r[b.dataset.k] = v; r.err = null;
+      if (b.dataset.k === 'out') r.next = v === 'no_answer' || v === 'left_message' ? '1' : v === 'quote' ? '1' : v === 'interested' ? '3' : v === 'later' ? '14' : null;
+      view(); if (v === 'other') { var dt = document.getElementById('crm-date'); if (dt) dt.focus(); } return;
+    }
+    if (a === 'ws-crm-save') {
+      crmKeep(); var x = crmFind(v), rr = c.rec; if (!x || !rr) return;
+      var due = crmNextDate(rr);
+      if (rr.mode === 'later') {
+        if (!due) { rr.err = 'Choose the date.'; view(); return; }
+        markBusy(b, 'Saving…');
+        var p = x.kind === 'task' && x.task
+          ? sb.rpc('customer_task_update', { p_task: x.task.id, p_version: x.task.version, p_action: 'edit', p_due: due, p_assignee: x.task.assigned_to || null, p_outcome: null })
+          : sb.rpc('customer_task_add', { p_customer: x.id, p_title: String(x.reason || 'Follow up').slice(0, 200), p_due: due, p_assignee: S.me && S.me.user_id, p_order: x.order_id || null, p_note: null, p_idem: rr.idem });
+        p.then(function (res) {
+          clearBusy(); if (res.error) throw res.error;
+          if (!res.data.ok) { rr.err = res.data.message; view(); return; }
+          toast('Reminder set for ' + nice(due)); c.open = null; c.rec = null; c.at = 0; crmLoad(true); fuStale();
+        }).catch(function (e) { clearBusy(); fail(e); });
+        return;
+      }
+      if (!rr.ch) { rr.err = 'Choose how you contacted them.'; view(); return; }
+      if (!rr.out) { rr.err = 'Choose what happened.'; view(); return; }
+      if (['interested', 'quote', 'later'].indexOf(rr.out) > -1 && !due) { rr.err = 'Choose when to follow up next.'; view(); return; }
+      markBusy(b, 'Saving…');
+      sb.rpc('crm_record_contact', { p_customer: x.id, p_kind: x.kind, p_reason: String(x.reason || '').slice(0, 200), p_channel: rr.ch, p_outcome: rr.out, p_note: (rr.note || '').trim() || null,
+        p_task: x.task ? x.task.id : null, p_task_version: x.task ? x.task.version : null, p_order: x.order_id || null, p_next_due: due, p_next_title: null, p_idem: rr.idem }).then(function (res) {
+        clearBusy(); if (res.error) throw res.error;
+        if (!res.data.ok) { rr.err = res.data.message; if (res.data.error === 'changed') { c.at = 0; crmLoad(true); } view(); return; }
+        toast(res.data.message || 'Saved'); c.open = null; c.rec = null; c.at = 0; crmLoad(true); fuStale();
+      }).catch(function (e) { clearBusy(); fail(e); });
+    }
+  }

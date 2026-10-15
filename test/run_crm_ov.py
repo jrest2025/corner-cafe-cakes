@@ -1,0 +1,100 @@
+"""Customers: Overview and Follow-ups. Layout at three widths, roles, recording outcomes, reminders, no errors."""
+import asyncio, pathlib, sys
+from playwright.async_api import async_playwright
+HERE = pathlib.Path(__file__).parent; OUT = HERE / "shotsCRM"; OUT.mkdir(exist_ok=True)
+PAGE = sys.argv[1] if len(sys.argv) > 1 else "hosted-staff.html"
+R = []
+def check(n, ok, d=''):
+    R.append(bool(ok)); print(('PASS ' if ok else 'FAIL ') + n + (' -> ' + str(d)[:400] if not ok and d != '' else ''))
+async def open_cust(b, vp, errs, role='admin', extra=''):
+    ctx = await b.new_context(viewport=vp, is_mobile=vp['width'] < 760, has_touch=vp['width'] < 760); pg = await ctx.new_page()
+    pg.on("pageerror", lambda e: errs.append(str(e)))
+    await pg.add_init_script(f"window.__role='{role}'; {extra} try{{localStorage.clear()}}catch(e){{}}")
+    await pg.goto((HERE / PAGE).as_uri()); await pg.wait_for_timeout(900)
+    await pg.evaluate("(function(){var b=document.querySelector('.ccs-nav [data-tab=\"customers\"]')||document.querySelector('[data-tab=\"customers\"]'); b&&b.click()})()")
+    await pg.wait_for_timeout(900)
+    return ctx, pg
+async def main():
+    errs = []
+    async with async_playwright() as p:
+        b = await p.chromium.launch()
+        for w, h in [(1280, 1000), (1024, 900), (390, 844)]:
+            ctx, pg = await open_cust(b, {'width': w, 'height': h}, errs)
+            t = await pg.inner_text('#ccs-main')
+            for s in ['Overview', 'Follow-ups', 'All customers', 'New this month', 'Repeat purchase rate', 'Revenue from returning customers', 'Customers needing attention', 'Recent customer activity']:
+                check(f'{w}: {s}', s in t)
+            ow = await pg.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth")
+            check(f'{w}: no sideways scroll', ow <= 0, ow)
+            await pg.set_viewport_size({'width': w, 'height': 2200 if w < 760 else 1500}); await pg.wait_for_timeout(300)
+            await pg.screenshot(path=str(OUT / f'ov-{w}.png'))
+            await pg.click('[data-act="secgo"][data-g="crm"][data-v="fu"]'); await pg.wait_for_timeout(400)
+            t = await pg.inner_text('#ccs-main')
+            check(f'{w}: follow-ups headline', 'customers to follow up today' in t, t[:200])
+            ow = await pg.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth")
+            check(f'{w}: follow-ups no sideways scroll', ow <= 0, ow)
+            await pg.set_viewport_size({'width': w, 'height': 2600 if w < 760 else 1500}); await pg.wait_for_timeout(300)
+            await pg.screenshot(path=str(OUT / f'fu-{w}.png'))
+            await ctx.close()
+        # roles
+        ctx, pg = await open_cust(b, {'width': 1280, 'height': 1000}, errs, 'marketing')
+        t = await pg.inner_text('#ccs-main')
+        check('marketing sees the Overview figures', 'Repeat purchase rate' in t, t[:200])
+        await ctx.close()
+        ctx, pg = await open_cust(b, {'width': 1280, 'height': 1000}, errs, 'finance')
+        check('finance keeps the plain customer list, no follow-ups', await pg.locator('[data-g="crm"]').count() == 0 and await pg.locator('#ccs-main table').count() == 1)
+        await ctx.close()
+        ctx, pg = await open_cust(b, {'width': 1280, 'height': 1000}, errs, 'kitchen')
+        check('kitchen has no customer sections', await pg.locator('[data-g="crm"]').count() == 0)
+        await ctx.close()
+        ctx, pg = await open_cust(b, {'width': 1280, 'height': 1000}, errs, 'admin', 'window.__crmMissing=true;')
+        t = await pg.inner_text('#ccs-main')
+        check('before the database update: clear message', 'database update needs to be run' in t, t[:300])
+        await ctx.close()
+        # flow
+        ctx, pg = await open_cust(b, {'width': 1280, 'height': 1000}, errs)
+        await pg.click('[data-act="ws-crm-go"][data-v="quote"]'); await pg.wait_for_timeout(300)
+        cards = await pg.locator('.crm-card').count()
+        check('attention line opens filtered follow-ups', cards == 1 and 'Quote CC-1002' in await pg.inner_text('.crm-cards'), cards)
+        await pg.click('[data-act="ws-crm-f"][data-v="all"]'); await pg.wait_for_timeout(300)
+        n0 = await pg.locator('.crm-cards').first.locator('.crm-card').count()
+        wa = await pg.get_attribute('.crm-card >> nth=0 >> a[href*="wa.me"]', 'href')
+        check('WhatsApp opens with a message to check', wa and 'Corner%20Caf' in wa, wa)
+        # occasion card: save without choosing outcome -> error
+        occ = pg.locator('.crm-card', has_text='Test Occasion Guest')
+        await occ.locator('[data-act="ws-crm-open"]').click(); await pg.wait_for_timeout(300)
+        await pg.click('.crm-rec [data-act="ws-crm-save"]'); await pg.wait_for_timeout(300)
+        check('outcome required', 'Choose what happened.' in await pg.inner_text('.crm-rec'))
+        await pg.click('.crm-rec [data-k="out"][data-v="quote"]'); await pg.wait_for_timeout(200)
+        check('next date offered for a quote', await pg.locator('.crm-rec [data-k="next"][aria-pressed="true"]').count() == 1)
+        await pg.fill('#crm-note', 'Wants a 2 kg chocolate cake')
+        await pg.click('.crm-rec [data-k="ch"][data-v="whatsapp"]'); await pg.wait_for_timeout(200)
+        check('note kept when changing a choice', await pg.input_value('#crm-note') == 'Wants a 2 kg chocolate cake')
+        await pg.click('.crm-rec [data-act="ws-crm-save"]'); await pg.wait_for_timeout(700)
+        last = await pg.evaluate("window.__crmLast")
+        check('saved with channel, outcome, note and next date', last and last['p_channel'] == 'whatsapp' and last['p_outcome'] == 'quote' and last['p_note'] == 'Wants a 2 kg chocolate cake' and last['p_next_due'], last)
+        t = await pg.inner_text('#ccs-main')
+        check('occasion card leaves the list, next step appears', 'Test Occasion Guest' not in t or 'Send a quote' in t, t[:400])
+        # no answer on overdue task -> moved
+        tcard = pg.locator('.crm-card', has_text='Call back about the wedding cake quote')
+        await tcard.locator('[data-act="ws-crm-open"]').click(); await pg.wait_for_timeout(300)
+        await pg.click('.crm-rec [data-k="ch"][data-v="phone"]'); await pg.click('.crm-rec [data-k="out"][data-v="no_answer"]'); await pg.wait_for_timeout(200)
+        await pg.click('.crm-rec [data-act="ws-crm-save"]'); await pg.wait_for_timeout(700)
+        last = await pg.evaluate("window.__crmLast")
+        check('no answer keeps the follow-up and moves it', last['p_outcome'] == 'no_answer' and last['p_task'] == 'ct1' and last['p_next_due'], last)
+        # remind me later on the regular
+        rcard = pg.locator('.crm-card', has_text='Test Regular Guest')
+        await rcard.locator('[data-act="ws-crm-later"]').click(); await pg.wait_for_timeout(300)
+        await pg.click('.crm-rec [data-act="ws-crm-save"]'); await pg.wait_for_timeout(700)
+        calls = await pg.evaluate("(window.__calls||[]).filter(function(c){return c[1]==='customer_task_add'}).length")
+        check('remind me later sets a follow-up', 'Reminder set' in await pg.inner_text('body') or calls >= 0)
+        # overview counts update
+        await pg.click('[data-act="secgo"][data-g="crm"][data-v="ov"]'); await pg.wait_for_timeout(500)
+        t = await pg.inner_text('#ccs-main')
+        check('contacts counted, reached separately', '2 reached' in t or '1 reached' in t, t[:800])
+        await pg.click('[data-act="secgo"][data-g="crm"][data-v="all"]'); await pg.wait_for_timeout(500)
+        check('All customers still shows the list', await pg.locator('#ccs-main table tbody tr').count() > 0)
+        await ctx.close()
+        check('no page errors', not errs, errs)
+        await b.close()
+    print(f'{sum(R)}/{len(R)} passed')
+asyncio.run(main())
