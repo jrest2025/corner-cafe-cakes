@@ -32,7 +32,7 @@
   // Everything else waits here. Nothing on the sheet is changed; a link only puts the sheet order on the customer's profile.
   var CM_HOW = { auto_match: 'Linked automatically', auto_new: 'New profile made automatically', staff_link: 'Linked to', staff_new: 'New profile made', left_unlinked: 'Left without a profile' };
   function cmLoad() {
-    var g = rgState(); if (!can('manager')) return; g.cm = g.cm || { data: null, err: null, open: null, msg: null, matches: null, phone: '', note: '' };
+    var g = rgState(); if (!canP('mgmt.register')) return; g.cm = g.cm || { data: null, err: null, open: null, msg: null, matches: null, phone: '', note: '' };
     sb.rpc('register_customer_review').then(function (r) {
       if (r.error) throw r.error;
       if (!r.data || !r.data.ok) g.cm.err = (r.data && r.data.message) || 'We couldn\'t load customer matching. Try again.'; else { g.cm.data = r.data; g.cm.err = null; }
@@ -63,7 +63,7 @@
     return h + '</article>';
   }
   function cmView() {
-    var m = RG && RG.cm; if (!m || !can('manager')) return '';
+    var m = RG && RG.cm; if (!m || !canP('mgmt.register')) return '';
     var h = '<h2 class="rg-h">Customers to match</h2>';
     if (m.err) return h + '<p class="ccs-err">' + esc(m.err) + '</p>';
     if (!m.data) return h + '<p class="ccs-loading">Loading…</p>';
@@ -190,7 +190,7 @@
     if (!x.data) return sheetHead('Loading…') + '<div class="ccs-sheet-body"><p class="ccs-loading">Loading the record…</p></div>';
     var c = x.data.record, st = { ok: 'Counted', needs_review: 'Waiting for review', duplicate: 'Left out as a copy', excluded: 'Left out' }[c.review] || c.review;
     var h = sheetHead(esc(c.reference || 'Register record'), '<span class="ccs-pill' + (c.review === 'ok' ? ' s-good' : c.review === 'needs_review' ? ' s-action' : ' s-off') + '">' + esc(st) + '</span>') + '<div class="ccs-sheet-body">';
-    if (c.order_id && can('manager', 'front_of_house', 'finance', 'marketing')) h += '<div class="ccs-actions-row"><button type="button" class="ccs-btn ccs-ghost" data-act="open-order" data-id="' + esc(c.order_id) + '">Open the order</button></div>';
+    if (c.order_id && canP('ord.view')) h += '<div class="ccs-actions-row"><button type="button" class="ccs-btn ccs-ghost" data-act="open-order" data-id="' + esc(c.order_id) + '">Open the order</button></div>';
     if (c.flags.length) h += '<section class="ccs-box"><h3>Flags</h3><ul class="rg-flags">' + c.flags.map(function (f) { return '<li>' + esc(RG_FLAG[f] || f) + '</li>'; }).join('') + '</ul>' + (c.other ? '<p class="ccs-hint">Matches ' + esc(c.other.reference || '') + ', ' + esc(rgWhere(c.other)) + '.</p>' : '') + '</section>';
     h += '<section class="ccs-box"><h3>Order</h3><dl class="ccs-kv">' + kv('Customer', c.customer) + kv('Mobile', c.phone_key) + kv('Recorded in', rgWhere(c)) + kv('Channel', c.channel) +
       kv('Order date', c.order_date ? nice(c.order_date) + ' ' + c.order_date.slice(0, 4) + ' (' + c.order_date_basis + ')' : 'Not known') +

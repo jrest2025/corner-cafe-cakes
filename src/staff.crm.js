@@ -817,7 +817,7 @@
   }
   function s5LogView() {
     var c = clState(), L = c.log;
-    var h = '<div class="ccs-head"><div><h1 class="ccs-title">Export log</h1><p class="ccs-sub">' + (can('manager') ? 'Every contact list export and printed customer report, by everyone.' : 'Your own exports and printed reports. Managers see everyone\'s.') + '</p></div>' +
+    var h = '<div class="ccs-head"><div><h1 class="ccs-title">Export log</h1><p class="ccs-sub">' + (canP('cust.oversee') ? 'Every contact list export and printed customer report, by everyone.' : 'Your own exports and printed reports. Managers see everyone\'s.') + '</p></div>' +
       '<div class="ccs-headacts"><button type="button" class="ccs-btn ccs-ghost" data-act="ws-cm-list">Back to customers</button></div></div>';
     if (c.logErr) return h + (c.logRetry ? loadErr(c.logErr, 'log-reload') : '<div class="ccs-empty"><b>' + esc(c.logErr) + '</b></div>');
     if (!L) return h + '<p class="ccs-loading">Loading the export log…</p>';
@@ -841,7 +841,7 @@
 
   // Settings: role permissions and backup check (managers)
   function s5SettingsLoad() {
-    var st = S.settings; if (!st || !can('manager')) return;
+    var st = S.settings; if (!st || !canSettings()) return;
     st.perm = null; st.permErr = null; st.bc = null; st.bcErr = null;
     sb.rpc('role_permissions').then(function (r) { if (r.error) throw r.error; if (S.settings !== st) return; if (!r.data.ok) st.permErr = r.data.message; else st.perm = r.data; if (S.tab === 'settings') view(); })
       .catch(function (e) { console.error(e); if (S.settings === st) { st.permErr = 'Could not load the role table. Check the connection and try again.'; if (S.tab === 'settings') view(); } });
@@ -849,7 +849,7 @@
       .catch(function (e) { console.error(e); if (S.settings === st) { st.bcErr = 'Could not check the backups. Check the connection and try again.'; if (S.tab === 'settings') view(); } });
   }
   function s5PermView(st) {
-    if (!can('manager')) return '';
+    if (!canP('mgmt.settings')) return '';
     var P = st.perm, open = st.s5PermOpen ? ' open' : '';
     var h = '<details' + open + ' data-s5open="perm"><summary>What each level can do <span>Read from the database rules</span></summary><div class="ccs-set-body">';
     if (st.permErr) return h + '<p class="ccs-err" role="alert">' + esc(st.permErr) + '</p><button type="button" class="ccs-btn ccs-ghost" data-act="ws-cm-s5-settings" data-v="perm">Try again</button></div></details>';
@@ -870,7 +870,7 @@
     return h;
   }
   function s5BackupCheckView(st) {
-    if (!can('manager')) return '';
+    if (!canP('mgmt.settings')) return '';
     var B = st.bc, open = st.s5BcOpen ? ' open' : '';
     if (st.bcErr) return '<details' + open + ' data-s5open="bc"><summary>Backup and business continuity <span>Could not check</span></summary><div class="ccs-set-body"><p class="ccs-err" role="alert">' + esc(st.bcErr) + '</p><button type="button" class="ccs-btn ccs-ghost" data-act="ws-cm-s5-settings" data-v="bc">Try again</button></div></details>';
     if (!B) return '<details' + open + ' data-s5open="bc"><summary>Backup and business continuity <span>Checking…</span></summary><div class="ccs-set-body"><p class="ccs-loading">Checking…</p></div></details>';
@@ -1114,7 +1114,7 @@
   // ---------- Settings: Permissions (switches by level, exceptions by person) ----------
   // The server decides; this screen only shows and changes switches through admin_perms, admin_level_perm and admin_staff_perm.
   S.perm = { data: null, loading: false, err: null, tab: 'levels', level: null, user: null, ask: null };
-  var PM_MOD = [['customers', 'Customers'], ['orders', 'Orders'], ['kitchen', 'Kitchen'], ['management', 'Management and administration']];
+  var PM_MOD = [['customers', 'Customers'], ['orders', 'Orders'], ['money', 'Money'], ['kitchen', 'Kitchen'], ['reports', 'Reports'], ['admin', 'Administration'], ['management', 'Management and administration']];
   function permLoad() {
     var p = S.perm; if (p.loading) return; p.loading = true;
     sb.rpc('admin_perms').then(function (r) {
@@ -1137,7 +1137,7 @@
     h += '<p class="ccs-hint">Everything is off unless switched on. A switch removed for one person always wins. Every change is kept in the audit log. People see the change on their screens after they refresh.</p>';
     h += '<div class="ccs-chips pm-tabs" role="group" aria-label="Show"><button type="button" class="ccs-chip" data-act="pm-tab" data-v="levels" aria-pressed="' + (p.tab === 'levels') + '">By level</button><button type="button" class="ccs-chip" data-act="pm-tab" data-v="people" aria-pressed="' + (p.tab === 'people') + '">By person</button></div>';
     if (p.msg) h += '<p class="ccs-err" role="alert">' + esc(p.msg) + '</p>';
-    return h + (p.tab === 'people' ? permPeople(d) : permLevels(d)) + '</div></details>';
+    return h + (p.tab === 'people' ? permPeople(d) : (window.matchMedia && window.matchMedia('(min-width: 760px)').matches ? permMatrix(d) : permLevels(d))) + '</div></details>';
   }
   function permRowMeta(c) { return '<span class="pm-l"><b>' + esc(c.label) + '</b>' + (c.help ? '<small>' + esc(c.help) + '</small>' : '') + '</span>'; }
   function permSwitch(on, act, attrs, label) { return '<button type="button" class="pm-sw' + (on ? ' is-on' : '') + '" role="switch" aria-checked="' + on + '" aria-label="' + esc(label) + '" data-act="' + act + '" ' + attrs + '><i></i><span>' + (on ? 'On' : 'Off') + '</span></button>'; }
@@ -1153,6 +1153,28 @@
         return '<div class="pm-row' + (c.live ? '' : ' is-ro') + '">' + permRowMeta(c) + ctl + '</div>' + (ask ? permAsk(c, lv.name) : '');
       }).join('') + '</section>';
     }).join('');
+  }
+  // One table: a row for each switch, a column for each level. Admin always has everything.
+  function permMatrix(d) {
+    var p = S.perm, L = d.levels || [];
+    var h = '<div class="pm-mx-wrap"><table class="pm-mx"><thead><tr><th scope="col" class="pm-mx-k">Permission</th>' + L.map(function (l) { return '<th scope="col"><span>' + esc(l.name) + '</span><small>' + l.people + (l.people === 1 ? ' person' : ' people') + '</small></th>'; }).join('') + '</tr></thead><tbody>';
+    PM_MOD.forEach(function (m) {
+      var cs = d.catalogue.filter(function (c) { return c.module === m[0]; }); if (!cs.length) return;
+      h += '<tr class="pm-mx-grp"><th scope="rowgroup" colspan="' + (L.length + 1) + '">' + m[1] + '</th></tr>';
+      cs.forEach(function (c) {
+        h += '<tr><th scope="row" class="pm-mx-k">' + permRowMeta(c) + '</th>' + L.map(function (l) {
+          var on = l.perms.indexOf(c.key) > -1, adm = (l.grants || []).indexOf('admin') > -1;
+          if (adm) return '<td class="pm-mx-fixed"><span>Always</span></td>';
+          if (!c.live) return '<td><span class="pm-ro">' + (on ? 'Yes' : 'No') + '</span></td>';
+          return '<td>' + permSwitch(on, 'pm-cell', 'data-lv="' + l.id + '" data-k="' + c.key + '" data-on="' + (!on) + '"', c.label + ' for ' + l.name) + '</td>';
+        }).join('') + '</tr>';
+        if (p.ask && p.ask.kind === 'level' && p.ask.key === c.key) {
+          var lv = L.filter(function (x) { return x.id === p.ask.id; })[0];
+          if (lv) h += '<tr class="pm-mx-ask"><td colspan="' + (L.length + 1) + '">' + permAsk(c, lv.name) + '</td></tr>';
+        }
+      });
+    });
+    return h + '</tbody></table></div><p class="ccs-hint">Admin always has everything, so no one can lock themselves out. Sensitive switches ask before they change.</p>';
   }
   function permAsk(c, who) {
     var a = S.perm.ask;
@@ -1186,6 +1208,20 @@
     if (a === 'pm-level') { p.level = v; p.ask = null; p.msg = null; view(); return; }
     if (a === 'pm-user') { p.user = v; p.ask = null; p.msg = null; view(); return; }
     if (a === 'pm-no') { p.ask = null; view(); return; }
+    if (a === 'pm-cell') {
+      var c0 = (d.catalogue || []).filter(function (c) { return c.key === b.dataset.k; })[0], on0 = b.dataset.on === 'true';
+      if (c0 && c0.risky) { p.ask = { kind: 'level', id: b.dataset.lv, key: b.dataset.k, on: on0 }; p.msg = null; view(); return; }
+      markBusy(b, '…');
+      sb.rpc('admin_level_perm', { p_level: b.dataset.lv, p_key: b.dataset.k, p_on: on0, p_confirm: true }).then(function (r) {
+        clearBusy(); if (r.error) throw r.error;
+        if (!r.data.ok) { p.msg = r.data.message; view(); return; }
+        var lv1 = (d.levels || []).filter(function (x) { return x.id === b.dataset.lv; })[0];
+        if (lv1) { if (on0) { if (lv1.perms.indexOf(b.dataset.k) < 0) lv1.perms.push(b.dataset.k); } else lv1.perms = lv1.perms.filter(function (k) { return k !== b.dataset.k; }); }
+        p.msg = null; view(); toast('Permission updated: ' + (c0 ? c0.label : b.dataset.k) + ' ' + (on0 ? 'on' : 'off') + (lv1 ? ' for ' + lv1.name : ''));
+        permLoad(); sb.rpc('my_access').then(function (m) { accessSet(m); view(); }, function () {});
+      }).catch(function (e) { clearBusy(); fail(e); });
+      return;
+    }
     if (a === 'pm-lv') { p.ask = { kind: 'level', id: p.level, key: b.dataset.k, on: b.dataset.on === 'true' }; p.msg = null; view(); return; }
     if (a === 'pm-ov') { var al = b.dataset.allow === '' ? null : b.dataset.allow === 'true'; p.ask = { kind: 'person', id: p.user, key: b.dataset.k, allow: al, on: al === true, undo: al === null }; p.msg = null; view(); setTimeout(function () { var r = document.getElementById('pm-reason'); if (r) r.focus(); }, 30); return; }
     if (a === 'pm-yes') {
