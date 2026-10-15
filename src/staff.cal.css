@@ -2030,3 +2030,9 @@ body.ccs-is-off #cc-staff .ccs-side { top: var(--ccs-offh, 44px); }
 #cc-staff .kp-focus { margin: 4px 0 8px; font-size: 14px; color: #526176; }
 @media (max-width: 900px) { #cc-staff .kp-acts { grid-template-columns: minmax(0, 1fr); } #cc-staff .kp-act { min-height: 96px; } }
 @media (max-width: 640px) { #cc-staff .kp-act { grid-template-columns: 40px minmax(0, 1fr); grid-template-rows: auto; min-height: 0; align-items: center; } }
+
+/* Large screens: the work area sits centred beside the menu, up to 1320px wide.
+   The main area stays full width (it is the scroll area, so the scrollbar stays at the screen edge); the side padding centres the content. */
+@media (min-width: 1440px) {
+  #cc-staff .ccs-app .ccs-main { max-width: none; padding-left: max(34px, calc((100% - 1320px) / 2)); padding-right: max(34px, calc((100% - 1320px) / 2)); }
+}
