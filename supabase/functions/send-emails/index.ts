@@ -4,6 +4,8 @@
 
 // Kitchen slip PDF layout (shipped with this function); the logo is fetched from one pinned commit and is optional
 import { buildSlipPdf, slipFileName, SLIP_REF } from "./slip_pdf.js";
+// Customer emails: Corner Café logo and layout, plain-text version, cross-selling only where allowed
+import { buildGuest } from "./guest_emails.ts";
 const SLIP_LOGO_URL = "https://cdn.jsdelivr.net/gh/jrest2025/corner-cafe-cakes@6879294bbce62e730bdf5b1af8c2b3e931a06fb5/dist/brand/slip-logo-white.png";
 let logoCache: Uint8Array | null = null;
 async function slipLogo() { if (logoCache) return logoCache; try { const r = await fetch(SLIP_LOGO_URL); if (r.ok) logoCache = new Uint8Array(await r.arrayBuffer()); } catch (_e) { /* the slip falls back to the name in text */ } return logoCache; }
@@ -160,7 +162,8 @@ function cakeRows(d: any, staff: boolean): [string, string][] {
   return rows;
 }
 
-function build(kind: string, d: any): { subject: string; html: string } {
+function build(kind: string, d: any): { subject: string; html: string; text?: string } {
+  if (kind.startsWith("guest_")) { const g = buildGuest(kind, d); if (g) return g; }
   const o = d.order, i = d.item ?? {}, c = d.customer, loc = d.location, cfg = d.config ?? {};
   const total = o.final_total ?? o.estimate_total;
   const balance = Math.max(Number(total) - Number(d.paid_total ?? 0), 0);
@@ -243,11 +246,11 @@ function build(kind: string, d: any): { subject: string; html: string } {
   }
 }
 
-async function send(to: string, subject: string, html: string, from: string, replyTo?: string, attachments?: { filename: string; content: string }[], cc?: string[]) {
+async function send(to: string, subject: string, html: string, from: string, replyTo?: string, attachments?: { filename: string; content: string }[], cc?: string[], text?: string) {
   const r = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${RESEND_KEY}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from, to: [to], cc: cc && cc.length ? cc : undefined, subject, html, reply_to: replyTo || undefined, attachments: attachments && attachments.length ? attachments : undefined }),
+    body: JSON.stringify({ from, to: [to], cc: cc && cc.length ? cc : undefined, subject, html, text: text || undefined, reply_to: replyTo || undefined, attachments: attachments && attachments.length ? attachments : undefined }),
   });
   const t = await r.text();
   if (!r.ok) throw new Error(`Resend ${r.status}: ${t.slice(0, 300)}`);
@@ -330,12 +333,12 @@ async function processOutbox() {
       if (!d) throw new Error("order not found");
       const cfg = d.config ?? {};
       let att: { filename: string; content: string }[] | undefined;
-      let { subject, html } = m.kind === "kitchen_slip" ? await kitchenSlip(m, d).then((k) => { att = k.attachments; return k; }) : build(m.kind, d);
+      let { subject, html, text } = m.kind === "kitchen_slip" ? await kitchenSlip(m, d).then((k) => { att = k.attachments; return k; }) as { subject: string; html: string; text?: string } : build(m.kind, d);
       let to = m.to_email, cc: string[] = m.cc || [];
       // Test mode: everything goes to the test inbox only, backup copies included
       if (cfg.test_mode === "true") { subject = `[TEST, for ${[to, ...cc].join(" and ")}] ${subject}`; to = cfg.test_email; cc = []; }
       const guestKind = m.kind.startsWith("guest_");
-      const id = await send(to, subject, html, cfg.from_email, guestKind ? cfg.reply_to : (m.kind === "kitchen_slip" ? undefined : (d.customer?.email || undefined)), att, cc);
+      const id = await send(to, subject, html, cfg.from_email, guestKind ? cfg.reply_to : (m.kind === "kitchen_slip" ? undefined : (d.customer?.email || undefined)), att, cc, text);
       await db(`email_outbox?id=eq.${m.id}`, { method: "PATCH", body: JSON.stringify({ status: "sent", sent_at: new Date().toISOString(), provider_message_id: id, last_error: null }) });
       sent++;
     } catch (e) {

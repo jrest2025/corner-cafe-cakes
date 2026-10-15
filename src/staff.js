@@ -657,6 +657,7 @@
     var sst = o.order_status === 'confirmed' ? slipState(o.id) : null;
     if (sst && sst.failed) h += '<div class="ccs-alert" role="alert">' + esc(SLIP_FAIL) + ' Press Print kitchen slip to print slip v' + sst.v + ' here.</div>';
     h += actionsBox(o, total, paid, bal);
+    h += askUpdateBox(o);
     var cut = [['cake', h.length]];
     h += '<section class="ccs-box"><h3>Cake</h3><p class="ccs-big">' + esc(cakeLine(i)) + '</p><dl class="ccs-kv">' +
       kv('Finish', i.finish === 'custom' ? 'Custom design' : 'Standard finish') + kv('Design', i.design_description) +
@@ -691,6 +692,7 @@
         '<div class="ccs-actions-row"><a class="ccs-btn ccs-ghost" href="' + esc(waLink(c.phone)) + '" target="_blank" rel="noopener">WhatsApp</a><a class="ccs-btn ccs-ghost" href="tel:' + esc(digits(c.phone)) + '">Call</a>' +
         (can('manager', 'finance', 'marketing') ? '<button type="button" class="ccs-btn ccs-ghost" data-act="open-customer" data-id="' + c.id + '">Customer profile</button>' : '') + '</div>' + orderFuBox(o) + '</section>';
     }
+    h += mailBox(o);
     cut.push(['payment', h.length]);
     if (can('manager', 'finance', 'front_of_house')) {
       h += '<section class="ccs-box"><h3>Payment ' + payPill(o.payment_status) + '</h3><div class="ccs-money"><div><span>Price</span><b>' + money(total) + '</b></div><div><span>Deposit</span><b>' + (o.deposit_required ? money(o.deposit_required) : '—') + '</b></div><div><span>Paid</span><b>' + money(paid) + '</b></div><div><span>To pay</span><b>' + money(bal) + '</b></div></div>' +
@@ -700,7 +702,6 @@
     if (o.internal_notes) h += '<section class="ccs-box"><h3>Team notes</h3><p style="white-space:pre-wrap;font-size:15px">' + esc(o.internal_notes) + '</p></section>';
     h += changeHistory(o);
     var dz = !S.panel && S.sheet.danger && S.sheet.danger.length ? '<section class="ccs-box ccs-other"><h3>Other actions</h3><p class="ccs-hint">These change or remove the order. Each one asks before anything happens.</p><div class="ccs-actions-row ccs-more-row">' + S.sheet.danger.map(function (m) { return '<button type="button" class="ccs-link ccs-red" data-act="panel" data-v="' + m[0] + '">' + m[1] + '</button>'; }).join('') + '</div></section>' : '';
-    h += mailBox(o);
     h += '<section class="ccs-box"><h3>Activity</h3>' + (S.sheet.showHistory ? '<div class="ccs-history">' + (o.order_events || []).slice().sort(function (a, b) { return a.at < b.at ? -1 : 1; }).map(function (e) { return '<div><span>' + esc(stamp(e.at)) + '</span><span style="color:var(--ccs-ink)">' + esc(eventText(e)) + '</span></div>'; }).join('') + '</div>' : '<button type="button" class="ccs-link" data-act="history">Show history (' + (o.order_events || []).length + ')</button>') + '</section>' + dz;
     // One section at a time below the key facts and actions, so the panel fits the screen
     return secSplit(h, cut, 'order', { cake: 'Cake', when: deliv ? 'Delivery' : 'Collection', kitchen: 'Kitchen', customer: 'Customer', payment: 'Payment', history: 'History' }, !!S.panel) + '</div>';
@@ -724,7 +725,7 @@
   }
   function kv(k, v) { return v ? '<dt>' + esc(k) + '</dt><dd>' + esc(v) + '</dd>' : ''; }
   // ---------- customer emails on an order (status only) ----------
-  var MAIL_KIND = { guest_received: 'Order received', guest_quote: 'Price for the cake', guest_confirmed: 'Order confirmed', guest_deposit_needed: 'Deposit needed', guest_declined: 'Order declined', guest_cancelled: 'Order cancelled', guest_thanks: 'Thank you and review' };
+  var MAIL_KIND = { guest_received: 'Order received', guest_quote: 'Price for the cake', guest_confirmed: 'Order confirmed', guest_updated: 'Updated confirmation', guest_deposit_needed: 'Deposit needed', guest_declined: 'Order declined', guest_cancelled: 'Order cancelled', guest_thanks: 'Thank you and review' };
   function mailLoad(id) {
     var sh = S.sheet; sh.mail = { loading: true };
     sb.rpc('staff_order_emails', { p_order: id }).then(function (r) {
@@ -738,18 +739,64 @@
     if (m.status === 'sending') return 'Sending now';
     return 'Waiting to send';
   }
+  // Customer communication: what went out, the last contact, what comes next, and the few actions staff need
+  function mailNext(o, M) {
+    var sentThanks = M.emails.some(function (m) { return m.kind === 'guest_thanks'; });
+    if (['declined', 'cancelled'].indexOf(o.order_status) > -1 || sentThanks) return '';
+    if (o.hold_thanks) return 'Thank-you email held';
+    return o.order_status === 'completed' ? 'Thank-you and review, 10:00 AM the morning after collection' : 'Thank-you and review, the morning after collection';
+  }
   function mailBox(o) {
     if (!can('manager', 'front_of_house')) return '';
-    var M = S.sheet.mail, h = '<section class="ccs-box ccs-mailbox"><h3>Customer emails</h3>';
-    if (!o.contact_email) return h + '<p class="ccs-hint">No email address on this order, so no emails are sent. Add one with Amend order if the customer wants emails.</p></section>';
+    var M = S.sheet.mail, h = '<section class="ccs-box ccs-mailbox"><h3>Customer communication</h3>';
+    if (!o.contact_email) return h + '<p class="ccs-hint">No email address on this order, so no emails are sent. That is fine for a walk-in. Add one with Amend order if the customer wants emails.</p></section>';
     if (!M || M.loading) return h + '<p class="ccs-loading">Checking emails…</p></section>';
     if (M.err) return h + '<p class="ccs-hint">Could not check the emails for this order. <button type="button" class="ccs-link" data-act="mail-reload">Try again</button></p></section>';
     if (!M.guest_emails) h += '<p class="ccs-hint">Customer emails are switched off, so none are sent automatically.</p>';
-    h += M.emails.length ? '<ul class="ccs-maillist">' + M.emails.map(function (m) {
-      return '<li class="' + (m.status === 'failed' ? 'is-failed' : m.status === 'sent' ? 'is-sent' : '') + '"><b>' + esc(MAIL_KIND[m.kind] || m.kind) + '</b><span>' + esc(mailStatus(m)) + '</span><small>' + esc(m.to) + '</small></li>';
-    }).join('') + '</ul>' : '<p class="ccs-hint">No emails sent yet. Sent to ' + esc(o.contact_email) + '.</p>';
-    if (M.guest_emails) h += (S.sheet.mailErr ? '<p class="ccs-err" role="alert">' + esc(S.sheet.mailErr) + '</p>' : '') + '<button type="button" class="ccs-btn ccs-ghost ccs-small" data-act="mail-resend">Send the latest email again</button>';
+    var conf = ['confirmed', 'awaiting_deposit'].indexOf(o.order_status) > -1;
+    var last = M.emails.filter(function (m) { return m.status === 'sent'; })[0];
+    var next = M.guest_emails ? mailNext(o, M) : '';
+    h += '<dl class="ccs-kv ccs-mailsum">' + kv('Last contact', last ? (MAIL_KIND[last.kind] || last.kind) + ', ' + stamp(last.sent_at || last.created_at) : 'No email sent yet') + kv('Next', next) + kv('Email', o.contact_email) + '</dl>';
+    if (M.emails.length) h += '<ul class="ccs-maillist">' + M.emails.map(function (m) {
+      return '<li class="' + (m.status === 'failed' ? 'is-failed' : m.status === 'sent' ? 'is-sent' : '') + '"><b>' + esc(MAIL_KIND[m.kind] || m.kind) + '</b><span>' + esc(mailStatus(m)) + '</span></li>';
+    }).join('') + '</ul>';
+    if (M.guest_emails) {
+      h += (S.sheet.mailErr ? '<p class="ccs-err" role="alert">' + esc(S.sheet.mailErr) + '</p>' : '') + '<div class="ccs-actions-row ccs-mailacts">';
+      if (M.emails.length) h += '<button type="button" class="ccs-btn ccs-ghost ccs-small" data-act="mail-resend">Send the latest email again</button>';
+      if (conf && S.askUpdate !== o.id) h += '<button type="button" class="ccs-btn ccs-ghost ccs-small" data-act="mail-update">Send updated confirmation</button>';
+      if (['declined', 'cancelled'].indexOf(o.order_status) < 0 && !M.emails.some(function (m) { return m.kind === 'guest_thanks'; }))
+        h += '<button type="button" class="ccs-btn ccs-ghost ccs-small" data-act="mail-hold" data-v="' + (o.hold_thanks ? '0' : '1') + '">' + (o.hold_thanks ? 'Send the thank-you after all' : 'Hold the thank-you (complaint or problem)') + '</button>';
+      h += '</div>';
+    }
     return h + '</section>';
+  }
+  // Asked once, right after a confirmed order with an email is amended. Never sent without staff choosing it.
+  function askUpdateBox(o) {
+    var M = S.sheet && S.sheet.mail;
+    if (S.askUpdate !== o.id || !o.contact_email || ['confirmed', 'awaiting_deposit'].indexOf(o.order_status) < 0 || !M || !M.guest_emails) return '';
+    return '<div class="ccs-alert ccs-askupdate" role="status"><b>The order has changed. Send the updated confirmation?</b><p>' + esc(o.contact_email) + ' gets the new details by email.</p>' +
+      (S.sheet.mailErr ? '<p class="ccs-err" role="alert">' + esc(S.sheet.mailErr) + '</p>' : '') +
+      '<div class="ccs-actions-row"><button type="button" class="ccs-btn ccs-good" data-act="mail-update">Send updated confirmation</button><button type="button" class="ccs-btn ccs-ghost" data-act="mail-noupdate">Not now</button></div></div>';
+  }
+  function mailUpdate() {
+    var sh = S.sheet, o = sh && sh.data; if (!o || S.busy) return;
+    sh.mailErr = null; S.busy = true;
+    sb.rpc('staff_send_update', { p_order: o.id }).then(function (r) {
+      S.busy = false; if (S.sheet !== sh) return;
+      if (r.error) throw r.error;
+      if (!r.data.ok) { sh.mailErr = r.data.message; return renderSheet(); }
+      S.askUpdate = null; toast('Updated confirmation on its way to ' + r.data.to); mailLoad(o.id);
+    }).catch(function (e) { S.busy = false; fail(e); });
+  }
+  function mailHold(hold) {
+    var sh = S.sheet, o = sh && sh.data; if (!o || S.busy) return;
+    sh.mailErr = null; S.busy = true;
+    sb.rpc('staff_set_hold_thanks', { p_order: o.id, p_hold: hold }).then(function (r) {
+      S.busy = false; if (S.sheet !== sh) return;
+      if (r.error) throw r.error;
+      if (!r.data.ok) { sh.mailErr = r.data.message; return renderSheet(); }
+      o.hold_thanks = !!r.data.hold; toast(hold ? 'Thank-you email held. It will not be sent.' : 'Thank-you email will be sent after collection.'); renderSheet();
+    }).catch(function (e) { S.busy = false; fail(e); });
   }
   function mailResend() {
     var sh = S.sheet, o = sh && sh.data; if (!o) return;
@@ -1380,6 +1427,7 @@
       var msg = 'Saved as revision ' + r.data.revision + '.';
       if (r.data.kitchen_ack_required) msg += ' The kitchen is asked to confirm the change.';
       if (r.data.needs_reprint) msg += ' Print the new kitchen slip.';
+      if (['confirmed', 'awaiting_deposit'].indexOf(o.order_status) > -1 && (o.contact_email || (ch.contact_email))) S.askUpdate = o.id;
       S.am = null; S.panel = null; S.dirty = {}; toast(msg); openOrder(o.id); loadOrders(true);
     }).catch(function (e) { S.busy = false; fail(e); });
   }
@@ -1817,7 +1865,7 @@
       h += '<div class="ccs-panel"><b>New customer</b><div class="ccs-row"><div class="ccs-field"><label class="ccs-label" for="n-name">Full name</label><input class="ccs-input" id="n-name" data-n="name" value="' + esc(D.name) + '" autocomplete="off"></div>' +
         '<div class="ccs-field"><label class="ccs-label" for="n-email">Email (optional)</label><input class="ccs-input" id="n-email" type="email" data-n="email" value="' + esc(D.email) + '"></div></div>' + ferr('name') +
         '<label class="ccs-check"><input type="checkbox" data-nc="whatsapp"' + (D.whatsapp ? ' checked' : '') + '> This number is on WhatsApp</label>' +
-        '<label class="ccs-check"><input type="checkbox" data-nc="optIn"' + (D.optIn ? ' checked' : '') + '> Customer agrees to receive cake specials and reminders</label>' +
+        '<label class="ccs-check"><input type="checkbox" data-nc="optIn"' + (D.optIn ? ' checked' : '') + '> Customer agrees to receive cake specials and reminders, and offers from Jack&#39;s Restaurants</label>' +
         '<button type="button" class="ccs-btn" data-act="n-cust-next">Continue</button></div>';
     } else if (digits(D.phone).length >= 3 && D.matches && D.matches.length) {
       h += '<button type="button" class="ccs-link" data-act="n-newcust">Not listed? Add as a new customer</button>';
@@ -2054,16 +2102,16 @@
     if (D.customer) nmEd = '<p class="sl-fixed">' + nm + '</p><button type="button" class="ccs-link" data-act="n-unpick">A different guest</button>' + slActions(1);
     h += slLine('Guest Name', 1, nm, nmEd, { req: true, id: 'sl-st-1' });
     // Stage 3: contact and permission
-    var ct = D.customer ? esc(D.customer.phone || '') + (D.optIn === true || D.optIn === false ? '<small>' + (D.optIn ? 'Agreed to cake offers and reminders' : 'No offers or reminders') + '</small>' : D.custConsent && D.custConsent.ok ? '<small>Agreed to cake offers and reminders</small>' : '') : esc(D.phone.trim());
-    if (ct && !D.customer && (D.optIn === true || D.optIn === false)) ct += '<small>' + (D.optIn ? 'Agreed to cake offers and reminders' : 'No offers or reminders') + '</small>';
+    var ct = D.customer ? esc(D.customer.phone || '') + (D.optIn === true || D.optIn === false ? '<small>' + (D.optIn ? 'Agreed to offers and reminders' : 'No offers or reminders') + '</small>' : D.custConsent && D.custConsent.ok ? '<small>Agreed to cake offers and reminders</small>' : '') : esc(D.phone.trim());
+    if (ct && !D.customer && (D.optIn === true || D.optIn === false)) ct += '<small>' + (D.optIn ? 'Agreed to offers and reminders' : 'No offers or reminders') + '</small>';
     var ctEd;
     if (D.customer) ctEd = '<p class="sl-fixed">' + esc(D.customer.phone || '') + '</p><span class="ccs-hint">' + (D.customer.orders_count ? D.customer.orders_count + ' earlier orders' + (D.customer.favourite_cake ? ', usually ' + esc(D.customer.favourite_cake) : '') : 'Existing customer') + '.</span>' +
       (D.custConsent === undefined ? '<p class="ccs-hint">Checking their permission…</p>' : D.custConsent && D.custConsent.ok ? '<p class="ccs-hint">Already agreed to cake offers and reminders.</p>' :
-        '<div class="sl-sub"><span class="sl-k">' + (D.custConsent && D.custConsent.reconfirm ? 'Their permission needs confirming. Can we send them cake offers and reminders?' : 'Can we send them cake offers and reminders?') + '</span><div class="ccs-chips"><button type="button" class="ccs-chip" data-act="sl-opt" data-v="yes" aria-pressed="' + (D.optIn === true) + '">Yes</button><button type="button" class="ccs-chip" data-act="sl-opt" data-v="no" aria-pressed="' + (D.optIn === false) + '">No</button></div><span class="ccs-hint">Only a clear yes is recorded as permission. It is saved with the order.</span></div>') + slActions(2);
+        '<div class="sl-sub"><span class="sl-k">' + (D.custConsent && D.custConsent.reconfirm ? 'Their permission needs confirming. Can we send them cake offers and reminders, and offers from Jack&#39;s Restaurants?' : 'Can we send them cake offers and reminders, and offers from Jack&#39;s Restaurants?') + '</span><div class="ccs-chips"><button type="button" class="ccs-chip" data-act="sl-opt" data-v="yes" aria-pressed="' + (D.optIn === true) + '">Yes</button><button type="button" class="ccs-chip" data-act="sl-opt" data-v="no" aria-pressed="' + (D.optIn === false) + '">No</button></div><span class="ccs-hint">Only a clear yes is recorded as permission. It is saved with the order.</span></div>') + slActions(2);
     else ctEd = '<input class="ccs-input" id="n-phone" type="tel" inputmode="tel" placeholder="Mobile number" value="' + esc(D.phone) + '" data-n="phone" autocomplete="off">' + ferr('phone') + slMatches(D.matches) +
       '<label class="ccs-check"><input type="checkbox" data-nc="whatsapp"' + (D.whatsapp ? ' checked' : '') + '> This number is on WhatsApp</label>' +
       '<input class="ccs-input" id="n-email" type="email" data-n="email" value="' + esc(D.email) + '" placeholder="Email (optional)">' +
-      '<div class="sl-sub"><span class="sl-k">Can we send them cake offers and reminders?</span><div class="ccs-chips"><button type="button" class="ccs-chip" data-act="sl-opt" data-v="yes" aria-pressed="' + (D.optIn === true) + '">Yes</button><button type="button" class="ccs-chip" data-act="sl-opt" data-v="no" aria-pressed="' + (D.optIn === false) + '">No</button></div><span class="ccs-hint">Ask every new guest. Only a clear yes is recorded as permission.</span></div>' +
+      '<div class="sl-sub"><span class="sl-k">Can we send them cake offers and reminders, and offers from Jack&#39;s Restaurants?</span><div class="ccs-chips"><button type="button" class="ccs-chip" data-act="sl-opt" data-v="yes" aria-pressed="' + (D.optIn === true) + '">Yes</button><button type="button" class="ccs-chip" data-act="sl-opt" data-v="no" aria-pressed="' + (D.optIn === false) + '">No</button></div><span class="ccs-hint">Ask every new guest. Only a clear yes is recorded as permission.</span></div>' +
       '<div class="sl-sub"><span class="sl-k">How did they hear about us? <em class="sl-req">Optional</em></span><div class="ccs-chips">' + HEARD.map(function (x) { return '<button type="button" class="ccs-chip" data-act="sl-heard" data-v="' + x[0] + '" aria-pressed="' + (D.heard === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div></div>' + slActions(2);
     h += slLine('Contact', 2, ct, ctEd, { req: true, id: 'sl-st-2' });
     // Stage 4: pickup
@@ -2128,11 +2176,11 @@
     } else if (cur === 2) {
       if (D.customer) ed = '<p class="sl-fixed">' + esc(D.customer.phone || '') + '</p><span class="ccs-hint">' + (D.customer.orders_count ? D.customer.orders_count + ' earlier orders' + (D.customer.favourite_cake ? ', usually ' + esc(D.customer.favourite_cake) : '') : 'Existing customer') + '.</span>' +
         (D.custConsent === undefined ? '<p class="ccs-hint">Checking their permission…</p>' : D.custConsent && D.custConsent.ok ? '<p class="ccs-hint">Already agreed to cake offers and reminders.</p>' :
-          '<div class="sl-sub"><span class="sl-k">' + (D.custConsent && D.custConsent.reconfirm ? 'Their permission needs confirming. Can we send them cake offers and reminders?' : 'Can we send them cake offers and reminders?') + '</span><div class="ccs-chips"><button type="button" class="ccs-chip" data-act="sl-opt" data-v="yes" aria-pressed="' + (D.optIn === true) + '">Yes</button><button type="button" class="ccs-chip" data-act="sl-opt" data-v="no" aria-pressed="' + (D.optIn === false) + '">No</button></div><span class="ccs-hint">Only a clear yes is recorded as permission. It is saved with the order.</span></div>') + slActions(2);
+          '<div class="sl-sub"><span class="sl-k">' + (D.custConsent && D.custConsent.reconfirm ? 'Their permission needs confirming. Can we send them cake offers and reminders, and offers from Jack&#39;s Restaurants?' : 'Can we send them cake offers and reminders, and offers from Jack&#39;s Restaurants?') + '</span><div class="ccs-chips"><button type="button" class="ccs-chip" data-act="sl-opt" data-v="yes" aria-pressed="' + (D.optIn === true) + '">Yes</button><button type="button" class="ccs-chip" data-act="sl-opt" data-v="no" aria-pressed="' + (D.optIn === false) + '">No</button></div><span class="ccs-hint">Only a clear yes is recorded as permission. It is saved with the order.</span></div>') + slActions(2);
       else ed = '<label class="sl-k" for="n-phone">Mobile number</label><input class="ccs-input" id="n-phone" type="tel" inputmode="tel" placeholder="Mobile number" value="' + esc(D.phone) + '" data-n="phone" autocomplete="off">' + ferr('phone') + slMatches(D.matches) +
         '<label class="ccs-check"><input type="checkbox" data-nc="whatsapp"' + (D.whatsapp ? ' checked' : '') + '> This number is on WhatsApp</label>' +
         '<input class="ccs-input" id="n-email" type="email" data-n="email" value="' + esc(D.email) + '" placeholder="Email (optional)">' +
-        '<div class="sl-sub"><span class="sl-k">Can we send them cake offers and reminders?</span><div class="ccs-chips"><button type="button" class="ccs-chip" data-act="sl-opt" data-v="yes" aria-pressed="' + (D.optIn === true) + '">Yes</button><button type="button" class="ccs-chip" data-act="sl-opt" data-v="no" aria-pressed="' + (D.optIn === false) + '">No</button></div><span class="ccs-hint">Ask every new guest. Only a clear yes is recorded as permission.</span></div>' +
+        '<div class="sl-sub"><span class="sl-k">Can we send them cake offers and reminders, and offers from Jack&#39;s Restaurants?</span><div class="ccs-chips"><button type="button" class="ccs-chip" data-act="sl-opt" data-v="yes" aria-pressed="' + (D.optIn === true) + '">Yes</button><button type="button" class="ccs-chip" data-act="sl-opt" data-v="no" aria-pressed="' + (D.optIn === false) + '">No</button></div><span class="ccs-hint">Ask every new guest. Only a clear yes is recorded as permission.</span></div>' +
         (!D.heard && !D.heardOpen ? '<button type="button" class="ccs-link sl-heardopen" data-act="sl-heardopen">How did they hear about us? (optional)</button>' : '<div class="sl-sub"><span class="sl-k">How did they hear about us? <em class="sl-req">Optional</em></span><div class="ccs-chips">' + HEARD.map(function (x) { return '<button type="button" class="ccs-chip" data-act="sl-heard" data-v="' + x[0] + '" aria-pressed="' + (D.heard === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div></div>') + slActions(2);
     } else if (cur === 3) {
       var part = slPhone() ? (D.whenPart === 'time' && D.date ? 'time' : 'date') : null;
@@ -2165,8 +2213,8 @@
         (s !== 99 && s !== cur && (seen[s] || (s === 0 && D.size)) ? '<button type="button" class="ccs-link sl-chg" data-act="sl-goto" data-v="' + s + '" aria-label="Change ' + label + '">Change</button>' : '') + '</div>';
     };
     var nm = D.customer ? esc(D.customer.full_name) : esc(D.name.trim());
-    var ct = D.customer ? esc(D.customer.phone || '') + (D.optIn === true || D.optIn === false ? '<small>' + (D.optIn ? 'Agreed to cake offers and reminders' : 'No offers or reminders') + '</small>' : D.custConsent && D.custConsent.ok ? '<small>Agreed to cake offers and reminders</small>' : '') : esc(D.phone.trim());
-    if (ct && !D.customer && (D.optIn === true || D.optIn === false)) ct += '<small>' + (D.optIn ? 'Agreed to cake offers and reminders' : 'No offers or reminders') + '</small>';
+    var ct = D.customer ? esc(D.customer.phone || '') + (D.optIn === true || D.optIn === false ? '<small>' + (D.optIn ? 'Agreed to offers and reminders' : 'No offers or reminders') + '</small>' : D.custConsent && D.custConsent.ok ? '<small>Agreed to cake offers and reminders</small>' : '') : esc(D.phone.trim());
+    if (ct && !D.customer && (D.optIn === true || D.optIn === false)) ct += '<small>' + (D.optIn ? 'Agreed to offers and reminders' : 'No offers or reminders') + '</small>';
     var wv = D.date && D.time ? esc(nice(D.date, true)) + ', ' + esc(t12(D.time)) + '<small>' + (dl ? 'Delivery to ' + esc(D.zone || '') + (D.address ? ', ' + esc(D.address) : '') : 'Collect from café') + (tooSoon() ? ' · Short notice, approved by ' + esc(D.rushBy) : '') + '</small>' : '';
     var dv = D.diet === 'no' ? 'No dietary needs' : D.diet === 'unsure' ? 'Not sure yet: check with the customer' : D.diet === 'yes' ? esc([].concat(D.diets, D.dietNote ? [D.dietNote] : []).join(', ') || 'Yes') : '';
     var rv = [D.occasion ? esc(D.occasion) + (D.occFor ? ' for ' + esc(D.occFor) : '') : '', esc(D.notes)].filter(Boolean).join(' · ');
@@ -2860,7 +2908,7 @@
   }
   function newCustomerSheet() {
     var sh = S.sheet, h = sheetHead('Add customer') + '<div class="ccs-sheet-body"><section class="ccs-panel">' + customerFields(sh.c);
-    h += '<div class="ccs-field"><span class="ccs-label">Marketing: did the customer agree to receive Corner Café cake specials and reminders?</span><div class="ccs-chips">' +
+    h += '<div class="ccs-field"><span class="ccs-label">Marketing: did the customer agree to receive Corner Café cake specials and reminders, and offers from Jack&#39;s Restaurants?</span><div class="ccs-chips">' +
       CHANNELS.map(function (ch) { return '<button type="button" class="ccs-chip" data-act="cn-consent" data-v="' + ch[0] + '" aria-pressed="' + (sh.consent.indexOf(ch[0]) > -1) + '">' + ch[1] + '</button>'; }).join('') +
       '</div><p class="ccs-hint">Only tap a channel if the customer said yes to it. Leave all off if they were not asked.</p></div>';
     if (sh.matches) h += '<div class="ccs-warn"><b>Already on a profile.</b> Check this is not the same person before adding.<ul class="ccs-plain">' + sh.matches.map(function (m) {
@@ -3826,6 +3874,9 @@
         case 'tm-reset': S.settings.resetFor = b.dataset.id || null; S.settings.resetErr = null; S.settings.tmOpen = true; view(); break;
         case 'tm-add': teamAdd(); break;
         case 'mail-resend': mailResend(); break;
+        case 'mail-update': mailUpdate(); break;
+        case 'mail-noupdate': S.askUpdate = null; renderSheet(); break;
+        case 'mail-hold': mailHold(v === '1'); break;
         case 'mail-reload': if (S.sheet && S.sheet.data) { mailLoad(S.sheet.data.id); renderSheet(); } break;
         case 'tm-rm': S.settings.rmFor = b.dataset.id || null; S.settings.rmErr = null; S.settings.tmOpen = true; view(); break;
         case 'tm-rm-yes': teamRemove(b.dataset.id); break;
