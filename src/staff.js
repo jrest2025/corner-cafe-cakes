@@ -44,7 +44,11 @@
   // Older level names stay only so an old login still shows a name; they can no longer be given out.
   var ROLES = [['admin', 'Admin'], ['front_of_house', 'Counter'], ['kitchen', 'Kitchen'], ['manager', 'Manager (old level)'], ['finance', 'Finance (old level)'], ['marketing', 'Marketing (old level)']];
   var ROLE_PICK = ROLES.slice(0, 3);
-  var OCCASIONS = ['Birthday', 'Anniversary', 'Wedding', 'Baby shower', 'Graduation', 'Office', 'Other'];
+  // Occasions: the same list as the website and the database (each name maps to a fixed occasion code)
+  var OCCASIONS = ['Birthday', 'Anniversary', 'Mother\'s Day', 'Father\'s Day', 'Christmas', 'Valentine\'s Day', 'Wedding', 'Corporate event', 'Just because', 'Other'];
+  function occChips() { return OCCASIONS.map(function (o) { return '<button type="button" class="ccs-chip" data-act="n-occ" data-v="' + esc(o) + '" aria-pressed="' + (D.occasion === o) + '">' + esc(o) + '</button>'; }).join(''); }
+  function occSend() { return D.occasion === 'Other' ? ((D.occOther || '').trim() || 'Other') : D.occasion; }
+  function occOther() { return D.occasion === 'Other' ? '<div class="sl-sub"><label class="sl-k" for="n-occother">What are they celebrating? <em class="sl-req">Optional</em></label><input class="ccs-input" id="n-occother" data-n="occOther" maxlength="60" value="' + esc(D.occOther || '') + '" placeholder="For example, farewell"></div>' : ''; }
   var DIETS = ['Vegetarian (eggless)', 'Gluten-free', 'Nut allergy', 'Other'];
   var NEEDS = ['awaiting_review', 'awaiting_quote', 'awaiting_deposit'];
   var OPEN = ['awaiting_review', 'awaiting_quote', 'awaiting_approval', 'awaiting_deposit', 'confirmed'];
@@ -185,7 +189,7 @@
     if (kitchenOnly()) return [['kitchen', 'Kitchen']];
     var tabs = [['today', 'Today'], ['attn', 'Needs attention'], ['orders', 'Orders'], ['calendar', 'Calendar']];
     if (canP('kit.view')) tabs.push(['kitchen', 'Kitchen']);
-    if (canP('mgmt.analytics')) tabs.push(['dash', 'Dashboard']);
+    if (canP('mgmt.analytics') || canP('mgmt.reports')) tabs.push(['dash', 'Dashboard']);
     if (canP('mgmt.reports')) tabs.push(['register', 'Register']);
     if (canP('nav.customers') && canP('cust.view')) tabs.push(['customers', 'Customers']);
     if (canSettings()) tabs.push(['settings', 'Settings']);
@@ -721,7 +725,7 @@
     if (!kitchenOnly()) links += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-tab="attn">Needs attention' + (attnCount() ? ' (' + attnCount() + ')' : '') + '</button>';
     if (canP('kit.view')) links += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-tab="kitchen">Kitchen</button>';
     if (canP('nav.customers') && canP('cust.view')) links += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-tab="customers">Customers</button>';
-    if (canP('mgmt.analytics')) links += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-tab="dash">Dashboard</button>';
+    if (canP('mgmt.analytics') || canP('mgmt.reports')) links += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-tab="dash">Dashboard</button>';
     if (canP('mgmt.reports')) links += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-tab="register">Cake register</button>';
     if (canSettings()) links += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-tab="settings">Settings</button>';
     if (links) h += '<div class="ccs-more-links">' + links + '</div>';
@@ -1767,7 +1771,7 @@
       '<div class="ccs-chips">' + chip('finish', 'standard', 'Standard finish', a.finish === 'standard') + (!p || p.supports_custom ? chip('finish', 'custom', 'Custom design', a.finish === 'custom') : '') + '</div>' +
       (a.finish === 'custom' || a.design ? area('am-design', 'design', 'Design', a.design) : '') +
       fld('am-msg', 'message', 'Message on the cake', a.message, ' maxlength="60"') +
-      '<div class="ccs-field"><label class="ccs-label" for="am-occ">Occasion</label><select class="ccs-input" id="am-occ" data-am="occasion"><option value="">None</option>' + OCCASIONS.map(function (x) { return '<option' + (x === a.occasion ? ' selected' : '') + '>' + x + '</option>'; }).join('') + '</select></div>');
+      '<div class="ccs-field"><label class="ccs-label" for="am-occ">Occasion</label><select class="ccs-input" id="am-occ" data-am="occasion"><option value="">Not specified</option>' + (a.occasion && OCCASIONS.indexOf(a.occasion) < 0 ? '<option value="' + esc(a.occasion) + '" selected>' + esc(a.occasion) + (['Baby shower', 'Graduation'].indexOf(a.occasion) < 0 ? ' (Other)' : '') + '</option>' : '') + OCCASIONS.map(function (x) { return '<option value="' + esc(x) + '"' + (x === a.occasion ? ' selected' : '') + '>' + esc(x) + '</option>'; }).join('') + '</select></div>');
     h += sec('diet', 'Dietary and allergies', a.diet === 'yes' ? ([].concat(a.diets, a.dietNote ? [a.dietNote] : []).join(', ') || 'Yes') : 'None',
       '<div class="ccs-chips">' + chip('diet', 'no', 'No', a.diet === 'no') + chip('diet', 'yes', 'Yes', a.diet === 'yes') + '</div>' +
       (a.diet === 'yes' ? '<div class="ccs-chips">' + DIETS.map(function (x) { return '<button type="button" class="ccs-chip" data-act="am-diet" data-v="' + esc(x) + '" aria-pressed="' + (a.diets.indexOf(x) > -1) + '">' + esc(x) + '</button>'; }).join('') + '</div>' + fld('am-dnote', 'dietNote', 'Details for the kitchen', a.dietNote) : ''));
@@ -2078,7 +2082,7 @@
   }
   function phPicker(id, label, link) { return '<label class="' + (link ? 'ccs-link ccs-phlink' : 'ccs-btn ccs-ghost ccs-phadd') + '"><input type="file" id="' + id + '" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" multiple class="ccs-sr">' + label + '</label>'; }
   function freshDraft() { return { key: uuid(), source: 'walk_in', step: 0, reached: 0, phone: '', matches: null, customer: null, isNew: false, name: '', email: '', whatsapp: true, optIn: null,
-    product: null, req: false, sizeNote: '', reqPrice: '', variant: null, size: null, finish: 'standard', design: '', photos: [], phErr: null, message: '', candles: '', occasion: null, diet: null, diets: [], dietNote: '', notes: '', qty: 1,
+    product: null, req: false, sizeNote: '', reqPrice: '', variant: null, size: null, finish: 'standard', design: '', photos: [], phErr: null, message: '', candles: '', occasion: null, occOther: '', diet: null, diets: [], dietNote: '', notes: '', qty: 1,
     date: '', time: '', rush: '', rushBy: '', fromCal: false, method: 'collection', zone: null, address: '', fee: '', contact: '', confirmNow: false, askDeposit: false, deposit: '', payNow: false, payAmount: '', payMethod: 'cash', result: null, err: null, errField: null }; }
   var D = freshDraft();
   // Unfinished walk-in orders are kept on this device for 12 hours, per staff login, and cleared at sign out (U6)
@@ -2199,7 +2203,7 @@
     if (D.finish === 'custom') h += '<div class="ccs-field"><label class="ccs-label" for="n-design">Design details</label><textarea class="ccs-input" id="n-design" data-n="design" placeholder="Colours, theme, toppers, candles">' + esc(D.design) + '</textarea></div>' + ferr('design');
     if (p && p.supports_message) h += '<div class="ccs-field"><label class="ccs-label" for="n-msg">Message on the cake (optional)</label><input class="ccs-input" id="n-msg" maxlength="40" data-n="message" value="' + esc(D.message) + '"></div>' + ferr('message');
     h += '<div class="ccs-field"><label class="ccs-label" for="n-candles">Candles (optional)</label><input class="ccs-input" id="n-candles" maxlength="60" data-n="candles" placeholder="For example: number 30 candle, or 5 small candles" value="' + esc(D.candles) + '"></div>' + ferr('candles');
-    h += '<div class="ccs-field"><span class="ccs-label">Occasion (optional)</span><div class="ccs-chips">' + OCCASIONS.map(function (o) { return '<button type="button" class="ccs-chip" data-act="n-occ" data-v="' + o + '" aria-pressed="' + (D.occasion === o) + '">' + o + '</button>'; }).join('') + '</div></div>';
+    h += '<div class="ccs-field"><span class="ccs-label">Occasion (optional)</span><div class="ccs-chips">' + occChips() + '</div>' + occOther() + '</div>';
     h += '<div class="ccs-field"><span class="ccs-label">Any dietary needs or allergies?</span><div class="ccs-chips"><button type="button" class="ccs-chip" data-act="n-diet" data-v="no" aria-pressed="' + (D.diet === 'no') + '">No</button><button type="button" class="ccs-chip" data-act="n-diet" data-v="yes" aria-pressed="' + (D.diet === 'yes') + '">Yes</button></div>' + ferr('diet') + '</div>';
     if (D.diet === 'yes') h += '<div class="ccs-panel"><div class="ccs-chips">' + DIETS.map(function (d) { return '<button type="button" class="ccs-chip" data-act="n-diets" data-v="' + esc(d) + '" aria-pressed="' + (D.diets.indexOf(d) > -1) + '">' + esc(d) + '</button>'; }).join('') + '</div><input class="ccs-input" data-n="dietNote" id="n-dnote" placeholder="Details for the kitchen" value="' + esc(D.dietNote) + '"></div>';
     h += '<div class="ccs-field"><label class="ccs-label" for="n-notes">Other notes (optional)</label><input class="ccs-input" id="n-notes" data-n="notes" value="' + esc(D.notes) + '"></div>';
@@ -2441,9 +2445,9 @@
       (D.diet === 'yes' ? '<div class="ccs-chips">' + DIETS.map(function (d) { return '<button type="button" class="ccs-chip" data-act="n-diets" data-v="' + esc(d) + '" aria-pressed="' + (D.diets.indexOf(d) > -1) + '">' + esc(d) + '</button>'; }).join('') + '</div><input class="ccs-input" data-n="dietNote" id="n-dnote" placeholder="Details for the kitchen" value="' + esc(D.dietNote) + '">' : '') + ferr('diet') + slActions(5);
     h += slLine('Dietary or allergy', 5, dv, dEd, { req: true, id: 'sl-st-5' });
     // Stage 7: remarks
-    var rv = [D.finish === 'custom' && D.design ? esc(D.design) : '', D.occasion ? esc(D.occasion) + (D.occFor ? ' for ' + esc(D.occFor) : '') : '', esc(D.notes)].filter(Boolean).join(' · ');
+    var rv = [D.finish === 'custom' && D.design ? esc(D.design) : '', D.occasion ? esc(occSend()) + (D.occFor ? ' for ' + esc(D.occFor) : '') : '', esc(D.notes)].filter(Boolean).join(' · ');
     var rEd = (D.finish === 'custom' ? '<label class="sl-k" for="n-design">Design details <em class="sl-req">Required</em></label><textarea class="ccs-input" id="n-design" data-n="design" placeholder="Colours, theme, toppers">' + esc(D.design) + '</textarea>' + ferr('design') : '') +
-      '<span class="sl-k">Occasion</span><div class="ccs-chips">' + OCCASIONS.map(function (o) { return '<button type="button" class="ccs-chip" data-act="n-occ" data-v="' + o + '" aria-pressed="' + (D.occasion === o) + '">' + o + '</button>'; }).join('') + '</div>' +
+      '<span class="sl-k">Occasion</span><div class="ccs-chips">' + occChips() + '</div>' + occOther() +
       (RECUR.indexOf(D.occasion) > -1 ? '<div class="sl-sub sl-occ2"><label class="sl-k" for="n-occfor">Whose ' + esc(D.occasion.toLowerCase()) + '? <em class="sl-req">Optional</em></label><input class="ccs-input" id="n-occfor" data-n="occFor" maxlength="60" value="' + esc(D.occFor || '') + '" placeholder="For example: Mia, their daughter">' +
         '<label class="sl-k" for="n-occdate">Date of the ' + esc(D.occasion.toLowerCase()) + '</label><input class="ccs-input" id="n-occdate" type="date" data-n="occDate" value="' + esc(D.occDate || D.date || '') + '"><span class="ccs-hint">Used to remind them next year, if they agreed to messages.</span></div>' : '') +
       '<label class="sl-k" for="n-notes">Other notes</label><input class="ccs-input" id="n-notes" data-n="notes" value="' + esc(D.notes) + '" placeholder="Anything else for the order">' + slActions(6, D.finish !== 'custom');
@@ -2498,7 +2502,7 @@
       ed = '<p class="ccs-hint sl-extrahint">All optional. Fill in only what the customer asks for, or press Skip.</p>' +
         '<label class="sl-k" for="n-candles">Candles</label><input class="ccs-input" id="n-candles" maxlength="60" data-n="candles" placeholder="For example: number 30 candle" value="' + esc(D.candles) + '">' + ferr('candles') +
         (p && !p.supports_message ? '<span class="ccs-hint">' + esc(p.name) + ' does not take a written message.</span>' : '<label class="sl-k" for="n-msg">Inscription</label><input class="ccs-input" id="n-msg" maxlength="40" data-n="message" value="' + esc(D.message) + '" placeholder="Words written on the cake"><span class="ccs-hint">Up to 40 characters, copied exactly by the kitchen.</span>' + ferr('message')) +
-        '<span class="sl-k">Occasion</span><div class="ccs-chips">' + OCCASIONS.map(function (o) { return '<button type="button" class="ccs-chip" data-act="n-occ" data-v="' + o + '" aria-pressed="' + (D.occasion === o) + '">' + o + '</button>'; }).join('') + '</div>' +
+        '<span class="sl-k">Occasion</span><div class="ccs-chips">' + occChips() + '</div>' + occOther() +
         (RECUR.indexOf(D.occasion) > -1 ? '<div class="sl-sub sl-occ2"><label class="sl-k" for="n-occfor">Whose ' + esc(D.occasion.toLowerCase()) + '? <em class="sl-req">Optional</em></label><input class="ccs-input" id="n-occfor" data-n="occFor" maxlength="60" value="' + esc(D.occFor || '') + '" placeholder="For example: Mia, their daughter">' +
           '<label class="sl-k" for="n-occdate">Date of the ' + esc(D.occasion.toLowerCase()) + '</label><input class="ccs-input" id="n-occdate" type="date" data-n="occDate" value="' + esc(D.occDate || D.date || '') + '"><span class="ccs-hint">Used to remind them next year, if they agreed to messages.</span></div>' : '') +
         '<label class="sl-k" for="n-notes">Other notes</label><input class="ccs-input" id="n-notes" data-n="notes" value="' + esc(D.notes) + '" placeholder="Anything else for the order">' + slActions(4, true);
@@ -2506,7 +2510,7 @@
       ed = '<div class="ccs-chips"><button type="button" class="ccs-chip" data-act="n-diet" data-v="no" aria-pressed="' + (D.diet === 'no') + '">No dietary needs</button><button type="button" class="ccs-chip" data-act="n-diet" data-v="yes" aria-pressed="' + (D.diet === 'yes') + '">Yes, dietary need or allergy</button><button type="button" class="ccs-chip" data-act="n-diet" data-v="unsure" aria-pressed="' + (D.diet === 'unsure') + '">Not sure, check later</button></div>' + (D.diet === 'unsure' ? '<p class="ccs-note ccs-unsure" role="status">The order is saved as an allergy order and flagged. The kitchen slip says: Allergies not confirmed yet. Check with the customer before baking.</p>' : '') +
         (D.diet === 'yes' ? '<div class="ccs-chips">' + DIETS.map(function (d) { return '<button type="button" class="ccs-chip" data-act="n-diets" data-v="' + esc(d) + '" aria-pressed="' + (D.diets.indexOf(d) > -1) + '">' + esc(d) + '</button>'; }).join('') + '</div><input class="ccs-input" data-n="dietNote" id="n-dnote" placeholder="Details for the kitchen" value="' + esc(D.dietNote) + '">' : '') + ferr('diet') + slActions(5);
     } else if (cur === 6) {
-      ed = '<span class="sl-k">Occasion</span><div class="ccs-chips">' + OCCASIONS.map(function (o) { return '<button type="button" class="ccs-chip" data-act="n-occ" data-v="' + o + '" aria-pressed="' + (D.occasion === o) + '">' + o + '</button>'; }).join('') + '</div>' +
+      ed = '<span class="sl-k">Occasion</span><div class="ccs-chips">' + occChips() + '</div>' + occOther() +
         (RECUR.indexOf(D.occasion) > -1 ? '<div class="sl-sub sl-occ2"><label class="sl-k" for="n-occfor">Whose ' + esc(D.occasion.toLowerCase()) + '? <em class="sl-req">Optional</em></label><input class="ccs-input" id="n-occfor" data-n="occFor" maxlength="60" value="' + esc(D.occFor || '') + '" placeholder="For example: Mia, their daughter">' +
           '<label class="sl-k" for="n-occdate">Date of the ' + esc(D.occasion.toLowerCase()) + '</label><input class="ccs-input" id="n-occdate" type="date" data-n="occDate" value="' + esc(D.occDate || D.date || '') + '"><span class="ccs-hint">Used to remind them next year, if they agreed to messages.</span></div>' : '') +
         '<label class="sl-k" for="n-notes">Other notes</label><input class="ccs-input" id="n-notes" data-n="notes" value="' + esc(D.notes) + '" placeholder="Anything else for the order">' + slActions(6, true);
@@ -2526,7 +2530,7 @@
     if (ct && !D.customer && (D.optIn === true || D.optIn === false)) ct += '<small>' + (D.optIn ? 'Agreed to offers and reminders' : 'No offers or reminders') + '</small>';
     var wv = D.date && D.time ? esc(nice(D.date, true)) + ', ' + esc(t12(D.time)) + '<small>' + (dl ? 'Delivery to ' + esc(D.zone || '') + (D.address ? ', ' + esc(D.address) : '') : 'Collect from café') + (tooSoon() ? ' · Short notice, approved by ' + esc(D.rushBy) : '') + '</small>' : '';
     var dv = D.diet === 'no' ? 'No dietary needs' : D.diet === 'unsure' ? 'Not sure yet: check with the customer' : D.diet === 'yes' ? esc([].concat(D.diets, D.dietNote ? [D.dietNote] : []).join(', ') || 'Yes') : '';
-    var rv = [D.occasion ? esc(D.occasion) + (D.occFor ? ' for ' + esc(D.occFor) : '') : '', esc(D.notes)].filter(Boolean).join(' · ');
+    var rv = [D.occasion ? esc(occSend()) + (D.occFor ? ' for ' + esc(D.occFor) : '') : '', esc(D.notes)].filter(Boolean).join(' · ');
     var live = '<aside class="sl-live" aria-label="The order slip so far"><div class="sl-band"><div class="sl-logo">' + SLIP_LOGO + '</div><div class="sl-hours">MONDAY - SUNDAY<br>8AM - 9PM</div></div>' +
       (D.diet === 'yes' ? '<div class="sl-ldiet">Dietary or allergy: ' + dv + '</div>' : D.diet === 'unsure' ? '<div class="sl-ldiet">Allergies not confirmed yet. Check with the customer before baking.</div>' : '') +
       '<div class="sl-llines">' +
@@ -2609,7 +2613,7 @@
     var payAmt = D.payNow ? num(D.payAmount) : null;
     if (D.payNow && (!payAmt || payAmt <= 0)) { D.err = 'Enter the amount the customer is paying.'; D.errField = 'payment'; return refreshStep(); }
     var p = { idempotency_key: D.key, location: 'corner-cafe', source: D.source, product_code: D.req ? 'custom-cake' : D.product, variant: D.variant, size_inch: D.req ? null : D.size, quantity: D.qty,
-      finish: D.finish, design: D.design, attachments: custom ? D.photos.filter(function (x) { return x.status === 'done'; }).map(function (x) { return x.path; }) : [], message: D.message, candles: D.candles, occasion: D.occasion, has_dietary: D.diet, dietary: D.diet === 'yes' ? D.diets : [], dietary_note: D.dietNote, notes: D.notes,
+      finish: D.finish, design: D.design, attachments: custom ? D.photos.filter(function (x) { return x.status === 'done'; }).map(function (x) { return x.path; }) : [], message: D.message, candles: D.candles, occasion: occSend(), has_dietary: D.diet, dietary: D.diet === 'yes' ? D.diets : [], dietary_note: D.dietNote, notes: D.notes,
       date: D.date, time: D.time, rush: tooSoon() ? { reason: D.rush, approved_by: D.rushBy } : null, confirm_now: D.confirmNow && !custom, deposit_required: dep,
       payment: payAmt ? { amount: payAmt, method: D.payMethod, kind: dep ? 'deposit' : (payAmt >= price ? 'full' : 'deposit') } : null,
       delivery: D.method === 'delivery' ? { method: 'delivery', zone: D.zone, address: D.address, fee: zoneObj() && zoneObj().fee == null ? num(D.fee) : null, contact: D.contact } : { method: 'collection' } };

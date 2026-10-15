@@ -452,3 +452,8 @@ body:has(#cc-cake-order .cco-done) .cco-help{display:none}
 #cc-cake-order .cco-primary:disabled{opacity:.55;box-shadow:none}
 
 @media (prefers-reduced-motion:reduce){#cc-cake-order .cco-cake,#cc-cake-order .cco-cake:hover,#cc-cake-order .cco-cake-vis img{transform:none!important;transition:none!important}}
+/* Occasion: large buttons, two or three across on phones */
+.cco-occs { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+.cco-occs .cco-chip { min-height: 50px; justify-content: center; text-align: center; border-radius: var(--o-r-sm); }
+.cco-occ .cco-hint { display: block; margin: 0 0 8px; }
+@media (max-width: 420px) { .cco-occs { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

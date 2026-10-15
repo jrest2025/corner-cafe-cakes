@@ -2291,3 +2291,18 @@ body.ccs-is-off #cc-staff .ccs-side { top: var(--ccs-offh, 44px); }
 #ccs-sheet .os-pin[hidden] { display: none; }
 #ccs-sheet .os-pin .ccs-btn { width: 100%; min-height: 52px; font-size: 17px; }
 @media (pointer: coarse) { #cc-staff .ov-srow.dx-tap, #cc-staff .ov-drow.dx-tap { min-height: 44px; } }
+
+/* Dashboard: occasion analysis */
+#cc-staff .dx-octwrap { overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid #DCE3EB; border-radius: 10px; }
+#cc-staff .dx-octab { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 860px; }
+#cc-staff .dx-octab th, #cc-staff .dx-octab td { padding: 8px 10px; border-bottom: 1px solid #EAECF0; text-align: left; vertical-align: middle; white-space: nowrap; }
+#cc-staff .dx-octab thead th { font-size: 12px; font-weight: 700; color: #526176; text-transform: uppercase; letter-spacing: .04em; background: #F9FAFB; position: sticky; top: 0; }
+#cc-staff .dx-octab tbody th { font-weight: 700; color: #1D2939; position: sticky; left: 0; background: #fff; }
+#cc-staff .dx-octab tbody tr:last-child > * { border-bottom: 0; }
+#cc-staff .dx-octab td:last-child { white-space: normal; min-width: 180px; color: #344054; }
+#cc-staff .dx-oct.dx-tap { appearance: none; font: inherit; font-weight: 600; background: none; border: 0; padding: 4px 6px; margin: -4px -6px; min-height: 32px; color: var(--ds-primary-hover); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; border-radius: 6px; }
+#cc-staff .dx-oct.dx-tap:hover { background: #EEF4E8; }
+#cc-staff .dx-occhg { font-size: 12px; font-weight: 700; color: #526176; }
+#cc-staff .dx-octools { margin: 10px 0 0; }
+#cc-staff .dx-rules { margin: 6px 0 0 18px; padding: 0; display: grid; gap: 6px; font-size: 14px; color: #344054; }
+@media (pointer: coarse) { #cc-staff .dx-oct.dx-tap { min-height: 44px; } }

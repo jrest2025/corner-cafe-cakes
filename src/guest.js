@@ -7,11 +7,29 @@
   if (!document.getElementById('cco-x1')) { var x1 = document.createElement('style'); x1.id = 'cco-x1'; x1.textContent = '.cco-yesno{grid-template-columns:repeat(3,1fr)}'; document.head.appendChild(x1); }
   if (!document.getElementById('cco-x2')) { var x2 = document.createElement('style'); x2.id = 'cco-x2'; x2.textContent = '.cco-disc-req{display:grid;place-items:center;width:62px;height:62px;border-radius:50%;border:2px dashed #C9A97A;color:#8C5A22;font-weight:700;font-size:13px;line-height:1.1;text-align:center;background:#FFFDF9}.cco-ask{margin:0 0 10px;padding:10px 12px;border-left:3px solid #C9A97A;background:#FBF6EE;border-radius:6px;font-size:14px;line-height:1.45;color:#3A3F36}'; document.head.appendChild(x2); }
   var sb = window.__ccoMock || window.supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: false } });
-  var OCCASIONS = ['Birthday', 'Anniversary', 'Wedding', 'Baby shower', 'Graduation', 'Office', 'Other'];
+  // Occasions: the same names as the staff app and the database list (codes are worked out from these names)
+  var OCC = [['birthday', 'Birthday'], ['anniversary', 'Anniversary'], ['mothers_day', 'Mother\'s Day'], ['fathers_day', 'Father\'s Day'], ['christmas', 'Christmas'], ['valentines_day', 'Valentine\'s Day'],
+    ['wedding', 'Wedding'], ['corporate_event', 'Corporate event'], ['just_because', 'Just because'], ['other', 'Other'], ['not_specified', 'Prefer not to say']];
+  // Seasonal occasions move to the front for the five weeks before the day; nothing is hidden
+  function nthSunday(y, m, n) { var d = new Date(Date.UTC(y, m, 1)); d.setUTCDate(1 + (7 - d.getUTCDay()) % 7 + 7 * (n - 1)); return d; }
+  function occList() {
+    var now = new Date(), y = now.getUTCFullYear(), soon = [];
+    var near = function (code, mk) { [y, y + 1].some(function (yy) { var d = mk(yy), days = (d - now) / 864e5; if (days >= -1 && days <= 35) { soon.push(code); return true; } }); };
+    near('mothers_day', function (yy) { return nthSunday(yy, 4, 2); }); near('fathers_day', function (yy) { return nthSunday(yy, 8, 1); });
+    near('christmas', function (yy) { return new Date(Date.UTC(yy, 11, 25)); }); near('valentines_day', function (yy) { return new Date(Date.UTC(yy, 1, 14)); });
+    return OCC.filter(function (o) { return soon.indexOf(o[0]) > -1; }).concat(OCC.filter(function (o) { return soon.indexOf(o[0]) < 0; }));
+  }
+  function occLabel(code) { var o = OCC.filter(function (x) { return x[0] === code; })[0]; return o ? o[1] : ''; }
+  function occText() { return S.occasion === 'other' ? (S.occOther.trim() || 'Other') : S.occasion === 'not_specified' ? '' : occLabel(S.occasion); }
+  // A seasonal page or promotion link can preselect the occasion (the customer can change it) and names the campaign
+  var URLP = (function () { try { return new URLSearchParams(location.search); } catch (e) { return null; } })();
+  var PRE_OCC = URLP ? String(URLP.get('occasion') || '').toLowerCase().replace(/-/g, '_') : '';
+  var CAMPAIGN = URLP ? String(URLP.get('campaign') || URLP.get('utm_campaign') || '').toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 60) : '';
+  var REFERRAL = (function () { try { var r = document.referrer ? new URL(document.referrer) : null; return r && r.hostname !== location.hostname ? r.hostname.slice(0, 120) : ''; } catch (e) { return ''; } })();
   var DIETS = ['Vegetarian (eggless)', 'Gluten-free', 'Nut allergy', 'Other'];
   var MAX_PHOTOS = 5;
   var SETUP = null, KEY = uid();
-  var S = { req: false, size_note: '', reqFlav: '', flavour: null, variant: null, size: null, showServes: false, finish: null, design: '', photos: [], msgOpen: false, message: '', occOpen: false, occasion: null, method: 'collection', zone: null, address: '', receiver: '', candOpen: false, candles: '', noteOpen: false, notes: '',
+  var S = { req: false, size_note: '', reqFlav: '', flavour: null, variant: null, size: null, showServes: false, finish: null, design: '', photos: [], msgOpen: false, message: '', occasion: null, occOther: '', occPre: false, method: 'collection', zone: null, address: '', receiver: '', candOpen: false, candles: '', noteOpen: false, notes: '',
     diet: null, diets: [], dietNote: '', date: null, time: null, name: '', phone: '', whatsapp: true, emailOpen: false, email: '', updates: false, detailsOk: false, know: true, sending: false, howOpen: false, dateNote: '' };
   var open = 0, reached = 0, errors = {}, formError = null, fresh = {}, animStep = -1;
 
@@ -73,7 +91,7 @@
   // Same prompt the counter staff see, so a website order carries the same details
   var ASK = 'Tell us who the cake is for, any colours or theme, and add a photo if you have one.';
   function fromPrice(f) { return Math.min.apply(null, f.sizes.map(function (s) { return Number(s.price); })); }
-  function finishSummary() { return [S.req ? 'Your design' : S.finish === 'custom' ? 'Custom design' : 'Standard finish', S.message.trim() ? '“' + S.message.trim() + '”' : '', S.occasion, S.diet === 'yes' ? (S.diets.join(', ') || 'Dietary needs noted') : S.diet === 'unsure' ? 'Allergies to check' : 'No dietary needs'].filter(Boolean).join(' · '); }
+  function finishSummary() { return [S.req ? 'Your design' : S.finish === 'custom' ? 'Custom design' : 'Standard finish', S.message.trim() ? '“' + S.message.trim() + '”' : '', occText(), S.diet === 'yes' ? (S.diets.join(', ') || 'Dietary needs noted') : S.diet === 'unsure' ? 'Allergies to check' : 'No dietary needs'].filter(Boolean).join(' · '); }
 
   var STEPS = [
     { key: 'Cake', q: 'Which cake would you like?', sub: 'Choose a flavour. You pick the size next.',
@@ -109,7 +127,7 @@
         return h + err('size');
       } },
     { key: 'Finish', q: 'How should it look?', sub: null,
-      summary: function () { if (!S.finish || !S.diet || (S.finish === 'custom' && !S.design.trim())) return ''; return finishSummary(); },
+      summary: function () { if (!S.finish || !S.diet || !S.occasion || (S.finish === 'custom' && !S.design.trim())) return ''; return finishSummary(); },
       body: function () {
         var f = fl() || { supports_custom: true, supports_message: true };
         var h = S.req ? '' : '<div class="cco-opts" role="group" aria-label="Finish"><button type="button" class="cco-opt" data-act="finish" data-v="standard" aria-pressed="' + (S.finish === 'standard') + '">Standard finish<small>Our house decoration</small></button>' +
@@ -136,8 +154,6 @@
           if (S.msgOpen) h += '<div class="cco-field' + enter('msg') + '"><div class="cco-lbl"><label for="cco-message">Message on the cake</label><span class="cco-lbl-r">' + opt() + '<button type="button" class="cco-hide" data-act="msgClose">Hide</button></span></div>' + '<input type="text" class="cco-input" id="cco-message" data-in="message" maxlength="40" value="' + esc(S.message) + '" placeholder="Happy 30th Priya"' + described('message') + '><span class="cco-counter" id="cco-count">' + S.message.length + ' / 40</span>' + err('message') + '</div>';
           else h += '<button type="button" class="cco-link" data-act="msgOpen"><span class="cco-plus" aria-hidden="true">' + (S.message.trim() ? '✓' : '+') + '</span>' + (S.message.trim() ? 'Message on the cake: “' + esc(S.message.trim()) + '”' : 'Add a message on the cake') + '</button>';
         }
-        if (S.occOpen) h += '<div class="cco-field' + enter('occ') + '"><span class="cco-lbl"><span>Occasion</span><span class="cco-lbl-r">' + opt() + '<button type="button" class="cco-hide" data-act="occClose">Hide</button></span></span><div class="cco-chips" role="group" aria-label="Occasion">' + OCCASIONS.map(function (o) { return '<button type="button" class="cco-chip" data-act="occasion" data-v="' + o + '" aria-pressed="' + (S.occasion === o) + '">' + o + '</button>'; }).join('') + '</div></div>';
-        else h += '<button type="button" class="cco-link" data-act="occOpen"><span class="cco-plus" aria-hidden="true">' + (S.occasion ? '✓' : '+') + '</span>' + (S.occasion ? 'Occasion: ' + esc(S.occasion) : 'Tell us the occasion') + '</button>';
         if (S.candOpen) h += '<div class="cco-field' + enter('cand') + '"><div class="cco-lbl"><label for="cco-candles">Candles</label><span class="cco-lbl-r">' + opt() + '<button type="button" class="cco-hide" data-act="candClose">Hide</button></span></div><input type="text" class="cco-input" id="cco-candles" data-in="candles" maxlength="60" value="' + esc(S.candles) + '" placeholder="For example, number 3 candle"' + described('candles') + '>' + err('candles') + '</div>';
         else h += '<button type="button" class="cco-link" data-act="candOpen"><span class="cco-plus" aria-hidden="true">' + (S.candles.trim() ? '✓' : '+') + '</span>' + (S.candles.trim() ? 'Candles: ' + esc(S.candles.trim()) : 'Add candles') + '</button>';
         if (S.noteOpen) h += '<div class="cco-field' + enter('note') + '"><div class="cco-lbl"><label for="cco-notes">Anything else we should know</label><span class="cco-lbl-r">' + opt() + '<button type="button" class="cco-hide" data-act="noteClose">Hide</button></span></div><textarea class="cco-input" id="cco-notes" data-in="notes" maxlength="300" rows="3" placeholder="For example, it is a surprise, please do not call before 5 PM"' + described('notes') + '>' + esc(S.notes) + '</textarea>' + err('notes') + '</div>';
@@ -145,7 +161,10 @@
         h += '</div>'; var a1 = h.length;
         h += '<div class="cco-field"><span class="cco-lbl" id="cco-diet-l"><span>Any dietary needs or allergies?</span></span><div class="cco-yesno" role="group" aria-labelledby="cco-diet-l"><button type="button" class="cco-chip" data-act="diet" data-v="no" aria-pressed="' + (S.diet === 'no') + '">No</button><button type="button" class="cco-chip" data-act="diet" data-v="yes" aria-pressed="' + (S.diet === 'yes') + '">Yes</button><button type="button" class="cco-chip" data-act="diet" data-v="unsure" aria-pressed="' + (S.diet === 'unsure') + '">Not sure</button></div>' + (S.diet === 'unsure' ? '<p class="cco-hint">No problem. We will check with you about allergies before we bake.</p>' : '') + err('diet') + '</div>';
         if (S.diet === 'yes') h += '<div class="cco-sub' + enter('diet') + '"><span class="cco-sub-q">Which apply?</span><div class="cco-chips">' + DIETS.map(function (d) { return '<button type="button" class="cco-chip" data-act="diets" data-v="' + esc(d) + '" aria-pressed="' + (S.diets.indexOf(d) > -1) + '">' + esc(d) + '</button>'; }).join('') + '</div><div class="cco-field">' + lbl('cco-dnote', 'Anything our team should know', true) + '<input type="text" class="cco-input" data-in="dietNote" id="cco-dnote" value="' + esc(S.dietNote) + '" placeholder="For example, severe peanut allergy"></div><span class="cco-hint">Our team confirms what can be prepared before your order is confirmed.</span></div>';
-        h = h.slice(0, a0) + h.slice(a1) + h.slice(a0, a1);  // allergies first, then the optional extras, as at the counter
+        h += '<div class="cco-field cco-occ"><span class="cco-lbl" id="cco-occ-l"><span>What\'s the occasion?</span></span>' + (S.occPre && S.occasion ? '<span class="cco-hint">Chosen for you from the page you came from. Change it if it is for something else.</span>' : '') +
+          '<div class="cco-chips cco-occs" role="group" aria-labelledby="cco-occ-l">' + occList().map(function (o) { return '<button type="button" class="cco-chip" data-act="occasion" data-v="' + o[0] + '" aria-pressed="' + (S.occasion === o[0]) + '">' + esc(o[1]) + '</button>'; }).join('') + '</div>' +
+          (S.occasion === 'other' ? '<div class="cco-sub' + enter('occo') + '"><label class="cco-sub-q" for="cco-occother">What are you celebrating?' + opt() + '</label><input type="text" class="cco-input" id="cco-occother" data-in="occOther" maxlength="60" value="' + esc(S.occOther) + '" placeholder="For example, farewell"></div>' : '') + err('occasion') + '</div>';
+        h = h.slice(0, a0) + h.slice(a1) + h.slice(a0, a1);  // allergies and occasion first, then the optional extras, as at the counter
         return h + '<button type="button" class="cco-primary" data-act="next2">Continue</button>';
       } },
     { key: 'Collection', q: 'When do you need it?', sub: function () { return isDel() ? 'Choose your area. The delivery fee is added to the price.' : 'Collect from our counter' + (SETUP.location.address ? ' at ' + SETUP.location.address : '') + ', or choose delivery.'; },
@@ -192,7 +211,7 @@
         var d = [];
         if (S.finish === 'custom') d.push('<span class="cco-rv-d">' + esc(S.design.trim()) + '</span>');
         if (S.message.trim()) d.push('<span class="cco-rv-d">Message: “' + esc(S.message.trim()) + '”</span>');
-        if (S.occasion) d.push('<span class="cco-rv-d">Occasion: ' + esc(S.occasion) + '</span>');
+        if (S.occasion) d.push('<span class="cco-rv-d">Occasion: ' + esc(S.occasion === 'not_specified' ? 'Not said' : occText()) + '</span>');
         if (S.candles.trim()) d.push('<span class="cco-rv-d">Candles: ' + esc(S.candles.trim()) + '</span>');
         if (S.notes.trim()) d.push('<span class="cco-rv-d">Note: ' + esc(S.notes.trim()) + '</span>');
         d.push(S.diet === 'yes' ? '<span class="cco-rv-d cco-alert">Dietary: ' + esc([S.diets.join(', '), S.dietNote.trim()].filter(Boolean).join('. ')) + '</span>' : S.diet === 'unsure' ? '<span class="cco-rv-d cco-alert">Allergies: not sure yet. We will check with you before we bake.</span>' : '<span class="cco-rv-d">No dietary needs</span>');
@@ -374,9 +393,10 @@
   function send() {
     errors = {}; formError = null;
     S.sending = true; render();
-    var p = { idempotency_key: KEY, location: 'corner-cafe', product_code: S.req ? 'custom-cake' : S.flavour, variant: S.req ? S.reqFlav.trim() : S.variant, size_inch: S.req ? null : S.size, size_note: S.req ? S.size_note.trim() : null, finish: S.req ? 'custom' : S.finish, design: S.design, message: S.message, occasion: S.occasion, candles: S.candles.trim(), notes: S.notes.trim(),
+    var p = { idempotency_key: KEY, location: 'corner-cafe', product_code: S.req ? 'custom-cake' : S.flavour, variant: S.req ? S.reqFlav.trim() : S.variant, size_inch: S.req ? null : S.size, size_note: S.req ? S.size_note.trim() : null, finish: S.req ? 'custom' : S.finish, design: S.design, message: S.message, occasion: S.occasion === 'not_specified' ? 'Not specified' : occText(), candles: S.candles.trim(), notes: S.notes.trim(),
       has_dietary: S.diet, dietary: S.diet === 'yes' ? S.diets : [], dietary_note: S.dietNote, date: S.date, time: S.time, attachments: donePhotos().map(function (x) { return x.path; }),
       customer: { name: S.name.trim(), phone: S.phone.trim(), email: S.email.trim(), whatsapp: S.whatsapp, opt_in: S.updates },
+      campaign: CAMPAIGN || null, referral: REFERRAL || null,
       delivery: isDel() ? { method: 'delivery', zone: S.zone, address: S.address.trim(), contact: S.receiver.trim() } : { method: 'collection' } };
     sb.rpc('submit_online_order', { p: p }).then(function (r) {
       S.sending = false;
@@ -450,15 +470,13 @@
     if (a === 'photoX') return removePhoto(Number(v));
     if (a === 'how') { S.howOpen = !S.howOpen; return render(); }
     if (a === 'msgClose') { S.msgOpen = false; return render(); }
-    if (a === 'occClose') { S.occOpen = false; return render(); }
     if (a === 'candClose') { S.candOpen = false; return render(); }
     if (a === 'noteClose') { S.noteOpen = false; return render(); }
     if (a === 'candOpen') { S.candOpen = true; fresh.cand = true; return render('#cco-candles'); }
     if (a === 'noteOpen') { S.noteOpen = true; fresh.note = true; return render('#cco-notes'); }
     if (a === 'copyRef') { copyRef(b); return; }
     if (a === 'msgOpen') { S.msgOpen = true; fresh.msg = true; return render('#cco-message'); }
-    if (a === 'occOpen') { S.occOpen = true; fresh.occ = true; return render(); }
-    if (a === 'occasion') { S.occasion = S.occasion === v ? null : v; return render(); }
+    if (a === 'occasion') { S.occasion = v; S.occPre = false; if (v === 'other') fresh.occo = true; delete errors.occasion; return render(v === 'other' ? '#cco-occother' : null); }
     if (a === 'diet') { if (v === 'yes' && S.diet !== 'yes') fresh.diet = true; S.diet = v; if (v !== 'yes') { S.diets = []; S.dietNote = ''; } delete errors.diet; return render(); }
     if (a === 'diets') { var k = S.diets.indexOf(v); if (k > -1) S.diets.splice(k, 1); else S.diets.push(v); delete errors.diet; return render(); }
     if (a === 'next2') {
@@ -466,6 +484,7 @@
       if (S.finish === 'custom' && !S.design.trim()) errors.design = 'Describe your design so our team can price it.';
       if (!S.finish) errors.finish = 'Choose a finish.';
       if (!S.diet) errors.diet = 'Please answer No, Yes or Not sure.';
+      if (!S.occasion) errors.occasion = 'Choose the occasion, or Prefer not to say.';
       if (S.diet === 'yes' && !S.diets.length && !S.dietNote.trim()) errors.diet = 'Tell us which dietary need or allergy applies.';
       if (Object.keys(errors).length) { render(); return toFirstError(); }
       return go(nextIncomplete(3));
@@ -544,6 +563,7 @@
     if (r.error || !r.data || !r.data.ok) throw new Error('setup');
     SETUP = r.data;
     if (!SETUP.location.accepts_online || !SETUP.products.length) { root.innerHTML = '<div class="cco-done"><h2>Online cake orders are paused</h2><p>Please call us on ' + esc(SETUP.location.phone) + ' and our team will help you order.</p></div>'; return; }
+    if (PRE_OCC && occLabel(PRE_OCC) && PRE_OCC !== 'not_specified') { S.occasion = PRE_OCC; S.occPre = true; }
     buildCal(); animStep = 0; render();
   }).catch(function () { root.innerHTML = '<div class="cco-done"><h2>We couldn\'t load the cake menu</h2><p>Please refresh the page, or call us on +679 892 2760 to order.</p></div>'; });
 })();

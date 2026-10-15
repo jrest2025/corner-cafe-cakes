@@ -64,7 +64,7 @@
     return r;
   }
   function inRange(iso, a, b) { return iso && iso >= a && iso <= b; }
-  function dxMatch(o) { var f = DX.f; if (f.ch !== 'all' && o.src !== f.ch) return false; if (f.prod !== 'all' && !(o.it || []).some(function (i) { return i[0] === f.prod; })) return false; return true; }
+  function dxMatch(o) { var f = DX.f; if (f.ch !== 'all' && o.src !== f.ch) return false; if (f.occ && f.occ !== 'all' && (o.oc || 'not_specified') !== f.occ) return false; if (f.prod !== 'all' && !(o.it || []).some(function (i) { return i[0] === f.prod; })) return false; return true; }
   function dxItems(o) { var f = DX.f; return (o.it || []).filter(function (i) { return f.prod === 'all' || i[0] === f.prod; }); }
   function dxCakes(o) { return dxItems(o).reduce(function (s, i) { return s + (dnum(i[3]) || 1); }, 0); }
   function dxValue(o) { return DX.f.prod === 'all' ? o.net : dxItems(o).reduce(function (s, i) { return s + dnum(i[4]) * (dnum(i[3]) || 1); }, 0); }
@@ -138,13 +138,14 @@
     var prods = []; data.orders.forEach(function (o) { (o.it || []).forEach(function (i) { if (prods.indexOf(i[0]) < 0) prods.push(i[0]); }); }); prods.sort();
     var chans = []; data.orders.forEach(function (o) { if (chans.indexOf(o.src) < 0) chans.push(o.src); });
     var sel = function (id, label, opts, cur) { return '<label class="ccs-field dx-f"><span class="ccs-label">' + label + '</span><select class="ccs-input" id="' + id + '" data-dx="' + id + '">' + opts.map(function (o) { return '<option value="' + esc(o[0]) + '"' + (o[0] === cur ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('') + '</select></label>'; };
-    var fsum = [(DX_PERIODS.filter(function (x) { return x[0] === f.p; })[0] || ['', ''])[1], f.prod === 'all' ? 'All cakes' : f.prod, f.ch === 'all' ? 'All channels' : (SOURCE_LABEL[f.ch] || f.ch)].join(' · ');
+    var fsum = [(DX_PERIODS.filter(function (x) { return x[0] === f.p; })[0] || ['', ''])[1], f.prod === 'all' ? 'All cakes' : f.prod, f.ch === 'all' ? 'All channels' : (SOURCE_LABEL[f.ch] || f.ch)].concat(f.occ && f.occ !== 'all' ? [dxOccName(f.occ)] : []).join(' · ');
     h += '<button type="button" class="ccs-btn ccs-ghost dx-ftoggle" data-act="dx-filters" aria-expanded="' + !!d.fopen + '">Filters: ' + esc(fsum) + '</button>';
     h += '<div class="dx-filters' + (d.fopen ? '' : ' is-closed') + '">' + sel('dx-p', 'Period', DX_PERIODS, f.p) +
       (f.p === 'c' ? '<label class="ccs-field dx-f"><span class="ccs-label">From</span><input class="ccs-input" type="date" id="dx-from" data-dx="dx-from" value="' + esc(f.from) + '"></label><label class="ccs-field dx-f"><span class="ccs-label">To</span><input class="ccs-input" type="date" id="dx-to" data-dx="dx-to" value="' + esc(f.to) + '"></label>' : '') +
       sel('dx-b', 'Count by', DX_BASIS, f.b) +
       sel('dx-prod', 'Cake', [['all', 'All cakes']].concat(prods.map(function (p) { return [p, p]; })), f.prod) +
-      sel('dx-ch', 'Channel', [['all', 'All channels']].concat(chans.map(function (c) { return [c, SOURCE_LABEL[c] || c]; })), f.ch) + '</div>';
+      sel('dx-ch', 'Channel', [['all', 'All channels']].concat(chans.map(function (c) { return [c, SOURCE_LABEL[c] || c]; })), f.ch) +
+      sel('dx-occ', 'Occasion', [['all', 'All occasions']].concat((data.occasions || []).map(function (o) { return [o.c, o.l]; })), f.occ || 'all') + '</div>';
     var gap = dxGap(), hit = gap && !r.all && r.to >= gap.from, hitPrev = gap && r.pf && r.pt >= gap.from;
     if (hit || hitPrev) { r.noCmp = true; }
     d.gapHit = hit;
@@ -180,7 +181,7 @@
     flags.push('Prices are shown as charged. Tax treatment is not confirmed.');
     if (data.tests_excluded) flags.push(data.tests_excluded + ' test ' + (data.tests_excluded === 1 ? 'order is' : 'orders are') + ' left out of every figure.');
     d.secs = [];
-    dxProducts(cur); dxUpcoming(up); dxCustomers(cur, r); dxPayments(r); dxOps(r); dxDiscounts(cur); dxDemand(cur); dxYear(); dxOrders(r);
+    dxProducts(cur); dxOccasions(r); dxUpcoming(up); dxCustomers(cur, r); dxPayments(r); dxOps(r); dxDiscounts(cur); dxDemand(cur); dxYear(); dxOrders(r);
     dxSec('df', 'About the data', flags.length + ' things to know', '<p class="dx-ch">' + flags.length + ' things to know about this data</p>' + flags.map(dxFlag).join('') + dxDefs());
     d.secs = [['ov', 'Overview', '', '']].concat(dxMerge(d.secs));
     var keys = d.secs.map(function (x) { return x[0]; }), cs2 = secCur('dash', keys, 'ov'), sec = d.secs.filter(function (x) { return x[0] === cs2; })[0];
@@ -619,13 +620,78 @@
     var by = {}; secs.forEach(function (x) { by[x[0]] = x; });
     var join = function (into, from, title) { if (!by[into] || !by[from]) return; by[into][3] += '<hr class="dx-hr">' + '<div class="dx-card-h"><h2>' + esc(by[from][1]) + '</h2>' + (by[from][2] ? '<span>' + by[from][2] + '</span>' : '') + '</div>' + by[from][3]; if (title) by[into][1] = title; secs.splice(secs.indexOf(by[from]), 1); };
     join('pa', 'di', 'Payments and pricing'); join('de', 'yr', 'Patterns'); join('up', 'op', 'Upcoming and operations');
-    var order = ['up', 'pr', 'cu', 'pa', 'op', 'de', 'ol', 'df'];
+    var order = ['up', 'pr', 'oc', 'cu', 'pa', 'op', 'de', 'ol', 'df'];
     secs.sort(function (a, b) { return order.indexOf(a[0]) - order.indexOf(b[0]); });
     return secs;
   }
   function dashSheet() {
     var dr = S.sheet.drill, list = dr.l.slice().sort(function (a, b) { return a.pd < b.pd ? 1 : -1; }), s = dxSum(list);
     return sheetHead(esc(dr.t)) + '<div class="ccs-sheet-body"><p class="ccs-hint">' + int(list.length) + ' orders · ' + int(s.c) + ' cakes · ' + m0(s.v) + '</p>' + dxRows(list, 200) + '</div>';
+  }
+  // ----- Occasions: what the cakes were for. Uses the same sales rules and filters as the rest of the dashboard -----
+  function dxOccName(c) { var o = ((DX.data && DX.data.occasions) || []).filter(function (x) { return x.c === c; })[0]; return o ? o.l : c === 'not_specified' ? 'Not specified' : 'Other'; }
+  function dxLastYear(r) { if (r.all) return null; var b = function (x) { return (+x.slice(0, 4) - 1) + x.slice(4); }; return { from: b(r.from), to: b(r.to) }; }
+  function dxOccRows(r) {
+    var placed = dxIn(r.from, r.to), ly = dxLastYear(r), lySales = ly ? dxSales(ly.from, ly.to) : [], first = DX.data.first || {};
+    var codes = ((DX.data.occasions) || []).map(function (o) { return o.c; });
+    return codes.map(function (c) {
+      var mine = function (o) { return (o.oc || 'not_specified') === c; };
+      var pl = placed.filter(mine), sales = pl.filter(function (o) { return o.sale; }), off = pl.filter(function (o) { return o.off; }), lys = lySales.filter(mine);
+      var sum = dxSum(sales), lysum = ly ? dxSum(lys) : null;
+      var isOn = function (o) { return String(o.src || '').toLowerCase() === 'online'; }, on = sales.filter(isOn), walk = sales.filter(function (o) { return !isOn(o); });
+      var back = sales.filter(function (o) { return o.c && first[o.c] && first[o.c] < o.pd; });
+      var cakes = {}; sales.forEach(function (o) { dxItems(o).forEach(function (i) { var k = (i[1] || i[0]) + (i[2] ? ', ' + i[2] + ' inch' : ''); cakes[k] = (cakes[k] || 0) + (dnum(i[3]) || 1); }); });
+      var top = Object.keys(cakes).sort(function (a, b) { return cakes[b] - cakes[a]; })[0];
+      return { c: c, l: dxOccName(c), pl: pl, sales: sales, off: off, sum: sum, ly: lysum, lys: lys, on: on, walk: walk, back: back, top: top ? top + ' (' + cakes[top] + ')' : '' };
+    }).filter(function (x) { return x.pl.length || (x.ly && x.ly.n); });
+  }
+  function dxOccasions(r) {
+    var rows = dxOccRows(r), ly = dxLastYear(r);
+    if (!rows.length) return dxSec('oc', 'Occasions', '', '<p class="ccs-quiet">No orders in this period.</p>');
+    var tap = function (list, t, v) { return dxTap(list, t, v, 'dx-oct'); };
+    var tot = rows.reduce(function (a, x) { a.v += x.sum.v; a.n += x.sum.n; return a; }, { v: 0, n: 0 });
+    var h = '<p class="dx-ch">What the cakes were for. Tap any number to see the orders.</p>' +
+      '<div class="dx-octwrap"><table class="dx-octab"><thead><tr><th>Occasion</th><th>Orders placed</th><th>Completed sales</th><th>Sales value</th><th>Share</th><th>Average sale</th>' + (ly ? '<th>Same dates last year</th>' : '') + '<th>Online</th><th>Walk-in and phone</th><th>Returning customers</th><th>Cancelled</th><th>Top cake</th></tr></thead><tbody>' +
+      rows.map(function (x) {
+        var chg = ly ? (x.ly.v ? change(x.sum.v, x.ly.v) : x.sum.v ? 'New' : '') : '';
+        return '<tr><th scope="row">' + esc(x.l) + '</th>' +
+          '<td>' + tap(x.pl, x.l + ': orders placed', int(x.pl.length)) + '</td>' +
+          '<td>' + tap(x.sales, x.l + ': completed sales', int(x.sum.n)) + '</td>' +
+          '<td><b>' + m0(x.sum.v) + '</b></td>' +
+          '<td>' + (tot.v ? Math.round(x.sum.v / tot.v * 100) + '%' : '') + '</td>' +
+          '<td>' + (x.sum.n ? m0(x.sum.v / x.sum.n) : '') + '</td>' +
+          (ly ? '<td>' + tap(x.lys, x.l + ': same dates last year', m0(x.ly.v)) + (chg ? ' <span class="dx-occhg">' + esc(chg) + '</span>' : '') + '</td>' : '') +
+          '<td>' + tap(x.on, x.l + ': online sales', int(x.on.length)) + '</td><td>' + tap(x.walk, x.l + ': walk-in and phone sales', int(x.walk.length)) + '</td>' +
+          '<td>' + tap(x.back, x.l + ': returning customers', int(x.back.length)) + '</td>' +
+          '<td>' + tap(x.off, x.l + ': cancelled', int(x.off.length)) + '</td>' +
+          '<td>' + esc(x.top) + '</td></tr>';
+      }).join('') + '</tbody></table></div>';
+    h += '<div class="dx-octools"><button type="button" class="ccs-btn ccs-ghost" data-act="dx-occ-csv">Download as a spreadsheet (CSV)</button></div>';
+    // Campaigns that brought real orders
+    var camp = {}; dxIn(r.from, r.to).forEach(function (o) { if (!o.cmp) return; var e = camp[o.cmp] = camp[o.cmp] || { pl: [], s: [] }; e.pl.push(o); if (o.sale) e.s.push(o); });
+    var ck = Object.keys(camp).sort(function (a, b) { return camp[b].pl.length - camp[a].pl.length; });
+    h += '<hr class="dx-hr"><div class="dx-card-h"><h2>Campaigns</h2><span>From website links that name a campaign</span></div>' + (ck.length ?
+      '<div class="dx-octwrap"><table class="dx-octab"><thead><tr><th>Campaign</th><th>Orders placed</th><th>Completed sales</th><th>Sales value</th></tr></thead><tbody>' + ck.map(function (k) { var e = camp[k], sm = dxSum(e.s); return '<tr><th scope="row">' + esc(k) + '</th><td>' + tap(e.pl, 'Campaign ' + k + ': orders placed', int(e.pl.length)) + '</td><td>' + tap(e.s, 'Campaign ' + k + ': completed sales', int(sm.n)) + '</td><td><b>' + m0(sm.v) + '</b></td></tr>'; }).join('') + '</tbody></table></div>' :
+      '<p class="ccs-quiet">No orders from campaign links in this period yet. Links look like /order-cake?occasion=mothers-day&amp;campaign=mothers-day-2026.</p>');
+    h += '<hr class="dx-hr"><div class="dx-card-h"><h2>How these figures are counted</h2></div><ul class="dx-rules">' +
+      '<li><b>Orders placed</b>: every order in the period, whatever happened to it.</li>' +
+      '<li><b>Completed sales</b> and <b>Sales value</b>: orders handed over, or past sheet orders never cancelled, at the agreed price less refunds. The same rule as the rest of the dashboard.</li>' +
+      '<li><b>Cancelled</b>: cancelled orders, shown apart and never counted as sales.</li>' +
+      '<li><b>Occasion</b>: what the customer or staff chose on the order. It is never worked out from the pickup date, so a Mother\'s Day cake collected the day before still counts as Mother\'s Day.</li>' +
+      '<li><b>Not specified</b>: the occasion was not given. Older orders without one stay here; they are not guessed.</li>' +
+      '<li><b>Returning customers</b>: completed sales by customers who had bought before. Counts only, no names.</li></ul>';
+    return dxSec('oc', 'Occasions', rows.length + ' occasions', h);
+  }
+  function dxOccExport() {
+    var r = dxRange(), rows = dxOccRows(r), ly = dxLastYear(r), f = DX.f;
+    var lines = [['Corner Café cakes: occasion analysis'], ['Period', r.all ? 'All time' : r.from + ' to ' + r.to], ['Counted by', f.b === 'o' ? 'Order date' : 'Pickup date'], ['Channel', f.ch === 'all' ? 'All channels' : SOURCE_LABEL[f.ch] || f.ch], ['Cake', f.prod === 'all' ? 'All cakes' : f.prod], [],
+      ['Occasion', 'Orders placed', 'Completed sales', 'Sales value', 'Average sale', 'Same dates last year', 'Online sales', 'Walk-in and phone sales', 'Returning customers', 'Cancelled', 'Top cake']];
+    rows.forEach(function (x) { lines.push([x.l, x.pl.length, x.sum.n, x.sum.v.toFixed(2), x.sum.n ? (x.sum.v / x.sum.n).toFixed(2) : '', ly ? x.ly.v.toFixed(2) : '', x.on.length, x.walk.length, x.back.length, x.off.length, x.top]); });
+    lines.push([], ['Order', 'Occasion', 'Occasion detail', 'Campaign', 'Order date', 'Pickup date', 'Channel', 'Status', 'Cakes', 'Value', 'Refunds', 'Cake details']);
+    rows.forEach(function (x) { x.pl.forEach(function (o) { lines.push([o.r, x.l, o.ocd || '', o.cmp || '', o.odok ? o.od : '', o.pd, SOURCE_LABEL[o.src] || o.src, regLabel(o), dxCakes(o), dxValue(o).toFixed(2), o.refund.toFixed(2), dxItems(o).map(function (i) { return (i[1] || i[0]) + (i[2] ? ' ' + i[2] + ' inch' : ''); }).join('; ')]); }); });
+    var csv = lines.map(function (l) { return l.map(dxCsv).join(','); }).join('\n');
+    var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv' })); a.download = 'corner-cafe-cake-occasions-' + today() + '.csv'; document.body.appendChild(a); a.click(); a.remove();
+    toast('Occasion analysis downloaded');
   }
   function dxCsv(v) { v = String(v == null ? '' : v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }
   function dxExport() {
@@ -642,6 +708,7 @@
     dxKeep();
     if (a === 'dx-refresh') dashLoad(true);
     else if (a === 'dx-export') dxExport();
+    else if (a === 'dx-occ-csv') dxOccExport();
     else if (a === 'dx-psort') { DX.psort = v; dxKeep(); view(); }
     else if (a === 'dx-year') { DX.year = v; dxKeep(); view(); }
     else if (a === 'dx-metric') { DX.metric = v; view(); }
@@ -657,6 +724,6 @@
     var f = DX.f, k = t.dataset.dx; dxKeep();
     if (k === 'dx-p') { f.p = t.value; DX.unit = null; if (f.p === 'c' && !f.from) { f.to = today(); f.from = dxMonthStart(f.to); } }
     else if (k === 'dx-from') f.from = t.value; else if (k === 'dx-to') f.to = t.value;
-    else if (k === 'dx-b') f.b = t.value; else if (k === 'dx-prod') f.prod = t.value; else if (k === 'dx-ch') f.ch = t.value; else if (k === 'dx-st') { f.st = t.value; }
+    else if (k === 'dx-b') f.b = t.value; else if (k === 'dx-prod') f.prod = t.value; else if (k === 'dx-ch') f.ch = t.value; else if (k === 'dx-occ') f.occ = t.value; else if (k === 'dx-st') { f.st = t.value; }
     view();
   }
