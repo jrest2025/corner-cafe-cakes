@@ -114,7 +114,7 @@ function staffNewOrder(d: any): { subject: string; html: string } {
     kv("Mobile", phone ? esc(phoneShow(phone)) + (c.preferred_contact === "whatsapp" ? ` <span style="font-weight:normal;color:${MUTED}">(WhatsApp)</span>` : "") : "") +
     kv("Email", email ? `<a href="mailto:${esc(email)}" style="color:${GREEN}">${esc(email)}</a>` : "")));
   b += section("04", "Money", grid(
-    kv(custom ? "Estimate" : "Price", esc(money(total))) + kv("Paid", paid > 0 ? esc(money(paid)) : "Nothing yet") +
+    kv(custom ? "Estimate" : "Price", isRequest(i) && !total ? "To be priced" : esc(money(total))) + kv("Paid", paid > 0 ? esc(money(paid)) : "Nothing yet") +
     kv("To pay", esc(money(Math.max(total - paid, 0))))));
 
   b += `<div style="margin:18px 0 0">` + (cfg.staff_app_url ? smallBtn(cfg.staff_app_url, custom ? "Quote it in the staff app" : "Review in the staff app", true) : "") +
