@@ -6,8 +6,8 @@
 // Every email also has a plain-text version.
 
 const LOGO = "https://cdn.jsdelivr.net/gh/jrest2025/corner-cafe-cakes@b2fa0b25e82552c2f883c56a7d31abd6ec7ff2ec/dist/brand/corner-cafe-logo-email.png";
-// Hero cake photo: an approved Corner Café photo, square, email-safe JPG (set once the file is supplied)
-const HERO = "";
+// Hero cake photo: the approved Corner Café cake photo, square, email-safe JPG, pinned to one commit
+const HERO = "https://cdn.jsdelivr.net/gh/jrest2025/corner-cafe-cakes@82897c74bef2b7e53d2f76ef80f15a86cc14379e/dist/brand/cake-hero-email.jpg";
 const SERIF = "Georgia,'Times New Roman',serif", CREAM = "#F7F1E8";
 const FONT = "Arial,Helvetica,sans-serif";
 const INK = "#2B2622", MUTED = "#6B6560", LINE = "#E7E3DE", SOFT = "#F6F7F4", GREEN = "#4B6339", LEAF = "#5F7A4A", RED = "#A2402B";
