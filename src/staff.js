@@ -1536,6 +1536,8 @@
     if (f === 'delivery') return r.method === 'delivery';
     return true;
   }
+  // Only as many week rows as the month needs (5 or 6), so the grid fits the screen
+  function kitMonthCells(c) { var first = c.a.slice(0, 8) + '01', nx = new Date(first + 'T12:00:00Z'); nx.setUTCMonth(nx.getUTCMonth() + 1); var last = addDays(nx.toISOString().slice(0, 10), -1); return Math.round(((new Date(last + 'T12:00:00Z') - new Date(weekStart(first) + 'T12:00:00Z')) / 864e5 + 1 + 6 - dow(last)) / 7) * 7; }
   function kitCalTitle(c) {
     if (c.v === 'day') return nice(c.a, true);
     if (c.v === 'month') return MONTHS[+c.a.slice(5, 7) - 1] + ' ' + c.a.slice(0, 4);
@@ -1576,10 +1578,18 @@
       }).join('') + '</div>';
     }
     var mon = c.a.slice(0, 7);
-    return h + '<div class="kc-month"><div class="kc-mhead">' + WD.map(function (w) { return '<span>' + w + '</span>'; }).join('') + '</div><div class="kc-mgrid">' + Array.apply(null, Array(42)).map(function (_, i) {
+    return h + '<div class="kc-month"><div class="kc-mhead">' + WD.map(function (w) { return '<span>' + w + '</span>'; }).join('') + '</div><div class="kc-mgrid">' + Array.apply(null, Array(kitMonthCells(c))).map(function (_, i) {
       var d = addDays(rg[0], i), list = by[d] || [], al = list.filter(function (r) { return r.has_dietary; }).length, cu = list.filter(function (r) { return r.finish === 'custom'; }).length, lt = list.filter(function (r) { return r.late; }).length;
       var marks = [lt ? lt + ' late' : '', al ? al + ' allergy' : '', cu ? cu + ' custom' : ''].filter(Boolean).join(' · ');
-      return '<button type="button" class="kc-mday' + (d.slice(0, 7) !== mon ? ' is-out' : '') + (d === t ? ' is-today' : '') + (d < t ? ' is-past' : '') + (list.length ? ' has' : '') + (lt ? ' is-late' : '') + '" data-act="k-cal-day" data-v="' + d + '"' + (list.length ? ' aria-label="' + esc(nice(d, true) + ', ' + cnt(list.length)) + '"' : '') + '><span class="kc-dn">' + Number(d.slice(8)) + '</span>' + (list.length ? '<b>' + cnt(list.length) + '</b>' + (marks ? '<em>' + esc(marks) + '</em>' : '') : '') + '</button>';
+      var show = list.length > 4 ? list.slice(0, 3) : list;
+      var bars = show.map(function (r) {
+        var tone = r.status === 'completed' || r.stage === 'ready' ? ' is-done' : r.late ? ' is-late' : ['not_started', 'scheduled'].indexOf(r.stage) > -1 ? ' is-todo' : '';
+        var m = (r.has_dietary ? ' · Allergy' : '') + (r.finish === 'custom' ? ' · Custom' : '');
+        return '<button type="button" class="kc-mbar' + tone + '" data-act="open-kitchen" data-id="' + r.id + '" title="' + esc(t12(r.time) + ' ' + kitCake(r) + ' · ' + kitStageText(r) + m) + '"><span class="kc-mt">' + esc(t12(r.time).replace(':00', '')) + '</span> ' + esc(kitCake(r)) + (m ? '<i>' + esc(m) + '</i>' : '') + '</button>';
+      }).join('');
+      return '<div class="kc-mday' + (d.slice(0, 7) !== mon ? ' is-out' : '') + (d === t ? ' is-today' : '') + (d < t ? ' is-past' : '') + (list.length ? ' has' : '') + (lt ? ' is-late' : '') + '">' +
+        '<button type="button" class="kc-mdate" data-act="k-cal-day" data-v="' + d + '" aria-label="' + esc(nice(d, true) + (list.length ? ', ' + cnt(list.length) : '')) + '"><span class="kc-dn">' + Number(d.slice(8)) + '</span>' + (list.length ? '<b>' + cnt(list.length) + '</b>' + (marks ? '<em>' + esc(marks) + '</em>' : '') : '') + '</button>' +
+        (list.length ? '<div class="kc-mbars">' + bars + (list.length > show.length ? '<button type="button" class="kc-mmore" data-act="k-cal-day" data-v="' + d + '">+' + (list.length - show.length) + ' more</button>' : '') + '</div>' : '') + '</div>';
     }).join('') + '</div></div>';
   }
   function openKitchen(id, again) {
