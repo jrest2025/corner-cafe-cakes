@@ -1955,3 +1955,11 @@ body.ccs-is-off #cc-staff .ccs-side { top: var(--ccs-offh, 44px); }
 #cc-staff .ov-tv.is-np { font-weight: 400; color: #526176; font-size: 13px; white-space: nowrap; }
 #cc-staff .ov-tv.is-np { grid-column: span 2; }
 #cc-staff .dx-gap .ccs-link { min-height: 0; padding: 0; font-size: 14px; vertical-align: baseline; }
+/* Staff app: find an order on Today, plain next step in the order panel, ready message prompt */
+#cc-staff .tp-find { margin: 0 0 12px; max-width: 560px; }
+#cc-staff .tp-find .ccs-input { width: 100%; }
+#cc-staff .ccs-nextline { margin: 0 0 8px; font-size: 16px; font-weight: 600; color: #243247; }
+#cc-staff .ccs-nextline em { font-style: normal; color: var(--ds-primary); margin-right: 4px; }
+#cc-staff .ccs-nextline.is-wait em { color: #526176; }
+#cc-staff .ccs-readyask { margin: 8px 0 0; }
+#cc-staff .tp-find { width: 100%; }
