@@ -378,3 +378,77 @@ body:has(#cc-cake-order .cco-done) .cco-help{display:none}
 #cc-cake-order .cco-progress span{font-size:15px}
 #cc-cake-order .cco-hint{color:#57514C}
 #cc-cake-order .cco-primary{box-shadow:0 6px 16px -8px rgba(47,66,36,.55)}
+
+/* ===== Design refinement, October 2026: tighter intro, product-style cake cards, one look across all six steps ===== */
+/* Cake photo sources: Image elements in the Webflow page, used by the form, never shown on the live page */
+[data-cake-photos]{display:none!important}
+.cco-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* Width: a little more room on desktop so the cake photos read well */
+#cc-cake-order,.cco-page .cco-intro,.cco-page .cco-help{max-width:720px}
+
+/* Intro: compact, so the cakes appear sooner */
+.cco-page{padding:28px 16px 64px}
+@media (min-width:760px){.cco-page{padding-top:40px}}
+.cco-page .cco-intro{margin:0 auto 16px}
+.cco-page .cco-kicker{font-size:13px;margin:0 0 6px}
+.cco-page .cco-h1{font-size:clamp(28px,4vw,38px);line-height:1.08;margin:0 0 8px}
+.cco-page .cco-lead{font-size:16px;line-height:1.5;max-width:none}
+.cco-strip{padding:10px 14px;margin:0 0 12px;border-radius:12px;font-size:15px;background:#F6F7F4;border-color:#ECEAE6}
+.cco-strip-btn{min-height:40px;padding:8px 0}
+
+/* Progress: quiet, so it does not compete with the step */
+#cc-cake-order .cco-progress{margin:0 2px 10px;gap:12px}
+#cc-cake-order .cco-progress-track{height:3px;background:#ECEAE6}
+#cc-cake-order .cco-progress span{font-size:14px}
+
+/* Step cards: one look for all six */
+#cc-cake-order .cco-steps{gap:8px}
+#cc-cake-order .cco-step{border-radius:18px}
+#cc-cake-order .cco-step.cco-open{border-color:#E2DDD6;box-shadow:0 1px 2px rgba(31,35,28,.04),0 14px 34px -18px rgba(31,35,28,.22)}
+#cc-cake-order .cco-body{padding:22px 24px 24px;gap:16px}
+@media (max-width:420px){#cc-cake-order .cco-body{padding:18px 16px 20px;gap:14px}}
+#cc-cake-order .cco-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+#cc-cake-order .cco-q{font-size:22px;line-height:1.2}
+#cc-cake-order .cco-q:focus,#cc-cake-order .cco-q:focus-visible{outline:0}
+#cc-cake-order .cco-qsub{margin-top:-8px;font-size:15px}
+#cc-cake-order .cco-back{appearance:none;flex:none;border:0;background:none;padding:6px 2px;margin:-4px 0 0;min-height:36px;font:inherit;font-size:15px;font-weight:500;color:#6B6560;cursor:pointer;display:inline-flex;align-items:center;gap:6px;border-radius:8px}
+#cc-cake-order .cco-back::before{content:"";width:7px;height:7px;border-left:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg)}
+#cc-cake-order .cco-back:hover{color:#2B2622}
+#cc-cake-order .cco-sum{padding:12px 18px;min-height:58px}
+
+/* Cake cards: retail product tiles */
+#cc-cake-order .cco-cakes{gap:12px}
+#cc-cake-order .cco-cake{display:flex;flex-direction:column;height:100%;border:1px solid #E7E3DE;border-radius:16px;background:#fff;transition:transform .18s var(--o-ease),box-shadow .18s,border-color .18s}
+#cc-cake-order .cco-cake:hover{transform:translateY(-2px);border-color:#C9D2BE;box-shadow:0 12px 26px -16px rgba(31,35,28,.38)}
+#cc-cake-order .cco-cake:active{transform:translateY(0) scale(.99)}
+#cc-cake-order .cco-cake:focus-visible{outline:3px solid rgba(95,122,74,.55);outline-offset:3px}
+#cc-cake-order .cco-cake[aria-pressed=true]{border-color:#5F7A4A;box-shadow:0 0 0 2px #5F7A4A,0 12px 26px -16px rgba(47,66,36,.45);background:#fff;transform:none}
+#cc-cake-order .cco-cake-vis{height:auto;aspect-ratio:4/3;background:linear-gradient(180deg,#FBF9F6 0,#F3EEE6 100%);overflow:hidden;border-bottom:1px solid #F0ECE6}
+#cc-cake-order .cco-has-photo .cco-cake-vis{background:#F3EEE6}
+#cc-cake-order .cco-cake-vis img{transition:transform .35s var(--o-ease)}
+#cc-cake-order .cco-cake:hover .cco-cake-vis img{transform:scale(1.03)}
+#cc-cake-order .cco-cake .cco-disc{width:68px;height:68px}
+#cc-cake-order .cco-cake-txt{flex:1;padding:12px 14px 14px;gap:4px}
+#cc-cake-order .cco-cake-name{font-size:16px;font-weight:600;line-height:1.3}
+#cc-cake-order .cco-cake-from{font-size:14px;font-weight:400;color:#6B6560}
+#cc-cake-order .cco-cake-from b{font-size:15px;font-weight:700;color:#2B2622}
+#cc-cake-order .cco-cake[aria-pressed=true] .cco-cake-txt{background:#F4F7F0}
+#cc-cake-order .cco-check-badge{top:10px;right:10px;width:28px;height:28px;background:#5F7A4A;box-shadow:0 0 0 3px #fff,0 4px 10px -4px rgba(0,0,0,.35)}
+#cc-cake-order .cco-check-badge svg{width:14px;height:14px}
+#cc-cake-order .cco-sub{border-radius:14px;padding:14px 16px;background:#F4F7F0;border:1px solid #E1E8D8}
+
+/* Choices, sizes and inputs share the same card language */
+#cc-cake-order .cco-size,#cc-cake-order .cco-opt{border-radius:14px;transition:transform .15s var(--o-ease),box-shadow .15s,border-color .15s,background-color .15s}
+#cc-cake-order .cco-size:hover,#cc-cake-order .cco-opt:hover{border-color:#C9D2BE;box-shadow:0 8px 18px -14px rgba(31,35,28,.35)}
+#cc-cake-order .cco-size[aria-pressed=true]{border-color:#5F7A4A;box-shadow:inset 0 0 0 1px #5F7A4A;background:#F4F7F0}
+#cc-cake-order .cco-input{border-radius:12px}
+#cc-cake-order .cco-input:hover:not(:focus){border-color:#BDB6AE}
+#cc-cake-order .cco-adds{border-color:#ECEAE6}
+
+/* Continue: clear and confident; disabled looks disabled */
+#cc-cake-order .cco-primary{min-height:54px;border-radius:14px;margin-top:4px}
+#cc-cake-order .cco-primary:active{transform:scale(.985)}
+#cc-cake-order .cco-primary:disabled{opacity:.55;box-shadow:none}
+
+@media (prefers-reduced-motion:reduce){#cc-cake-order .cco-cake,#cc-cake-order .cco-cake:hover,#cc-cake-order .cco-cake-vis img{transform:none!important;transition:none!important}}

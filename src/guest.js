@@ -46,7 +46,24 @@
   function busyPhotos() { return S.photos.filter(function (p) { return p.status === 'busy'; }).length; }
   function donePhotos() { return S.photos.filter(function (p) { return p.status === 'done'; }); }
   function enter(k) { return fresh[k] ? ' cco-enter' : ''; }
-  function vis(f) { if (!f) return '<span class="cco-disc-req" aria-hidden="true">Your<br>idea</span>'; return f.image_url ? '<img src="' + esc(f.image_url) + '" alt="" loading="lazy">' : '<span class="cco-disc" style="background:' + esc(f.swatch || '#E6DCCF') + '"></span>'; }
+  // Cake photos come from Image elements on the Webflow page (data-cake-photo="<cake code>"), so they can be swapped in the Designer.
+  // An image left as Webflow's placeholder is ignored and the drawn cake is shown instead.
+  var PHOTOS = null;
+  function photoOf(f) {
+    if (!PHOTOS) {
+      PHOTOS = {};
+      [].forEach.call(document.querySelectorAll('[data-cake-photos] img[data-cake-photo]'), function (im) {
+        var src = im.getAttribute('src') || '';
+        if (src && !/placeholder/i.test(src)) PHOTOS[im.getAttribute('data-cake-photo')] = { src: src, srcset: im.getAttribute('srcset') || '' };
+      });
+    }
+    return PHOTOS[f.code] || (f.image_url ? { src: f.image_url, srcset: '' } : null);
+  }
+  function vis(f) {
+    if (!f) return '<span class="cco-disc-req" aria-hidden="true">Your<br>idea</span>';
+    var p = photoOf(f);
+    return p ? '<img src="' + esc(p.src) + '"' + (p.srcset ? ' srcset="' + esc(p.srcset) + '" sizes="(min-width: 760px) 240px, 50vw"' : '') + ' alt="" loading="lazy">' : '<span class="cco-disc" style="background:' + esc(f.swatch || '#E6DCCF') + '"></span>';
+  }
   function opt() { return ' <span class="cco-optional">Optional</span>'; }
   function checkDate(why) { if (S.date && dayOff(S.date)) { S.date = null; S.time = null; S.dateNote = why + ' needs ' + leadDays() + ' days’ notice, so your earlier date is no longer available. Please choose a new date.'; } }
   function lbl(forId, text, optional) { return '<label class="cco-lbl" for="' + forId + '"><span>' + text + '</span>' + (optional ? opt() : '') + '</label>'; }
@@ -65,7 +82,7 @@
         var h = '<div class="cco-cakes" role="group" aria-label="Cake flavour">', sub = '';
         SETUP.products.forEach(function (f) {
           var on = S.flavour === f.code;
-          h += '<button type="button" class="cco-cake" data-act="flavour" data-v="' + esc(f.code) + '" aria-pressed="' + on + '"><span class="cco-cake-vis">' + vis(f) + '</span><span class="cco-cake-txt"><span class="cco-cake-name">' + esc(f.name) + '</span><span class="cco-cake-from">From ' + money(fromPrice(f)) + '</span></span><span class="cco-check-badge">' + ICON.tick + '</span></button>';
+          h += '<button type="button" class="cco-cake' + (photoOf(f) ? ' cco-has-photo' : '') + '" data-act="flavour" data-v="' + esc(f.code) + '" aria-pressed="' + on + '"><span class="cco-cake-vis">' + vis(f) + '</span><span class="cco-cake-txt"><span class="cco-cake-name">' + esc(f.name) + '</span><span class="cco-cake-from">From <b>' + money(fromPrice(f)) + '</b></span></span><span class="cco-check-badge">' + ICON.tick + '</span></button>';
           if (on && f.variants.length) {
             sub = '<div class="cco-sub' + enter('variants') + '" id="cco-variants"><span class="cco-sub-q">' + esc(f.choice_label || 'Which one?') + '</span><div class="cco-chips">' +
               f.variants.map(function (v) { return '<button type="button" class="cco-chip" data-act="variant" data-v="' + esc(v) + '" aria-pressed="' + (S.variant === v) + '">' + esc(v) + '</button>'; }).join('') + '</div></div>';
@@ -209,7 +226,7 @@
       var sub = typeof s.sub === 'function' ? s.sub() : s.sub;
       h += '<section class="cco-step' + (st === 'open' ? ' cco-open' : '') + '" id="cco-step-' + i + '" aria-label="' + s.key + '">' + (st === 'done'
         ? '<button type="button" class="cco-sum" data-act="edit" data-v="' + i + '"><span class="cco-tickdot" aria-hidden="true">' + ICON.tick + '</span><span><span class="cco-sum-k">' + s.key + '</span><span class="cco-sum-v">' + esc(s.summary()) + '</span></span><span class="cco-sum-e">Change</span></button>'
-        : '<div class="cco-body' + (i === animStep ? ' cco-enter' : '') + '"><h2 class="cco-q" tabindex="-1">' + (typeof s.q === 'function' ? s.q() : s.q) + '</h2>' + (sub ? '<p class="cco-qsub">' + esc(sub) + '</p>' : '') + s.body() + '</div>') + '</section>';
+        : '<div class="cco-body' + (i === animStep ? ' cco-enter' : '') + '"><div class="cco-head"><h2 class="cco-q" tabindex="-1">' + (typeof s.q === 'function' ? s.q() : s.q) + '</h2>' + (i > 0 ? '<button type="button" class="cco-back" data-act="edit" data-v="' + (i - 1) + '">Back<span class="cco-sr"> to ' + esc(STEPS[i - 1].key.toLowerCase()) + '</span></button>' : '') + '</div>' + (sub ? '<p class="cco-qsub">' + esc(sub) + '</p>' : '') + s.body() + '</div>') + '</section>';
     });
     root.innerHTML = h + '</div>';
     fresh = {}; animStep = -1; S.photos.forEach(function (p) { p.isNew = false; });
