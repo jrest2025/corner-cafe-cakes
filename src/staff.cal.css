@@ -2306,3 +2306,103 @@ body.ccs-is-off #cc-staff .ccs-side { top: var(--ccs-offh, 44px); }
 #cc-staff .dx-octools { margin: 10px 0 0; }
 #cc-staff .dx-rules { margin: 6px 0 0 18px; padding: 0; display: grid; gap: 6px; font-size: 14px; color: #344054; }
 @media (pointer: coarse) { #cc-staff .dx-oct.dx-tap { min-height: 44px; } }
+
+/* =====================================================================
+   One colour system for every screen (Today, Orders, Kitchen, Calendar, Customers, Dashboard, Settings, pop-ups)
+   Every colour has one meaning:
+     Green (Corner Café)  = the main action button          Green (status)  = ready, collected, paid, done
+     Amber                = needs someone (review, pending, unpaid, changed)
+     Red                  = late, overdue, allergy, critical
+     Blue                 = information and things on schedule (confirmed, in production, delivery, custom)
+     Grey                 = not started, cancelled, quiet
+   Status never relies on colour alone: every pill keeps its words.
+   ===================================================================== */
+#cc-staff {
+  --u-page: #F4F6F8; --u-card: #FFFFFF; --u-line: #E3E8EE; --u-line-strong: #CBD3DC; --u-ink: #253247; --u-ink2: #64748B;
+  --u-shadow: 0 1px 2px rgba(16, 24, 40, .05), 0 1px 3px rgba(16, 24, 40, .04);
+  --u-ok: #1B6B48; --u-ok-bg: #E8F5EE; --u-ok-line: #A7D7BD; --u-ok-dot: #23865B;
+  --u-attn: #8A4B08; --u-attn-bg: #FFF6E5; --u-attn-line: #F2C877; --u-attn-dot: #F2B544;
+  --u-crit: #B42318; --u-crit-bg: #FEF1F0; --u-crit-line: #F3B3AE; --u-crit-dot: #D95B52;
+  --u-info: #1F5A96; --u-info-bg: #EAF3FA; --u-info-line: #B7D3EE; --u-info-dot: #4285C5;
+  --u-quiet: #475569; --u-quiet-bg: #F1F4F7; --u-quiet-line: #D5DCE4;
+}
+/* Page and cards: a light grey page so white cards stand apart */
+#cc-staff .ccs-app .ccs-main { background: var(--u-page); }
+#cc-staff .ccs-card, #cc-staff .tp-act, #cc-staff .ccs-panel-card, #cc-staff .tp-ov, #cc-staff .ccs-kpi, #cc-staff .ccs-empty,
+#cc-staff .kw-sec, #cc-staff .kw-count, #cc-staff .kw-day, #cc-staff .kc-wday, #cc-staff .kc-month, #cc-staff .at-group, #cc-staff .at-jump,
+#cc-staff .dx-card, #cc-staff .dx-octwrap, #cc-staff .ccs-box, #cc-staff .ccs-tabs, #cc-staff .ccs-segs, #cc-staff .ccs-table-wrap, #cc-staff .ccs-set details, #cc-staff .tm-table {
+  background: var(--u-card); border-color: var(--u-line); box-shadow: var(--u-shadow);
+}
+#cc-staff .ccs-board .ccs-col { background: #E9EDF2; }
+#cc-staff .ccs-title, #cc-staff h2 { color: var(--u-ink); }
+#ccs-sheet .ccs-sheet-body { background: var(--u-page); }
+#ccs-sheet.is-review .os-detail { background: var(--u-page); }
+#ccs-sheet.is-review .os-detail .ccs-secbar { background: var(--u-page); }
+
+/* Status pills: the same five meanings everywhere */
+#cc-staff .ccs-pill.ccs-pill.ccs-pill, #cc-staff .ccs-tag.ccs-tag.ccs-tag, #cc-staff .ccs-pay.ccs-pay.ccs-pay { border: 1px solid; font-weight: 600; }
+#cc-staff .ccs-pill.ccs-pill.ccs-pill.s-ready, #cc-staff .ccs-pill.ccs-pill.ccs-pill.s-good, #cc-staff .ccs-pill.ccs-pill.ccs-pill.s-done,
+#cc-staff .ccs-pay.ccs-pay.ccs-pay.p-paid { background: var(--u-ok-bg); color: var(--u-ok); border-color: var(--u-ok-line); }
+#cc-staff .ccs-pill.ccs-pill.ccs-pill.s-review, #cc-staff .ccs-pill.ccs-pill.ccs-pill.s-wait, #cc-staff .ccs-pill.ccs-pill.ccs-pill.s-action,
+#cc-staff .ccs-pill.ccs-pill.ccs-pill.s-deposit, #cc-staff .ccs-pill.ccs-pill.ccs-pill.s-flag, #cc-staff .ccs-pill.ccs-pill.ccs-pill.s-amend,
+#cc-staff .ccs-tag.ccs-tag.ccs-tag.t-warn, #cc-staff .ccs-pay.ccs-pay.ccs-pay.p-unpaid, #cc-staff .ccs-pay.ccs-pay.ccs-pay.p-part { background: var(--u-attn-bg); color: var(--u-attn); border-color: var(--u-attn-line); }
+#cc-staff .ccs-pill.ccs-pill.ccs-pill.s-alert { background: var(--u-crit-bg); color: var(--u-crit); border-color: var(--u-crit-line); }
+#cc-staff .ccs-pill.ccs-pill.ccs-pill.s-confirmed, #cc-staff .ccs-pill.ccs-pill.ccs-pill.s-prep, #cc-staff .ccs-pill.ccs-pill.ccs-pill.s-info,
+#cc-staff .ccs-tag.ccs-tag.ccs-tag.t-info { background: var(--u-info-bg); color: var(--u-info); border-color: var(--u-info-line); }
+#cc-staff .ccs-pill.ccs-pill.ccs-pill.s-idle, #cc-staff .ccs-pill.ccs-pill.ccs-pill.s-off, #cc-staff .ccs-pay.ccs-pay.ccs-pay.p-refunded { background: var(--u-quiet-bg); color: var(--u-quiet); border-color: var(--u-quiet-line); }
+/* Left edge of order cards and rows: red late, amber waiting on someone, blue booked, green done, grey off */
+#cc-staff .ccs-card.k-action::before, #cc-staff .ccs-card.k-deposit::before { background: var(--u-attn-dot); }
+#cc-staff .ccs-card.k-good::before { background: var(--u-info-dot); }
+#cc-staff .ccs-card.is-red::before, #cc-staff .ccs-mini.is-red { border-left-color: var(--u-crit-dot); }
+#cc-staff .ccs-card.is-red::before { background: var(--u-crit-dot); }
+
+/* Today: the eye goes to New cake order, then what needs handling, then today, then what is next */
+#cc-staff .tp-act[data-tab="new"] { border-color: #C9D6BB; box-shadow: inset 4px 0 0 #5F7A4A, var(--u-shadow); }
+#cc-staff .tp-act[data-tab="new"] .tp-ic { background: #5F7A4A; color: #fff; }
+#cc-staff .tp-act[data-tab="new"] .tp-at b { font-size: 21px; }
+#cc-staff .tp-act[data-act="tp-find"] .tp-ic { background: var(--u-info-bg); color: var(--u-info); }
+#cc-staff .tp-act[data-v="today"] .tp-ic { background: var(--u-info-bg); color: var(--u-info); }
+#cc-staff .tp-act[data-tone="attn"] { border-color: var(--u-attn-line); box-shadow: inset 4px 0 0 var(--u-attn-dot), var(--u-shadow); }
+#cc-staff .tp-act[data-tone="attn"] .tp-ic { background: var(--u-attn-bg); color: var(--u-attn); }
+#cc-staff .tp-act[data-tone="attn"] em { color: var(--u-attn); }
+#cc-staff .tp-act[data-tone="clear"] .tp-ic { background: var(--u-ok-bg); color: var(--u-ok); }
+#cc-staff .tp-act[data-tone="clear"] em { color: var(--u-ok); }
+#cc-staff .ccs-kpi.ccs-kpi.t-attn { border-color: var(--u-attn-line); box-shadow: inset 4px 0 0 var(--u-attn-dot), var(--u-shadow); }
+#cc-staff .ccs-kpi.ccs-kpi.t-attn .ccs-kpi-n { color: var(--u-attn); }
+#cc-staff .tp-needs .ccs-quiet { display: flex; align-items: center; gap: 8px; color: var(--u-ok); font-weight: 600; background: var(--u-ok-bg); border-radius: 10px; padding: 10px 12px; }
+#cc-staff .tp-needs .ccs-quiet::before { content: "✓"; font-weight: 700; }
+#cc-staff .tp-urgent .tp-urg { background: var(--u-attn-bg); border-left-color: var(--u-attn-dot); }
+
+/* Kitchen board: column headings carry the stage colour */
+#cc-staff .ccs-col > h2 { border-top: 4px solid var(--u-quiet-line); padding-top: 6px; border-radius: 4px 4px 0 0; }
+#cc-staff .ccs-col-prog > h2 { border-top-color: var(--u-info-dot); }
+#cc-staff .ccs-col-qc > h2 { border-top-color: var(--u-attn-dot); }
+#cc-staff .ccs-col-ready > h2, #cc-staff .ccs-col-done > h2 { border-top-color: var(--u-ok-dot); }
+#cc-staff .ccs-kcard.is-late { border-color: var(--u-crit-dot); }
+/* Kitchen calendar: late red, to start grey, in production blue, ready or handed over green */
+#cc-staff .kc-chip { background: var(--u-info-bg); border-color: var(--u-info-line); border-left-color: var(--u-info-dot); }
+#cc-staff .kc-chip.is-late { background: var(--u-crit-bg); border-color: var(--u-crit-line); border-left-color: var(--u-crit-dot); }
+#cc-staff .kc-chip.is-ready, #cc-staff .kc-chip.is-done { background: var(--u-ok-bg); border-color: var(--u-ok-line); border-left-color: var(--u-ok-dot); color: var(--u-ok); }
+#cc-staff .kc-mbar { background: var(--u-info-bg); border-left-color: var(--u-info-dot); }
+#cc-staff .kc-mbar.is-todo { background: var(--u-quiet-bg); border-left-color: #94A3B8; }
+#cc-staff .kc-mbar.is-late { background: var(--u-crit-bg); border-left-color: var(--u-crit-dot); }
+#cc-staff .kc-mbar.is-done { background: var(--u-ok-bg); border-left-color: var(--u-ok-dot); color: var(--u-ok); box-shadow: none; }
+#cc-staff .kw-att { border-color: var(--u-attn-line); box-shadow: inset 4px 0 0 var(--u-attn-dot), var(--u-shadow); }
+#cc-staff .kw-att h2, #cc-staff .kw-what em { color: var(--u-attn); }
+#cc-staff .kw-line.is-late { border-left-color: var(--u-crit-dot); }
+/* Attention centre uses the same amber and red */
+#cc-staff .at-group.is-red, #cc-staff .at-jump.is-red { border-color: var(--u-crit-line); }
+#cc-staff .at-group.is-amber, #cc-staff .at-jump.is-amber { border-color: var(--u-attn-line); }
+#cc-staff .at-group.is-red h2, #cc-staff .at-jump.is-red b, #cc-staff .at-group.is-red .at-why { color: var(--u-crit); }
+#cc-staff .at-group.is-amber h2, #cc-staff .at-jump.is-amber b, #cc-staff .at-group.is-amber .at-why { color: var(--u-attn); }
+#cc-staff .ccs-nav-item .at-count { background: var(--u-crit-dot); }
+
+/* Buttons: green is the main action; secondary actions are soft blue and plainly clickable */
+#cc-staff .ccs-btn.ccs-ghost, #ccs-sheet .ccs-btn.ccs-ghost { background: var(--u-info-bg); color: #1D4F84; border-color: var(--u-info-line); box-shadow: none; }
+#cc-staff .ccs-btn.ccs-ghost:hover, #ccs-sheet .ccs-btn.ccs-ghost:hover { background: #DCEBF7; border-color: #93BCE3; color: #163E68; }
+#cc-staff .ccs-btn.ccs-danger, #ccs-sheet .ccs-btn.ccs-danger { background: #fff; color: var(--u-crit); border-color: var(--u-crit-line); }
+#cc-staff .ccs-btn.ccs-danger:hover, #ccs-sheet .ccs-btn.ccs-danger:hover { background: var(--u-crit-bg); }
+#cc-staff :focus-visible, #ccs-sheet :focus-visible { outline: 3px solid rgba(95, 122, 74, .6); outline-offset: 2px; }
+#cc-staff .ccs-btn:active, #ccs-sheet .ccs-btn:active { transform: translateY(1px); }
+#cc-staff .ccs-nav-item .at-count.at-count { background: #B42318; color: #fff; }
+#cc-staff .ccs-nav-item .at-count.at-count { background: #B42318; color: #fff; }
