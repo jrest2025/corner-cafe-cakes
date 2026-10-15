@@ -6,11 +6,11 @@
   var MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   var WD = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   var WDF = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'], MONF = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-  var DX_PERIODS = [['m', 'This month to date'], ['lm', 'Last month'], ['3m', 'Last 3 months'], ['y', 'This year to date'], ['12', 'Last 12 months'], ['all', 'All time'], ['c', 'Choose dates']];
+  var DX_PERIODS = [['d30', 'Last 30 days'], ['m', 'This month to date'], ['lm', 'Last month'], ['3m', 'Last 3 months'], ['y', 'This year to date'], ['12', 'Last 12 months'], ['all', 'All time'], ['c', 'Choose dates']];
   var DX_STATUS = [['all', 'All statuses'], ['completed', 'Completed sales'], ['open', 'Still to come'], ['off', 'Cancelled']];
   var DX_BASIS = [['p', 'Pickup date'], ['o', 'Order date']];
   var REG_ST = { received: 'Received', confirmed: 'Confirmed', not_confirmed: 'Quote or enquiry', cancelled: 'Cancelled', completed: 'Collected' };
-  function dxState() { if (!DX) DX = { data: null, loading: false, err: null, f: { p: 'm', b: 'p', from: '', to: '', prod: 'all', ch: 'all', st: 'all' }, year: null, psort: 'q', drills: {} }; return DX; }
+  function dxState() { if (!DX) DX = { data: null, loading: false, err: null, f: { p: 'd30', b: 'p', from: '', to: '', prod: 'all', ch: 'all', st: 'all' }, year: null, psort: 'q', drills: {} }; return DX; }
   function dashLoad(force) {
     var d = dxState(); if (d.loading) return; if (d.data && !force) { view(); return; }
     d.loading = true; d.err = null; view();
@@ -52,7 +52,8 @@
   function daysBetween(a, b) { return Math.round((Date.parse(b + 'T12:00:00Z') - Date.parse(a + 'T12:00:00Z')) / 864e5); }
   function dxRange() {
     var f = DX.f, t = today(), r;
-    if (f.p === 'm') r = { from: dxMonthStart(t), to: t, pf: dxMonthStart(dxAddMonths(t, -1)), pt: dxAddMonths(t, -1), cmp: 'same days last month' };
+    if (f.p === 'd30') r = { from: addDays(t, -29), to: t, pf: addDays(t, -59), pt: addDays(t, -30), cmp: 'previous 30 days' };
+    else if (f.p === 'm') r = { from: dxMonthStart(t), to: t, pf: dxMonthStart(dxAddMonths(t, -1)), pt: dxAddMonths(t, -1), cmp: 'same days last month' };
     else if (f.p === 'lm') { var s = dxMonthStart(dxAddMonths(t, -1)); r = { from: s, to: dxMonthEnd(s), pf: dxMonthStart(dxAddMonths(s, -1)), pt: dxMonthEnd(dxAddMonths(s, -1)), cmp: 'the month before' }; }
     else if (f.p === '3m') r = { from: addDays(t, -89), to: t };
     else if (f.p === 'y') r = { from: t.slice(0, 4) + '-01-01', to: t, pf: (+t.slice(0, 4) - 1) + '-01-01', pt: (+t.slice(0, 4) - 1) + t.slice(4), cmp: 'the same dates last year' };
@@ -136,21 +137,9 @@
     var owing = data.orders.filter(function (o) { return o.live && dxMatch(o) && (o.st === 'confirmed' || o.st === 'completed') && dnum(o.bal) > 0.005; }), owed = owing.reduce(function (s, o) { return s + dnum(o.bal); }, 0);
     var basisWord = byOrder ? 'order date' : 'pickup date';
     var period = '<p class="dx-period">' + (r.all ? 'All recorded history' : esc(nice(r.from) + ' to ' + nice(r.to))) + ', by ' + basisWord + (ps ? '. Compared with ' + esc(r.cmp) + '.' : '.') + (f.prod !== 'all' ? ' Showing ' + esc(f.prod) + ' only.' : '') + '</p>';
-    // Overview: four figures, each with its change and a small trend line, then the month chart with channels and top cakes
-    var months = dxMonths(r), wk = dxWeeks(up); d.cmpShort = ps ? 'vs ' + r.cmp : '';
-    var ov = '<div class="dx-top">' +
-      dxHead('Sales value', m0(cs.v), dxDelta(cs.v, ps && ps.v), int(cs.n) + ' completed sales (' + int(rec.length) + ' recorded in the app, ' + int(asm.length) + ' assumed from the sheets)', months.map(function (x) { return x.s.v; }), cur, 'Completed sales') +
-      dxHead('Cakes sold', int(cs.c), dxDelta(cs.c, ps && ps.c), 'In completed sales', months.map(function (x) { return x.s.c; }), cur, 'Completed sales') +
-      dxHead('Average order', m0(cs.aov), dxDelta(cs.aov, ps && ps.aov), 'Sales value per completed sale', months.map(function (x) { return x.s.aov; }), cur, 'Completed sales') +
-      dxHead('Booked ahead', m0(upv), null, up.length + ' to come: ' + upc + ' confirmed, ' + (up.length - upc) + ' not yet', wk.map(function (x) { return x.vv; }), up, 'Orders still to come') + '</div>';
-    ov += '<div class="dx-minis">' +
-      dxMini('Orders received', int(got.length) + (pgot ? ' <i>' + esc(dxDelta(got.length, pgot.length).t) + '</i>' : ''), got, 'Orders received') +
-      dxMini('Payments collected', data.anyPay ? m0(cash) : 'Not recorded', cashList, 'Orders with payments in this period') +
-      dxMini('Outstanding', m0(owed) + ' <i>' + owing.length + (owing.length === 1 ? ' order' : ' orders') + '</i>', owing, 'Orders with money still owed') +
-      dxMini('Cancellations', int(cx.length) + (got.length ? ' <i>' + Math.round(cx.length / got.length * 100) + '%</i>' : ''), cx, 'Cancelled orders') +
-      dxMini('Refunds', m0(refunds), refList, 'Refunded orders') + '</div>';
-    // Main row: the month chart, with channels and top cakes beside it
-    ov += '<div class="dx-main">' + dxMonthly(r, months) + '<div class="dx-side">' + dxChannelsCard(cur) + dxTopCard(cur) + '</div></div>';
+    // Overview: the summary page (see ovView)
+    d.cmpShort = ps ? 'vs ' + r.cmp : '';
+    var ov = ovView(r, cur, cs, ps, got, pgot, owing);
     // Details: one section at a time
     var flags = [], lo = data.left_out || {};
     if (lo.needs_review) flags.push(int(lo.needs_review) + ' records are waiting for a manager to review them (possible duplicates, missing or conflicting dates, possible tests). They are not counted until a decision is made.');
@@ -171,7 +160,7 @@
     d.secs = [];
     dxProducts(cur); dxUpcoming(up); dxCustomers(cur, r); dxPayments(r); dxOps(r); dxDiscounts(cur); dxDemand(cur); dxYear(); dxOrders(r);
     dxSec('df', 'About the data', flags.length + ' things to know', '<p class="dx-ch">' + flags.length + ' things to know about this data</p>' + flags.map(dxFlag).join('') + dxDefs());
-    d.secs = [['ov', 'Overview', '', ''], ['cc', 'Channels and cakes', '', '<div class="dx-side dx-side-ph">' + dxChannelsCard(cur) + dxTopCard(cur) + '</div>']].concat(dxMerge(d.secs));
+    d.secs = [['ov', 'Overview', '', '']].concat(dxMerge(d.secs));
     var keys = d.secs.map(function (x) { return x[0]; }), cs2 = secCur('dash', keys, 'ov'), sec = d.secs.filter(function (x) { return x[0] === cs2; })[0];
     h += '<div class="dx-secs">' + secBar('dash', d.secs.map(function (x) { return [x[0], x[1]]; }), cs2, 'Dashboard sections') + '</div>' + period;
     if (cs2 === 'ov') return h + '<div class="dx-ov">' + ov + '</div>';
@@ -197,6 +186,204 @@
       dxSpark(spark) + '<span class="dx-hs">' + esc(sub) + '</span>', 'dx-head');
   }
   function dxMini(label, value, list, title) { return dxTap(list, title, '<span>' + label + '</span><b>' + value + '</b>', 'dx-mini'); }
+  // ----- Overview (the summary page): four figures, the trend, status, top cakes, customers, pickup times, what needs attention -----
+  // Chart colours (checked for colour blindness): status always shown with its name beside the colour
+  var OV_C = { done: '#2E9A6E', come: '#3F74C0', wait: '#D19A2A', off: '#C2453F', unmarked: '#98A2B3', prev: '#98A2B3', line: '#3F74C0', newc: '#3F74C0', back: '#A0527A' };
+  var OV_HEAT = ['#9DB8E3', '#6F97D3', '#3F74C0', '#2A5698', '#1B3B6B'];
+  var OV_ICON = {
+    orders: '<path d="M6 4h12v16H6z"/><path d="M9 9h6M9 13h6M9 17h3"/>',
+    money: '<path d="M4 7h16v10H4z"/><circle cx="12" cy="12" r="2.5"/><path d="M7 10v4M17 10v4"/>',
+    avg: '<path d="M4 19h16"/><path d="M7 16V11M12 16V7M17 16v-3"/>',
+    done: '<circle cx="12" cy="12" r="8"/><path d="M8.5 12.2l2.4 2.4 4.6-5"/>'
+  };
+  function ovIcon(k) { return '<span class="ov-ic" aria-hidden="true"><svg viewBox="0 0 24 24">' + OV_ICON[k] + '</svg></span>'; }
+  function ovHour(h) { return (h % 12 || 12) + (h < 12 ? ' am' : ' pm'); }
+  function ovDay(iso) { return (new Date(iso + 'T12:00:00Z').getUTCDay() + 6) % 7; }
+  function ovShort(iso) { return +iso.slice(8, 10) + ' ' + MON[+iso.slice(5, 7) - 1]; }
+  // Time buckets across the period (day, week or month), each with the matching bucket of the period before
+  function ovSpan(r) {
+    var t = today(), from = r.from, to = r.to > t ? t : r.to;
+    if (r.all) { from = t; DX.data.orders.forEach(function (o) { var x = dxD(o); if (x && x < from) from = x; }); }
+    return { from: from, to: to, days: daysBetween(from, to) + 1 };
+  }
+  function ovUnit(sp) { var u = DX.unit; if (u === 'd' && sp.days > 120) u = null; if (u === 'w' && sp.days > 1200) u = null; return u || (sp.days <= 45 ? 'd' : sp.days <= 200 ? 'w' : 'm'); }
+  function ovBuckets(r) {
+    var sp = ovSpan(r), u = ovUnit(sp), out = [], a, b;
+    if (u === 'd') for (a = sp.from; a <= sp.to; a = addDays(a, 1)) out.push({ a: a, b: a, l: ovShort(a), full: nice(a, true) });
+    else if (u === 'w') { a = addDays(sp.from, -ovDay(sp.from)); for (; a <= sp.to; a = addDays(a, 7)) { b = addDays(a, 6); out.push({ a: a < sp.from ? sp.from : a, b: b > sp.to ? sp.to : b, l: ovShort(a), full: 'Week starting ' + nice(a, true) }); } }
+    else { a = dxMonthStart(sp.from); for (; a <= sp.to; a = dxAddMonths(a, 1)) { b = dxMonthEnd(a); out.push({ a: a < sp.from ? sp.from : a, b: b > sp.to ? sp.to : b, l: MON[+a.slice(5, 7) - 1] + ' ' + a.slice(2, 4), full: MONF[+a.slice(5, 7) - 1] + ' ' + a.slice(0, 4) }); } }
+    var nm = out.length, len = sp.days;
+    out.forEach(function (x) {
+      x.got = dxIn(x.a, x.b); x.sales = dxSales(x.a, x.b); x.s = dxSum(x.sales);
+      x.done = x.got.filter(function (o) { return o.sale; }).length; x.off = x.got.filter(function (o) { return o.off; }).length;
+      x.rate = x.done + x.off ? x.done / (x.done + x.off) * 100 : NaN;
+      if (r.pf) { var pa = u === 'm' ? dxAddMonths(x.a, -nm) : addDays(x.a, -len), pb = u === 'm' ? dxAddMonths(x.b, -nm) : addDays(x.b, -len); x.pn = dxIn(pa, pb).length; x.pv = dxSum(dxSales(pa, pb)).v; }
+    });
+    out.unit = u; out.span = sp; return out;
+  }
+  function ovNiceMax(v) { if (v <= 0) return 1; var p = Math.pow(10, Math.floor(Math.log10(v))), n = v / p; return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10) * p; }
+  function ovDelta(cur, prev, points) {
+    if (prev == null || !isFinite(prev)) return { t: '', c: '' };
+    if (points) { var d = Math.round(cur - prev); return d > 0 ? { t: 'Up ' + d + (d === 1 ? ' point' : ' points'), c: 'up' } : d < 0 ? { t: 'Down ' + (-d) + (d === -1 ? ' point' : ' points'), c: 'down' } : { t: 'No change', c: 'flat' }; }
+    return dxDelta(cur, prev);
+  }
+  function ovKpi(icon, label, value, delta, sub, spark, list, title) {
+    return dxTap(list, title, '<span class="ov-kh">' + ovIcon(icon) + '<span class="ov-kl">' + label + '</span></span><b class="ov-kv">' + value + '</b>' +
+      '<span class="ov-kd is-' + (delta.c || 'none') + '">' + (delta.t ? esc(delta.t) + (DX.cmpShort ? '<em> ' + esc(DX.cmpShort) + '</em>' : '') : '&nbsp;') + '</span>' +
+      dxSpark(spark) + '<span class="ov-ks">' + esc(sub) + '</span>', 'ov-kpi');
+  }
+  // Orders or revenue over time: one measure at a time (switch between them), the period before as a dashed grey line
+  function ovTrend(bk, r) {
+    var tm = DX.tm || 'o', isV = tm === 'v', val = function (x) { return isV ? x.s.v : x.got.length; }, pv = function (x) { return isV ? x.pv : x.pn; };
+    var hasPrev = !!r.pf && bk.length > 1, n = bk.length;
+    var max = ovNiceMax(bk.reduce(function (m, x) { return Math.max(m, val(x), hasPrev ? pv(x) || 0 : 0); }, 0));
+    var fmt = function (v) { return isV ? m0(v) : int(v); }, ax = function (v) { return isV ? (v >= 1000 ? '$' + (v / 1000).toFixed(v % 1000 ? 1 : 0) + 'k' : '$' + Math.round(v)) : int(v); };
+    var X = function (i) { return n === 1 ? 50 : i / (n - 1) * 100; }, Y = function (v) { return 100 - v / max * 100; };
+    var pts = bk.map(function (x, i) { return X(i).toFixed(2) + ',' + Y(val(x)).toFixed(2); });
+    var svg = '<svg class="ov-svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">' +
+      [0.25, 0.5, 0.75].map(function (g) { return '<line class="ov-grid" x1="0" x2="100" y1="' + (g * 100) + '" y2="' + (g * 100) + '" vector-effect="non-scaling-stroke"/>'; }).join('') +
+      '<line class="ov-base" x1="0" x2="100" y1="100" y2="100" vector-effect="non-scaling-stroke"/>' +
+      (n > 1 ? '<polygon class="ov-area" points="0,100 ' + pts.join(' ') + ' 100,100"/>' : '') +
+      (hasPrev ? '<polyline class="ov-prev" points="' + bk.map(function (x, i) { return X(i).toFixed(2) + ',' + Y(pv(x) || 0).toFixed(2); }).join(' ') + '" vector-effect="non-scaling-stroke"/>' : '') +
+      (n > 1 ? '<polyline class="ov-line" points="' + pts.join(' ') + '" vector-effect="non-scaling-stroke"/>' : '') + '</svg>';
+    var dots = bk.map(function (x, i) { return n <= 40 && val(x) ? '<i class="ov-dot" style="left:' + X(i).toFixed(2) + '%;top:' + Y(val(x)).toFixed(2) + '%"></i>' : ''; }).join('');
+    var hits = '<div class="ov-hits" style="grid-template-columns:repeat(' + n + ',minmax(0,1fr))">' + bk.map(function (x, i) {
+      var tip = x.full + ': ' + fmt(val(x)) + (isV ? ' from ' + x.s.n + (x.s.n === 1 ? ' sale' : ' sales') : x.got.length === 1 ? ' order' : ' orders') + (hasPrev ? '. Period before: ' + fmt(pv(x) || 0) : '');
+      var cls = 'ov-hit' + (i > n * 0.66 ? ' tip-l' : i < n * 0.34 ? ' tip-r' : '');
+      var list = isV ? x.sales : x.got;
+      return list.length ? '<button type="button" class="' + cls + '" data-act="dx-drill" data-v="' + dxKey({ t: x.full + (isV ? ' sales' : ' orders'), l: list }) + '" data-tip="' + esc(tip) + '" aria-label="' + esc(tip) + '"></button>' : '<span class="' + cls + '" data-tip="' + esc(tip) + '" tabindex="0" aria-label="' + esc(tip) + '"></span>';
+    }).join('') + '</div>';
+    var ticks = [0, 0.5, 1].map(function (g) { return '<span style="top:' + ((1 - g) * 100) + '%">' + ax(max * g) + '</span>'; }).join('');
+    var step = Math.max(1, Math.ceil(n / ((window.innerWidth || 1280) < 700 ? 3 : 6))), xl = bk.map(function (x, i) { return i % step === 0 && (n - 1 - i >= step * 0.7 || i === n - 1) || i === n - 1 && (n - 1) % step > 0 ? '<span' + (i === n - 1 && n > 1 ? ' class="is-end"' : '') + ' style="left:' + X(i).toFixed(2) + '%">' + esc(x.l) + '</span>' : ''; }).join('');
+    var tg = function (k, l) { return '<button type="button" class="ccs-chip dx-tg" data-act="dx-tm" data-v="' + k + '" aria-pressed="' + (tm === k) + '">' + l + '</button>'; };
+    var ug = function (k, l, off) { return '<button type="button" class="ccs-chip dx-tg" data-act="dx-unit" data-v="' + k + '" aria-pressed="' + (bk.unit === k) + '"' + (off ? ' disabled' : '') + '>' + l + '</button>'; };
+    var tbl = '';
+    if (DX.table) tbl = '<div class="ccs-table-wrap"><table class="ccs-table dx-table"><thead><tr><th>' + (bk.unit === 'd' ? 'Day' : bk.unit === 'w' ? 'Week starting' : 'Month') + '</th><th class="ccs-num">Orders</th><th class="ccs-num">Completed sales</th><th class="ccs-num">Revenue</th>' + (hasPrev ? '<th class="ccs-num">Orders, period before</th><th class="ccs-num">Revenue, period before</th>' : '') + '</tr></thead><tbody>' +
+      bk.map(function (x) { return '<tr><td>' + esc(x.full) + '</td><td class="ccs-num">' + int(x.got.length) + '</td><td class="ccs-num">' + int(x.s.n) + '</td><td class="ccs-num">' + m0(x.s.v) + '</td>' + (hasPrev ? '<td class="ccs-num">' + int(x.pn) + '</td><td class="ccs-num">' + m0(x.pv) + '</td>' : '') + '</tr>'; }).join('') + '</tbody></table></div>';
+    return '<section class="dx-card ov-trend" aria-label="Orders and revenue over time"><div class="dx-card-h"><h2>Orders and revenue over time</h2><div class="dx-card-acts"><span class="ov-seg" role="group" aria-label="Show">' + tg('o', 'Orders') + tg('v', 'Revenue') + '</span>' +
+      '<span class="ov-seg" role="group" aria-label="Group by">' + ug('d', 'Daily', bk.span.days > 120) + ug('w', 'Weekly', bk.span.days > 1200) + ug('m', 'Monthly') + '</span></div></div>' +
+      (DX.table ? tbl : '<div class="ov-plot"><div class="ov-yax">' + ticks + '</div><div class="ov-area-w">' + svg + dots + hits + '</div><div class="ov-xax">' + xl + '</div></div>' +
+        '<p class="dx-legend ov-legend"><span class="ov-key-line"></span>' + (isV ? 'Revenue' : 'Orders') + ', this period' + (hasPrev ? '<span class="ov-key-prev"></span>Period before' : '') + '</p>') +
+      '<p class="ov-foot"><button type="button" class="ccs-link" data-act="dx-table">' + (DX.table ? 'Show chart' : 'Show as a table') + '</button>' + (isV ? ' · Revenue counts completed sales only.' : ' · Orders counts every order, whatever happened to it.') + '</p></section>';
+  }
+  // Status of the orders in the period, as a ring with names, counts and shares
+  function ovStatus(got) {
+    var g = [['done', 'Completed', function (o) { return o.sale; }], ['come', 'Confirmed, to come', function (o) { return o.open && o.st === 'confirmed'; }], ['wait', 'Awaiting confirmation', function (o) { return !o.off && !o.sale && o.cp !== 'not_recorded' && !(o.open && o.st === 'confirmed'); }], ['off', 'Cancelled', function (o) { return o.off; }], ['unmarked', 'Past pickup, not marked collected', function (o) { return o.cp === 'not_recorded' && !o.off; }]];
+    var rows = g.map(function (x) { return { k: x[0], l: x[1], list: got.filter(x[2]) }; }).filter(function (x) { return x.list.length || x.k !== 'unmarked'; }), tot = got.length;
+    var segs = rows.filter(function (x) { return x.list.length; }), gap = segs.length > 1 ? 0.8 : 0, acc = 0;
+    var ring = '<svg class="ov-ring" viewBox="0 0 42 42" aria-hidden="true"><circle cx="21" cy="21" r="15.915" class="ov-ring-bg"/>' + segs.map(function (x) {
+      var p = x.list.length / tot * 100, len = Math.max(p - gap, 0.4), s = '<circle cx="21" cy="21" r="15.915" stroke="' + OV_C[x.k] + '" stroke-dasharray="' + len.toFixed(2) + ' ' + (100 - len).toFixed(2) + '" stroke-dashoffset="' + (25 - acc - gap / 2).toFixed(2) + '"/>';
+      acc += p; return s;
+    }).join('') + '</svg>';
+    var legend = '<div class="ov-sleg">' + rows.map(function (x) {
+      var n = x.list.length, p = tot ? Math.round(n / tot * 100) : 0;
+      return dxTap(x.list, x.l, '<i style="background:' + OV_C[x.k] + '"></i><span class="ov-sl">' + esc(x.l) + '</span><b>' + int(n) + '</b><span class="ov-sp">' + p + '%</span>', 'ov-srow');
+    }).join('') + '</div>';
+    return '<section class="dx-card ov-status" aria-label="Order status"><div class="dx-card-h"><h2>Order status</h2><span>Orders in this period</span></div>' +
+      (tot ? '<div class="ov-sbody"><div class="ov-ringw">' + ring + '<div class="ov-ringc"><b>' + int(tot) + '</b><span>orders</span></div></div>' + legend + '</div>' : '<p class="ccs-quiet">No orders in this period.</p>') + '</section>';
+  }
+  function ovTop(cur, prevList) {
+    var grp = function (l) { return dxGroup(l, function (o) { return dxItems(o).map(function (i) { var q = dnum(i[3]) || 1; return [i[0], q, dnum(i[4]) * q]; }); }); };
+    var g = grp(cur).sort(function (a, b) { return b.v - a.v || b.q - a.q; }).slice(0, 5), pv = {};
+    if (prevList) grp(prevList).forEach(function (x) { pv[x.l] = x.v; });
+    var body = g.length ? '<div class="ov-top"><div class="ov-top-h"><span>Cake</span><span>Revenue</span><span>' + (prevList ? 'Change' : '') + '</span></div>' + g.map(function (x, k) {
+      var d = prevList ? dxDelta(x.v, pv[x.l] || 0) : { t: '', c: '' };
+      return dxTap(x.list, x.l, '<span class="ov-rank">' + (k + 1) + '</span><span class="ov-tn"><b>' + esc(x.l) + '</b><span>' + int(x.q) + (x.q === 1 ? ' cake' : ' cakes') + '</span></span><span class="ov-tv">' + m0(x.v) + '</span><span class="ov-tc is-' + (d.c || 'none') + '">' + esc(d.t || '') + '</span>', 'ov-trow');
+    }).join('') + '</div>' : '<p class="ccs-quiet">No completed sales in this period.</p>';
+    return '<section class="dx-card" aria-label="Top selling cakes"><div class="dx-card-h"><h2>Top selling cakes</h2><span>By revenue</span></div>' + body + '</section>';
+  }
+  function ovCustomers(cur, r) {
+    var first = DX.data.first, by = {};
+    cur.forEach(function (o) { if (!o.c) return; (by[o.c] = by[o.c] || []).push(o); });
+    var ids = Object.keys(by), nw = ids.filter(function (c) { return r.all || first[c] >= r.from; }), ret = ids.filter(function (c) { return !r.all && first[c] < r.from; });
+    var upto = {}; DX.data.orders.forEach(function (o) { if (o.sale && o.c && o.pd <= r.to) upto[o.c] = (upto[o.c] || 0) + 1; });
+    var listOf = function (cs) { var l = []; cs.forEach(function (c) { l = l.concat(by[c]); }); return l; };
+    var n = ids.length, pn = n ? Math.round(nw.length / n * 100) : 0;
+    var bands = [['1 order', 1, 1], ['2 to 3 orders', 2, 3], ['4 or more orders', 4, 1e9]].map(function (b) { var cs = ids.filter(function (c) { return upto[c] >= b[1] && upto[c] <= b[2]; }); return { l: b[0], v: cs.length, list: listOf(cs), t: 'Customers with ' + b[0] }; });
+    var noId = cur.filter(function (o) { return !o.c; }).length;
+    var body = n ? '<div class="ov-cnum">' + dxTap(listOf(nw), 'New customers\' orders', '<i style="background:' + OV_C.newc + '"></i><span>New</span><b>' + int(nw.length) + '</b><em>' + pn + '%</em>', 'ov-cn') + dxTap(listOf(ret), 'Returning customers\' orders', '<i style="background:' + OV_C.back + '"></i><span>Returning</span><b>' + int(ret.length) + '</b><em>' + (100 - pn) + '%</em>', 'ov-cn') + '</div>' +
+      '<div class="ov-split" role="img" aria-label="' + pn + '% new, ' + (100 - pn) + '% returning"><i style="width:' + pn + '%;background:' + OV_C.newc + '"></i><i style="width:' + (100 - pn) + '%;background:' + OV_C.back + '"></i></div>' +
+      '<p class="ov-sub">Completed orders per customer, all time</p>' + bands.map(function (x) { var p = n ? Math.round(x.v / n * 100) : 0; return dxTap(x.list, x.t, '<span class="ov-dl">' + x.l + '</span><span class="ov-dt"><i style="width:' + p + '%"></i></span><b>' + int(x.v) + '</b><span class="ov-sp">' + p + '%</span>', 'ov-drow'); }).join('') +
+      '<p class="ccs-hint">' + int(n) + ' customers bought in this period, matched by mobile number.' + (noId ? ' ' + int(noId) + (noId === 1 ? ' sale has' : ' sales have') + ' no customer record.' : '') + '</p>' : '<p class="ccs-quiet">No completed sales with a customer in this period.</p>';
+    return '<section class="dx-card ov-cust" aria-label="Customer insights"><div class="dx-card-h"><h2>Customer insights</h2><span>Completed sales</span></div>' + body + '</section>';
+  }
+  // Pickup times: day of the week against hour of the day. Falls back to the last 12 months when the period has too few orders to show a pattern.
+  function ovPeak(got, r) {
+    var use = function (l) { return l.filter(function (o) { return !o.off && o.pt && /^\d{1,2}:/.test(o.pt); }); }, list = use(got), wide = false;
+    if (list.length < 15) { var t = today(); list = use(DX.data.orders.filter(function (o) { return inRange(o.pd, addDays(t, -364), t) && dxMatch(o); })); wide = true; }
+    var cell = {}, lo = 24, hi = -1;
+    list.forEach(function (o) { var h = +o.pt.split(':')[0], k = ovDay(o.pd) + '|' + h; (cell[k] = cell[k] || []).push(o); if (h < lo) lo = h; if (h > hi) hi = h; });
+    if (!list.length) return '<section class="dx-card" aria-label="Peak pickup times"><div class="dx-card-h"><h2>Peak pickup times</h2></div><p class="ccs-quiet">No pickup times recorded.</p></section>';
+    lo = Math.max(Math.min(lo, 9), 6); hi = Math.min(Math.max(hi, 17), 21);
+    var max = 0, best = null; Object.keys(cell).forEach(function (k) { if (cell[k].length > max) { max = cell[k].length; best = k; } });
+    var hrs = []; for (var h = lo; h <= hi; h++) hrs.push(h);
+    var grid = '<div class="ov-heat" style="grid-template-columns:40px repeat(' + hrs.length + ',minmax(0,1fr))"><span></span>' + hrs.map(function (h) { return '<span class="ov-hx">' + ((h - lo) % 2 ? '' : (h % 12 || 12) + (h < 12 ? 'a' : 'p')) + '</span>'; }).join('') +
+      WD.map(function (d, di) {
+        return '<span class="ov-hy">' + d + '</span>' + hrs.map(function (h) {
+          var l = cell[di + '|' + h] || [], c = l.length, step = c ? Math.min(OV_HEAT.length - 1, Math.floor((c / max) * OV_HEAT.length - 0.0001)) : -1;
+          var tip = WDF[di] + ', ' + ovHour(h) + ' to ' + ovHour(h + 1) + ': ' + c + (c === 1 ? ' pickup' : ' pickups');
+          return c ? '<button type="button" class="ov-hc' + (h - lo > hrs.length / 2 ? ' tip-l' : '') + '" style="background:' + OV_HEAT[step] + '" data-act="dx-drill" data-v="' + dxKey({ t: tip, l: l }) + '" data-tip="' + esc(tip) + '" aria-label="' + esc(tip) + '"></button>' : '<span class="ov-hc is-0" data-tip="' + esc(tip) + '"></span>';
+        }).join('');
+      }).join('') + '</div>';
+    var bd = best.split('|');
+    return '<section class="dx-card ov-peak" aria-label="Peak pickup times"><div class="dx-card-h"><h2>Peak pickup times</h2><span>' + (wide ? 'Last 12 months' : 'This period') + '</span></div>' + grid +
+      '<p class="dx-legend ov-hleg">Fewer' + OV_HEAT.map(function (c) { return '<span style="background:' + c + '"></span>'; }).join('') + 'More</p>' +
+      '<p class="ov-foot">Busiest: <b>' + WDF[+bd[0]] + ', ' + ovHour(+bd[1]) + ' to ' + ovHour(+bd[1] + 1) + '</b> (' + max + (max === 1 ? ' pickup' : ' pickups') + ').' + (wide ? ' This period has too few orders with a pickup time, so the last 12 months are shown.' : '') + '</p></section>';
+  }
+  function ovAttention(owing) {
+    var t = today(), tm = addDays(t, 1), all = DX.data.orders.filter(dxMatch), live = function (o) { return !o.off && !o.sale && o.pd >= t; };
+    var rows = [
+      ['Awaiting confirmation', all.filter(function (o) { return live(o) && o.st !== 'confirmed'; }), 'Orders from today on, not yet confirmed'],
+      ['Needs a price', all.filter(function (o) { return live(o) && !o.tot; }), 'No price agreed yet'],
+      ['Due tomorrow', all.filter(function (o) { return live(o) && o.pd === tm; }), nice(tm, true)],
+      ['Money still owed', owing, m0(owing.reduce(function (s, o) { return s + dnum(o.bal); }, 0)) + ' to collect'],
+      ['Past pickup, not marked collected', all.filter(function (o) { return o.cp === 'not_recorded' && !o.off; }), 'Mark collected or cancelled']
+    ];
+    return '<section class="dx-card ov-att" aria-label="Needs attention"><div class="dx-card-h"><h2>Needs attention</h2><span>As of today</span></div>' + rows.map(function (x) {
+      var n = x[1].length;
+      return dxTap(x[1], x[0], '<span class="ov-an' + (n ? ' is-on' : '') + '">' + int(n) + '</span><span class="ov-at"><b>' + esc(x[0]) + '</b><span>' + esc(n ? x[2] : 'None') + '</span></span>' + (n ? '<span class="ov-go" aria-hidden="true">View</span>' : ''), 'ov-arow');
+    }).join('') + '</section>';
+  }
+  function ovRecent() {
+    var t = today(), ev = [];
+    DX.data.orders.forEach(function (o) {
+      if (!dxMatch(o)) return;
+      var nm = o.cn ? ', ' + o.cn : '';
+      if (o.odok && o.od && o.od <= t) ev.push({ k: o.od + 'T00:00', o: o, w: nice(o.od), t: 'New order ' + o.r + nm, s: 'For ' + nice(o.pd) + (dxValue(o) ? ', ' + m0(dxValue(o)) : '') });
+      if (typeof o.ho === 'string' && o.ho) ev.push({ k: o.ho, o: o, w: when(o.ho), t: 'Collected ' + o.r + nm, s: dxValue(o) ? m0(dxValue(o)) : '' });
+      if (typeof o.ca === 'string' && o.ca && o.off) ev.push({ k: o.ca, o: o, w: when(o.ca), t: 'Cancelled ' + o.r + nm, s: o.cx || '' });
+    });
+    ev.sort(function (a, b) { return a.k < b.k ? 1 : a.k > b.k ? -1 : 0; });
+    return '<section class="dx-card ov-rec" aria-label="Recent activity"><div class="dx-card-h"><h2>Recent activity</h2><span>Latest first</span></div>' + (ev.length ? ev.slice(0, 6).map(function (e) {
+      var o = e.o, act = o.i && o.live ? 'data-act="open-order" data-id="' + o.i + '"' : 'data-act="rg-open" data-v="' + esc(o.k || '') + '"';
+      return '<button type="button" class="ov-ev" ' + act + '><span class="ov-et"><b>' + esc(e.t) + '</b>' + (e.s ? '<span>' + esc(e.s) + '</span>' : '') + '</span><span class="ov-ew">' + esc(e.w) + '</span></button>';
+    }).join('') : '<p class="ccs-quiet">No activity yet.</p>') + '</section>';
+  }
+  // Up to three plain observations worked out from the figures above. No guesses about causes.
+  function ovInsights(cur, cs, ps, r) {
+    var out = [], t = today(), wk = addDays(t, 7);
+    var wait = DX.data.orders.filter(function (o) { return dxMatch(o) && !o.off && !o.sale && o.st !== 'confirmed' && o.pd >= t && o.pd <= wk; });
+    if (wait.length) out.push(dxTap(wait, 'Awaiting confirmation, next 7 days', '<b>' + int(wait.length) + (wait.length === 1 ? ' order' : ' orders') + '</b> for the next 7 days ' + (wait.length === 1 ? 'is' : 'are') + ' still waiting to be confirmed.', 'ov-in is-act'));
+    if (ps && ps.v) { var p = Math.round((cs.v - ps.v) / ps.v * 100); out.push('<p class="ov-in">Revenue is <b>' + (p > 0 ? 'up ' + p + '%' : p < 0 ? 'down ' + (-p) + '%' : 'unchanged') + '</b> on the ' + esc(r.cmp) + ': ' + int(cs.n) + ' completed sales against ' + int(ps.n) + '.</p>'); }
+    var g = dxGroup(cur, function (o) { return dxItems(o).map(function (i) { var q = dnum(i[3]) || 1; return [i[0], q, dnum(i[4]) * q]; }); }).sort(function (a, b) { return b.v - a.v; });
+    if (g.length > 1 && cs.v) out.push('<p class="ov-in"><b>' + esc(g[0].l) + '</b> brought in ' + Math.round(g[0].v / cs.v * 100) + '% of revenue (' + m0(g[0].v) + ').</p>');
+    if (cur.length >= 5) { var wd = [0, 0, 0, 0, 0, 0, 0]; cur.forEach(function (o) { wd[ovDay(o.pd)]++; }); var top = wd.indexOf(Math.max.apply(null, wd)); out.push('<p class="ov-in"><b>' + WDF[top] + '</b> is the busiest pickup day, with ' + wd[top] + ' of ' + cur.length + ' completed sales.</p>'); }
+    return '<section class="dx-card ov-ins" aria-label="Insights"><div class="dx-card-h"><h2>Insights</h2><span>Worked out from the figures</span></div>' + (out.length ? out.slice(0, 3).join('') : '<p class="ccs-quiet">Not enough orders in this period to say anything useful.</p>') + '</section>';
+  }
+  function ovView(r, cur, cs, ps, got, pgot, owing) {
+    var bk = ovBuckets(r), cx = got.filter(function (o) { return o.off; }), dn = got.filter(function (o) { return o.sale; });
+    var rate = dn.length + cx.length ? dn.length / (dn.length + cx.length) * 100 : NaN, prate = NaN;
+    if (pgot) { var pd = pgot.filter(function (o) { return o.sale; }).length, px = pgot.filter(function (o) { return o.off; }).length; prate = pd + px ? pd / (pd + px) * 100 : NaN; }
+    var h = '<div class="ov-kpis">' +
+      ovKpi('orders', 'Total orders', int(got.length), ovDelta(got.length, pgot ? pgot.length : null), 'Every order in the period', bk.map(function (x) { return x.got.length; }), got, 'Orders in this period') +
+      ovKpi('money', 'Revenue', m0(cs.v), ovDelta(cs.v, ps ? ps.v : null), 'From ' + int(cs.n) + ' completed ' + (cs.n === 1 ? 'sale' : 'sales'), bk.map(function (x) { return x.s.v; }), cur, 'Completed sales') +
+      ovKpi('avg', 'Average order value', m0(cs.aov), ovDelta(cs.aov, ps ? ps.aov : null), 'Revenue per completed sale', bk.map(function (x) { return x.s.n ? x.s.aov : NaN; }), cur, 'Completed sales') +
+      ovKpi('done', 'Completion rate', isFinite(rate) ? Math.round(rate) + '%' : 'None yet', isFinite(rate) ? ovDelta(rate, isFinite(prate) ? prate : null, true) : { t: '', c: '' }, int(dn.length) + ' completed, ' + int(cx.length) + ' cancelled', bk.map(function (x) { return x.rate; }), cx, 'Cancelled orders') + '</div>';
+    h += '<div class="ov-row ov-r1">' + ovTrend(bk, r) + ovStatus(got) + '</div>';
+    h += '<div class="ov-row ov-r3">' + ovTop(cur, r.pf ? dxSales(r.pf, r.pt) : null) + ovCustomers(cur, r) + ovPeak(got, r) + '</div>';
+    h += '<div class="ov-row ov-r3">' + ovAttention(owing) + ovRecent() + ovInsights(cur, cs, ps, r) + '</div>';
+    return h;
+  }
   // 13 months ending with the selected period, with the same month last year
   function dxMonths(r) {
     var t = today(), end = r.all ? t : (r.to > t ? t : r.to), rows = [];
@@ -407,7 +594,7 @@
   function dxMerge(secs) {
     var by = {}; secs.forEach(function (x) { by[x[0]] = x; });
     var join = function (into, from, title) { if (!by[into] || !by[from]) return; by[into][3] += '<hr class="dx-hr">' + '<div class="dx-card-h"><h2>' + esc(by[from][1]) + '</h2>' + (by[from][2] ? '<span>' + by[from][2] + '</span>' : '') + '</div>' + by[from][3]; if (title) by[into][1] = title; secs.splice(secs.indexOf(by[from]), 1); };
-    join('pa', 'di', 'Payments and pricing'); join('de', 'yr', 'Patterns');
+    join('pa', 'di', 'Payments and pricing'); join('de', 'yr', 'Patterns'); join('up', 'op', 'Upcoming and operations');
     var order = ['up', 'pr', 'cu', 'pa', 'op', 'de', 'ol', 'df'];
     secs.sort(function (a, b) { return order.indexOf(a[0]) - order.indexOf(b[0]); });
     return secs;
@@ -434,6 +621,8 @@
     else if (a === 'dx-psort') { DX.psort = v; dxKeep(); view(); }
     else if (a === 'dx-year') { DX.year = v; dxKeep(); view(); }
     else if (a === 'dx-metric') { DX.metric = v; view(); }
+    else if (a === 'dx-tm') { DX.tm = v; view(); }
+    else if (a === 'dx-unit') { DX.unit = v; view(); }
     else if (a === 'dx-filters') { DX.fopen = !DX.fopen; view(); }
     else if (a === 'dx-table') { DX.table = !DX.table; view(); }
     else if (a === 'dx-drill') { var dr = DX.drills[v]; if (!dr) return; S.sheet = { type: 'dash', drill: dr }; S.panel = null; S.dirty = {}; sheetOpen(); renderSheet(); }
@@ -441,7 +630,7 @@
   function dxKeep() { root.querySelectorAll('[data-dxsec]').forEach(function (el) { DX['o' + el.dataset.dxsec] = el.open; }); }
   function dashChange(t) {
     var f = DX.f, k = t.dataset.dx; dxKeep();
-    if (k === 'dx-p') { f.p = t.value; if (f.p === 'c' && !f.from) { f.to = today(); f.from = dxMonthStart(f.to); } }
+    if (k === 'dx-p') { f.p = t.value; DX.unit = null; if (f.p === 'c' && !f.from) { f.to = today(); f.from = dxMonthStart(f.to); } }
     else if (k === 'dx-from') f.from = t.value; else if (k === 'dx-to') f.to = t.value;
     else if (k === 'dx-b') f.b = t.value; else if (k === 'dx-prod') f.prod = t.value; else if (k === 'dx-ch') f.ch = t.value; else if (k === 'dx-st') { f.st = t.value; }
     view();
