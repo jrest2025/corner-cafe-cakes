@@ -1345,6 +1345,7 @@
       if (!r.data.ok) throw userErr(r.data.message);
       S.kit.data = r.data; S.kit.loaded = true; S.kit.err = null; S.kit.fails = 0; S.kit.at = Date.now();
       slipLoad((r.data.orders || []).filter(function (x) { return x.brief_version > 0 && x.status === 'confirmed'; }).map(function (x) { return x.id; }));
+      if (S.kit.cal && S.kit.cal.orders && S.tab === 'kitchen' && kitMode() === 'cal') kitCalLoad(true);
       if (S.tab === 'kitchen') view();
       if (S.sheet && S.sheet.type === 'kitchen') renderSheet();
     }).catch(function (e) {
@@ -1357,7 +1358,7 @@
       if (!K.loaded && S.sheet && S.sheet.type === 'kitchen') renderSheet();
     });
   }
-  function kitRow(id) { return S.kit.data ? (S.kit.data.orders || []).filter(function (r) { return r.id === id; })[0] : null; }
+  function kitRow(id) { var f = function (l) { return (l || []).filter(function (r) { return r.id === id; })[0]; }; return (S.kit.data && f(S.kit.data.orders)) || (S.kit.cal && f(S.kit.cal.orders)) || null; }
   function kitCake(r) { if (!r.size && r.cake === 'Custom cake') return ['Custom cake', r.variant, r.serves].filter(Boolean).join(', ') + (r.quantity > 1 ? ' × ' + r.quantity : ''); return (r.variant || r.cake || 'Cake') + ', ' + r.size + ' inch' + (r.quantity > 1 ? ' × ' + r.quantity : ''); }
   var KCOLS = [['start', 'To start', ['not_started', 'scheduled']], ['prog', 'In progress', ['preparing', 'baking', 'assembling', 'decorating', 'in_production']], ['qc', 'Quality check', ['quality_check']], ['ready', 'Ready', ['ready']], ['done', 'Handed over', []]];
   function kitCard(r) {
@@ -1384,25 +1385,102 @@
       (tags ? '<span class="ccs-tags">' + tags + '</span>' : '') +
       (r.assignee ? '<span class="ccs-kc-who">Made by ' + esc(r.assignee) + '</span>' : '') + '</button>';
   }
+  // ---------- kitchen workspace: Today, Board and Calendar from the same kitchen_board rows ----------
+  var KMODES = [['today', 'Today'], ['board', 'Board'], ['cal', 'Calendar']];
+  function kitMode() { return secCur('kitM', KMODES.map(function (m) { return m[0]; }), 'today'); }
+  function kitNextAction(r, cls) {
+    if (r.status !== 'confirmed') return '';
+    var idx = stageIndex(r.stage), next = idx < STAGES.length - 2 ? STAGES[idx + 1] : null;
+    if (next) return '<button type="button" class="ccs-btn ccs-good ' + (cls || 'ccs-knext') + '" data-act="k-next" data-id="' + r.id + '" data-v="' + next[0] + '">' + esc(stageJob(next)) + '</button>';
+    if (r.stage === 'quality_check') return '<button type="button" class="ccs-btn ' + (cls || 'ccs-knext') + '" data-act="open-kitchen" data-id="' + r.id + '">Check and mark Ready</button>';
+    return '';
+  }
+  // Why a cake needs a look, in the order the kitchen should deal with it
+  function kitWhy(r) {
+    var w = [];
+    if (r.late) w.push('Late');
+    if (r.amend_pending && r.amend_pending.length) w.push('Changed: confirm the change');
+    if (r.brief_changed) w.push('Changed after printing: print new slip');
+    else if (!r.brief_version && r.status === 'confirmed' && r.stage !== 'ready') w.push('No slip yet');
+    if (r.stage === 'quality_check') w.push('Waiting for quality check');
+    return w;
+  }
+  function kitFlags(r) {
+    var f = '';
+    if (r.has_dietary) f += '<span class="ccs-pill s-alert">Allergy</span>';
+    if (r.finish === 'custom') f += '<span class="ccs-pill s-info">Custom</span>';
+    if (r.method === 'delivery') f += '<span class="ccs-pill s-info">Delivery</span>';
+    return f;
+  }
+  function kitStageText(r) { return r.status === 'completed' ? 'Handed over' : r.stage === 'ready' ? 'Ready' : STAGE_LABEL[r.stage] || 'To start'; }
+  // One compact line per cake; the whole line opens the kitchen panel
+  function kitLine(r, why) {
+    return '<button type="button" class="kw-line' + (r.late ? ' is-late' : '') + '" data-act="open-kitchen" data-id="' + r.id + '">' +
+      '<span class="kw-when"><b>' + esc(t12(r.time)) + '</b><span>' + esc(whenLabel(r.date)) + '</span></span>' +
+      '<span class="kw-what"><b>' + esc(kitCake(r)) + '</b><span>' + esc(r.reference) + ' · ' + esc(r.customer || '') + '</span>' +
+      (why && why.length ? '<em>' + esc(why.join(' · ')) + '</em>' : '') + '</span>' +
+      '<span class="kw-meta"><span class="kw-stage">' + esc(kitStageText(r)) + '</span>' + kitFlags(r) + '</span></button>';
+  }
+  function kitSort(a, b) { return (a.late === b.late ? 0 : a.late ? -1 : 1) || (a.date < b.date ? -1 : a.date > b.date ? 1 : 0) || String(a.time || '').localeCompare(String(b.time || '')); }
   function kitchenView() {
-    var K = S.kit, t = today();
-    var h = '<div class="ccs-head tp-head"><div><p class="ccs-eyebrow">Corner Café · Kitchen</p><h1 class="ccs-title">What\'s on today?</h1><p class="tp-sub">' + esc(nice(t, true)) + '. Confirmed cakes only.</p>' + (K.loaded ? freshLine(K.at, K.fails, 'k-reload') : '') + '</div>' +
-      '<div class="ccs-chips ccs-segs" role="group" aria-label="Range">' + [[2, 'Today and tomorrow'], [7, 'Next 7 days']].map(function (c) { return '<button type="button" class="ccs-chip" data-act="k-range" data-v="' + c[0] + '" aria-pressed="' + (K.days === c[0]) + '">' + c[1] + '</button>'; }).join('') + '</div>' +
-      '<button type="button" class="ccs-chip ccs-kdone-chip" data-act="k-done" aria-pressed="' + !!K.showDone + '">Show handed over</button></div>';
+    var K = S.kit, t = today(), mode = kitMode();
+    var h = '<div class="ccs-head tp-head kw-head"><div><p class="ccs-eyebrow">Corner Café · Kitchen</p><h1 class="ccs-title">' + (mode === 'cal' ? 'Production calendar' : mode === 'board' ? 'Production board' : 'What\'s on today?') + '</h1><p class="tp-sub">' + esc(nice(t, true)) + '. Confirmed cakes only.</p>' + (K.loaded ? freshLine(K.at, K.fails, 'k-reload') : '') + '</div>' +
+      '<div class="ccs-chips ccs-segs kw-modes" role="group" aria-label="Kitchen view">' + KMODES.map(function (m) { return '<button type="button" class="ccs-chip" data-act="k-mode" data-v="' + m[0] + '" aria-pressed="' + (mode === m[0]) + '">' + m[1] + '</button>'; }).join('') + '</div></div>';
+    if (mode === 'cal') return h + kitCalView();
     if (!K.loaded) return h + (K.err ? loadErr(K.err, 'k-reload') : '<p class="ccs-loading">Loading the kitchen board…</p>');
-    var all = K.data.orders || [], lastDay = addDays(t, K.days - 1);
-    // Three large cards, counted from the same board rows they open
+    return h + (mode === 'board' ? kitBoardView() : kitTodayView());
+  }
+  function kitTodayView() {
+    var K = S.kit, t = today(), all = K.data.orders || [], wk = addDays(t, 6);
     var nowH = Number(new Intl.DateTimeFormat('en-GB', { timeZone: TZ, hour: 'numeric', minute: 'numeric', hour12: false }).format(new Date()).replace(':', '.'));
     var open = all.filter(function (r) { return r.status === 'confirmed'; });
     var mk = open.filter(function (r) { return r.date <= t && r.stage !== 'ready'; }), rdy = open.filter(function (r) { return r.stage === 'ready'; }), soon = open.filter(function (r) { return r.date > t; });
     var hr = function (r) { var p = String(r.time || '23:59').split(':'); return Number(p[0]) + Number(p[1] || 0) / 100; };
     var near = mk.filter(function (r) { return r.date < t || hr(r) - nowH <= 3; });
-    var kc = function (v, icon, title, sub, count) { return '<button type="button" class="tp-act kp-act" data-act="k-card" data-v="' + v + '"><span class="tp-ic" aria-hidden="true"><svg viewBox="0 0 24 24">' + icon + '</svg></span><span class="tp-at"><b>' + title + '</b><span>' + sub + '</span><em>' + count + '</em></span><span class="tp-go" aria-hidden="true">›</span></button>'; };
-    h += '<div class="tp-acts kp-acts" role="group" aria-label="What\'s on today?">' +
-      kc('today', '<path d="M4 20h16M6 20v-6h12v6M8 14v-3h8v3M12 11V8M12 8c-1-1.2-1-2.4 0-3.5 1 1.1 1 2.3 0 3.5z"/>', 'To make today', 'Due today or late, not ready yet.', mk.length ? mk.length + (mk.length === 1 ? ' cake' : ' cakes') : 'Nothing left to make today') +
-      kc('ready', '<circle cx="12" cy="12" r="8"/><path d="M8.5 12.2l2.4 2.4 4.6-5"/>', 'Ready to hand over', 'Marked Ready, waiting for the customer.', rdy.length ? rdy.length + (rdy.length === 1 ? ' cake' : ' cakes') : 'None waiting') +
-      kc('soon', '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>', 'Coming up', 'The next 7 days, so prep can start early.', soon.length ? soon.length + (soon.length === 1 ? ' cake' : ' cakes') : 'Nothing booked yet') + '</div>';
+    var h = '';
     if (near.length) h += '<div class="tp-urgent" role="status"><button type="button" class="tp-urg" data-act="k-card" data-v="today"><b>!</b><span>' + near.length + (near.length === 1 ? ' cake is late or due in the next 3 hours and is' : ' cakes are late or due in the next 3 hours and are') + ' not ready yet.</span><em>View</em></button></div>';
+    // Next priority: the most urgent cake that still needs work, with the one button that moves it on
+    var todo = open.filter(function (r) { return r.stage !== 'ready' && r.date <= wk; }).sort(kitSort), np = todo[0];
+    var kc = function (v, title, count) { return '<button type="button" class="kw-count kp-act" data-act="k-card" data-v="' + v + '"><b>' + title + '</b><em>' + count + '</em></button>'; };
+    h += '<div class="kw-top">';
+    if (np) {
+      var why = kitWhy(np);
+      h += '<section class="kw-next" aria-label="Next priority"><p class="kw-label">Next priority</p>' +
+        '<button type="button" class="kw-nextbody" data-act="open-kitchen" data-id="' + np.id + '"><span class="kw-nstage">' + esc(kitStageText(np)) + (np.late ? ' · Late' : '') + '</span>' +
+        '<b class="kw-ncake">' + esc(kitCake(np)) + '</b>' +
+        '<span class="kw-nwhen">' + esc(whenLabel(np.date)) + ', ' + esc(t12(np.time)) + ' · ' + (np.method === 'delivery' ? 'Delivery' + (np.area ? ', ' + esc(np.area) : '') : 'Collection') + '</span>' +
+        (np.message ? '<span class="kw-nmsg">Writing on the cake: “' + esc(np.message) + '”</span>' : '') +
+        '<span class="kw-nsub">' + esc(np.reference) + ' · ' + esc(np.customer || '') + '</span>' +
+        (kitFlags(np) || why.length ? '<span class="ccs-tags">' + kitFlags(np) + why.filter(function (x) { return x !== 'Late' && x !== 'Waiting for quality check'; }).map(function (x) { return '<span class="ccs-pill s-flag">' + esc(x) + '</span>'; }).join('') + '</span>' : '') + '</button>' +
+        (np.status === 'confirmed' ? slipBox(np.id, true) : '') + '<div class="kw-nacts">' + kitNextAction(np, 'kw-nbtn') + '<button type="button" class="ccs-btn ccs-ghost" data-act="open-kitchen" data-id="' + np.id + '">Open details</button></div></section>';
+    } else h += '<section class="kw-next is-clear" aria-label="Next priority"><p class="kw-label">Next priority</p><b class="kw-ncake">Nothing to make right now.</b><span class="kw-nsub">Every confirmed cake for the next 7 days is ready or handed over.</span></section>';
+    h += '<div class="kw-counts" role="group" aria-label="Counts">' +
+      kc('today', 'To make today', mk.length ? mk.length + (mk.length === 1 ? ' cake' : ' cakes') : 'None left') +
+      kc('ready', 'Ready to hand over', rdy.length ? rdy.length + (rdy.length === 1 ? ' cake' : ' cakes') : 'None waiting') +
+      kc('soon', 'Coming up, next 7 days', soon.length ? soon.length + (soon.length === 1 ? ' cake' : ' cakes') : 'Nothing booked') + '</div></div>';
+    // Sections answer: needs attention, in progress, due next. Empty sections are left out.
+    var used = {}; if (np) used[np.id] = 1;
+    var att = open.filter(function (r) { return !used[r.id] && r.date <= wk && kitWhy(r).length; }).sort(kitSort);
+    att.forEach(function (r) { used[r.id] = 1; });
+    var prog = open.filter(function (r) { return !used[r.id] && ['preparing', 'baking', 'assembling', 'decorating', 'in_production'].indexOf(r.stage) > -1; }).sort(kitSort);
+    prog.forEach(function (r) { used[r.id] = 1; });
+    var next = open.filter(function (r) { return !used[r.id] && r.stage !== 'ready' && r.date <= wk; }).sort(kitSort);
+    var sec = function (cls, title, list, withWhy, more) { return list.length ? '<section class="kw-sec ' + cls + '"><h2>' + title + ' <span>' + list.length + '</span></h2><div class="kw-lines">' + list.slice(0, more || 50).map(function (r) { return kitLine(r, withWhy ? kitWhy(r) : null); }).join('') + '</div>' + (more && list.length > more ? '<button type="button" class="ccs-link kw-more" data-act="k-mode" data-v="board">See all ' + list.length + ' on the board</button>' : '') + '</section>' : ''; };
+    h += '<div class="kw-secs">' + sec('kw-att', 'Needs attention', att, true) + sec('kw-prog', 'In progress', prog) + sec('kw-due', 'Due next', next, false, 6) + '</div>';
+    // Later this week: a day strip that opens the calendar on that day
+    var days = []; for (var i = 1; i < 7; i++) days.push(addDays(t, i));
+    var per = {}; open.forEach(function (r) { if (r.date > t && r.date <= wk) per[r.date] = (per[r.date] || 0) + 1; });
+    if (soon.length) h += '<section class="kw-sec kw-week"><h2>Later this week</h2><div class="kw-days">' + days.map(function (d) {
+      var n = per[d] || 0; return '<button type="button" class="kw-day' + (n ? '' : ' is-zero') + '" data-act="k-cal-day" data-v="' + d + '"><span>' + esc(nice(d).split(' ')[0]) + ' ' + Number(d.slice(8)) + '</span><b>' + (n || '–') + '</b><em>' + (n ? (n === 1 ? 'cake' : 'cakes') : 'none') + '</em></button>';
+    }).join('') + '</div></section>';
+    if (!all.length) h += '<div class="ccs-empty"><b>No confirmed cakes in the next 7 days.</b><span>Cakes appear here once the counter confirms them.</span></div>';
+    return h;
+  }
+  function kitBoardView() {
+    var K = S.kit, t = today();
+    var h = '<div class="kw-tools"><div class="ccs-chips ccs-segs" role="group" aria-label="Range">' + [[2, 'Today and tomorrow'], [7, 'Next 7 days']].map(function (c) { return '<button type="button" class="ccs-chip" data-act="k-range" data-v="' + c[0] + '" aria-pressed="' + (K.days === c[0]) + '">' + c[1] + '</button>'; }).join('') + '</div>' +
+      '<button type="button" class="ccs-chip ccs-kdone-chip" data-act="k-done" aria-pressed="' + !!K.showDone + '">Show handed over</button></div>';
+    var all = K.data.orders || [], lastDay = addDays(t, K.days - 1);
     var rows = all.filter(function (r) { return r.date <= lastDay && (!K.focus || (r.date <= t && r.status === 'confirmed' && r.stage !== 'ready')); });
     if (K.focus) h += '<p class="kp-focus">Showing cakes to make today, including late ones. <button type="button" class="ccs-link" data-act="k-focus-off">Show all</button></p>';
     var groups = {}; KCOLS.forEach(function (c) { groups[c[0]] = []; });
@@ -1411,16 +1489,98 @@
       for (var i = 0; i < 4; i++) if (KCOLS[i][2].indexOf(r.stage) > -1) return groups[KCOLS[i][0]].push(r);
       groups.start.push(r);
     });
-    var late = rows.filter(function (r) { return r.late; }).length, todo = rows.filter(function (r) { return r.status === 'confirmed'; }).length;
     if (!rows.length) return h + '<div class="ccs-empty"><b>No confirmed cakes in this range.</b><span>Cakes appear here once the counter confirms them.</span></div>';
-    // Phones: one column at a time. Tablets: four columns that each fit the screen; Handed over shows on request (always on wide screens)
+    // Phones: one column at a time. Larger screens: columns side by side; an empty column shrinks to a narrow strip
     var curK = secCur('kitP', KCOLS.map(function (c) { return c[0]; }), groups.qc.length ? 'qc' : groups.prog.length ? 'prog' : 'start');
     h += '<div class="kp-bar">' + secBar('kitP', KCOLS.map(function (c) { return [c[0], c[1], groups[c[0]].length]; }), curK, 'Kitchen columns') + '</div>';
-    h += '<div class="ccs-board' + (K.showDone ? ' show-done' : '') + '">' + KCOLS.map(function (c) {
+    h += '<div class="ccs-board kw-grow' + (K.showDone ? ' show-done' : '') + '">' + KCOLS.map(function (c) {
       var list = groups[c[0]];
-      return '<section class="ccs-col ccs-col-' + c[0] + (c[0] === curK ? ' kp-cur' : '') + '"><h2>' + c[1] + ' <span>' + list.length + '</span></h2><div class="ccs-colbody">' + (list.length ? list.map(kitCard).join('') : '<p class="ccs-quiet">Nothing here.</p>') + '</div></section>';
+      return '<section class="ccs-col ccs-col-' + c[0] + (c[0] === curK ? ' kp-cur' : '') + (list.length ? '' : ' is-empty') + '"><h2>' + c[1] + ' <span>' + list.length + '</span></h2><div class="ccs-colbody">' + (list.length ? list.map(kitCard).join('') : '<p class="ccs-quiet">Nothing here.</p>') + '</div></section>';
     }).join('') + '</div>';
     return h;
+  }
+  // ---------- kitchen calendar ----------
+  var KCV = [['day', 'Day'], ['week', 'Week'], ['month', 'Month'], ['list', 'List']];
+  var KCF = [['all', 'All cakes'], ['att', 'Needs attention'], ['allergy', 'Allergy'], ['custom', 'Custom'], ['delivery', 'Delivery']];
+  function kitCalState() { var K = S.kit; if (!K.cal) K.cal = { v: 'week', a: today(), f: 'all', orders: null, key: '' }; return K.cal; }
+  function kitCalRange(c) {
+    if (c.v === 'day') return [c.a, 1];
+    if (c.v === 'week') return [weekStart(c.a), 7];
+    if (c.v === 'list') return [c.a, 14];
+    var first = c.a.slice(0, 8) + '01'; return [weekStart(first), 42];
+  }
+  function kitCalLoad(force) {
+    var c = kitCalState(), rg = kitCalRange(c), key = rg[0] + '|' + rg[1];
+    if (!force && c.key === key && c.orders) return Promise.resolve();
+    c.key = key; if (!force) { c.orders = null; c.err = null; }
+    var calls = []; for (var o = 0; o < rg[1]; o += 14) calls.push(sb.rpc('kitchen_board', { p_from: addDays(rg[0], o), p_days: Math.min(14, rg[1] - o) }));
+    var to = addDays(rg[0], rg[1] - 1);
+    return Promise.all(calls).then(function (rs) {
+      if (c.key !== key) return;
+      var seen = {}, out = [];
+      rs.forEach(function (r) { if (r.error) throw r.error; if (!r.data.ok) throw userErr(r.data.message); (r.data.orders || []).forEach(function (x) { if (!seen[x.id] && x.date >= rg[0] && x.date <= to) { seen[x.id] = 1; out.push(x); } }); });
+      c.orders = out; c.err = null; c.at = Date.now();
+      if (S.tab === 'kitchen' && kitMode() === 'cal') view();
+      if (S.sheet && S.sheet.type === 'kitchen') renderSheet();
+    }).catch(function (e) {
+      console.error(e); if (c.key !== key) return;
+      if (errKind(e) === 'expired') return sessionExpired();
+      if (!c.orders) c.err = errKind(e) === 'offline' ? 'No internet connection, so we couldn\'t load the calendar.' : 'We couldn\'t load the calendar. Try again.';
+      if (S.tab === 'kitchen' && kitMode() === 'cal') view();
+    });
+  }
+  function kitCalMatch(r, f) {
+    if (f === 'att') return kitWhy(r).length > 0;
+    if (f === 'allergy') return !!r.has_dietary;
+    if (f === 'custom') return r.finish === 'custom';
+    if (f === 'delivery') return r.method === 'delivery';
+    return true;
+  }
+  function kitCalTitle(c) {
+    if (c.v === 'day') return nice(c.a, true);
+    if (c.v === 'month') return MONTHS[+c.a.slice(5, 7) - 1] + ' ' + c.a.slice(0, 4);
+    var rg = kitCalRange(c), a = rg[0], b = addDays(a, rg[1] - 1);
+    var d = function (x, y) { return Number(x.slice(8)) + ' ' + MONTHS[+x.slice(5, 7) - 1] + (y ? ' ' + x.slice(0, 4) : ''); };
+    return d(a, a.slice(0, 4) !== b.slice(0, 4)) + ' to ' + d(b, true);
+  }
+  // A short chip inside a calendar day: time, cake, and what needs care
+  function kitChip(r) {
+    var marks = [];
+    if (r.late) marks.push('Late'); if (r.has_dietary) marks.push('Allergy'); if (r.finish === 'custom') marks.push('Custom'); if (r.stage === 'quality_check') marks.push('QC');
+    var tone = r.status === 'completed' ? ' is-done' : r.stage === 'ready' ? ' is-ready' : r.late ? ' is-late' : '';
+    return '<button type="button" class="kc-chip' + tone + '" data-act="open-kitchen" data-id="' + r.id + '"><span class="kc-t">' + esc(t12(r.time)) + '</span><b>' + esc(kitCake(r)) + '</b><span class="kc-s">' + esc(kitStageText(r)) + (marks.length ? ' · ' + esc(marks.join(', ')) : '') + '</span></button>';
+  }
+  function kitCalView() {
+    var c = kitCalState(), t = today();
+    var h = '<div class="kc-bar"><div class="kc-nav"><button type="button" class="ccs-btn ccs-ghost kc-arrow" data-act="k-cal-move" data-v="-1" aria-label="Earlier">‹</button><button type="button" class="ccs-btn ccs-ghost" data-act="k-cal-today">Today</button><button type="button" class="ccs-btn ccs-ghost kc-arrow" data-act="k-cal-move" data-v="1" aria-label="Later">›</button><h2 class="kc-title">' + esc(kitCalTitle(c)) + '</h2></div>' +
+      '<div class="ccs-chips ccs-segs" role="group" aria-label="Calendar view">' + KCV.map(function (x) { return '<button type="button" class="ccs-chip" data-act="k-cal-view" data-v="' + x[0] + '" aria-pressed="' + (c.v === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div></div>' +
+      '<div class="ccs-chips kc-filters" role="group" aria-label="Show">' + KCF.map(function (x) { return '<button type="button" class="ccs-chip" data-act="k-cal-f" data-v="' + x[0] + '" aria-pressed="' + (c.f === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div>';
+    var rg = kitCalRange(c);
+    if (c.key !== rg[0] + '|' + rg[1] || (!c.orders && !c.err)) { if (c.key !== rg[0] + '|' + rg[1]) setTimeout(function () { kitCalLoad(); }, 0); return h + '<p class="ccs-loading">Loading the calendar…</p>'; }
+    if (c.err) return h + loadErr(c.err, 'k-cal-reload');
+    var by = {}; c.orders.filter(function (r) { return kitCalMatch(r, c.f); }).sort(function (a, b) { return String(a.time || '').localeCompare(String(b.time || '')); }).forEach(function (r) { (by[r.date] = by[r.date] || []).push(r); });
+    var WD = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    var cnt = function (n) { return n ? n + (n === 1 ? ' cake' : ' cakes') : ''; };
+    if (c.v === 'day') {
+      var list = by[c.a] || [];
+      return h + (list.length ? '<div class="kw-lines kc-daylist">' + list.map(function (r) { return kitLine(r, kitWhy(r)); }).join('') + '</div>' : '<div class="ccs-empty"><b>No cakes on this day' + (c.f !== 'all' ? ' for this filter' : '') + '.</b></div>');
+    }
+    if (c.v === 'list') {
+      var ds = Object.keys(by).sort();
+      return h + (ds.length ? ds.map(function (d) { return '<section class="kw-sec kc-agenda"><h2>' + esc(d === t ? 'Today, ' + nice(d) : whenLabel(d) === 'Tomorrow' ? 'Tomorrow, ' + nice(d) : nice(d, true)) + ' <span>' + by[d].length + '</span></h2><div class="kw-lines">' + by[d].map(function (r) { return kitLine(r, kitWhy(r)); }).join('') + '</div></section>'; }).join('') : '<div class="ccs-empty"><b>No cakes in the next 14 days' + (c.f !== 'all' ? ' for this filter' : '') + '.</b></div>');
+    }
+    if (c.v === 'week') {
+      return h + '<div class="kc-week">' + [0, 1, 2, 3, 4, 5, 6].map(function (i) {
+        var d = addDays(rg[0], i), list = by[d] || [];
+        return '<section class="kc-wday' + (d === t ? ' is-today' : '') + (d < t ? ' is-past' : '') + (list.length ? '' : ' is-empty') + '"><button type="button" class="kc-whead" data-act="k-cal-day" data-v="' + d + '"><span>' + WD[i] + '</span><b>' + Number(d.slice(8)) + '</b><em>' + cnt(list.length) + '</em></button><div class="kc-wbody">' + list.map(kitChip).join('') + '</div></section>';
+      }).join('') + '</div>';
+    }
+    var mon = c.a.slice(0, 7);
+    return h + '<div class="kc-month"><div class="kc-mhead">' + WD.map(function (w) { return '<span>' + w + '</span>'; }).join('') + '</div><div class="kc-mgrid">' + Array.apply(null, Array(42)).map(function (_, i) {
+      var d = addDays(rg[0], i), list = by[d] || [], al = list.filter(function (r) { return r.has_dietary; }).length, cu = list.filter(function (r) { return r.finish === 'custom'; }).length, lt = list.filter(function (r) { return r.late; }).length;
+      var marks = [lt ? lt + ' late' : '', al ? al + ' allergy' : '', cu ? cu + ' custom' : ''].filter(Boolean).join(' · ');
+      return '<button type="button" class="kc-mday' + (d.slice(0, 7) !== mon ? ' is-out' : '') + (d === t ? ' is-today' : '') + (d < t ? ' is-past' : '') + (list.length ? ' has' : '') + (lt ? ' is-late' : '') + '" data-act="k-cal-day" data-v="' + d + '"' + (list.length ? ' aria-label="' + esc(nice(d, true) + ', ' + cnt(list.length)) + '"' : '') + '><span class="kc-dn">' + Number(d.slice(8)) + '</span>' + (list.length ? '<b>' + cnt(list.length) + '</b>' + (marks ? '<em>' + esc(marks) + '</em>' : '') : '') + '</button>';
+    }).join('') + '</div></div>';
   }
   function openKitchen(id, again) {
     if (again) { S.sheet.kerr = false; renderSheet(); } else { S.sheet = { type: 'kitchen', id: id, photos: [] }; S.panelErr = null; S.dirty = {}; sheetOpen(); renderSheet(); }
@@ -3914,8 +4074,15 @@
         case 'k-assign': kitAssign(); break;
         case 'k-done': S.kit.showDone = !S.kit.showDone; view(); break;
         case 'k-range': S.kit.days = Number(v); S.kit.focus = null; view(); break;
-        case 'k-card': var KK = S.kit; KK.focus = v === 'today' ? 'today' : null; if (v === 'ready') { secStore('kitP').kitP = 'ready'; KK.days = 7; } if (v === 'soon') { KK.days = 7; } if (v === 'today') { KK.days = 2; } view(); setTimeout(function () { var bd = document.querySelector('.kp-bar') || document.querySelector('.ccs-board'); if (bd && bd.scrollIntoView) bd.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 30); break;
+        case 'k-card': var KK = S.kit; if (v === 'soon') { var kc5 = kitCalState(); kc5.v = 'list'; kc5.a = addDays(today(), 1); secStore('kitM').kitM = 'cal'; view(); break; } secStore('kitM').kitM = 'board'; KK.focus = v === 'today' ? 'today' : null; if (v === 'ready') { secStore('kitP').kitP = 'ready'; KK.days = 7; } if (v === 'soon') { KK.days = 7; } if (v === 'today') { KK.days = 2; } view(); setTimeout(function () { var bd = document.querySelector('.kp-bar') || document.querySelector('.ccs-board'); if (bd && bd.scrollIntoView) bd.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 30); break;
         case 'k-focus-off': S.kit.focus = null; view(); break;
+        case 'k-mode': secStore('kitM').kitM = v; if (v !== 'board') S.kit.focus = null; view(); break;
+        case 'k-cal-view': { var kc1 = kitCalState(); kc1.v = v; view(); break; }
+        case 'k-cal-f': kitCalState().f = v; view(); break;
+        case 'k-cal-today': kitCalState().a = today(); view(); break;
+        case 'k-cal-day': { var kc2 = kitCalState(); kc2.a = v; kc2.v = 'day'; secStore('kitM').kitM = 'cal'; view(); break; }
+        case 'k-cal-reload': { var kc3 = kitCalState(); kc3.key = ''; kc3.err = null; view(); break; }
+        case 'k-cal-move': { var kc4 = kitCalState(), kn = Number(v); if (kc4.v === 'day') kc4.a = addDays(kc4.a, kn); else if (kc4.v === 'week') kc4.a = addDays(kc4.a, 7 * kn); else if (kc4.v === 'list') kc4.a = addDays(kc4.a, 14 * kn); else { var mm = new Date(kc4.a.slice(0, 8) + '01T12:00:00Z'); mm.setUTCMonth(mm.getUTCMonth() + kn); kc4.a = mm.toISOString().slice(0, 10); } view(); break; }
         case 'tm-tab': S.settings.tmTab = v; S.settings.tmOpen = true; view(); break;
         case 'k-refresh': loadKitchen(); break;
         case 'am-set': amendSet(b.dataset.f, v); break;
