@@ -6,6 +6,9 @@
 // Every email also has a plain-text version.
 
 const LOGO = "https://cdn.jsdelivr.net/gh/jrest2025/corner-cafe-cakes@b2fa0b25e82552c2f883c56a7d31abd6ec7ff2ec/dist/brand/corner-cafe-logo-email.png";
+// Hero cake photo: an approved Corner Café photo, square, email-safe JPG (set once the file is supplied)
+const HERO = "";
+const SERIF = "Georgia,'Times New Roman',serif", CREAM = "#F7F1E8";
 const FONT = "Arial,Helvetica,sans-serif";
 const INK = "#2B2622", MUTED = "#6B6560", LINE = "#E7E3DE", SOFT = "#F6F7F4", GREEN = "#4B6339", LEAF = "#5F7A4A", RED = "#A2402B";
 
@@ -19,7 +22,29 @@ const first = (n: string) => (n || "").trim().split(/\s+/)[0] || "there";
 
 type Row = [string, string, boolean?];
 type Mail = { kind: string; subject: string; preheader: string; chip?: [string, "wait" | "good" | "stop" | "quiet"]; heading: string;
-  lines: string[]; rows?: Row[]; money?: Row[]; buttons?: [string, string, boolean?][]; after?: string[]; promo?: boolean };
+  lines: string[]; rows?: Row[]; money?: Row[]; buttons?: [string, string, boolean?][]; after?: string[]; promo?: boolean; hero?: boolean; tagline?: string };
+
+// Days until the cake is due, in Fiji time: "Today", "Tomorrow", "9 days to go"
+function countdown(d: string) {
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Pacific/Fiji" }).format(new Date());
+  const n = Math.round((Date.parse(d + "T12:00:00Z") - Date.parse(today + "T12:00:00Z")) / 864e5);
+  return n < 0 ? "" : n === 0 ? "Today" : n === 1 ? "Tomorrow" : `${n} days to go`;
+}
+// Google Calendar link for the pickup or delivery (30 minutes, Fiji time)
+function calendarLink(d: any) {
+  const o = d.order, loc = d.location, dl = isDelivery(o);
+  const [h, m] = String(o.required_time).slice(0, 5).split(":").map(Number);
+  const day = String(o.required_date).replace(/-/g, "");
+  const end = h * 60 + m + 30, hm = (x: number) => String(Math.floor(x / 60)).padStart(2, "0") + String(x % 60).padStart(2, "0") + "00";
+  const u = new URL("https://calendar.google.com/calendar/render");
+  u.searchParams.set("action", "TEMPLATE");
+  u.searchParams.set("text", dl ? `Cake delivery from Corner Café (${o.reference})` : `Collect cake from Corner Café (${o.reference})`);
+  u.searchParams.set("dates", `${day}T${hm(h * 60 + m)}/${day}T${hm(Math.min(end, 23 * 60 + 59))}`);
+  u.searchParams.set("ctz", "Pacific/Fiji");
+  u.searchParams.set("location", dl ? [o.delivery_address, o.delivery_zone].filter(Boolean).join(", ") : `${loc.name}, ${loc.address || ""}`);
+  u.searchParams.set("details", `Order ${o.reference}. Questions? Call ${loc.phone || "Corner Café"}.`);
+  return u.toString();
+}
 
 // ---------- facts about the order ----------
 function isRequest(i: any) { return !i.product_id && !i.size_inch; }
@@ -123,8 +148,8 @@ function render(d: any, m: Mail): { subject: string; html: string; text: string 
   const loc = d.location;
   const cards = m.promo && d.cross_sell_ok ? pickCards(d) : [];
   const tel = String(loc.phone || "").replace(/[^\d+]/g, "");
-  const body = (m.chip ? chip(m.chip[0], m.chip[1]) : "") +
-    `<h1 style="margin:${m.chip ? "14px" : "0"} 0 10px;font:bold 26px/1.25 ${FONT};color:${INK}">${esc(m.heading)}</h1>` +
+  const body = (m.hero ? "" : (m.chip ? chip(m.chip[0], m.chip[1]) : "") +
+    `<h1 style="margin:${m.chip ? "14px" : "0"} 0 10px;font:bold 26px/1.25 ${FONT};color:${INK}">${esc(m.heading)}</h1>`) +
     m.lines.map((l) => para(l)).join("") +
     (m.rows ? orderCard(d, m.rows, m.money ?? []) : "") +
     (m.buttons?.length ? `<div style="margin:0 0 18px;font-size:0;line-height:0">${m.buttons.map(([l, u, o]) => `<div style="display:inline-block;margin:0 10px 10px 0">${button(u, l, o)}</div>`).join("")}</div>` : "") +
@@ -135,7 +160,14 @@ function render(d: any, m: Mail): { subject: string; html: string; text: string 
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F1F2EE"><tr><td align="center" style="padding:22px 10px">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border-radius:18px;border-collapse:separate">
   <tr><td align="center" style="padding:22px 24px 6px"><img src="${LOGO}" width="150" height="55" alt="Corner Café" style="display:block;width:150px;height:auto;border:0;font:bold 22px ${FONT};color:${INK}"></td></tr>
-  <tr><td style="padding:20px 28px 6px">${body}</td></tr>
+  ${m.hero ? `<tr><td style="padding:0 16px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${CREAM}" style="background:${CREAM};border-radius:16px;border-collapse:separate"><tr><td style="padding:22px 18px 18px;font-size:0;line-height:0" align="center">
+    <div style="display:inline-block;width:100%;max-width:300px;vertical-align:middle;text-align:left;font-size:16px;line-height:1.4">
+      ${m.chip ? `<div style="font:bold 12px ${FONT};letter-spacing:.14em;text-transform:uppercase;color:${GREEN};margin:0 0 10px">${esc(m.chip[0])}</div>` : ""}
+      <div style="font:30px/1.15 ${SERIF};color:${INK};margin:0 0 10px">${esc(m.heading)}</div>
+      <div style="font:15px/1.5 ${FONT};color:${MUTED};margin:0 0 6px">${esc(m.tagline || "Make every moment sweeter.")}</div>
+    </div>${HERO ? `<div style="display:inline-block;width:100%;max-width:220px;vertical-align:middle;padding:12px 0 0"><img src="${HERO}" width="220" height="220" alt="A celebration cake from Corner Café" style="display:block;width:100%;max-width:220px;height:auto;border:0;border-radius:14px;margin:0 auto"></div>` : ""}
+  </td></tr></table></td></tr>` : ""}
+  <tr><td style="padding:${m.hero ? "22px" : "20px"} 28px 6px">${body}</td></tr>
   ${promoHtml(cards, m.kind)}
   <tr><td style="padding:20px 28px 24px;background:${SOFT};border-radius:0 0 18px 18px">
     <div style="font:bold 15px ${FONT};color:${INK}">${esc(loc.name)}</div>
@@ -169,7 +201,7 @@ export function buildGuest(kind: string, d: any): { subject: string; html: strin
     case "guest_received":
       return render(d, { kind, subject: `Corner Café | We've received your cake order (${ref})`,
         preheader: "Not confirmed yet. We'll be in touch once we've checked the details.",
-        chip: ["Awaiting confirmation", "wait"], heading: `Bula ${name}, thanks for choosing Corner Café!`,
+        chip: ["Order received", "wait"], heading: `Bula ${name}, thanks for your order!`, hero: true,
         lines: [isRequest(i) || o.order_type === "custom"
           ? `We've received your cake request. Our team will look at your design and send you the price.`
           : `We've received your cake request. Our team will check the details and confirm your order shortly.`,
@@ -178,7 +210,7 @@ export function buildGuest(kind: string, d: any): { subject: string; html: strin
     case "guest_quote":
       return render(d, { kind, subject: `Corner Café | The price for your cake (${ref})`,
         preheader: "Here's your price. Let us know to go ahead.",
-        chip: ["Waiting for your reply", "wait"], heading: `Bula ${name}, here's the price for your cake`,
+        chip: ["Your price is ready", "wait"], heading: `Bula ${name}, here's your price`, hero: true, tagline: "Let us know and we'll book it in.",
         lines: [`Thanks for your patience. Here are the details and the price.`],
         rows: orderRows(d), money: [["Price", money(o.final_total ?? o.estimate_total)]],
         after: [`<strong>Your cake isn't booked yet.</strong> To go ahead, reply to this email or call <a href="tel:${esc(tel)}" style="color:${GREEN}">${esc(loc.phone)}</a>. We'll confirm it once we hear back.`,
@@ -195,11 +227,11 @@ export function buildGuest(kind: string, d: any): { subject: string; html: strin
       const upd = kind === "guest_updated";
       return render(d, { kind, subject: upd ? `Corner Café | Your cake order has changed (${ref})` : `Corner Café | Your cake order is confirmed! (${ref})`,
         preheader: `${cakeName(i)}, ${isDelivery(o) ? "delivery" : "pickup"} ${when}.`,
-        chip: ["Confirmed", "good"], heading: upd ? `Bula ${name}, your cake order is updated` : `Bula ${name}, your cake is confirmed!`,
+        chip: [["Confirmed", countdown(o.required_date)].filter(Boolean).join(" · "), "good"], heading: upd ? `Your order is updated, ${name}` : `Bula ${name}, your cake is confirmed!`, hero: true,
         lines: [upd ? `Here are your new details. Please check them, and tell us if anything looks wrong.`
           : isDelivery(o) ? `It's all booked in. We'll deliver it on ${esc(when)}.` : `It's all booked in. We'll have it ready for you on ${esc(when)}.`],
         rows: orderRows(d), money: moneyRows(d, true),
-        buttons: isDelivery(o) ? [] : [["Get directions", mapLink(loc), true]],
+        buttons: [["Add to calendar", calendarLink(d)], ...(isDelivery(o) ? [] : [["Get directions", mapLink(loc), true] as [string, string, boolean]])],
         after: [reply], promo: !upd });
     }
     case "guest_declined":
@@ -221,7 +253,7 @@ export function buildGuest(kind: string, d: any): { subject: string; html: strin
       const link = cfg.review_link || "";
       return render(d, { kind, subject: `Thank you, ${name}. How was your cake?`,
         preheader: "A quick review helps other cake lovers find us.",
-        heading: `Vinaka, ${name}!`,
+        chip: ["Thank you", "good"], heading: `Vinaka, ${name}!`, hero: true, tagline: "We hope it made the day sweeter.",
         lines: [`Thank you for choosing Corner Café for your cake. We hope it was a hit${isDelivery(o) ? " and arrived just as you pictured it" : ""}.`,
           ...(link ? [`If you enjoyed it, a quick Google review would mean a lot to our team. It takes less than a minute.`] : [])],
         buttons: link ? [["Leave a Google review", link]] : [],
