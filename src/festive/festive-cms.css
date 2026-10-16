@@ -1,0 +1,9 @@
+/* Festive menu cards from the Webflow CMS, 16 October 2026 */
+#festive-menu .w-dyn-items{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+#festive-menu .w-dyn-item{min-width:0}
+#festive-menu .is-nophoto .ccfest-card-media{display:none}
+#festive-menu .ccfest-card-list ul{margin:0;padding-left:1.15em}
+#festive-menu .ccfest-card-list li{margin-bottom:2px}
+#festive-menu .w-dyn-empty{padding:18px;border:1px dashed rgba(20,20,20,.2);border-radius:12px;background:#fff}
+@media(max-width:991px){#festive-menu .w-dyn-items{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){#festive-menu .w-dyn-items{grid-template-columns:1fr;gap:16px}.ccfest-menu{padding-top:48px!important;padding-bottom:48px!important}}
