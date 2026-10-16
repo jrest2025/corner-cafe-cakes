@@ -2445,3 +2445,235 @@ body.ccs-is-off #cc-staff .ccs-side { top: var(--ccs-offh, 44px); }
   #cc-staff .cw-acts .ccs-btn { flex: 1 1 0; min-height: 44px; }
 }
 #cc-staff .ccs-toast .ccs-toast-act { font-weight: 700; }
+
+/* ==========================================================================
+   Viewport fit: on desktops, laptops and landscape tablets the working screens
+   fit the window. Long lists scroll inside their own panel, never the whole page.
+   Smaller or very short screens keep the normal flowing layout.
+   ========================================================================== */
+@media (min-width: 900px) and (min-height: 560px), (min-width: 760px) and (min-height: 900px) {
+  #cc-staff .ccs-app .ccs-main { padding: 12px 20px 10px; }
+  /* Compact page headers */
+  #cc-staff #ccs-main .ccs-head { margin: 0 0 6px; min-height: 0; align-items: center; }
+  #cc-staff #ccs-main .ccs-head .ccs-title { font-size: 24px; line-height: 1.2; margin: 0; }
+  #cc-staff #ccs-main .ccs-head .ccs-sub, #cc-staff #ccs-main .ccs-head .ccs-fresh, #cc-staff #ccs-main .ccs-head .tp-sub { font-size: 14px; margin: 2px 0 0; }
+  #cc-staff #ccs-main .tp-head > div { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 14px; row-gap: 0; }
+  #cc-staff #ccs-main .tp-head .ccs-eyebrow { flex-basis: 100%; margin: 0; font-size: 12px; }
+  #cc-staff #ccs-main .tp-head .ccs-title { flex-basis: 100%; }
+  #cc-staff #ccs-main .ccs-head-acts .ccs-btn { min-height: 42px; }
+  #cc-staff #ccs-main .ccs-mirnote, #cc-staff #ccs-main .tp-urgent { margin: 0; }
+  #cc-staff #ccs-main .tp-urg { padding-top: 6px; padding-bottom: 6px; }
+
+  /* Screens that fill the window: a column whose last part takes the space left */
+  #cc-staff #ccs-main[data-screen="today"], #cc-staff #ccs-main[data-screen="kitchen-today"], #cc-staff #ccs-main[data-screen="dash"], #cc-staff #ccs-main[data-screen^="customers-"] { display: flex; flex-direction: column; gap: 10px; }
+  #cc-staff #ccs-main[data-screen="today"] > *, #cc-staff #ccs-main[data-screen="kitchen-today"] > *, #cc-staff #ccs-main[data-screen="dash"] > *, #cc-staff #ccs-main[data-screen^="customers-"] > * { flex: none; margin-top: 0; margin-bottom: 0; }
+
+  /* ---- Today ---- */
+  #cc-staff #ccs-main .tp-acts { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 0; }
+  #cc-staff #ccs-main .tp-act { min-height: 0; padding: 10px 12px; gap: 10px; }
+  #cc-staff #ccs-main .tp-act .tp-ic { width: 36px; height: 36px; flex: none; }
+  #cc-staff #ccs-main .tp-act .tp-ic svg { width: 20px; height: 20px; }
+  #cc-staff #ccs-main .tp-act .tp-at b { font-size: 16px; }
+  #cc-staff #ccs-main .tp-act .tp-at span { font-size: 13px; }
+  #cc-staff #ccs-main .tp-act .tp-at em { font-size: 13px; margin-top: 2px; }
+  #cc-staff #ccs-main .tp-act .tp-go { display: none; }
+  #cc-staff #ccs-main .at-todaylink { margin: -4px 0 0; font-size: 14px; }
+  #cc-staff #ccs-main .tp-stats { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; align-items: stretch; }
+  #cc-staff #ccs-main .tp-stats:not(:has(.ccs-kpis-row)) { grid-template-columns: minmax(0, 1fr); }
+  #cc-staff #ccs-main .tp-stats .tp-ov { margin: 0; padding: 8px 12px; }
+  #cc-staff #ccs-main .tp-stats .tp-ov h2 { font-size: 13px; margin: 0 0 2px; }
+  #cc-staff #ccs-main .tp-stats .tp-ovn b { font-size: 22px; }
+  #cc-staff #ccs-main .tp-stats .ccs-kpis-row { margin: 0; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: stretch; }
+  #cc-staff #ccs-main .tp-stats .ccs-kpis-row .ccs-kpi { flex-direction: column; flex-wrap: nowrap; align-items: flex-start; justify-content: center; padding: 8px 12px; }
+  #cc-staff #ccs-main .tp-stats .ccs-kpis-row .ccs-kpi-n { font-size: 22px; }
+  #cc-staff #ccs-main .ccs-today { flex: 1 1 auto; min-height: 220px; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.15fr) minmax(0, .8fr); gap: 10px; }
+  /* nothing important is cut short: the lines in the lists wrap instead */
+  #cc-staff #ccs-main .ccs-today .ccs-mini-m > span, #cc-staff #ccs-main .ccs-today .ccs-mini-m b, #cc-staff #ccs-main .ccs-today .ccs-next { white-space: normal; overflow: visible; text-overflow: clip; display: block; -webkit-line-clamp: unset; }
+  #cc-staff #ccs-main .ccs-mirnote { padding: 8px 14px; font-size: 15px; }
+  #cc-staff #ccs-main .ccs-mirnote .ccs-link { min-height: 0; }
+  #cc-staff #ccs-main .ccs-today .tp-barP { display: none; }
+  #cc-staff #ccs-main .ccs-today .tp-top { display: contents; }
+  #cc-staff #ccs-main .ccs-today .tp-top > .tp { display: block; min-height: 0; }
+  #cc-staff #ccs-main .ccs-today .tp-lower { margin: 0; min-height: 0; display: flex; flex-direction: column; }
+  #cc-staff #ccs-main .ccs-today .tp-lower .tp.curB { flex: 1 1 auto; min-height: 0; }
+  #cc-staff #ccs-main .ccs-today .tp-barB .ccs-secbar { margin: 0 0 6px; }
+  #cc-staff #ccs-main .ccs-today .tp > .ccs-panel-card { height: 100%; min-height: 0; margin: 0; display: flex; flex-direction: column; overflow: hidden; padding: 10px 12px; }
+  #cc-staff #ccs-main .ccs-today .tp .ccs-card-head { flex: none; margin-bottom: 6px; }
+  #cc-staff #ccs-main .ccs-today .tp .ccs-card-head h2 { font-size: 16px; }
+  #cc-staff #ccs-main .ccs-today .tp .ccs-minis { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+  #cc-staff #ccs-main .ccs-today .tp-lower .ccs-panel-card { overflow-y: auto; overscroll-behavior: contain; }
+  #cc-staff #ccs-main .ccs-today .tp-week .ccs-week { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  #cc-staff #ccs-main .ccs-today .tp-week .ccs-daycell { display: grid; grid-template-columns: 64px 32px minmax(0, 1fr); align-items: center; text-align: left; min-height: 38px; padding: 4px 10px; gap: 6px; }
+  #cc-staff #ccs-main .ccs-today .tp-week .ccs-daycell b { font-size: 16px; }
+  #cc-staff #ccs-main .ccs-today .tp-week .ccs-daycell em { text-align: right; }
+
+  /* ---- Kitchen today ---- */
+  #cc-staff #ccs-main[data-screen="kitchen-today"] .kw-head > div { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 14px; }
+  #cc-staff #ccs-main .kw-top { margin: 0; }
+  #cc-staff #ccs-main .kw-secs { flex: 1 1 auto; min-height: 180px; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 10px; margin: 0; }
+  #cc-staff #ccs-main .kw-secs > * { min-height: 0; margin: 0; overflow-y: auto; overscroll-behavior: contain; }
+  #cc-staff #ccs-main .kw-week { margin: 0; }
+
+  /* ---- Customers ---- */
+  #cc-staff #ccs-main .crm-period { margin: 0; font-size: 14px; }
+  #cc-staff #ccs-main .crm-kpis { gap: 10px; }
+  #cc-staff #ccs-main .crm-kpis .ov-kpi { padding: 8px 12px; min-height: 0; }
+  #cc-staff #ccs-main .crm-kpis .ov-kv { font-size: 22px; margin: 2px 0; }
+  #cc-staff #ccs-main .crm-kpis .ov-ks { font-size: 13px; }
+  #cc-staff #ccs-main .crm-row { flex: 1 1 auto; min-height: 200px; }
+  #cc-staff #ccs-main .crm-row > .dx-card { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+  #cc-staff #ccs-main[data-screen^="customers-"] .ccs-table-wrap { flex: 1 1 auto; min-height: 200px; overflow: auto; }
+  #cc-staff #ccs-main[data-screen^="customers-"] .ccs-table thead th { position: sticky; top: 0; z-index: 2; }
+
+  /* ---- Dashboard ---- */
+  #cc-staff #ccs-main[data-screen="dash"] { gap: 8px; }
+  #cc-staff #ccs-main .dx-filters { gap: 8px; }
+  #cc-staff #ccs-main .dx-filters .ccs-label { font-size: 12px; margin-bottom: 2px; }
+  #cc-staff #ccs-main .dx-filters .ccs-input { min-height: 40px; padding-top: 6px; padding-bottom: 6px; font-size: 15px; }
+  #cc-staff #ccs-main .dx-secs .ccs-secbtn { min-height: 38px; padding-top: 4px; padding-bottom: 4px; }
+  #cc-staff #ccs-main .dx-period { font-size: 13px; margin: 0; }
+  #cc-staff #ccs-main .dx-gap { padding: 6px 12px; font-size: 13px; }
+  #cc-staff #ccs-main .dx-gap p { margin: 0; }
+  #cc-staff #ccs-main .dx-secbody { flex: 1 1 auto; min-height: 240px; overflow-y: auto; overscroll-behavior: contain; }
+}
+/* Dashboard overview: every card on one screen, four across, each scrolling inside itself when it holds more */
+@media (min-width: 1000px) and (min-height: 600px), (min-width: 760px) and (min-height: 900px) {
+  #cc-staff #ccs-main .dx-ov { flex: 1 1 auto; min-height: 440px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-rows: auto auto minmax(0, 1.15fr) minmax(0, 1fr); gap: 10px; }
+  #cc-staff #ccs-main .dx-ov .ov-kpis { grid-column: 1 / -1; gap: 10px; order: 0; }
+  #cc-staff #ccs-main .dx-ov .ov-kpi { padding: 8px 12px; min-height: 0; }
+  #cc-staff #ccs-main .dx-ov .ov-kv { font-size: 24px; margin: 0; }
+  #cc-staff #ccs-main .dx-ov .ov-row { display: contents; }
+  #cc-staff #ccs-main .dx-ov .dx-card { min-height: 0; margin: 0; overflow-y: auto; overscroll-behavior: contain; padding: 10px 12px; }
+  #cc-staff #ccs-main .dx-ov .dx-card-h h2 { font-size: 16px; }
+  #cc-staff #ccs-main .dx-ov .ov-stack { display: contents; }
+  /* Insights become one slim line under the key figures */
+  #cc-staff #ccs-main .dx-ov .ov-k-ins { order: 1; grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px; padding: 6px 10px; max-height: 96px; }
+  #cc-staff #ccs-main .dx-ov .ov-k-ins .dx-card-h { flex: none; align-self: center; margin: 0; flex-direction: column; align-items: flex-start; gap: 0; }
+  #cc-staff #ccs-main .dx-ov .ov-k-ins .dx-card-h h2 { font-size: 14px; }
+  #cc-staff #ccs-main .dx-ov .ov-k-ins .dx-card-h span { font-size: 12px; }
+  #cc-staff #ccs-main .dx-ov .ov-k-ins .ov-in { flex: 1 1 220px; margin: 0; padding: 4px 10px; font-size: 14px; }
+  #cc-staff #ccs-main .dx-ov .ov-k-trend { grid-column: span 2; order: 2; display: flex; flex-direction: column; }
+  #cc-staff #ccs-main .dx-ov .ov-k-status { order: 3; }
+  #cc-staff #ccs-main .dx-ov .ov-k-att { order: 4; }
+  #cc-staff #ccs-main .dx-ov .ov-k-top { order: 5; }
+  #cc-staff #ccs-main .dx-ov .ov-k-cust { order: 6; }
+  #cc-staff #ccs-main .dx-ov .ov-k-peak { order: 7; }
+  #cc-staff #ccs-main .dx-ov .ov-k-rec { order: 8; }
+  #cc-staff #ccs-main .dx-ov .ov-k-status .ov-sbody { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+  #cc-staff #ccs-main .dx-ov .ov-k-status .ov-ringw { width: 110px; height: 110px; flex: none; }
+  #cc-staff #ccs-main .dx-ov .ov-k-status .ov-sleg { flex: 1 1 140px; min-width: 0; }
+  #cc-staff #ccs-main .dx-ov .ov-kpi .ov-ks { font-size: 13px; }
+}
+/* Normal flowing layout: the status card and insights sit together beside the trend chart */
+#cc-staff .ov-stack { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+#cc-staff .ov-stack > .dx-card { flex: 1 1 auto; }
+#cc-staff .ov-r3b { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 759px) { #cc-staff .ov-r3b { grid-template-columns: minmax(0, 1fr); } }
+/* Fit layer, second pass: lists never squeeze their rows, and short laptop screens give the space to the figures */
+@media (min-width: 900px) and (min-height: 560px), (min-width: 760px) and (min-height: 900px) {
+  #cc-staff #ccs-main .ccs-today .ccs-minis > * { flex: none; }
+  #cc-staff #ccs-main .ccs-today .ccs-minis { display: flex; flex-direction: column; gap: 8px; }
+  #cc-staff #ccs-main .at-todaylink { margin: 0; line-height: 1.2; }
+  #cc-staff #ccs-main .at-todaylink .ccs-link { min-height: 0; padding: 0; }
+  #cc-staff #ccs-main .ov-kpi .ov-ic { display: none; }
+  #cc-staff #ccs-main .dx-ov .ov-kpi .dx-spark { width: 80px; height: 28px; }
+  #cc-staff #ccs-main .ov-trend .dx-tg, #cc-staff #ccs-main .ov-k-trend .ccs-chip { min-height: 34px; padding: 4px 12px; font-size: 14px; }
+}
+@media (min-width: 1000px) and (min-height: 600px) and (max-height: 900px) {
+  /* The filters fold into one line showing what is chosen; tap it to change them */
+  #cc-staff #ccs-main .dx-ftoggle { display: block; width: auto; max-width: 100%; text-align: left; min-height: 40px; font-size: 14px; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; align-self: flex-start; }
+  #cc-staff #ccs-main .dx-filters.is-closed { display: none; }
+  #cc-staff #ccs-main .dx-ov { grid-template-rows: auto auto minmax(0, 1.5fr) minmax(0, 1fr); }
+  #cc-staff #ccs-main .dx-ov .ov-kd { margin-top: 0; }
+}
+@media (min-width: 1000px) and (min-height: 600px), (min-width: 760px) and (min-height: 900px) {
+  /* The trend chart grows into the space its card has */
+  #cc-staff #ccs-main .dx-ov .ov-k-trend .ov-plot { flex: 1 1 auto; min-height: 110px; grid-template-rows: minmax(70px, 1fr) 22px; }
+  #cc-staff #ccs-main .dx-ov .ov-k-trend .dx-card-acts { margin: 2px 0 0; }
+  #cc-staff #ccs-main .dx-ov .ov-k-trend > :not(.ov-plot) { flex: none; }
+}
+@media (min-width: 900px) and (min-height: 560px), (min-width: 760px) and (min-height: 900px) {
+  /* Kitchen today: next cake and counts on the left, what needs doing on the right, each scrolling inside itself */
+  #cc-staff #ccs-main .kw-main { flex: 1 1 auto; min-height: 240px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
+  #cc-staff #ccs-main .kw-main .kw-top { display: flex; flex-direction: column; gap: 10px; margin: 0; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+  #cc-staff #ccs-main .kw-main .kw-top > * { flex: none; }
+  #cc-staff #ccs-main .kw-main .kw-counts { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  #cc-staff #ccs-main .kw-main .kw-secs { display: flex; flex-direction: column; gap: 10px; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+  #cc-staff #ccs-main .kw-main .kw-secs > * { flex: none; overflow: visible; }
+  #cc-staff #ccs-main[data-screen="kitchen-today"] .kw-head .ccs-title { font-size: 24px; }
+  /* Customers overview: the eight figures stay compact */
+  #cc-staff #ccs-main .crm-kpis .ov-kl { font-size: 13px; }
+  #cc-staff #ccs-main .crm-kpis .ov-kpi { padding: 6px 12px; }
+  #cc-staff #ccs-main .crm-defs { margin: 0; }
+  #cc-staff #ccs-main .crm-defs > summary { min-height: 0; padding: 2px 0; }
+}
+@media (min-width: 1000px) and (min-height: 600px), (min-width: 760px) and (min-height: 900px) { #cc-staff #ccs-main .dx-ov { min-height: 380px; } }
+@media (min-width: 900px) and (min-height: 560px), (min-width: 760px) and (min-height: 900px) { #cc-staff #ccs-main .crm-row { min-height: 170px; } }
+
+/* Dashboard overview, final arrangement: figures and insights stay put; the board of cards fits below them */
+#cc-staff .ov-board { display: grid; gap: 12px; }
+#cc-staff .ov-k-ins .ov-in + .ov-in { margin-top: 0; }
+@media (min-width: 1000px) and (min-height: 600px), (min-width: 760px) and (min-height: 900px) {
+  #cc-staff #ccs-main .dx-ov { display: flex; flex-direction: column; gap: 10px; min-height: 0; flex: 1 1 auto; }
+  #cc-staff #ccs-main .dx-ov > * { flex: none; }
+  #cc-staff #ccs-main .dx-ov .ov-k-ins { order: 0; }
+  #cc-staff #ccs-main .dx-ov .ov-board { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-rows: minmax(250px, 1.35fr) minmax(200px, 1fr); gap: 10px; overflow-y: auto; overscroll-behavior: contain; }
+  #cc-staff #ccs-main .dx-ov .ov-board .ov-row { display: contents; }
+  #cc-staff #ccs-main .dx-ov .ov-k-trend { order: 1; }
+  #cc-staff #ccs-main .dx-ov .ov-k-status { order: 2; }
+  #cc-staff #ccs-main .dx-ov .ov-k-att { order: 3; }
+  #cc-staff #ccs-main .dx-ov .ov-k-top { order: 4; }
+  #cc-staff #ccs-main .dx-ov .ov-k-cust { order: 5; }
+  #cc-staff #ccs-main .dx-ov .ov-k-peak { order: 6; }
+  #cc-staff #ccs-main .dx-ov .ov-k-rec { order: 7; }
+}
+@media (min-width: 900px) and (min-height: 560px), (min-width: 760px) and (min-height: 900px) {
+  #cc-staff #ccs-main .kw-main .kw-counts > * { flex-direction: column; align-items: flex-start; justify-content: center; gap: 2px; min-height: 0; padding: 8px 12px; }
+}
+
+/* Fit layer, third pass */
+@media (min-width: 900px) and (min-height: 560px), (min-width: 760px) and (min-height: 900px) {
+  /* every page header: the title, then its notes on one line */
+  #cc-staff #ccs-main .ccs-head > div:first-child { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 12px; row-gap: 0; }
+  #cc-staff #ccs-main .ccs-head > div:first-child > .ccs-title, #cc-staff #ccs-main .ccs-head > div:first-child > .ccs-eyebrow { flex-basis: 100%; }
+  #cc-staff #ccs-main .ccs-head .ccs-fresh { margin: 2px 0 0; }
+  /* Calendar and register: the month grid or record fills the space left and scrolls inside itself */
+  #cc-staff #ccs-main[data-screen="calendar"], #cc-staff #ccs-main[data-screen="register"] { display: flex; flex-direction: column; }
+  #cc-staff #ccs-main[data-screen="calendar"] > *, #cc-staff #ccs-main[data-screen="register"] > * { flex: none; }
+  #cc-staff #ccs-main[data-screen="calendar"] > :last-child, #cc-staff #ccs-main[data-screen="register"] > :last-child { flex: 1 1 auto; min-height: 220px; overflow-y: auto; overscroll-behavior: contain; }
+  /* New order form inside its panel: no extra height beyond the screen */
+  #cc-staff #ccs-sheet .sl-stepmain { min-height: 0; }
+  #cc-staff #ccs-sheet .sl-live { max-height: calc(100dvh - 110px); }
+  #cc-staff #ccs-sheet .ccs-ostrip { padding-bottom: 8px; }
+}
+/* Portrait tablets: two columns where three or four would be too narrow */
+@media (min-width: 760px) and (max-width: 899px) and (min-height: 900px) {
+  #cc-staff #ccs-main .ccs-today { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
+  #cc-staff #ccs-main .ccs-today .tp-lower { grid-column: 1 / -1; }
+  #cc-staff #ccs-main .ccs-today .tp-week .ccs-week { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+  #cc-staff #ccs-main .ccs-today .tp-week .ccs-daycell { display: flex; flex-direction: column; text-align: center; }
+  #cc-staff #ccs-main .tp-acts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #cc-staff #ccs-main .dx-ov .ov-board { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: none; grid-auto-rows: minmax(240px, auto); }
+  #cc-staff #ccs-main .dx-ov .ov-k-trend { grid-column: 1 / -1; }
+  #cc-staff #ccs-main .dx-ov .ov-kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  #cc-staff #ccs-main .dx-ov .ov-kpi .dx-spark { display: none; }
+  #cc-staff #ccs-main .dx-ftoggle { display: block; width: auto; max-width: 100%; text-align: left; min-height: 44px; font-size: 15px; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; align-self: flex-start; }
+  #cc-staff #ccs-main .dx-filters.is-closed { display: none; }
+}
+/* Short screens (a laptop with the browser zoomed in): quieter detail gives the space to the work */
+@media (min-width: 900px) and (min-height: 560px) and (max-height: 700px) {
+  #cc-staff #ccs-main .tp-head .ccs-eyebrow { display: none; }
+  #cc-staff #ccs-main .tp-act .tp-at > span { display: none; }
+  #cc-staff #ccs-main .ccs-today { min-height: 180px; }
+  #cc-staff #ccs-main .ccs-head .ccs-title { font-size: 22px; }
+}
+@media (min-width: 1000px) and (min-height: 560px) and (max-height: 820px) {
+  #cc-staff #ccs-main .crm-kpis { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+}
+@media (min-width: 900px) and (min-height: 560px) and (max-height: 700px) {
+  #cc-staff #ccs-main .at-todaylink { display: none; }
+  #cc-staff #ccs-main .ccs-today { min-height: 150px; }
+  #cc-staff #ccs-main .crm-row { min-height: 140px; }
+  #cc-staff #ccs-main .crm-period { display: none; }
+  #cc-staff #ccs-main .crm-kpis .ov-ks { font-size: 12px; line-height: 1.25; }
+}

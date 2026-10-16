@@ -263,7 +263,10 @@
     if (canP('ord.create') && ['orders', 'calendar', 'kitchen', 'customers', 'dash'].indexOf(S.tab) > -1)
       hd.insertAdjacentHTML('beforeend', '<div class="ccs-head-acts"><button type="button" class="ccs-btn ccs-new ccs-newtop" data-tab="new">' + NAV_ICON['new'] + 'New order</button></div>');
   }
+  // Large screens: the working screens fit the window, with long lists scrolling inside their own panel
+  function fitWide() { var w = window.innerWidth, h = window.innerHeight; return (w >= 900 && h >= 560) || (w >= 760 && h >= 900); }
   function viewInner(m) {
+    m.dataset.screen = S.tab === 'kitchen' ? 'kitchen-' + kitMode() : S.tab === 'customers' ? 'customers-' + (clState().q.trim().length >= 2 ? 'search' : crmSec()) : S.tab;
     if (S.tab === 'today') m.innerHTML = todayView();
     else if (S.tab === 'attn') m.innerHTML = attnView();
     else if (S.tab === 'handover') m.innerHTML = handoverView(false);
@@ -691,7 +694,7 @@
     var week = live.filter(function (o) { return o.required_date >= t && o.required_date <= wkEnd && OPEN.concat(['completed']).indexOf(o.order_status) > -1; });
     var owing = live.filter(function (o) { return o.order_status === 'awaiting_deposit' || (o.order_status === 'confirmed' && o.payment_status !== 'paid'); });
     var weekValue = week.filter(function (o) { return o.order_status === 'confirmed' || o.order_status === 'completed'; }).reduce(function (s, o) { return s + orderTotal(o); }, 0);
-    h += '<section class="tp-ov" aria-label="Today\'s overview"><h2>Today\'s overview</h2><div class="tp-ovn">' +
+    h += '<div class="tp-stats"><section class="tp-ov" aria-label="Today\'s overview"><h2>Today\'s overview</h2><div class="tp-ovn">' +
       '<button type="button" data-act="goto" data-v="today"><b>' + todays0.length + '</b><span>Cakes due today</span></button>' +
       '<button type="button" data-act="goto" data-v="today"><b>' + done0 + '</b><span>Handed over</span></button>' +
       '<button type="button" data-act="goto" data-v="action"><b>' + toConfirm.length + '</b><span>Waiting to confirm</span></button></div></section>';
@@ -699,8 +702,10 @@
       tile('goto', 'upcoming', 'Next 7 days', week.length, week.length ? 'Cakes to make' : 'Nothing booked', '') +
       (money_ ? tile('goto', 'deposit', 'Payments due', owing.length, owing.length ? (owing.length === 1 ? 'order with a balance' : 'orders with a balance') : 'All paid', owing.length ? 'attn' : '') : '') +
       (money_ ? tile('goto', 'upcoming', 'Booked this week', money(weekValue), 'Confirmed orders', '') : '') + '</div>';
+    h += '</div>';
     // Fits the screen: Needs action and Due today side by side, the rest one at a time (phones: all one at a time)
-    var CAP = 2, P = [];
+    // On a large screen the lists scroll inside their own card, so more rows are shown; small screens keep two and See all
+    var CAP = fitWide() ? 12 : 2, P = [];
     P.push(['needs', 'Waiting on you', needs.length, '<section class="ccs-panel-card tp-card tp-needs"><div class="ccs-card-head"><h2>Waiting on you' + (needs.length ? ' (' + needs.length + ')' : '') + '</h2>' + (needs.length > CAP ? '<button type="button" class="ccs-link" data-act="goto" data-v="action">See all ' + needs.length + '</button>' : '') + '</div>' +
       (needs.length ? '<div class="ccs-minis">' + needs.slice(0, CAP).map(function (o) { return miniRow(o, false, true); }).join('') + '</div>' : '<p class="ccs-quiet">You\'re all caught up. Nothing needs your attention.</p>') + '</section>']);
     P.push(['due', 'Due today', todays.length, '<section class="ccs-panel-card tp-card"><div class="ccs-card-head"><h2>Due today' + (todays.length ? ' (' + todays.length + ')' : '') + '</h2>' + (todays.length > CAP ? '<button type="button" class="ccs-link" data-act="goto" data-v="today">See all ' + todays.length + '</button>' : '') + (todays.length ? '<span class="ccs-hint">' + collected + ' of ' + todays.length + ' handed over</span>' : '') + '</div>' +
@@ -1626,7 +1631,7 @@
     // Next priority: the most urgent cake that still needs work, with the one button that moves it on
     var todo = open.filter(function (r) { return r.stage !== 'ready' && r.date <= wk; }).sort(kitSort), np = todo[0];
     var kc = function (v, title, count) { return '<button type="button" class="kw-count kp-act" data-act="k-card" data-v="' + v + '"><b>' + title + '</b><em>' + count + '</em></button>'; };
-    h += '<div class="kw-top">';
+    h += '<div class="kw-main"><div class="kw-top">';
     if (np) {
       var why = kitWhy(np);
       h += '<section class="kw-next" aria-label="Next priority"><p class="kw-label">Next priority</p>' +
@@ -1650,7 +1655,7 @@
     prog.forEach(function (r) { used[r.id] = 1; });
     var next = open.filter(function (r) { return !used[r.id] && r.stage !== 'ready' && r.date <= wk; }).sort(kitSort);
     var sec = function (cls, title, list, withWhy, more) { return list.length ? '<section class="kw-sec ' + cls + '"><h2>' + title + ' <span>' + list.length + '</span></h2><div class="kw-lines">' + list.slice(0, more || 50).map(function (r) { return kitLine(r, withWhy ? kitWhy(r) : null); }).join('') + '</div>' + (more && list.length > more ? '<button type="button" class="ccs-link kw-more" data-act="k-mode" data-v="board">See all ' + list.length + ' on the board</button>' : '') + '</section>' : ''; };
-    h += '<div class="kw-secs">' + sec('kw-att', 'Needs attention', att, true) + sec('kw-prog', 'In progress', prog) + sec('kw-due', 'Due next', next, false, 6) + '</div>';
+    h += '<div class="kw-secs">' + sec('kw-att', 'Needs attention', att, true) + sec('kw-prog', 'In progress', prog) + sec('kw-due', 'Due next', next, false, 6) + '</div></div>';
     // Later this week: a day strip that opens the calendar on that day
     var days = []; for (var i = 1; i < 7; i++) days.push(addDays(t, i));
     var per = {}; open.forEach(function (r) { if (r.date > t && r.date <= wk) per[r.date] = (per[r.date] || 0) + 1; });

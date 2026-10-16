@@ -963,8 +963,7 @@
         crmKpi('Customers', int(k.customers), 'With at least one order, all time') +
         crmKpi('New this month', int(k.new_month), esc(vs(k.new_month, k.new_prev)) || 'First order this month') +
         crmKpi('Returning this month', int(k.returning_month), esc(vs(k.returning_month, k.returning_prev)) || 'Had bought before') +
-        crmKpi('Repeat purchase rate', (k.buyers ? Math.round(k.repeat_customers / k.buyers * 100) : 0) + '%', int(k.repeat_customers) + ' of ' + int(k.buyers) + ' customers have bought more than once') + '</div>';
-      h += '<div class="ov-kpis crm-kpis">' +
+        crmKpi('Repeat purchase rate', (k.buyers ? Math.round(k.repeat_customers / k.buyers * 100) : 0) + '%', int(k.repeat_customers) + ' of ' + int(k.buyers) + ' customers have bought more than once') +
         crmKpi('Revenue from returning customers', m0(dnum(k.returning_rev_month)), esc(vs(dnum(k.returning_rev_month), dnum(k.returning_rev_prev))) || 'This month') +
         crmKpi('Follow-ups due today', int(k.fu_due_today), k.fu_due_today ? 'Across the team' : 'None due', '') +
         crmKpi('Overdue follow-ups', int(k.fu_overdue), k.fu_overdue ? 'Past their due date' : 'None overdue', k.fu_overdue ? 'warn' : '') +

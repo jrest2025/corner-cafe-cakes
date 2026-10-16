@@ -404,9 +404,13 @@
       ovKpi('money', 'Revenue', m0(cs.v), ovDelta(cs.v, ps ? ps.v : null), 'From ' + int(cs.n) + ' completed ' + (cs.n === 1 ? 'sale' : 'sales'), bk.map(function (x) { return x.s.v; }), cur, 'Completed sales', ps ? m0(ps.v) : '') +
       ovKpi('avg', 'Average order value', m0(cs.aov), ovDelta(cs.aov, ps ? ps.aov : null), 'Revenue per completed sale', bk.map(function (x) { return x.s.n ? x.s.aov : NaN; }), cur, 'Completed sales', ps && ps.n ? m0(ps.aov) : '') +
       ovKpi('done', 'Completion rate', isFinite(rate) ? Math.round(rate) + '%' : 'None yet', isFinite(rate) ? ovDelta(rate, isFinite(prate) ? prate : null, true) : { t: '', c: '' }, int(dn.length) + ' completed, ' + int(cx.length) + ' cancelled', bk.map(function (x) { return x.rate; }), cx, 'Cancelled orders', isFinite(prate) ? Math.round(prate) + '%' : '') + '</div>';
-    h += '<div class="ov-row ov-r1">' + ovTrend(bk, r) + ovStatus(got) + '</div>';
-    h += '<div class="ov-row ov-r3">' + ovTop(cur, r.pf && !r.noCmp ? dxSales(r.pf, r.pt) : null) + ovCustomers(cur, r) + ovPeak(got, r) + '</div>';
-    h += '<div class="ov-row ov-r3">' + ovAttention(owing) + ovRecent() + ovInsights(cur, cs, ps, r) + '</div>';
+    // Each card is named, so on a large screen they can be arranged to fit the screen with no page scroll
+    var T = function (x, k) { return x.replace('class="dx-card', 'class="dx-card ov-k-' + k); };
+    // Insights read as one line under the key figures; the cards below form one board
+    h += T(ovInsights(cur, cs, ps, r), 'ins') + '<div class="ov-board">';
+    h += '<div class="ov-row ov-r1">' + T(ovTrend(bk, r), 'trend') + T(ovStatus(got), 'status') + '</div>';
+    h += '<div class="ov-row ov-r3">' + T(ovTop(cur, r.pf && !r.noCmp ? dxSales(r.pf, r.pt) : null), 'top') + T(ovCustomers(cur, r), 'cust') + T(ovPeak(got, r), 'peak') + '</div>';
+    h += '<div class="ov-row ov-r3 ov-r3b">' + T(ovAttention(owing), 'att') + T(ovRecent(), 'rec') + '</div></div>';
     return h;
   }
   // 13 months ending with the selected period, with the same month last year
