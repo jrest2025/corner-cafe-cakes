@@ -204,6 +204,7 @@
 
   // ---------- boot ----------
   var NAV_ICON = {
+    tablet: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm0 2v14h10V4zm5 15.2a1.1 1.1 0 1 0 0 2.2 1.1 1.1 0 0 0 0-2.2z"/></svg>',
     handover: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h11l-3-3 1.4-1.4L19.8 9l-6.4 6.4L12 14l3-3H4zm16 10H9l3 3-1.4 1.4L4.2 15l6.4-6.4L12 10l-3 3h11z"/></svg>',
     attn: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0-6 6v4l-2 3v1h16v-1l-2-3V9a6 6 0 0 0-6-6zm-2 16a2 2 0 0 0 4 0z"/></svg>',
     today: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13h6V4H4zm0 7h6v-5H4zm10 0h6v-9h-6zm0-16v5h6V4z"/></svg>',
@@ -221,6 +222,7 @@
   function navTabs() {
     if (kitchenOnly()) return [['kitchen', 'Kitchen']];
     var tabs = [['today', 'Today'], ['attn', 'Needs attention'], ['orders', 'Orders'], ['calendar', 'Calendar']];
+    if (canP('ord.create')) tabs.push(['tablet', 'Counter tablet']);
     if (canP('kit.view')) tabs.push(['kitchen', 'Kitchen']);
     if (canP('ord.view') || canP('kit.view')) tabs.push(['handover', 'Handover']);
     if (canP('nav.customers') && canP('cust.view')) tabs.push(['customers', 'Customers']);
@@ -237,7 +239,7 @@
     var GROUP = { today: 'Service', customers: 'Customers', dash: 'Business', settings: 'Set-up' }, firstBiz = true;
     return navTabs().map(function (t) {
       var gh = GROUP[t[0]] || (t[0] === 'register' && firstBiz && !navTabs().some(function (x) { return x[0] === 'dash'; }) ? 'Business' : '');
-      var where = t[0] === 'more' ? ' ccs-nav-phone' : (t[0] === 'calendar' || t[0] === 'handover' || t[0] === 'customers' || t[0] === 'settings' || t[0] === 'kitchen' || t[0] === 'dash' || t[0] === 'register') ? ' ccs-nav-wide' : '';
+      var where = t[0] === 'more' ? ' ccs-nav-phone' : (t[0] === 'calendar' || t[0] === 'tablet' || t[0] === 'handover' || t[0] === 'customers' || t[0] === 'settings' || t[0] === 'kitchen' || t[0] === 'dash' || t[0] === 'register') ? ' ccs-nav-wide' : '';
       return (gh ? '<p class="ccs-navh" aria-hidden="true">' + gh + '</p>' : '') + '<button type="button" class="ccs-nav-item' + (t[0] === 'new' ? ' ccs-nav-new' : '') + where + '" data-tab="' + t[0] + '" title="' + esc(t[1]) + '"' + (S.tab === t[0] ? ' aria-current="page"' : '') + '>' + NAV_ICON[t[0]] + '<span>' + t[1] + '</span>' +
         (t[0] === 'orders' && needs ? '<span class="ccs-count">' + needs + '</span>' : '') + (t[0] === 'attn' && S.loaded && attnCount() ? '<span class="ccs-count at-count">' + attnCount() + '</span>' : '') + '</button>';
     }).join('');
@@ -819,15 +821,18 @@
   function sheetClose(how) {
     var wasSheet = !!S.sheet;
     if (S.sheet && S.sheet.type === 'new' && draftHasContent()) { saveDraft(); toast('Unfinished order kept. Tap New order on the same day to carry on.'); } if (S.cal) S.cal.pre = null;
+    var tbBack_ = wasSheet && S.tablet && (S.sheet.type === 'new' || S.sheet.type === 'tbhome') && how !== 'replace';
     var calBack_ = wasSheet && S.sheet.type === 'order' && S.cal && S.cal.reopen && S.tab === 'calendar' && !calWide() && how !== 'replace';
     if (S.cal) S.cal.reopen = false;
     if (wasSheet && S.tab === 'calendar' && S.me) setTimeout(function () { calLoad(true); if (calBack_ && S.cal.sel && !S.sheet) calPanel(); }, 0);
+    if (tbBack_) setTimeout(function () { if (S.tablet && !S.sheet) tabletHomeOpen(); }, 0);
     S.sheet = null; S.panel = null; S.dirty = {}; var s = document.getElementById('ccs-sheet'), sh = document.getElementById('ccs-shade'); if (s) { s.classList.remove('ccs-open'); sh.classList.remove('ccs-open'); }
     if (wasSheet && how !== 'replace') setTimeout(sheetReturn, 0); else S.sheetFrom = null;
     if (S.sheetHist) { S.sheetHist = false; if (how !== 'pop' && how !== 'replace') { S.ignorePop = true; try { history.back(); } catch (x) { S.ignorePop = false; } } }
   }
   function goTab(t, fromPop) {
     if (t === 'new') { newStart(); return; }
+    if (t === 'tablet') { tabletOn(); return; }
     var paused = null;
     if (!fromPop && S.sheet && hasTyping()) { if (!pauseable()) { toast('Save or cancel your changes first.', true); return; } paused = pauseWork(); }
     var hadSheet = S.sheetHist; scrMark();
@@ -886,7 +891,7 @@
   }
   function renderSheet() {
     var el = document.getElementById('ccs-sheet'); if (!el || !S.sheet) return;
-    var body = S.sheet.type === 'new' ? sheetHead('New order') + '<div class="ccs-sheet-body ccs-newsheet">' + newView() + '</div>' : S.sheet.type === 'cal' ? calSheet() : S.sheet.type === 'order' ? orderSheet() : S.sheet.type === 'customer' ? customerSheet() : S.sheet.type === 'custnew' ? newCustomerSheet() : S.sheet.type === 'kitchen' ? kitchenSheet() : S.sheet.type === 'more' ? moreSheet() : S.sheet.type === 'dash' ? dashSheet() : S.sheet.type === 'reg' ? regSheet() : S.sheet.type === 'menu' ? menuSheet() : S.sheet.type === 'staff' ? staffSheet() : S.sheet.type === 'pw' ? sheetHead('Change my password') + '<div class="ccs-sheet-body"><form class="ccs-box ccs-pwform" id="ccs-pw">' + pwFields(S.pwErr) + '</form></div>' : '';
+    var body = S.sheet.type === 'new' ? sheetHead('New order', S.tablet ? tabletTools() : '') + '<div class="ccs-sheet-body ccs-newsheet">' + newView() + '</div>' : S.sheet.type === 'tbhome' ? tabletHome() : S.sheet.type === 'cal' ? calSheet() : S.sheet.type === 'order' ? orderSheet() : S.sheet.type === 'customer' ? customerSheet() : S.sheet.type === 'custnew' ? newCustomerSheet() : S.sheet.type === 'kitchen' ? kitchenSheet() : S.sheet.type === 'more' ? moreSheet() : S.sheet.type === 'dash' ? dashSheet() : S.sheet.type === 'reg' ? regSheet() : S.sheet.type === 'menu' ? menuSheet() : S.sheet.type === 'staff' ? staffSheet() : S.sheet.type === 'pw' ? sheetHead('Change my password') + '<div class="ccs-sheet-body"><form class="ccs-box ccs-pwform" id="ccs-pw">' + pwFields(S.pwErr) + '</form></div>' : '';
     var keep = el.querySelector('.ccs-sheet-body'), top = keep ? keep.scrollTop : 0, focus = captureFocus(el);
     var cols = [].slice.call(el.querySelectorAll('.os-main, .os-detail')).map(function (c) { return c.scrollTop; });
     // Order, kitchen and customer reviews: a centred pop-up on large screens, a wide panel on tablets, full screen on phones
@@ -3342,6 +3347,30 @@
     var sbody = document.querySelector('#ccs-sheet .ccs-sheet-body'); if (sbody) sbody.scrollTop = 0;
   }
   // New order opens in a panel over the current screen (side workspace on wide screens, full screen on phones)
+  // ---------- Counter tablet: the same New order flow, full screen, large touch sizes. Same rules, same database. ----------
+  function fsOn() { var d = document.documentElement; try { if (!document.fullscreenElement && d.requestFullscreen) d.requestFullscreen().catch(function () {}); } catch (e) {} }
+  function fsOff() { try { if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(function () {}); } catch (e) {} }
+  function tabletOn() {
+    if (!canP('ord.create')) return;
+    S.tablet = true; document.documentElement.classList.add('ccs-tablet-mode'); fsOn();
+    if (S.sheet && S.sheet.type !== 'new' && S.sheet.type !== 'tbhome') sheetClose('replace');
+    tabletHomeOpen();
+  }
+  function tabletOff() {
+    S.tablet = false; document.documentElement.classList.remove('ccs-tablet-mode'); fsOff();
+    if (S.sheet && (S.sheet.type === 'tbhome' || S.sheet.type === 'new')) sheetClose();
+    if (S.tab !== 'today') goTab('today'); else view();
+  }
+  function tabletHomeOpen(saved) { S.tbSaved = saved || null; S.sheet = { type: 'tbhome' }; S.panel = null; S.panelErr = null; S.dirty = {}; sheetOpen(); renderSheet(); }
+  function tabletTools() { return '<span class="tb-tools"><button type="button" class="ccs-btn ccs-ghost tb-fs" data-act="tb-fs">' + (document.fullscreenElement ? 'Leave full screen' : 'Full screen') + '</button></span>'; }
+  function tabletHome() {
+    var r = S.tbSaved, draft = draftHasContent();
+    var h = '<div class="ccs-sheet-head tb-head"><h2 class="ccs-title">Corner Café · Counter tablet</h2>' + tabletTools() + '<button type="button" class="ccs-btn ccs-ghost tb-exit" data-act="tb-exit">Exit tablet mode</button></div><div class="ccs-sheet-body tb-home">';
+    if (r) h += '<div class="tb-saved" role="status"><b>' + esc(r.reference) + ' saved</b><span>' + esc(r.msg || '') + '</span>' + (r.slip ? '<button type="button" class="ccs-btn ccs-ghost" data-act="open-slip" data-id="' + r.order_id + '">Make the kitchen slip</button>' : '') + '</div>';
+    h += '<button type="button" class="tb-start" data-act="tb-new">' + NAV_ICON['new'] + '<b>' + (draft ? 'Carry on with the unfinished order' : 'Start a new cake order') + '</b><span>' + (draft ? 'Everything entered so far is kept.' : 'One step at a time. Tap Next when each step is done.') + '</span></button>';
+    if (draft) h += '<button type="button" class="ccs-btn ccs-ghost tb-fresh" data-act="tb-fresh">Start again with a blank order</button>';
+    return h + '</div>';
+  }
   function newStart() {
     if (!canP('ord.create')) return;
     if (newInSheet()) return;
@@ -3354,6 +3383,12 @@
   // Saved from the New order panel: back to Today, with the new order at the top of Needs attention
   function homeSaved(r, hadEmail) {
     var savedWhen = D.date && D.time ? nice(D.date) + ', ' + t12(D.time) : '';
+    if (S.tablet) {
+      D = freshDraft(); clearDraft(); S.justAdded = r.order_id;
+      var st = r.status === 'confirmed' ? 'Confirmed' : r.status === 'awaiting_deposit' ? 'Waiting for the deposit' : r.status === 'awaiting_quote' ? 'Needs a price' : r.status === 'awaiting_review' ? 'Waiting for a check' : 'Saved';
+      sheetClose('replace'); tabletHomeOpen({ reference: r.reference, order_id: r.order_id, slip: r.status === 'confirmed' && validRef(r.reference), msg: st + (savedWhen ? ' for ' + savedWhen : '') + '.' + (hadEmail ? '' : ' No email address was given, so no email was sent.') });
+      return;
+    }
     D = freshDraft(); clearDraft();
     sheetClose();
     S.justAdded = r.order_id; clearTimeout(homeSaved.t); homeSaved.t = setTimeout(function () { S.justAdded = null; if (S.tab === 'today' || S.tab === 'orders') view(); }, 12000);
@@ -4611,6 +4646,10 @@
     if (a.indexOf('dx-') === 0) { try { dashAct(a, b, v); } catch (err) { fail(err); } return; }
     if (a.indexOf('rg-') === 0) { try { regAct(a, b, v); } catch (err) { fail(err); } return; }
     if (a.indexOf('pm-') === 0) { try { permAct(a, b, v); } catch (err) { fail(err); } return; }
+    if (a === 'tb-new') { S.tbSaved = null; sheetClose('replace'); newStart(); return; }
+    if (a === 'tb-fresh') { D = freshDraft(); clearDraft(); S.tbSaved = null; sheetClose('replace'); newStart(); return; }
+    if (a === 'tb-exit') { tabletOff(); return; }
+    if (a === 'tb-fs') { if (document.fullscreenElement) fsOff(); else fsOn(); setTimeout(function () { var bt = document.querySelector('.tb-fs'); if (bt) bt.textContent = document.fullscreenElement ? 'Leave full screen' : 'Full screen'; }, 300); return; }
     if (a === 'nav-mini') { var ap = document.querySelector('#cc-staff .ccs-app'), on = ap && !ap.classList.contains('is-mini'); if (ap) ap.classList.toggle('is-mini', on); try { localStorage.setItem('ccs-navmini', on ? '1' : '0'); } catch (x) {} return; }
     if (a.indexOf('oc-') === 0) { try { occAct(a, b, v); } catch (err) { fail(err); } return; }
     if (a === 'ws-cm-tools') { S.cust.tools = !S.cust.tools; view(); return; }

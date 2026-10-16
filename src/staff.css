@@ -992,3 +992,41 @@
 #ccs-sheet .os-phcake p.os-req { background: #1F2A37; color: #fff; border-radius: 8px; padding: 6px 10px; }
 #ccs-sheet .os-phcake p.os-req span { color: #D0D5DD; }
 #cc-staff .sl-k.sl-must b, #ccs-sheet .sl-k.sl-must b { background: #1F2A37; color: #fff; padding: 2px 6px; border-radius: 4px; }
+
+/* ---------- Counter tablet: full screen, large touch sizes (a standard 10-inch tablet, upright or sideways) ---------- */
+html.ccs-tablet-mode #ccs-sheet { top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important; width: 100% !important; height: 100% !important; max-height: none !important; min-height: 0 !important; border-radius: 0 !important; transform: none !important; opacity: 1 !important; z-index: 2147483000; }
+html.ccs-tablet-mode #ccs-shade { background: #fff !important; opacity: 1 !important; z-index: 2147482999; }
+html.ccs-tablet-mode #ccs-sheet .ccs-sheet-head { padding: 12px 20px !important; gap: 12px; flex-wrap: nowrap !important; }
+html.ccs-tablet-mode #ccs-sheet .ccs-sheet-head .ccs-title { font-size: calc(24 * var(--u, 1px)) !important; }
+html.ccs-tablet-mode #ccs-sheet .ccs-x { width: 56px; height: 56px; font-size: 28px; }
+html.ccs-tablet-mode #ccs-sheet .tb-tools { margin-left: auto; }
+html.ccs-tablet-mode #ccs-sheet .tb-tools .ccs-btn, html.ccs-tablet-mode #ccs-sheet .tb-exit { min-height: 52px !important; font-size: calc(17 * var(--u, 1px)) !important; padding: 8px 18px !important; white-space: nowrap; }
+html.ccs-tablet-mode #ccs-sheet .ccs-sheet-body { font-size: calc(20 * var(--u, 1px)); padding: 18px 24px 120px !important; }
+html.ccs-tablet-mode #ccs-sheet .ccs-chip { min-height: 64px !important; padding: 10px 22px !important; font-size: calc(20 * var(--u, 1px)) !important; border-radius: 16px !important; }
+html.ccs-tablet-mode #ccs-sheet .ccs-chips { gap: 12px !important; }
+html.ccs-tablet-mode #ccs-sheet .ccs-input, html.ccs-tablet-mode #ccs-sheet select, html.ccs-tablet-mode #ccs-sheet textarea { min-height: 60px !important; font-size: calc(21 * var(--u, 1px)) !important; padding: 10px 16px !important; border-radius: 12px !important; }
+html.ccs-tablet-mode #ccs-sheet textarea { min-height: 110px !important; }
+html.ccs-tablet-mode #ccs-sheet .ccs-btn { min-height: 64px !important; font-size: calc(20 * var(--u, 1px)) !important; padding: 10px 24px !important; border-radius: 14px !important; }
+html.ccs-tablet-mode #ccs-sheet .sl-k, html.ccs-tablet-mode #ccs-sheet .ccs-label { font-size: calc(19 * var(--u, 1px)) !important; margin-bottom: 8px; }
+html.ccs-tablet-mode #ccs-sheet .ccs-hint { font-size: calc(17 * var(--u, 1px)) !important; }
+html.ccs-tablet-mode #ccs-sheet .ccs-check { font-size: calc(19 * var(--u, 1px)) !important; min-height: 56px; }
+html.ccs-tablet-mode #ccs-sheet .ccs-check input { width: 28px; height: 28px; }
+html.ccs-tablet-mode #ccs-sheet [data-act="n-cell"] { min-height: 64px !important; font-size: calc(20 * var(--u, 1px)) !important; }
+html.ccs-tablet-mode #ccs-sheet table th, html.ccs-tablet-mode #ccs-sheet table td { font-size: calc(19 * var(--u, 1px)) !important; padding: 6px 8px !important; }
+html.ccs-tablet-mode #ccs-sheet .ccs-link { font-size: calc(19 * var(--u, 1px)) !important; min-height: 48px; }
+html.ccs-tablet-mode #ccs-sheet .ccs-err, html.ccs-tablet-mode #ccs-sheet .ccs-alert, html.ccs-tablet-mode #ccs-sheet .ccs-note { font-size: calc(19 * var(--u, 1px)) !important; }
+/* Tablet home */
+html.ccs-tablet-mode #ccs-sheet .tb-home { display: grid; place-content: center; gap: 22px; min-height: calc(100% - 90px); padding-bottom: 40px !important; text-align: center; }
+html.ccs-tablet-mode #ccs-sheet .tb-start { appearance: none; border: 0; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 10px; width: min(620px, 86vw); padding: 44px 32px; border-radius: 24px; background: #5F7A4A; color: #fff; box-shadow: 0 10px 30px rgba(31,42,23,.18); font: inherit; }
+html.ccs-tablet-mode #ccs-sheet .tb-start svg { width: 64px; height: 64px; fill: currentColor; }
+html.ccs-tablet-mode #ccs-sheet .tb-start b { font-size: calc(32 * var(--u, 1px)); }
+html.ccs-tablet-mode #ccs-sheet .tb-start span { font-size: calc(19 * var(--u, 1px)); opacity: .9; }
+html.ccs-tablet-mode #ccs-sheet .tb-start:active { transform: scale(.99); }
+html.ccs-tablet-mode #ccs-sheet .tb-fresh { justify-self: center; }
+html.ccs-tablet-mode #ccs-sheet .tb-saved { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 18px 24px; border: 2px solid #5F7A4A; border-radius: 18px; background: #F1F5EC; width: min(620px, 86vw); }
+html.ccs-tablet-mode #ccs-sheet .tb-saved b { font-size: calc(28 * var(--u, 1px)); color: #2F4423; }
+html.ccs-tablet-mode #ccs-sheet .tb-saved span { font-size: calc(19 * var(--u, 1px)); color: #344054; }
+#ccs-sheet .tb-tools { display: inline-flex; gap: 8px; }
+/* Tablet: the order steps keep their Next bar pinned to the very bottom */
+html.ccs-tablet-mode #ccs-sheet .ccs-sheet-body:has(.sl-stepper) { padding-bottom: 0 !important; }
+html.ccs-tablet-mode #ccs-sheet .sl-stepbar { padding: 14px 0 18px; }
