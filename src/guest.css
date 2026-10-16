@@ -384,6 +384,12 @@ body:has(#cc-cake-order .cco-done) .cco-bar { display: none; }
    The white ring hides what scrolls beneath; at rest it sits on the white page and cannot be seen. */
 #cc-cake-order .cco-body > .cco-primary { position: sticky; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 6; box-shadow: 0 0 0 10px var(--o-paper), 0 14px 26px -14px rgba(36, 33, 29, .45); }
 @media (max-width: 999px) { #cc-cake-order.cco-has-bar .cco-body > .cco-primary { bottom: calc(68px + env(safe-area-inset-bottom, 0px)); } }
+/* the site's WhatsApp button sits above the price bar and the pinned button, so neither is covered */
+@media (max-width: 999px) { body:has(.cco-bar.cco-show) a.ccwa { bottom: calc(76px + env(safe-area-inset-bottom, 0px)) !important; } }
+@media (max-width: 759px) {
+  body:has(#cc-cake-order .cco-step.cco-open .cco-body > .cco-primary) a.ccwa { bottom: calc(80px + env(safe-area-inset-bottom, 0px)) !important; }
+  body:has(.cco-bar.cco-show):has(#cc-cake-order .cco-step.cco-open .cco-body > .cco-primary) a.ccwa { bottom: calc(136px + env(safe-area-inset-bottom, 0px)) !important; }
+}
 /* touch screens: Back and Change are easy to hit */
 @media (pointer: coarse) {
   #cc-cake-order .cco-back { min-height: 44px; padding: 8px 6px; }
