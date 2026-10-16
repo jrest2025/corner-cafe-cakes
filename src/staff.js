@@ -1110,7 +1110,7 @@
     var d = e.detail || {}, who = e.actor_label || 'System';
     var map = { created: 'Order placed (' + (SOURCE_LABEL[d.source] || d.source) + ')', confirmed: 'Confirmed' + (d.final_total != null ? ' at ' + money(d.final_total) : '') + (d.reason ? ' (' + d.reason + ')' : ''),
       awaiting_deposit: 'Accepted, waiting for ' + money(d.deposit_required) + ' deposit', declined: 'Declined', cancelled: 'Cancelled', collected: 'Collected',
-      payment_recorded: money(d.amount) + ' ' + d.kind + ' recorded (' + payMethodLabel(d.method) + ')', note: 'Note added',
+      payment_recorded: money(d.amount) + ' ' + d.kind + ' recorded (' + payMethodLabel(d.method) + ')', note: 'Note added', taken_earlier: 'Order taken ' + (d.text || '') + ', entered later',
       stage: 'Kitchen: ' + (STAGE_LABEL[d.to] || d.to) + (d.qc_by ? ', checked by ' + d.qc_by : ''),
       brief_printed: 'Kitchen slip v' + d.version + (d.new_version ? ' printed' : ' reprinted') + (d.changes && d.changes.length ? ' (changed: ' + d.changes.join(', ') + ')' : ''),
       fulfilment: d.method === 'delivery' ? 'Set to delivery, ' + (d.zone || '') + ', fee ' + money(d.fee) : 'Set to collection',
@@ -2494,10 +2494,10 @@
     if (D.repeat && !D.confirmReset) h += repeatNote();
     else if (D.restored && draftHasContent()) h += '<p class="ccs-note">Carrying on the unfinished order' + (draftWho() ? ' for ' + esc(draftWho()) : '') + ', started ' + esc(stamp(D.saved)) + '.</p>';
     if (SLIP && STEPPER) return h + '<div class="sl-wrap is-stepper"><div id="ccs-slipform">' + slipBody() + '</div></div>';
-    if (SLIP) return h + '<div class="sl-wrap"><p class="sl-k" style="margin:0 0 8px">How did they order?</p><div class="ccs-chips" role="group" aria-label="How they ordered" style="margin-bottom:16px">' + SOURCES.map(function (s) { return '<button type="button" class="ccs-chip" data-act="n-source" data-v="' + s[0] + '" aria-pressed="' + (D.source === s[0]) + '">' + s[1] + '</button>'; }).join('') + '</div>' +
+    if (SLIP) return h + '<div class="sl-wrap"><p class="sl-k" style="margin:0 0 8px">How did they order?</p><div class="ccs-chips" role="group" aria-label="How they ordered" style="margin-bottom:16px">' + SOURCES.map(function (s) { return '<button type="button" class="ccs-chip" data-act="n-source" data-v="' + s[0] + '" aria-pressed="' + (D.source === s[0]) + '">' + s[1] + '</button>'; }).join('') + '</div>' + takenHtml() +
       '<div id="ccs-slipform">' + slipBody() + '</div></div>';
     h += '<ol class="ccs-nprog" aria-label="Progress">' + NSTEPS.map(function (st, i) { var c = i === D.step ? 'is-now' : (i <= D.reached && st.sum() ? 'is-done' : ''); return '<li class="' + c + '"><span>' + (c === 'is-done' ? '&#10003;' : (i + 1)) + '</span>' + st.k + '</li>'; }).join('') + '</ol>';
-    h += '<p class="ccs-label" style="margin:0 0 8px">How did they order?</p><div class="ccs-chips" role="group" aria-label="How they ordered" style="margin-bottom:14px">' + SOURCES.map(function (s) { return '<button type="button" class="ccs-chip" data-act="n-source" data-v="' + s[0] + '" aria-pressed="' + (D.source === s[0]) + '">' + s[1] + '</button>'; }).join('') + '</div>';
+    h += '<p class="ccs-label" style="margin:0 0 8px">How did they order?</p><div class="ccs-chips" role="group" aria-label="How they ordered" style="margin-bottom:14px">' + SOURCES.map(function (s) { return '<button type="button" class="ccs-chip" data-act="n-source" data-v="' + s[0] + '" aria-pressed="' + (D.source === s[0]) + '">' + s[1] + '</button>'; }).join('') + '</div>' + takenHtml();
     h += '<div class="ccs-steps">';
     NSTEPS.forEach(function (st, i) {
       var open = i === D.step, done = !open && i <= D.reached && st.sum();
@@ -2817,7 +2817,7 @@
     var p = prod(), dl = D.method === 'delivery', me = S.me || {}, now = new Date(), so = sizeObj(), cur = slStage(), seen = slSeen();
     var ed = '';
     if (cur === 0) {
-      ed = '<p class="sl-k" style="margin:0 0 8px">How did they order?</p><div class="ccs-chips" role="group" aria-label="How they ordered" style="margin-bottom:14px">' + SOURCES.map(function (s) { return '<button type="button" class="ccs-chip" data-act="n-source" data-v="' + s[0] + '" aria-pressed="' + (D.source === s[0]) + '">' + s[1] + '</button>'; }).join('') + '</div>' +
+      ed = '<p class="sl-k" style="margin:0 0 8px">How did they order?</p><div class="ccs-chips" role="group" aria-label="How they ordered" style="margin-bottom:14px">' + SOURCES.map(function (s) { return '<button type="button" class="ccs-chip" data-act="n-source" data-v="' + s[0] + '" aria-pressed="' + (D.source === s[0]) + '">' + s[1] + '</button>'; }).join('') + '</div>' + takenHtml() +
         (D.req ? '<div class="sl-reqhead"><p class="sl-k">Custom cake order</p><button type="button" class="ccs-link" data-act="n-unreq">Choose a menu cake instead</button></div>'
           : '<div class="sl-pickhead"><p class="sl-k">Tap the price for the cake and size</p>' + reqButton('sl-bodyreq') + '</div>' + slTable());
       if (D.req) ed += '<p class="sl-ask"><b>Ask the customer:</b> who is the cake for, any colours or theme, and do they have a photo? Write the answers in What should it look like.</p>' + reqFields();
@@ -2948,6 +2948,20 @@
     }
     return saveLabel() + (t != null ? ' · ' + money(t) : '');
   }
+  // When the order was taken, for orders keyed in later (phone or walk-in written down first). Lead-time reports rely on it.
+  function takenHtml() {
+    var o = D.taken || 'now', opts = [['now', 'Just now'], ['today', 'Earlier today'], ['yesterday', 'Yesterday'], ['other', 'Another day']];
+    return '<p class="sl-k tk-k">When was this order taken?</p><div class="ccs-chips tk-chips" role="group" aria-label="When the order was taken">' + opts.map(function (x) { return '<button type="button" class="ccs-chip" data-act="n-taken" data-v="' + x[0] + '" aria-pressed="' + (o === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div>' +
+      (o === 'now' ? '' : '<div class="sl-sub tk-sub">' + (o === 'other' ? '<label class="sl-k" for="n-takedate">Date taken</label><input class="ccs-input" id="n-takedate" type="date" data-n="takenDate" max="' + today() + '" value="' + esc(D.takenDate || '') + '">' : '') +
+        '<label class="sl-k" for="n-taketime">About what time? <em class="sl-req">Optional</em></label><input class="ccs-input" id="n-taketime" type="time" data-n="takenTime" value="' + esc(D.takenTime || '') + '"></div>');
+  }
+  function takenAt() {
+    var o = D.taken || 'now'; if (o === 'now') return null;
+    var d = o === 'today' ? today() : o === 'yesterday' ? addDays(today(), -1) : D.takenDate; if (!d) return null;
+    var tm = /^\d{2}:\d{2}/.test(D.takenTime || '') ? D.takenTime.slice(0, 5) : (o === 'today' ? null : '12:00');
+    if (!tm) { var p = new Intl.DateTimeFormat('en-GB', { timeZone: TZ, hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(Date.now() - 3600000)); tm = p; }
+    return d + 'T' + tm + ':00+12:00';
+  }
   function submitOrder() {
     var L = S.setup.location, price = dTotal(), custom = D.finish === 'custom';
     if (STEPPER && !D.req && !custom) {
@@ -2968,6 +2982,9 @@
     if (D.customer) { p.customer_id = D.customer.id; if (D.optIn === true || D.optIn === false) p.consent = D.optIn ? 'yes' : 'no'; } else p.customer = { name: D.name, phone: D.phone, email: D.email, whatsapp: D.whatsapp, opt_in: D.optIn === true };
     if (D.heard && !D.customer) p.heard_from = D.heard;
     if (RECUR.indexOf(D.occasion) > -1) { if ((D.occFor || '').trim()) p.occasion_for = D.occFor.trim(); p.occasion_date = D.occDate || D.date; }
+    var tkAt = takenAt();
+    if ((D.taken === 'other') && !D.takenDate) { D.err = 'Choose the date the order was taken, or pick Just now.'; D.errField = null; return refreshStep(); }
+    if (tkAt && Date.parse(tkAt) > Date.now() + 60000) { D.err = 'The time taken is later than now. Check the time, or pick Just now.'; D.errField = null; return refreshStep(); }
     S.busy = true; refreshStep();
     sb.rpc('staff_create_order', { p: p }).then(function (r) {
       S.busy = false; if (r.error) throw r.error;
@@ -2979,6 +2996,7 @@
         if (s !== D.step) { var e = D.err, ef = D.errField; goStep(s); D.err = e; D.errField = ef; refreshStep(); } else refreshStep();
         return;
       }
+      if (tkAt && r.data.order_id) sb.rpc('order_set_taken', { p_order: r.data.order_id, p_at: tkAt }).then(function (x) { if (x.error || (x.data && !x.data.ok)) toast('Order saved, but the time taken was not recorded' + (x.data && x.data.message ? ': ' + x.data.message : '.'), true); });
       S.wl = {}; loadOrders(true); if (p.rush && p.rush.approved_by) rememberName(p.rush.approved_by);
       if (newInSheet()) { if (D.fromCal) calSaved(r.data); else homeSaved(r.data, !!((D.email || '').trim() || (D.customer && D.customer.email))); return; }
       D.result = r.data; view(); toast(r.data.reference + ' saved');
@@ -4724,6 +4742,7 @@
         case 'new-keep': D.confirmReset = false; newRender(); break;
         case 'new-clear': var keepDate = newInSheet() ? [D.date, D.time] : null; clearDraft(); if (keepDate) { D.date = keepDate[0]; D.time = keepDate[1]; D.fromCal = true; } newRender(); break;
         case 'n-source': D.source = v; root.querySelectorAll('[data-act="n-source"]').forEach(function (c) { c.setAttribute('aria-pressed', c.dataset.v === v); }); break;
+        case 'n-taken': D.taken = v; if (v === 'today' || v === 'yesterday' || v === 'other') { if (!D.takenTime) D.takenTime = ''; if (v === 'other' && !D.takenDate) D.takenDate = addDays(today(), -2); } if (STEPPER || SLIP) refreshStep(); else view(); setTimeout(function () { var el = document.getElementById(v === 'other' ? 'n-takedate' : 'n-taketime'); if (el) el.focus(); }, 30); break;
         case 'n-edit': goStep(Number(v)); break;
         case 'n-pick': if (SLIP) { var pl = b.dataset.from === 'name' ? D.nameMatches : D.matches; D.customer = pl[Number(v)]; D.isNew = false; D.nameMatches = null; D.matches = null; D.optIn = null; D.custConsent = undefined; slSeen()[1] = true; slGo(2); slConsent(D.customer.id); break; }
         case 'sl-heard': D.heard = D.heard === v ? null : v; refreshStep(); break; D.customer = D.matches[Number(v)]; D.isNew = false; goStep(nextOpen(1)); break;

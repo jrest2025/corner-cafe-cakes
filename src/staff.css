@@ -955,3 +955,27 @@
   #cc-staff .tq-days .ccs-daycell { flex: 0 0 64px; }
   #cc-staff #ccs-main .ccs-today.tq-main { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Dashboard: lead time and pickup */
+#cc-staff .lt-find { margin: 6px 0 14px; padding: 0; list-style: none; display: grid; gap: 4px; }
+#cc-staff .lt-find li { padding: 6px 10px; border-left: 4px solid #5F7A4A; background: #F9FAFB; border-radius: 6px; font-size: calc(15 * var(--u, 1px)); color: #344054; }
+#cc-staff .lt-find li.is-few { border-left-color: #D0D5DD; color: #667085; }
+#cc-staff .lt-n { color: #667085; font-size: calc(13 * var(--u, 1px)); }
+#cc-staff .lt-tab th small, #cc-staff .lt-tab td small { display: block; font-weight: 400; color: #667085; font-size: calc(12 * var(--u, 1px)); }
+#cc-staff .lt-tab .lt-c { position: relative; min-width: 72px; }
+#cc-staff .lt-tab .lt-bar { position: absolute; left: 0; bottom: 0; height: 4px; background: #B5C7A3; border-radius: 2px; }
+#cc-staff .lt-tab .lt-c.is-top { background: #F1F5EC; }
+#cc-staff .lt-tab .lt-c.is-top b { color: #3F5530; }
+#cc-staff .lt-tab tr.is-few td, #cc-staff .lt-tab tr.is-few th, #cc-staff .lt-tab .is-few { color: #98A2B3; }
+#cc-staff .lt-tab tr.is-few .lt-bar, #cc-staff .lt-tab .is-few .lt-bar { background: #E4E7EC; }
+#cc-staff .lt-h3 { margin: 12px 0 2px; font-size: calc(16 * var(--u, 1px)); }
+#cc-staff .lt-tip { margin: 0 0 6px; color: #344054; font-size: calc(14 * var(--u, 1px)); }
+#cc-staff .lt-tip.is-few { color: #667085; }
+
+/* New order: when the order was taken */
+#cc-staff .tk-k { margin: 4px 0 8px; }
+#cc-staff .tk-chips { margin-bottom: 10px; }
+#cc-staff .tk-sub { display: grid; gap: 6px; max-width: 320px; margin-bottom: 14px; }
+#cc-staff .dx-secbody > .lt-wrap { display: block; min-height: max-content; }
+#cc-staff .lt-wrap > * + * { margin-top: 10px; }
+#cc-staff .lt-wrap .dx-card-h { margin-top: 18px; }

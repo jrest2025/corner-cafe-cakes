@@ -1,0 +1,7 @@
+-- Corner Café cakes: when an order was taken (APPLIED 17 Oct 2026 as migrations orders_taken_at, orders_taken_at_event, register_uses_taken_at)
+-- Staff orders keyed in later (phone or walk-in written down first) record when they were really taken, so lead-time reports are right.
+-- 1. orders.taken_at timestamptz (null = taken when entered, created_at).
+-- 2. order_set_taken(p_order, p_at): staff with ord.create, within 2 hours of entering, not website orders, not after entry or pickup, not more than 30 days back.
+--    Writes an order history line (kind taken_earlier).
+-- 3. register_rebuild: app orders use coalesce(taken_at, created_at) as the order date, basis "Date taken by staff" when taken_at is set
+--    (patched in place by replacing one expression; re-check if register_rebuild is rewritten).

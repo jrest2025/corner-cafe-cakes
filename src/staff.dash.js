@@ -181,7 +181,7 @@
     flags.push('Prices are shown as charged. Tax treatment is not confirmed.');
     if (data.tests_excluded) flags.push(data.tests_excluded + ' test ' + (data.tests_excluded === 1 ? 'order is' : 'orders are') + ' left out of every figure.');
     d.secs = [];
-    dxProducts(cur); dxOccasions(r); dxUpcoming(up); dxCustomers(cur, r); dxPayments(r); dxOps(r); dxDiscounts(cur); dxDemand(cur); dxYear(); dxOrders(r);
+    dxProducts(cur); dxOccasions(r); dxLead(r); dxUpcoming(up); dxCustomers(cur, r); dxPayments(r); dxOps(r); dxDiscounts(cur); dxDemand(cur); dxYear(); dxOrders(r);
     dxSec('df', 'About the data', flags.length + ' things to know', '<p class="dx-ch">' + flags.length + ' things to know about this data</p>' + flags.map(dxFlag).join('') + dxDefs());
     d.secs = [['ov', 'Overview', '', '']].concat(dxMerge(d.secs));
     var keys = d.secs.map(function (x) { return x[0]; }), cs2 = secCur('dash', keys, 'ov'), sec = d.secs.filter(function (x) { return x[0] === cs2; })[0];
@@ -686,6 +686,105 @@
       '<li><b>Returning customers</b>: completed sales by customers who had bought before. Counts only, no names.</li></ul>';
     return dxSec('oc', 'Occasions', rows.length + ' occasions', h);
   }
+  // ----- Lead time and pickup: how far ahead each occasion is ordered, when it is collected, which cakes, and the run-up to dated occasions -----
+  var LT_B = [['Same day', 0, 0], ['1–2 days', 1, 2], ['3–6 days', 3, 6], ['1–2 weeks', 7, 13], ['2+ weeks', 14, 9999]];
+  var PU_B = [['Morning', 0, 719, 'before 12 PM'], ['Midday', 720, 839, '12 to 2 PM'], ['Afternoon', 840, 1019, '2 to 5 PM'], ['Evening', 1020, 1439, 'after 5 PM']];
+  var WD = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  var LT_MIN = 5;
+  function ltDays(o) { if (!o.odok || !o.od || !o.pd) return null; var a = Date.parse(o.od + 'T00:00:00Z'), b = Date.parse(o.pd + 'T00:00:00Z'); var n = Math.round((b - a) / 86400000); return n >= 0 ? n : null; }
+  function ltMins(o) { if (!o.pt) return null; var p = String(o.pt).split(':'); var m = Number(p[0]) * 60 + Number(p[1] || 0); return isFinite(m) ? m : null; }
+  function ltMed(a) { if (!a.length) return null; a = a.slice().sort(function (x, y) { return x - y; }); var k = Math.floor(a.length / 2); return a.length % 2 ? a[k] : (a[k - 1] + a[k]) / 2; }
+  function ltPct(a, q) { if (!a.length) return null; a = a.slice().sort(function (x, y) { return x - y; }); return a[Math.min(a.length - 1, Math.floor(q * (a.length - 1) + 0.5))]; }
+  function ltDaysTxt(n) { return n == null ? '' : n === 0 ? 'the same day' : (Math.round(n * 10) / 10) + (n === 1 ? ' day' : ' days') + ' ahead'; }
+  function ltDatesLoad() {
+    if (DX.odates || DX.odLoading) return; DX.odLoading = true;
+    sb.from('occasion_dates').select('occasion_code,year,starts_on,ends_on,promo_days').order('starts_on').then(function (r) { DX.odLoading = false; DX.odates = r.error ? [] : (r.data || []); if (S.tab === 'dash') view(); }).catch(function () { DX.odLoading = false; DX.odates = []; });
+  }
+  function dxLeadData(r) {
+    var codes = ((DX.data.occasions) || []).map(function (o) { return o.c; });
+    var list = dxIn(r.from, r.to, function (o) { return !o.off; });
+    return codes.map(function (c) {
+      var mine = list.filter(function (o) { return (o.oc || 'not_specified') === c; });
+      var lead = mine.map(ltDays).filter(function (x) { return x != null; });
+      var mins = mine.map(ltMins).filter(function (x) { return x != null; });
+      var wd = [0, 0, 0, 0, 0, 0, 0]; mine.forEach(function (o) { if (o.pd) wd[new Date(o.pd + 'T12:00:00Z').getUTCDay()]++; });
+      return { c: c, l: dxOccName(c), n: mine.length, list: mine, lead: lead, mins: mins, wd: wd,
+        lb: LT_B.map(function (b) { return lead.filter(function (x) { return x >= b[1] && x <= b[2]; }).length; }),
+        pb: PU_B.map(function (b) { return mins.filter(function (x) { return x >= b[1] && x <= b[2]; }).length; }) };
+    }).filter(function (x) { return x.n; }).sort(function (a, b) { return b.n - a.n; });
+  }
+  function ltBar(k, tot, strong) { var pct = tot ? Math.round(k / tot * 100) : 0; return '<td class="lt-c' + (strong ? ' is-top' : '') + '"><span class="lt-bar" style="width:' + pct + '%"></span><b>' + (k ? pct + '%' : '–') + '</b><small>' + (k ? k : '') + '</small></td>'; }
+  function dxLead(r) {
+    ltDatesLoad();
+    var rows = dxLeadData(r);
+    if (!rows.length) return dxSec('lt', 'Lead time and pickup', '', '<p class="ccs-quiet">No orders in this period.</p>');
+    var few = function (x) { return x < LT_MIN; };
+    // 1. Findings in plain words
+    var fnd = [];
+    rows.forEach(function (x) {
+      if (x.c === 'not_specified' || x.c === 'other') return;
+      if (few(x.lead.length)) { fnd.push('<li class="is-few"><b>' + esc(x.l) + '</b>: too few orders to judge (' + x.lead.length + ').</li>'); return; }
+      var bi = x.lb.indexOf(Math.max.apply(null, x.lb)), pi = x.pb.indexOf(Math.max.apply(null, x.pb)), wi = x.wd.indexOf(Math.max.apply(null, x.wd));
+      fnd.push('<li><b>' + esc(x.l) + '</b>: usually ordered ' + esc(ltDaysTxt(ltMed(x.lead))) + '. ' + Math.round(x.lb[bi] / x.lead.length * 100) + '% order ' + esc(LT_B[bi][0].toLowerCase()) + (bi ? ' ahead' : '') +
+        (x.lb[0] ? '; ' + Math.round(x.lb[0] / x.lead.length * 100) + '% on the day' : '') + '. ' +
+        (x.mins.length >= LT_MIN ? 'Most collected in the ' + PU_B[pi][0].toLowerCase() + ' (' + PU_B[pi][3] + ')' + (x.wd[wi] ? ', busiest on ' + WD[wi] + 's' : '') + '. ' : '') +
+        '<span class="lt-n">Based on ' + x.lead.length + ' orders.</span></li>');
+    });
+    var h = '<p class="dx-ch">How far ahead each occasion is ordered and when the cakes are collected. Lead time is the days from the order date to the pickup date. Occasions with fewer than ' + LT_MIN + ' orders are marked too few to judge.</p>';
+    h += fnd.length ? '<ul class="lt-find">' + fnd.join('') + '</ul>' : '';
+    // 2. Lead time by occasion
+    h += '<div class="dx-card-h"><h2>How far ahead people order</h2></div><div class="dx-octwrap"><table class="dx-octab lt-tab"><thead><tr><th>Occasion</th><th>Orders</th><th>Usually</th>' + LT_B.map(function (b) { return '<th>' + b[0] + '</th>'; }).join('') + '</tr></thead><tbody>' +
+      rows.map(function (x) { var mx = Math.max.apply(null, x.lb); return '<tr' + (few(x.lead.length) ? ' class="is-few"' : '') + '><th scope="row">' + esc(x.l) + '</th><td>' + x.lead.length + (x.lead.length < x.n ? '<small> of ' + x.n + '</small>' : '') + '</td><td>' + (few(x.lead.length) ? 'Too few' : esc(ltDaysTxt(ltMed(x.lead)).replace(' ahead', ''))) + '</td>' + x.lb.map(function (k) { return ltBar(k, x.lead.length, k && k === mx && !few(x.lead.length)); }).join('') + '</tr>'; }).join('') + '</tbody></table></div>';
+    // 3. Pickup time of day
+    h += '<div class="dx-card-h"><h2>When cakes are collected</h2></div><div class="dx-octwrap"><table class="dx-octab lt-tab"><thead><tr><th>Occasion</th><th>Orders</th>' + PU_B.map(function (b) { return '<th>' + b[0] + '<small>' + b[3] + '</small></th>'; }).join('') + '<th>Busiest day</th></tr></thead><tbody>' +
+      rows.map(function (x) { var mx = Math.max.apply(null, x.pb), wi = x.wd.indexOf(Math.max.apply(null, x.wd)); return '<tr' + (few(x.mins.length) ? ' class="is-few"' : '') + '><th scope="row">' + esc(x.l) + '</th><td>' + x.mins.length + '</td>' + x.pb.map(function (k) { return ltBar(k, x.mins.length, k && k === mx && !few(x.mins.length)); }).join('') + '<td>' + (few(x.n) ? 'Too few' : WD[wi] + ' <small>' + x.wd[wi] + '</small>') + '</td></tr>'; }).join('') + '</tbody></table></div>';
+    // 4. Run-up to dated occasions, year beside year (all history, so years can be compared)
+    var od = DX.odates;
+    if (!od) h += '<p class="ccs-loading">Loading occasion dates…</p>';
+    else {
+      var RB = [['On the day', 0, 0], ['1 day before', 1, 1], ['2 days', 2, 2], ['3 days', 3, 3], ['4–7 days', 4, 7], ['8–14 days', 8, 14], ['15+ days', 15, 9999]];
+      var dated = {}; od.forEach(function (d) { (dated[d.occasion_code] = dated[d.occasion_code] || []).push(d); });
+      var all = DX.data.orders.filter(function (o) { return !o.off && dxMatch(o); });
+      var blocks = Object.keys(dated).map(function (c) {
+        var yrs = dated[c].map(function (d) {
+          var day = d.starts_on, lo = new Date(Date.parse(day + 'T00:00:00Z') - 4 * 86400000).toISOString().slice(0, 10), hi = d.ends_on || new Date(Date.parse(day + 'T00:00:00Z') + 2 * 86400000).toISOString().slice(0, 10);
+          var mine = all.filter(function (o) { return (o.oc || 'not_specified') === c && o.pd >= lo && o.pd <= hi; });
+          var before = mine.map(function (o) { return o.odok && o.od ? Math.round((Date.parse(day + 'T00:00:00Z') - Date.parse(o.od + 'T00:00:00Z')) / 86400000) : null; }).filter(function (x) { return x != null && x >= 0; });
+          return { y: d.year, day: day, promo: d.promo_days, n: mine.length, b: before, cnt: RB.map(function (b) { return before.filter(function (x) { return x >= b[1] && x <= b[2]; }).length; }) };
+        }).filter(function (y) { return y.n; });
+        return { c: c, l: dxOccName(c), yrs: yrs };
+      }).filter(function (x) { return x.yrs.length; });
+      h += '<div class="dx-card-h"><h2>The run-up to dated occasions</h2><span>Orders for that occasion, by how many days before the date they were placed. Pickups from 4 days before to 2 days after the date.</span></div>';
+      if (!blocks.length) h += '<p class="ccs-quiet">No orders yet for the dated occasions (Mother\'s Day, Father\'s Day, Valentine\'s Day, Christmas and any you add in Settings).</p>';
+      blocks.forEach(function (bk) {
+        var allB = []; bk.yrs.forEach(function (y) { allB = allB.concat(y.b); });
+        var p80 = ltPct(allB, 0.8), tip = few(allB.length) ? 'Too few orders to suggest a start date yet (' + allB.length + ').' : 'Eight in ten orders came within ' + p80 + ' days of the date, so start promoting about ' + (p80 + 7) + ' days before (a week ahead of the main wave).';
+        h += '<h3 class="lt-h3">' + esc(bk.l) + '</h3><p class="lt-tip' + (few(allB.length) ? ' is-few' : '') + '">' + esc(tip) + '</p><div class="dx-octwrap"><table class="dx-octab lt-tab"><thead><tr><th>Year</th><th>Date</th><th>Orders</th>' + RB.map(function (b) { return '<th>' + b[0] + '</th>'; }).join('') + '</tr></thead><tbody>' +
+          bk.yrs.map(function (y) { var mx = Math.max.apply(null, y.cnt); return '<tr' + (few(y.b.length) ? ' class="is-few"' : '') + '><th scope="row">' + y.y + '</th><td>' + esc(nice(y.day)) + '</td><td>' + y.n + '</td>' + y.cnt.map(function (k) { return ltBar(k, y.b.length, k && k === mx && !few(y.b.length)); }).join('') + '</tr>'; }).join('') + '</tbody></table></div>';
+      });
+    }
+    // 5. Cake by occasion
+    var cx = {}, occs = []; rows.forEach(function (x) { if (occs.indexOf(x.c) < 0) occs.push(x.c); x.list.forEach(function (o) { dxItems(o).forEach(function (i) { var k = i[1] || i[0] || 'Cake'; var e = cx[k] = cx[k] || {}; e[x.c] = (e[x.c] || 0) + (dnum(i[3]) || 1); }); }); });
+    var colTot = {}; occs.forEach(function (c) { colTot[c] = Object.keys(cx).reduce(function (s, k) { return s + (cx[k][c] || 0); }, 0); });
+    var cakes = Object.keys(cx).sort(function (a, b) { var sa = 0, sb_ = 0; occs.forEach(function (c) { sa += cx[a][c] || 0; sb_ += cx[b][c] || 0; }); return sb_ - sa; });
+    var mode = DX.cxo === 'n' ? 'n' : 'p';
+    h += '<div class="dx-card-h"><h2>Cake by occasion</h2><span><button type="button" class="ccs-link" data-act="dx-cxo" data-v="' + (mode === 'p' ? 'n' : 'p') + '">' + (mode === 'p' ? 'Show cake counts' : 'Show share of each occasion') + '</button></span></div>' +
+      '<p class="dx-ch">' + (mode === 'p' ? 'Each column adds to 100%: the share of that occasion\'s cakes.' : 'Number of cakes.') + ' The top cake for each occasion is highlighted. Columns under ' + LT_MIN + ' cakes are marked too few.</p>' +
+      '<div class="dx-octwrap"><table class="dx-octab lt-tab lt-cx"><thead><tr><th>Cake</th>' + occs.map(function (c) { return '<th' + (few(colTot[c]) ? ' class="is-few"' : '') + '>' + esc(dxOccName(c)) + '<small>' + colTot[c] + (few(colTot[c]) ? ', too few' : '') + '</small></th>'; }).join('') + '</tr></thead><tbody>' +
+      cakes.map(function (k) { return '<tr><th scope="row">' + esc(k) + '</th>' + occs.map(function (c) { var v = cx[k][c] || 0, top = v && !few(colTot[c]) && cakes.every(function (k2) { return (cx[k2][c] || 0) <= v; }); return '<td class="lt-c' + (top ? ' is-top' : '') + (few(colTot[c]) ? ' is-few' : '') + '">' + (v ? (mode === 'p' ? Math.round(v / colTot[c] * 100) + '%' : v) : '–') + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody></table></div>';
+    h += '<div class="dx-octools"><button type="button" class="ccs-btn ccs-ghost" data-act="dx-lead-csv">Download as a spreadsheet (CSV)</button></div>';
+    h += '<ul class="dx-rules"><li><b>Order date</b>: when the order was placed (website form time, or the date staff took it). Records with no reliable order date are left out of lead time, not guessed.</li><li><b>Cancelled orders</b> are left out. Filters at the top (period, channel, cake) apply, except the run-up, which always shows every year so years can be compared.</li></ul>';
+    var top = rows.filter(function (x) { return x.c !== 'not_specified' && !few(x.lead.length); })[0];
+    return dxSec('lt', 'Lead time and pickup', top ? esc(top.l) + ': usually ' + esc(ltDaysTxt(ltMed(top.lead))) : '', '<div class="lt-wrap">' + h + '</div>');
+  }
+  function dxLeadExport() {
+    var r = dxRange(), rows = dxLeadData(r);
+    var lines = [['Corner Café cakes: lead time and pickup'], ['Period', r.all ? 'All time' : r.from + ' to ' + r.to], [], ['Order', 'Occasion', 'Order date', 'Pickup date', 'Pickup time', 'Days ahead', 'Pickup weekday', 'Channel', 'Cakes']];
+    rows.forEach(function (x) { x.list.forEach(function (o) { var d = ltDays(o); lines.push([o.r, x.l, o.odok ? o.od : '', o.pd, o.pt ? String(o.pt).slice(0, 5) : '', d == null ? '' : d, o.pd ? WD[new Date(o.pd + 'T12:00:00Z').getUTCDay()] : '', SOURCE_LABEL[o.src] || o.src, dxItems(o).map(function (i) { return (i[1] || i[0]) + (i[2] ? ' ' + i[2] + ' inch' : ''); }).join('; ')]); }); });
+    var csv = lines.map(function (l) { return l.map(dxCsv).join(','); }).join('\n');
+    var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv' })); a.download = 'corner-cafe-lead-time-' + today() + '.csv'; document.body.appendChild(a); a.click(); a.remove();
+    toast('Lead time downloaded');
+  }
   function dxOccExport() {
     var r = dxRange(), rows = dxOccRows(r), ly = dxLastYear(r), f = DX.f;
     var lines = [['Corner Café cakes: occasion analysis'], ['Period', r.all ? 'All time' : r.from + ' to ' + r.to], ['Counted by', f.b === 'o' ? 'Order date' : 'Pickup date'], ['Channel', f.ch === 'all' ? 'All channels' : SOURCE_LABEL[f.ch] || f.ch], ['Cake', f.prod === 'all' ? 'All cakes' : f.prod], [],
@@ -713,6 +812,8 @@
     if (a === 'dx-refresh') dashLoad(true);
     else if (a === 'dx-export') dxExport();
     else if (a === 'dx-occ-csv') dxOccExport();
+    else if (a === 'dx-lead-csv') dxLeadExport();
+    else if (a === 'dx-cxo') { DX.cxo = v; view(); }
     else if (a === 'dx-psort') { DX.psort = v; dxKeep(); view(); }
     else if (a === 'dx-year') { DX.year = v; dxKeep(); view(); }
     else if (a === 'dx-metric') { DX.metric = v; view(); }
