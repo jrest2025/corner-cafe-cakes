@@ -613,4 +613,20 @@
   #cc-staff .ccs-prow-f.is-amber { background: #FBF0DD; color: #8A5A12; }
   #cc-staff .ccs-prow-f.is-none { padding: 0; }
   #cc-staff .ccs-prow-f.is-none::before { display: none; }
+  /* Phones: each row stands apart: a coloured left edge on every row, more space between rows, a slight lift */
+  #cc-staff .ccs-list, #cc-staff .at-rows { gap: 12px !important; }
+  #cc-staff .ccs-card, #cc-staff .ccs-mini { border: 1px solid #D0D5DD !important; border-radius: 12px !important; background: #FFFFFF !important; box-shadow: 0 1px 3px rgba(16, 24, 40, .10), 0 1px 2px rgba(16, 24, 40, .06) !important; }
+  #cc-staff .ccs-card::before, #cc-staff .ccs-mini::before { width: 6px !important; }
+  #cc-staff .ccs-card.pf-red::before, #cc-staff .ccs-mini.pf-red::before { background: #D92D20 !important; }
+  #cc-staff .ccs-card.pf-amber::before, #cc-staff .ccs-mini.pf-amber::before { background: #E8A33D !important; }
+  #cc-staff .ccs-card.pf-none::before, #cc-staff .ccs-mini.pf-none::before { background: #D0D5DD !important; }
+  #cc-staff .ccs-card > .ccs-prow, #cc-staff .ccs-mini > .ccs-prow { padding-left: 20px !important; }
+  /* Name first: darker and larger; order number smaller and lighter */
+  #cc-staff .ccs-prow-m b { font-size: 17px !important; color: #101828 !important; }
+  #cc-staff .ccs-prow-m span { font-size: 13px !important; color: #98A2B3 !important; letter-spacing: .02em; }
+  #cc-staff .ccs-prow-t b { font-size: 14px !important; color: #344054 !important; }
+  #cc-staff .ccs-prow-t span { font-size: 13px !important; color: #667085 !important; }
+  /* Needs attention: the same reason shows once as a heading, with its orders underneath */
+  #cc-staff .at-row.is-rep > .at-why { display: none !important; }
+  #cc-staff .at-row:not(.is-rep):not(:first-child) { margin-top: 8px; }
 }
