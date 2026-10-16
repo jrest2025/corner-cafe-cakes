@@ -780,3 +780,27 @@
   #cc-staff .tq-tools .ccs-btn { flex: 1 1 0; justify-content: center; }
   #cc-staff .tq-head .ccs-title { font-size: calc(22 * var(--u, 1px)) !important; }
 }
+
+/* Today warning panel, quieter: one white card, slim one-line rows, a dot for the level, a thin red edge only for urgent */
+#cc-staff .tq-warn { display: block !important; background: #fff; border: 1px solid #DCE3EB; border-radius: 12px; padding: 8px 12px 6px; margin: 12px 0 12px; }
+#cc-staff .tq-wh { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; padding: 2px 2px 6px; }
+#cc-staff .tq-wh h2 { margin: 0; font-size: calc(16 * var(--u, 1px)); color: #101828; }
+#cc-staff .tq-wh span { font-size: calc(14 * var(--u, 1px)); color: #475467; }
+#cc-staff .tq-wh em { font-style: normal; font-weight: 700; }
+#cc-staff .tq-wh em.is-red { color: #B42318; } #cc-staff .tq-wh em.is-amber { color: #93370D; }
+#cc-staff .tq-wh .tq-more { margin-left: auto; font-size: calc(15 * var(--u, 1px)); }
+#cc-staff .tq-w { display: flex !important; flex-wrap: nowrap !important; align-items: center; gap: 10px !important; min-height: 44px; padding: 6px 10px !important; margin: 0; background: #fff !important; border: 0 !important; border-top: 1px solid #F2F4F7 !important; border-radius: 0 !important; box-shadow: none !important; color: #344054 !important; }
+#cc-staff .tq-w.is-red { box-shadow: inset 3px 0 0 #D92D20 !important; }
+#cc-staff .tq-w i { flex: none; width: 10px; height: 10px; border-radius: 50%; }
+#cc-staff .tq-w.is-red i { background: #D92D20; } #cc-staff .tq-w.is-amber i { background: #DC6803; }
+#cc-staff .tq-w b { flex: none; font-size: calc(15 * var(--u, 1px)) !important; color: #101828; white-space: nowrap; }
+#cc-staff .tq-w span { flex: 1 1 auto; min-width: 0; font-size: calc(15 * var(--u, 1px)) !important; font-weight: 400 !important; color: #475467; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#cc-staff .tq-w:hover { background: #F9FAFB !important; filter: none; }
+#cc-staff .tq-warn.is-clear { padding: 0; border: 0; background: none; }
+#cc-staff .tq-warn.is-clear .tq-clear { padding: 8px 12px; border: 1px solid #DCE3EB; border-left: 4px solid #5F7A4A; font-weight: 500; font-size: calc(15 * var(--u, 1px)); }
+#cc-staff .ccs-note.ccs-mirnote { padding: 6px 12px !important; margin: 8px 0 0 !important; font-size: calc(14 * var(--u, 1px)) !important; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+#cc-staff .ccs-note.ccs-mirnote .ccs-link { padding: 0; min-height: 0; }
+@media (max-width: 759px) {
+  #cc-staff .tq-w { flex-wrap: wrap !important; row-gap: 0 !important; }
+  #cc-staff .tq-w span { flex-basis: 100%; padding-left: 20px; white-space: normal; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; }
+}

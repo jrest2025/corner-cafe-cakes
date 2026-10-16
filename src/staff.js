@@ -715,10 +715,11 @@
       if (m <= 180) x.tone = 'red';
     });
     warn.sort(function (a, b) { if (a.tone !== b.tone) return a.tone === 'red' ? -1 : 1; return (a.o.required_date + a.o.required_time) < (b.o.required_date + b.o.required_time) ? -1 : 1; });
-    var WMAX = 6;
+    var WMAX = 3, nRed = warn.filter(function (x) { return x.tone === 'red'; }).length, nAmb = warn.length - nRed;
     h += '<section class="tq-warn' + (warn.length ? '' : ' is-clear') + '" aria-label="Needs attention">' + (warn.length ?
-      warn.slice(0, WMAX).map(function (x) { return '<button type="button" class="tq-w is-' + x.tone + '" data-act="open-order" data-id="' + x.o.id + '"><b>' + esc(x.o.reference) + ' ' + esc(nm(x.o)) + '</b><span>' + esc(x.txt) + '</span></button>'; }).join('') +
-      (warn.length > WMAX ? '<button type="button" class="ccs-link tq-more" data-tab="attn">' + (warn.length - WMAX) + ' more in Needs attention</button>' : '') :
+      '<div class="tq-wh"><h2>Needs attention</h2><span>' + [nRed ? '<em class="is-red">' + nRed + ' urgent</em>' : '', nAmb ? '<em class="is-amber">' + nAmb + ' to do</em>' : ''].filter(Boolean).join(' · ') + '</span>' +
+      (warn.length > WMAX ? '<button type="button" class="ccs-link tq-more" data-tab="attn">See all ' + warn.length + ' →</button>' : '') + '</div>' +
+      warn.slice(0, WMAX).map(function (x) { return '<button type="button" class="tq-w is-' + x.tone + '" data-act="open-order" data-id="' + x.o.id + '" title="' + esc(x.txt) + '"><i aria-hidden="true"></i><b>' + esc(x.o.reference) + ' ' + esc(nm(x.o)) + '</b><span>' + esc(x.txt) + '</span></button>'; }).join('') :
       '<p class="tq-clear">All clear. Nothing needs attention right now.</p>') + '</section>';
     // One row of numbers; each matches the list it opens and the badge in the menu
     var owing0 = live.filter(function (o) { return o.order_status === 'awaiting_deposit' || (o.order_status === 'confirmed' && o.payment_status !== 'paid'); });
