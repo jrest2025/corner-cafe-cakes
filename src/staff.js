@@ -474,6 +474,24 @@
     return [dl ? 'Cake is ready: deliver it, then mark it delivered' : 'Cake is ready: hand it over, then mark it collected', 'you'];
   }
   function nextHtml(o) { var n = nextStep(o); return n ? '<span class="ccs-next' + (n[1] === 'wait' ? ' is-wait' : '') + '"><em>Next:</em> ' + esc(n[0]) + '</span>' : ''; }
+  // Phones: each order is one compact row (when, customer and order number, one marker for anything critical); a tap opens the full order
+  function phoneFlag(o) {
+    if (o.has_dietary) return ['Allergy', 'is-red'];
+    if (isOverdue(o)) return ['Overdue', 'is-red'];
+    var st = o.order_status;
+    if (st === 'awaiting_review') return ['Confirm', 'is-amber'];
+    if (st === 'awaiting_quote') return ['Price', 'is-amber'];
+    if (st === 'awaiting_deposit') return ['Deposit', 'is-amber'];
+    if (st === 'awaiting_approval') return ['Waiting', 'is-amber'];
+    if (st === 'confirmed' && o.payment_status !== 'paid' && canP('ord.payments')) return ['Unpaid', 'is-amber'];
+    return null;
+  }
+  function phoneRow(o, timeOnly) {
+    var c = o.customers, f = phoneFlag(o);
+    return '<span class="ccs-prow"><span class="ccs-prow-t"><b>' + esc(timeOnly ? t12(o.required_time) : nice(o.required_date)) + '</b>' + (timeOnly ? '' : '<span>' + esc(t12(o.required_time)) + '</span>') + '</span>' +
+      '<span class="ccs-prow-m"><b>' + esc(c && c.full_name ? c.full_name : 'Customer') + '</b><span>' + esc(o.reference || '') + '</span></span>' +
+      (f ? '<span class="ccs-prow-f ' + f[1] + '">' + esc(f[0]) + '</span>' : '<span class="ccs-prow-f is-none"></span>') + '</span>';
+  }
   function orderCard(o) {
     var i = firstItem(o), c = o.customers, st = STATUS[o.order_status] || ['', 'off'];
     var late = isOverdue(o), tags = (validRef(o.reference) ? '' : '<span class="ccs-pill s-alert">No order number</span>') + (late ? '<span class="ccs-pill s-alert">Overdue</span>' : '') + pill(o.order_status, o.fulfilment_method);
@@ -485,7 +503,7 @@
     if (o.order_status === 'confirmed' || o.order_status === 'completed') tags += payPill(o.payment_status);
     if (o.order_status === 'confirmed') tags += stagePill(o.production_status);
     if (o.fulfilment_method === 'delivery') tags += '<span class="ccs-tag t-info">Delivery' + (o.delivery_zone ? ', ' + esc(o.delivery_zone) : '') + '</span>';
-    return '<button type="button" class="ccs-card k-' + st[1] + (late || o.has_dietary ? ' is-red' : '') + '" data-act="open-order" data-id="' + o.id + '">' +
+    return '<button type="button" class="ccs-card k-' + st[1] + (late || o.has_dietary ? ' is-red' : '') + '" data-act="open-order" data-id="' + o.id + '">' + phoneRow(o, false) +
       '<span class="ccs-when"><b>' + esc(nice(o.required_date) + (String(o.required_date).slice(0, 4) !== today().slice(0, 4) ? ' ' + String(o.required_date).slice(0, 4) : '')) + '</b><span>' + esc(t12(o.required_time)) + '</span></span>' +
       '<span class="ccs-what"><b>' + esc(cakeLine(i)) + '</b><span class="ccs-meta">' + esc(c ? c.full_name : 'Customer details hidden') + ' · ' + esc(o.reference) + ' · ' + esc(SOURCE_LABEL[o.source]) + (receivedAgo(o) ? ' · ' + esc(receivedAgo(o)) : '') + '</span><span class="ccs-tags">' + tags + '</span>' + nextHtml(o) + '</span>' +
       (o.order_type === 'custom' && o.final_total == null && !Number(o.estimate_total) ? '<span class="ccs-price">To price<small>custom cake</small></span></button>' :
@@ -658,7 +676,7 @@
   var NEXT_BTN = { awaiting_review: 'Check and confirm', awaiting_quote: 'Add the price', awaiting_approval: 'Record their yes', awaiting_deposit: 'Record the deposit' };
   function miniRow(o, showTime, withAct) {
     var i = firstItem(o), c = o.customers, st = STATUS[o.order_status] || ['', 'off'];
-    return '<button type="button" class="ccs-mini k-' + st[1] + (isOverdue(o) || o.has_dietary ? ' is-red' : '') + (o.id === S.justAdded ? ' is-new' : '') + '" data-act="open-order" data-id="' + o.id + '">' +
+    return '<button type="button" class="ccs-mini k-' + st[1] + (isOverdue(o) || o.has_dietary ? ' is-red' : '') + (o.id === S.justAdded ? ' is-new' : '') + '" data-act="open-order" data-id="' + o.id + '">' + phoneRow(o, showTime) +
       '<span class="ccs-mini-t">' + (showTime ? esc(t12(o.required_time)) : esc(nice(o.required_date)) + '<small>' + esc(t12(o.required_time)) + '</small>') + '</span>' +
       '<span class="ccs-mini-m"><b>' + esc(cakeLine(i)) + '</b><span>' + esc(c ? c.full_name : '') + ' · ' + esc(o.reference) + (receivedShort(o) ? ' · ' + esc(receivedShort(o)) : '') + '</span>' + (withAct && NEXT_BTN[o.order_status] && canP('ord.status') ? '' : nextHtml(o)) + (withAct && NEXT_BTN[o.order_status] && (o.order_status === 'awaiting_deposit' ? canP('ord.payments') : canP('ord.status')) ? '<span class="tp-nb">' + NEXT_BTN[o.order_status] + '</span>' : '') + '</span>' +
       '<span class="ccs-mini-r">' + (o.order_status === 'confirmed' ? stagePill(o.production_status) : pill(o.order_status, o.fulfilment_method)) + ((o.order_status === 'confirmed' || o.order_status === 'awaiting_deposit') && o.payment_status !== 'paid' && canP('ord.payments') ? payPill(o.payment_status) : '') + (o.fulfilment_method === 'delivery' ? '<span class="ccs-pill s-info">Delivery</span>' : '') + (o.has_dietary && !dietUnsure(o) ? '<span class="ccs-pill s-alert">Dietary or allergy</span>' : '') + reviewFlags(o) + '</span></button>';

@@ -594,3 +594,23 @@
 
 /* Kitchen calendar month on touch screens: each cake in a day is a full finger-sized tap (44 px), like the rest of the app */
 @media (pointer: coarse) { #cc-staff .kc-mbars .kc-mbar, #cc-staff .kc-mbars .kc-mmore { min-height: 44px; } }
+
+/* Phones: each order is one compact row: when, customer and order number, one marker for anything critical. A tap opens the full order. */
+#cc-staff .ccs-card > .ccs-prow, #cc-staff .ccs-mini > .ccs-prow { display: none !important; }
+@media (max-width: 759px) {
+  #cc-staff .ccs-card, #cc-staff .ccs-mini { display: block !important; min-height: 0 !important; padding: 0 !important; }
+  #cc-staff .ccs-card > :not(.ccs-ph), #cc-staff .ccs-mini > :not(.ccs-ph) { display: none !important; }
+  #cc-staff .ccs-card > .ccs-prow, #cc-staff .ccs-mini > .ccs-prow { display: grid !important; grid-template-columns: 86px minmax(0, 1fr) auto; align-items: center; gap: 10px; min-height: 60px; padding: 10px 14px 10px 16px; flex-direction: row; }
+  #cc-staff .ccs-prow-t { display: flex; flex-direction: column; line-height: 1.25; }
+  #cc-staff .ccs-prow-t b { font-size: 15px; font-weight: 700; color: var(--ccs-ink); }
+  #cc-staff .ccs-prow-t span { font-size: 14px; color: var(--ccs-muted); }
+  #cc-staff .ccs-prow-m { display: flex; flex-direction: column; min-width: 0; line-height: 1.3; }
+  #cc-staff .ccs-prow-m b { font-size: 16px; font-weight: 700; color: var(--ccs-ink); overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  #cc-staff .ccs-prow-m span { font-size: 14px; color: var(--ccs-muted); }
+  #cc-staff .ccs-prow-f { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 700; padding: 4px 8px; border-radius: 999px; white-space: nowrap; }
+  #cc-staff .ccs-prow-f::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+  #cc-staff .ccs-prow-f.is-red { background: #FBE9E6; color: #A2402B; }
+  #cc-staff .ccs-prow-f.is-amber { background: #FBF0DD; color: #8A5A12; }
+  #cc-staff .ccs-prow-f.is-none { padding: 0; }
+  #cc-staff .ccs-prow-f.is-none::before { display: none; }
+}
