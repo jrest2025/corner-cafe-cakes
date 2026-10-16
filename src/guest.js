@@ -32,6 +32,31 @@
   var S = { req: false, size_note: '', reqFlav: '', flavour: null, variant: null, size: null, showServes: false, finish: null, design: '', photos: [], msgOpen: false, message: '', occasion: null, occOther: '', occPre: false, method: 'collection', zone: null, address: '', receiver: '', candOpen: false, candles: '', noteOpen: false, notes: '',
     diet: null, diets: [], dietNote: '', date: null, time: null, name: '', phone: '', whatsapp: true, emailOpen: false, email: '', updates: false, detailsOk: false, know: true, sending: false, howOpen: false, dateNote: '' };
   var open = 0, reached = 0, errors = {}, formError = null, fresh = {}, animStep = -1;
+  // ---------- carry on later: the order in progress is kept on this device for 24 hours, and removed once it is sent ----------
+  var S0 = JSON.stringify(S), GKEY = 'cco-draft-v1', GMS = 24 * 3600e3, finished = false, restoredAt = null;
+  function gSave() {
+    if (finished || S.sending) return;
+    try {
+      var c = JSON.parse(JSON.stringify(S)); c.photos = S.photos.filter(function (x) { return x.status === 'done'; }).map(function (x) { return { name: x.name, path: x.path, url: null, status: 'done' }; }); c.sending = false;
+      if (!c.flavour && !c.req && !c.name && !reached) { localStorage.removeItem(GKEY); return; }
+      var old = null; try { old = JSON.parse(localStorage.getItem(GKEY) || 'null'); } catch (e) {}
+      localStorage.setItem(GKEY, JSON.stringify({ at: Date.now(), started: old && old.key === KEY ? old.started : Date.now(), key: KEY, s: c, open: open, reached: reached }));
+    } catch (e) {}
+  }
+  function gRestore() {
+    try {
+      var d = JSON.parse(localStorage.getItem(GKEY) || 'null'); if (!d || !d.s || Date.now() - d.at > GMS) { localStorage.removeItem(GKEY); return; }
+      Object.keys(d.s).forEach(function (k) { if (k in S) S[k] = d.s[k]; });
+      // the menu may have changed since: anything no longer offered is asked again
+      var f = fl(); if (!S.req && S.flavour && !f) { S.flavour = null; S.variant = null; S.size = null; }
+      if (f && S.size != null && !f.sizes.some(function (z) { return z.inch === S.size; })) S.size = null;
+      if (f && f.variants.length && S.variant && f.variants.indexOf(S.variant) < 0) S.variant = null;
+      if (S.date) checkDate('Your cake');
+      KEY = d.key || KEY; reached = Math.min(d.reached || 0, STEPS.length - 1); open = nextIncomplete(0) <= reached ? nextIncomplete(0) : reached; restoredAt = d.started || d.at;
+    } catch (e) {}
+  }
+  function gClear() { try { localStorage.removeItem(GKEY); } catch (e) {} }
+  function gTime(ms) { return new Date(ms).toLocaleTimeString('en-GB', { timeZone: TZ, hour: 'numeric', minute: '2-digit', hour12: true }).replace(/\s?([ap])\.?m\.?$/i, function (_m, x) { return ' ' + x.toUpperCase() + 'M'; }); }
 
   var ICON = {
     tick: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
@@ -239,7 +264,7 @@
   function stateOf(i) { return i === open ? 'open' : (i <= reached && STEPS[i].summary() ? 'done' : 'locked'); }
 
   function render(focusSel) {
-    var n = STEPS.length, L0 = SETUP.location, h = (reached === 0 ? '<div class="cco-strip"><p><b>No payment now.</b> Order at least ' + L0.lead_days_standard + (L0.lead_days_standard == 1 ? ' day' : ' days') + ' ahead' + (L0.lead_days_custom > L0.lead_days_standard ? ', or ' + L0.lead_days_custom + ' days for a custom design' : '') + '.</p><button type="button" class="cco-strip-btn" data-act="how" aria-expanded="' + S.howOpen + '">How it works</button>' + (S.howOpen ? '<ol class="cco-strip-steps"><li><b>Choose your cake</b><span>Flavour, size and finish</span></li><li><b>Pick a day</b><span>Collect from our counter</span></li><li><b>We confirm</b><span>By WhatsApp or a call, before anything is booked</span></li></ol>' : '') + '</div>' : '') + '<div class="cco-progress" aria-hidden="true"><div class="cco-progress-track"><i style="width:' + Math.round((open + 1) / n * 100) + '%"></i></div><span>Step ' + (open + 1) + ' of ' + n + ' <b>' + STEPS[open].key + '</b></span></div><div class="cco-steps">';
+    var n = STEPS.length, L0 = SETUP.location, h = (restoredAt ? '<div class="cco-resume" role="status"><p><b>Welcome back.</b> We kept the order you started at ' + esc(gTime(restoredAt)) + '. Carry on where you left off.</p><button type="button" class="cco-resume-btn" data-act="restart">Start again</button></div>' : '') + (reached === 0 && !restoredAt ? '<div class="cco-strip"><p><b>No payment now.</b> Order at least ' + L0.lead_days_standard + (L0.lead_days_standard == 1 ? ' day' : ' days') + ' ahead' + (L0.lead_days_custom > L0.lead_days_standard ? ', or ' + L0.lead_days_custom + ' days for a custom design' : '') + '.</p><button type="button" class="cco-strip-btn" data-act="how" aria-expanded="' + S.howOpen + '">How it works</button>' + (S.howOpen ? '<ol class="cco-strip-steps"><li><b>Choose your cake</b><span>Flavour, size and finish</span></li><li><b>Pick a day</b><span>Collect from our counter</span></li><li><b>We confirm</b><span>By WhatsApp or a call, before anything is booked</span></li></ol>' : '') + '</div>' : '') + '<div class="cco-progress" aria-hidden="true"><div class="cco-progress-track"><i style="width:' + Math.round((open + 1) / n * 100) + '%"></i></div><span>Step ' + (open + 1) + ' of ' + n + ' <b>' + STEPS[open].key + '</b></span></div><div class="cco-steps">';
     STEPS.forEach(function (s, i) {
       var st = stateOf(i); if (st === 'locked' || (open === STEPS.length - 1 && st === 'done')) return;
       var sub = typeof s.sub === 'function' ? s.sub() : s.sub;
@@ -247,14 +272,15 @@
         ? '<button type="button" class="cco-sum" data-act="edit" data-v="' + i + '"><span class="cco-tickdot" aria-hidden="true">' + ICON.tick + '</span><span><span class="cco-sum-k">' + s.key + '</span><span class="cco-sum-v">' + esc(s.summary()) + '</span></span><span class="cco-sum-e">Change</span></button>'
         : '<div class="cco-body' + (i === animStep ? ' cco-enter' : '') + '"><div class="cco-head"><h2 class="cco-q" tabindex="-1">' + (typeof s.q === 'function' ? s.q() : s.q) + '</h2>' + (i > 0 ? '<button type="button" class="cco-back" data-act="edit" data-v="' + (i - 1) + '">Back<span class="cco-sr"> to ' + esc(STEPS[i - 1].key.toLowerCase()) + '</span></button>' : '') + '</div>' + (sub ? '<p class="cco-qsub">' + esc(sub) + '</p>' : '') + s.body() + '</div>') + '</section>';
     });
-    root.innerHTML = h + '</div>';
+    root.innerHTML = h + '</div>'; gSave();
     fresh = {}; animStep = -1; S.photos.forEach(function (p) { p.isNew = false; });
     var p = price(), bar = document.getElementById('cco-bar'), showBar = !!p && open < 5;
     root.classList.toggle('cco-has-bar', showBar);
     if (bar) { bar.classList.toggle('cco-show', showBar); bar.querySelector('span').textContent = [cakeName(), S.size != null ? S.size + ' inch' : ''].filter(Boolean).join(' · '); bar.querySelector('strong').textContent = p ? money(p) : ''; }
     if (focusSel) { var el = root.querySelector(focusSel); if (el) { el.focus({ preventScroll: true }); reveal(el.closest('.cco-field') || el); } }
   }
-  function go(i, errs, forceScroll) {
+  function go(i, errs, forceScroll, fromPop) {
+    if (i !== open && !fromPop) { restoredAt = null; try { history.pushState({ cco: i }, ''); } catch (e) {} }
     var from = open, changed = i !== open, aOld = document.getElementById('cco-step-' + from), aNew = document.getElementById('cco-step-' + i);
     var oldTop = aOld ? aOld.getBoundingClientRect().top : null, newTop = aNew ? aNew.getBoundingClientRect().top : null;
     lockHeight(); open = i; reached = Math.max(reached, i); errors = errs || {}; formError = null; if (changed) animStep = i; render();
@@ -422,6 +448,7 @@
   }
   function fallbackCopy(v) { var t = document.createElement('textarea'); t.value = v; t.setAttribute('readonly', ''); t.style.position = 'fixed'; t.style.opacity = '0'; document.body.appendChild(t); t.select(); var r = false; try { r = document.execCommand('copy'); } catch (e) {} t.remove(); return r; }
   function done(d) {
+    finished = true; gClear();
     var bar = document.getElementById('cco-bar'); if (bar) bar.classList.remove('cco-show');
     root.classList.remove('cco-has-bar');
     lockHeight();
@@ -500,9 +527,17 @@
     }
     if (a === 'know') { S.know = true; return render(); }
     if (a === 'send') return send();
+    if (a === 'restart') { gClear(); var z = JSON.parse(S0); Object.keys(z).forEach(function (k) { S[k] = z[k]; }); S.photos = []; KEY = uid(); open = 0; reached = 0; errors = {}; formError = null; restoredAt = null; animStep = 0; try { history.replaceState({ cco: 0 }, ''); } catch (e) {} render(); var q = root.querySelector('.cco-q'); if (q) q.focus({ preventScroll: true }); return; }
+  });
+  // The phone or browser Back button steps back through the form (and closes the calendar first)
+  window.addEventListener('popstate', function (e) {
+    if (finished || !SETUP) return;
+    // Back with the calendar open only closes the calendar: the step stays where it is
+    if (shade && shade.classList.contains('cco-open')) { closeCal(); try { history.pushState({ cco: open }, ''); } catch (x) {} return; }
+    var st = e.state; if (st && st.cco != null) go(Math.max(0, Math.min(Number(st.cco) || 0, reached)), null, true, true);
   });
   root.addEventListener('input', function (e) {
-    var k = e.target.dataset.in; if (!k) return; S[k] = e.target.value;
+    var k = e.target.dataset.in; if (!k) return; S[k] = e.target.value; gSave();
     if (k === 'name' || k === 'phone' || k === 'email') S.detailsOk = false;
     if (k === 'size_note' || k === 'reqFlav') S.reqOk = false;
     if (k === 'message') { var c = document.getElementById('cco-count'); if (c) c.textContent = S.message.length + ' / 40'; }
@@ -511,6 +546,7 @@
   root.addEventListener('change', function (e) {
     var k = e.target.dataset.chk; if (k) S[k] = e.target.checked;
     if (e.target.id === 'cco-photos' && e.target.files.length) upload(e.target.files);
+    gSave();
   });
   ['dragenter', 'dragover'].forEach(function (t) { root.addEventListener(t, function (e) { var z = e.target.closest && e.target.closest('.cco-drop'); if (!z) return; e.preventDefault(); z.classList.add('cco-over'); }); });
   root.addEventListener('dragleave', function (e) { var z = e.target.closest && e.target.closest('.cco-drop'); if (z && !z.contains(e.relatedTarget)) z.classList.remove('cco-over'); });
@@ -564,6 +600,7 @@
     SETUP = r.data;
     if (!SETUP.location.accepts_online || !SETUP.products.length) { root.innerHTML = '<div class="cco-done"><h2>Online cake orders are paused</h2><p>Please call us on ' + esc(SETUP.location.phone) + ' and our team will help you order.</p></div>'; return; }
     if (PRE_OCC && occLabel(PRE_OCC) && PRE_OCC !== 'not_specified') { S.occasion = PRE_OCC; S.occPre = true; }
-    buildCal(); animStep = 0; render();
+    gRestore(); try { history.replaceState({ cco: open }, ''); } catch (e) {}
+    buildCal(); animStep = open; render();
   }).catch(function () { root.innerHTML = '<div class="cco-done"><h2>We couldn\'t load the cake menu</h2><p>Please refresh the page, or call us on +679 892 2760 to order.</p></div>'; });
 })();

@@ -101,12 +101,16 @@
   function toast(msg, bad, action) {
     clearBusy();
     var t = document.getElementById('ccs-toast');
+    // A plain notice never pushes an Undo off the screen before its 10 seconds are up
+    if (t && !bad && !action && !t.hidden && S.undoUntil && Date.now() < S.undoUntil) return;
     if (!t) { t = document.createElement('div'); t.id = 'ccs-toast'; t.setAttribute('role', 'status'); root.appendChild(t); }
     if (bad) S.setSaved = null; else if (S.setSaved != null) setSavedOk();
     t.className = 'ccs-toast' + (bad ? ' ccs-bad' : '') + (action ? ' has-action' : ''); t.textContent = msg; t.hidden = false;
     // A saved order offers Open order, so staff can check it straight away
-    if (action) { var ab = document.createElement('button'); ab.type = 'button'; ab.className = 'ccs-toast-act'; ab.dataset.act = 'open-order'; ab.dataset.id = action.id; ab.textContent = action.label; ab.addEventListener('click', function () { t.hidden = true; }); t.appendChild(ab); }
-    clearTimeout(toastTimer); toastTimer = setTimeout(function () { t.hidden = true; }, bad ? 7000 : action ? 9000 : 3200);
+    // An Undo (or other) action runs its own function; Open order uses the normal button
+    if (action) { var ab = document.createElement('button'); ab.type = 'button'; ab.className = 'ccs-toast-act'; if (action.fn) { ab.addEventListener('click', function (ev) { ev.stopPropagation(); t.hidden = true; action.fn(); }); } else { ab.dataset.act = 'open-order'; ab.dataset.id = action.id; ab.addEventListener('click', function () { t.hidden = true; }); } ab.textContent = action.label; t.appendChild(ab); }
+    S.undoUntil = action && action.fn ? Date.now() + 10000 : 0;
+    clearTimeout(toastTimer); toastTimer = setTimeout(function () { t.hidden = true; }, bad ? 7000 : action && action.fn ? 10000 : action ? 9000 : 3200);
   }
   // Plain-language errors (U9). Technical detail goes to the console only.
   function errKind(e) {
@@ -237,7 +241,7 @@
   function view() {
     var m = document.getElementById('ccs-main'); if (!m) return;
     var keepFocus = captureFocus(m);
-    viewInner(m); restoreFocus(keepFocus); saveDraft(); markMore(m);
+    viewInner(m); restoreFocus(keepFocus); saveDraft(); markMore(m); scrKeep(); scrApply();
   }
   // Tab rows that scroll sideways get a soft fade at the edge that still has more to show
   function moreState(el) { var r = el.scrollWidth - el.clientWidth - el.scrollLeft > 4; el.classList.toggle('has-more', r); }
@@ -346,9 +350,10 @@
         return Promise.all([sb.rpc('get_order_setup', { p_location: 'corner-cafe' }), sb.rpc('my_access').then(null, function () { return {}; })]).then(function (rr) {
           var s = rr[0]; accessSet(rr[1]);
           if (s.error) throw s.error; S.setup = s.data;
-          loadDraft();
-          S.tab = kitchenOnly() || location.hash === '#kitchen' ? 'kitchen' : 'today';
-          shell();
+          loadDraft(); var back = scrLoad();
+          S.tab = kitchenOnly() || location.hash === '#kitchen' ? 'kitchen' : back && back !== 'kitchen' && navTabs().some(function (x) { return x[0] === back; }) ? back : 'today';
+          try { history.replaceState({ ccs: 'tab', tab: S.tab }, ''); } catch (x) {}
+          shell(); if (S.tab !== 'today' && S.tab !== 'kitchen') goTab(S.tab, true);
           if (location.hash === '#new' && canP('ord.create')) newStart();
           if (S.tab === 'kitchen') loadKitchen(); else loadOrders();
           mirLoad(); setInterval(mirLoad, 5 * 60000);
@@ -561,6 +566,7 @@
   function shiftName(k) { return ((SHIFTS.filter(function (x) { return x[0] === k; })[0]) || ['', ''])[1]; }
   function hoLoad() {
     S.ho = S.ho || {}; if (S.ho.loading) return; S.ho.loading = true;
+    if (!S.ho.draft) { var kept = wipGet('ho'); if (kept) { S.ho.draft = kept.note; if (kept.shift) S.ho.shift = kept.shift; } }
     sb.rpc('handover_list').then(function (r) {
       S.ho.loading = false; if (r.error) throw r.error;
       if (!r.data.ok) { S.ho.err = r.data.message; } else { S.ho.notes = r.data.notes || []; S.ho.loaded = true; S.ho.err = null; }
@@ -574,7 +580,7 @@
     sb.rpc('handover_add', { p_shift: S.ho.shift || shiftNow(), p_note: note }).then(function (r) {
       clearBusy(); if (r.error) throw r.error;
       if (!r.data.ok) { S.ho.formErr = r.data.message; return view(); }
-      S.ho.draft = ''; toast('Handover note saved'); S.ho.loaded = false; hoLoad();
+      S.ho.draft = ''; wipPut('ho', null); toast('Handover note saved'); S.ho.loaded = false; hoLoad();
     }).catch(function (e) { clearBusy(); S.ho.formErr = errKind(e) === 'offline' ? 'No internet connection. The note is not saved yet. Try again.' : 'The note could not be saved. Try again.'; view(); });
   }
   function hoTake(id) {
@@ -657,7 +663,7 @@
     var first = ((S.me && S.me.full_name) || '').trim().split(' ')[0];
     var who = (S.me && S.me.level_name) || (canP('staff.users') ? 'Admin' : canP('ord.override') ? 'Manager' : 'Counter');
     var h = '<div class="ccs-dash-head tp-head"><div><p class="ccs-eyebrow">Corner Café · ' + esc(who) + '</p><h1 class="ccs-title">' + greet() + '! What would you like to do?</h1><p class="tp-sub">' + esc(nice(t, true)) + '</p>' + (S.loaded ? freshLine(S.ordAt, S.ordFails, 'reload-orders') : '') + '</div></div>';
-    if (draftHasContent() && canP('ord.create')) h += '<div class="ccs-note ccs-draftbar"><span>Unfinished order' + (draftWho() ? ' for ' + esc(draftWho()) : '') + '.</span><button type="button" class="ccs-btn ccs-ghost" data-tab="new">Continue it</button></div>';
+    h += resumeCard();
     if (!S.loaded) return h + (S.ordErr ? loadErr(S.ordErr, 'reload-orders') : '<p class="ccs-loading">Loading today…</p>');
     if (S.mir && canP('mgmt.settings') && (S.mir.state === 'attention' || S.mir.state === 'not_set_up')) h += '<p class="ccs-note ccs-mirnote">' + (S.mir.state === 'not_set_up' ? 'The backup Google Sheet is not set up yet.' : 'The backup Google Sheet has not updated since ' + esc(when(S.mir.last_ack_at) || 'it was set up') + '.') + ' <button type="button" class="ccs-link" data-tab="settings">Check backup</button></p>';
     var overdue = S.orders.filter(isOverdue).sort(function (a, b) { return (a.required_date + a.required_time) < (b.required_date + b.required_time) ? -1 : 1; });
@@ -775,9 +781,11 @@
   }
   function goTab(t, fromPop) {
     if (t === 'new') { newStart(); return; }
-    if (!fromPop && S.sheet && hasTyping()) { toast('Save or cancel your changes first.', true); return; }
-    var hadSheet = S.sheetHist;
-    S.tab = t; sheetClose(hadSheet && !fromPop ? 'replace' : 'pop');
+    var paused = null;
+    if (!fromPop && S.sheet && hasTyping()) { if (!pauseable()) { toast('Save or cancel your changes first.', true); return; } paused = pauseWork(); }
+    var hadSheet = S.sheetHist; scrMark();
+    S.scrWant = fromPop && S.scr && S.scr[t] ? { tab: t, pos: S.scr[t], until: Date.now() + 4000 } : null;
+    S.tab = t; sheetClose(hadSheet && !fromPop ? 'replace' : 'pop'); if (paused) toast(paused);
     try { if (!fromPop) { if (hadSheet) history.replaceState({ ccs: 'tab', tab: t }, ''); else history.pushState({ ccs: 'tab', tab: t }, ''); } } catch (x) {}
     shell();
     if (S.tab === 'customers' && !S.cust.loaded) loadCustomers();
@@ -794,11 +802,18 @@
     if (!S.me) return;
     if (S.sheet) {
       var keep = function () { try { history.pushState({ ccs: 'sheet' }, ''); } catch (x) {} };
-      if (hasTyping()) { keep(); toast('Your typing is kept. Save it, or tap the cross twice to discard it.'); return; }
+      // Back goes one step back inside a form before it leaves it
+      if (S.sheet.type === 'new' && slCanBack()) { slBack(); keep(); return; }
+      if (S.sheet.type === 'order' && S.panel === 'amend' && S.am && S.am.preview) { S.am.preview = null; S.panelErr = null; renderSheet(); keep(); return; }
+      if (hasTyping()) {
+        if (pauseable()) { var pm = pauseWork(); S.sheetHist = false; sheetClose('pop'); if (pm) toast(pm); return; }
+        keep(); toast('Your typing is kept. Save it, or tap the cross twice to discard it.'); return;
+      }
       if (S.panel) { S.panel = null; S.panelErr = null; renderSheet(); keep(); return; }
       if (S.sheet.type === 'more' && S.sheet.confirmOut) { S.sheet.confirmOut = false; renderSheet(); keep(); return; }
       S.sheetHist = false; sheetClose('pop'); return;
     }
+    if (S.tab === 'new' && slCanBack()) { try { history.pushState({ ccs: 'tab', tab: 'new' }, ''); } catch (x) {} slBack(); return; }
     var st = e.state;
     if (st && st.ccs === 'tab' && st.tab && st.tab !== S.tab) goTab(st.tab, true);
   });
@@ -817,7 +832,8 @@
     if (canP('mgmt.reports')) links += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-tab="register">Cake register</button>';
     if (canSettings()) links += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-tab="settings">Settings</button>';
     if (links) h += '<div class="ccs-more-links">' + links + '</div>';
-    if (S.sheet.confirmOut && draftHasContent()) h += '<div class="ccs-panel ccs-confirm" role="alert"><b>You have an unfinished order' + (draftWho() ? ' for ' + esc(draftWho()) : '') + '.</b><p class="ccs-hint">Signing out deletes it from this device.</p><div class="ccs-actions-row"><button type="button" class="ccs-btn ccs-danger" data-act="signout" data-sure="1">Sign out anyway</button><button type="button" class="ccs-btn ccs-ghost" data-tab="new">Finish the order</button></div></div>';
+    var wi = S.sheet.confirmOut ? wipItems() : [];
+    if (wi.length) h += '<div class="ccs-panel ccs-confirm" role="alert"><b>' + (wi.length === 1 ? 'You have unfinished work: ' + esc(wi[0].title) + '.' : 'You have ' + wi.length + ' pieces of unfinished work.') + '</b><p class="ccs-hint">Signing out deletes ' + (wi.length === 1 ? 'it' : 'them') + ' from this device.</p><div class="ccs-actions-row"><button type="button" class="ccs-btn ccs-danger" data-act="signout" data-sure="1">Sign out anyway</button><button type="button" class="ccs-btn ccs-ghost" data-act="wip-go" data-v="' + esc(wi[0].k) + '">' + (wi[0].k === 'new' ? 'Finish the order' : 'Finish it first') + '</button></div></div>';
     else h += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-act="my-password">Change my password</button><button type="button" class="ccs-btn ccs-danger ccs-wide" data-act="signout">Sign out</button>';
     return h + '</div>';
   }
@@ -833,7 +849,7 @@
     Object.keys(S.dirty).forEach(function (id) { var inp = document.getElementById(id); if (inp && el.contains(inp) && inp.value !== S.dirty[id]) inp.value = S.dirty[id]; });
     var nb = el.querySelector('.ccs-sheet-body'); if (nb) nb.scrollTop = top;
     [].slice.call(el.querySelectorAll('.os-main, .os-detail')).forEach(function (c, k) { if (cols[k] != null) c.scrollTop = cols[k]; });
-    pinMainAction(el);
+    pinMainAction(el); wipSync();
     if (!restoreFocus(focus)) { var f = el.querySelector('[data-autofocus]'); if (f) f.focus(); }
   }
   // Phones and tablets: when the main button scrolls out of view, the same button stays pinned at the bottom.
@@ -865,6 +881,7 @@
     if (o.has_dietary) h += '<div class="ccs-alert">Dietary or allergy: ' + esc([].concat(i.dietary || [], i.dietary_note ? [i.dietary_note] : []).join(', ') || 'see notes') + '</div>';
     var sst = o.order_status === 'confirmed' ? slipState(o.id) : null;
     if (sst && sst.failed) h += '<div class="ccs-alert" role="alert">' + esc(SLIP_FAIL) + ' Press Print kitchen slip to print slip v' + sst.v + ' here.</div>';
+    if (S.panel !== 'amend' && amendAllowed(o)) h += wipBanner('am:' + o.id, 'changes to this order');
     h += actionsBox(o, total, paid, bal);
     h += askUpdateBox(o);
     var cut = [['cake', h.length]];
@@ -1604,7 +1621,7 @@
     var mk = open.filter(function (r) { return r.date <= t && r.stage !== 'ready'; }), rdy = open.filter(function (r) { return r.stage === 'ready'; }), soon = open.filter(function (r) { return r.date > t; });
     var hr = function (r) { var p = String(r.time || '23:59').split(':'); return Number(p[0]) + Number(p[1] || 0) / 100; };
     var near = mk.filter(function (r) { return r.date < t || hr(r) - nowH <= 3; });
-    var h = '';
+    var h = resumeCard(['ho']);
     if (near.length) h += '<div class="tp-urgent" role="status"><button type="button" class="tp-urg" data-act="k-card" data-v="today"><b>!</b><span>' + near.length + (near.length === 1 ? ' cake is late or due in the next 3 hours and is' : ' cakes are late or due in the next 3 hours and are') + ' not ready yet.</span><em>View</em></button></div>';
     // Next priority: the most urgent cake that still needs work, with the one button that moves it on
     var todo = open.filter(function (r) { return r.stage !== 'ready' && r.date <= wk; }).sort(kitSort), np = todo[0];
@@ -1830,7 +1847,7 @@
       if (r.data.kitchen_ack_required) msg += ' The kitchen is asked to confirm the change.';
       if (r.data.needs_reprint) msg += ' Print the new kitchen slip.';
       if (['confirmed', 'awaiting_deposit'].indexOf(o.order_status) > -1 && (o.contact_email || (ch.contact_email))) S.askUpdate = o.id;
-      S.am = null; S.panel = null; S.dirty = {}; toast(msg); openOrder(o.id); loadOrders(true);
+      wipPut('am:' + o.id, null); S.am = null; S.panel = null; S.dirty = {}; toast(msg); openOrder(o.id); loadOrders(true);
     }).catch(function (e) { S.busy = false; fail(e); });
   }
   function amendPanel(o, total, paid) {
@@ -1948,14 +1965,17 @@
     h += '<section class="ccs-box"><h3>' + (r.method === 'delivery' ? 'Delivery' : 'Collection') + '</h3><p class="ccs-big">' + esc(nice(r.date, true)) + ' at ' + esc(t12(r.time)) + '</p><dl class="ccs-kv">' + kv('For', r.customer) + kv('Area', r.method === 'delivery' ? r.area : 'Café counter') + kv('Short notice', r.rush ? 'Yes' : '') + '</dl></section>';
     return h + '</div>';
   }
-  function kitStage(stage, qc, cardId) {
+  function kitStage(stage, qc, cardId, undo) {
     var id = cardId || S.sheet.id; if (S.busy) return clearBusy(); S.busy = true; S.panelErr = null;
+    var row0 = kitRow(id), prev = row0 ? row0.stage : null;
     sb.rpc('kitchen_set_stage', { p_order: id, p_stage: stage, p_name: qc || null }).then(function (r) {
       S.busy = false; if (r.error) throw r.error;
       if (!r.data.ok) { if (S.sheet && !cardId) { S.panelErr = r.data.message; return renderSheet(); } return toast(r.data.message, true); }
       if (stage === 'ready') { delete S.dirty['k-qc']; rememberName(qc); }
       var row = kitRow(id); if (row) row.stage = stage;
-      toast(stage === 'ready' ? 'Marked Ready' : (row ? row.reference + ' moved to ' : 'Moved to ') + STAGE_LABEL[stage]); loadKitchen(true); loadOrders(true);
+      // Undo puts it back where it was (not to Ready, which needs the quality check name)
+      var un = !undo && prev && prev !== stage && prev !== 'ready' && STAGE_LABEL[prev] ? { label: 'Undo', fn: function () { kitStage(prev, null, id, true); } } : null;
+      toast(undo ? (row ? row.reference + ' moved back to ' : 'Moved back to ') + STAGE_LABEL[stage] : stage === 'ready' ? 'Marked Ready' : (row ? row.reference + ' moved to ' : 'Moved to ') + STAGE_LABEL[stage], false, un); loadKitchen(true); loadOrders(true);
     }).catch(function (e) { S.busy = false; fail(e); });
   }
   function recentNames() {
@@ -2180,21 +2200,147 @@
   function saveDraft() {
     slipBarUpdate();
     var k = draftKey(); if (!k) return;
-    try { if (draftHasContent()) { if (!D.saved) D.saved = Date.now(); localStorage.setItem(k, JSON.stringify(Object.assign({}, D, { matches: null, err: null, errField: null, confirmReset: false, saved: D.saved }))); } else localStorage.removeItem(k); } catch (e) {}
+    try { if (draftHasContent()) { if (!D.saved) D.saved = Date.now(); var sg = draftSig(); if (sg !== draftSig.last) { draftSig.last = sg; D.touched = Date.now(); } localStorage.setItem(k, JSON.stringify(Object.assign({}, D, { matches: null, err: null, errField: null, confirmReset: false, saved: D.saved }))); } else localStorage.removeItem(k); } catch (e) {}
   }
+  // What the draft holds, without its bookkeeping: the time shown is when staff last changed it, not when the screen redrew
+  function draftSig() { var c = Object.assign({}, D); ['saved', 'touched', 'restored', 'err', 'errField', 'matches', 'confirmReset', 'showSlip', 'whenOpen'].forEach(function (k) { delete c[k]; }); try { return JSON.stringify(c); } catch (e) { return ''; } }
   function loadDraft() {
     var k = draftKey(); if (!k) return;
     try {
       var raw = localStorage.getItem(k); if (!raw) return;
       var d = JSON.parse(raw);
       if (!d || !d.saved || Date.now() - d.saved > 12 * 3600 * 1000) { localStorage.removeItem(k); return; }
-      D = Object.assign(freshDraft(), d, { matches: null, result: null, restored: true });
+      D = Object.assign(freshDraft(), d, { matches: null, result: null, restored: true }); draftSig.last = draftSig();
       D.photos = (D.photos || []).filter(function (x) { return x.status === 'done'; }).map(function (x) { return { name: x.name, path: x.path, url: null, status: 'done' }; });
       if (D.customer && D.custConsent === undefined) setTimeout(function () { if (D.customer) slConsent(D.customer.id); }, 0);
     } catch (e) {}
   }
   function clearDraft() { var k = draftKey(); try { if (k) localStorage.removeItem(k); } catch (e) {} D = freshDraft(); }
   function draftWho() { return D.customer ? D.customer.full_name : (D.name || D.phone || ''); }
+
+  // ---------- task continuity: half-done work is kept on this device, per login, for 12 hours ----------
+  // New orders already keep their own draft (above). This adds order changes, customer edits and the handover note.
+  var WIP_MS = 12 * 3600e3, wipTimer;
+  function wipKey() { return S.me ? 'ccs-wip-' + S.me.user_id : null; }
+  function wipAll() { var k = wipKey(); if (!k) return {}; try { var w = JSON.parse(localStorage.getItem(k) || '{}') || {}, n = Date.now(), out = {}; Object.keys(w).forEach(function (x) { if (w[x] && n - w[x].at < WIP_MS) out[x] = w[x]; }); return out; } catch (e) { return {}; } }
+  function wipGet(id) { return wipAll()[id] || null; }
+  function wipPut(id, item) {
+    var k = wipKey(); if (!k) return; var w = wipAll();
+    if (item) { item.at = Date.now(); w[id] = item; } else { if (!w[id]) return; delete w[id]; }
+    try { if (Object.keys(w).length) localStorage.setItem(k, JSON.stringify(w)); else localStorage.removeItem(k); } catch (e) {}
+  }
+  function wipClearAll() { var k = wipKey(); try { if (k) localStorage.removeItem(k); } catch (e) {} }
+  function amSnap(a) { var c = JSON.parse(JSON.stringify(a)); delete c.preview; return c; }
+  // Copy what is on screen into the store. A fresh change form with nothing changed never removes earlier kept work.
+  function wipSync() {
+    var sh = S.sheet; if (!S.me || !sh) return;
+    if (sh.type === 'order' && sh.data && S.panel === 'amend' && S.am && S.am.orig) {
+      var k = 'am:' + sh.id, n = Object.keys(amendChanges()).length;
+      if (n || (S.am.reason || '').trim()) wipPut(k, { kind: 'am', id: sh.id, ref: sh.data.reference, who: (sh.data.customers && sh.data.customers.full_name) || sh.data.contact_name || '', ver: sh.data.version, step: S.am.preview ? 'Reviewed, not saved' : 'Not saved yet', am: amSnap(S.am) });
+      else if (S.am.resumed) wipPut(k, null);
+    } else if (sh.type === 'customer' && sh.edit && sh.data) {
+      var dk = {}, m = 0; Object.keys(S.dirty).forEach(function (f) { if (/^ce-/.test(f)) { dk[f] = S.dirty[f]; m++; } });
+      if (m) wipPut('cu:' + sh.id, { kind: 'cu', id: sh.id, who: (sh.data.c && sh.data.c.full_name) || '', step: 'Not saved yet', dirty: dk });
+    }
+  }
+  function wipHo() { var n = S.ho && S.ho.draft ? S.ho.draft : ''; if (n.trim()) wipPut('ho', { kind: 'ho', note: n, shift: S.ho.shift || null, step: 'Not saved yet' }); else wipPut('ho', null); }
+  function wipSoon() { clearTimeout(wipTimer); wipTimer = setTimeout(function () { wipSync(); }, 300); }
+  // Leaving is not cancelling: work that is fully kept can be left and picked up later
+  function pauseable() {
+    var sh = S.sheet; if (!sh) return false;
+    if (sh.type === 'new') return true;
+    var other = Object.keys(S.dirty).filter(function (k) { return String(S.dirty[k] || '').trim() && !/^(am-|ce-)/.test(k); });
+    if (other.length) return false;
+    if (sh.type === 'order' && sh.data && S.panel === 'amend' && S.am) return true;
+    if (sh.type === 'customer' && sh.edit && sh.data) return true;
+    return false;
+  }
+  function pauseWork() {
+    var sh = S.sheet; if (!sh) return null; wipSync(); clearTimeout(wipTimer);
+    var msg = sh.type === 'order' && sh.data ? 'Changes to ' + sh.data.reference + ' kept. Pick them up from Today.' : sh.type === 'customer' ? 'Customer changes kept. Pick them up from Today.' : null;
+    if (sh.type !== 'new') { S.dirty = {}; S.am = null; S.panel = null; }
+    return msg;
+  }
+  function wipWhen(at) { var iso = new Date(at).toISOString(); return hoDay(iso) + ', ' + hoTime(iso); }
+  function wipItems() {
+    var out = [];
+    if (draftHasContent() && canP('ord.create')) out.push({ k: 'new', title: 'New order' + (draftWho() ? ' for ' + draftWho() : ''), step: 'Not saved yet', at: D.touched || D.saved || Date.now() });
+    var w = wipAll();
+    Object.keys(w).forEach(function (k) {
+      var x = w[k];
+      if (x.kind === 'am' && canP('ord.status')) out.push({ k: k, title: 'Changes to ' + x.ref + (x.who ? ' for ' + x.who : ''), step: x.step, at: x.at });
+      else if (x.kind === 'cu' && canP('cust.edit')) out.push({ k: k, title: 'Customer details' + (x.who ? ' for ' + x.who : ''), step: x.step, at: x.at });
+      else if (x.kind === 'ho' && (canP('ord.view') || canP('kit.view'))) out.push({ k: k, title: 'Handover note', step: x.step, at: x.at });
+    });
+    return out.sort(function (a, b) { return b.at - a.at; });
+  }
+  function resumeCard(only) {
+    var it = wipItems().filter(function (x) { return !only || only.indexOf(x.k.split(':')[0]) > -1; }); if (!it.length) return '';
+    return '<section class="cw-resume" aria-label="Pick up where you left off"><h2>Pick up where you left off</h2>' + it.map(function (x) {
+      return '<div class="cw-row"><span class="cw-t"><b>' + esc(x.title) + '</b><small>' + esc(x.step) + ' · ' + esc(wipWhen(x.at)) + '</small></span><span class="cw-acts"><button type="button" class="ccs-btn" data-act="wip-go" data-v="' + esc(x.k) + '">Continue</button><button type="button" class="ccs-btn ccs-ghost" data-act="wip-drop" data-v="' + esc(x.k) + '">Discard</button></span></div>';
+    }).join('') + '</section>';
+  }
+  // The same offer inside the order or customer it belongs to
+  function wipBanner(k, what) {
+    var x = wipGet(k); if (!x) return '';
+    return '<div class="cw-banner" role="status"><span class="cw-t"><b>You have unsaved ' + what + '</b><small>Last changed ' + esc(wipWhen(x.at)) + '</small></span><span class="cw-acts"><button type="button" class="ccs-btn" data-act="wip-go" data-v="' + esc(k) + '">Continue</button><button type="button" class="ccs-btn ccs-ghost" data-act="wip-drop" data-v="' + esc(k) + '">Discard</button></span></div>';
+  }
+  function amendAllowed(o) { return canP('ord.status') && OPEN.indexOf(o.order_status) > -1 && (o.production_status !== 'ready' || canP('ord.override')); }
+  // Kept changes go on top of the latest version of the order, so nothing someone else saved is lost
+  function amendResume(o, x) {
+    var a = amendInit(o), sv = x.am || {}, o0 = sv.orig || {};
+    Object.keys(a.orig).forEach(function (f) { if (sv[f] !== undefined && JSON.stringify(sv[f]) !== JSON.stringify(o0[f])) a[f] = sv[f]; });
+    a.by = sv.by || null; a.reason = sv.reason || ''; a.open = sv.open || a.open; a.resumed = true;
+    return a;
+  }
+  function wipGo(k) {
+    if (k === 'new') { goTab('new'); return; }
+    var x = wipGet(k); if (!x) { toast('That unfinished work is no longer on this device.', true); view(); return; }
+    if (x.kind === 'ho') { if (kitchenOnly()) { secStore('kitM').kitM = 'hand'; goTab('kitchen'); } else goTab('handover'); setTimeout(function () { var n = document.getElementById('ho-note'); if (n) { n.focus(); try { n.setSelectionRange(n.value.length, n.value.length); } catch (e) {} } }, 50); return; }
+    if (x.kind === 'am') {
+      openOrder(x.id).then(function () {
+        var o = S.sheet && S.sheet.id === x.id && S.sheet.data; if (!o) return;
+        if (!amendAllowed(o)) { wipPut(k, null); toast('This order can no longer be changed, so the kept changes were removed.', true); return renderSheet(); }
+        S.panel = 'amend'; S.am = amendResume(o, x); S.panelErr = o.version !== x.ver ? 'This order was updated since you left it. Your changes are on top of the latest version: check them before saving.' : null;
+        renderSheet(); var bd = document.querySelector('#ccs-sheet .ccs-sheet-body'); if (bd) bd.scrollTop = 0;
+      });
+      return;
+    }
+    if (x.kind === 'cu') {
+      openCustomer(x.id).then(function () {
+        if (!S.sheet || S.sheet.id !== x.id || !S.sheet.data || !canP('cust.edit')) return;
+        S.sheet.tab = 'overview'; S.sheet.edit = true; S.sheet.sec = Object.assign(S.sheet.sec || {}, { cust: 'overview' }); S.dirty = Object.assign({}, x.dirty || {}); renderSheet();
+      });
+    }
+  }
+  // Discard is immediate, with Undo for 10 seconds
+  function wipDrop(k) {
+    var put = function () { if (S.sheet) renderSheet(); view(); };
+    if (k === 'new') { var bk = JSON.parse(JSON.stringify(D)); clearDraft(); put(); toast('Unfinished order discarded', false, { label: 'Undo', fn: function () { D = Object.assign(freshDraft(), bk); saveDraft(); put(); toast('Unfinished order back'); } }); return; }
+    var x = wipGet(k); if (!x) return put();
+    wipPut(k, null); if (x.kind === 'ho' && S.ho) S.ho.draft = '';
+    put(); toast('Discarded', false, { label: 'Undo', fn: function () { var w = wipAll(); w[k] = x; x.at = Date.now(); try { localStorage.setItem(wipKey(), JSON.stringify(w)); } catch (e) {} if (x.kind === 'ho' && S.ho) S.ho.draft = x.note; put(); toast('Back where it was'); } });
+  }
+
+  // ---------- where staff were: screen, sections and filters survive Back and a refresh ----------
+  function scrMain() { return document.getElementById('ccs-main'); }
+  function scrMark() { var m = scrMain(); S.scr = S.scr || {}; if (S.tab) S.scr[S.tab] = { w: window.pageYOffset || 0, m: m ? m.scrollTop : 0 }; }
+  function scrApply() {
+    var w = S.scrWant; if (!w) return;
+    if (w.tab !== S.tab || Date.now() > w.until) { S.scrWant = null; return; }
+    var m = scrMain(); if (m) m.scrollTop = w.pos.m; window.scrollTo(0, w.pos.w);
+    if (S.loaded && (!m || Math.abs(m.scrollTop - w.pos.m) < 4) && Math.abs((window.pageYOffset || 0) - w.pos.w) < 4) S.scrWant = null;
+  }
+  ['wheel', 'touchstart'].forEach(function (ev) { window.addEventListener(ev, function () { if (S) S.scrWant = null; }, { passive: true }); });
+  function scrKeep() { if (!S.me) return; try { sessionStorage.setItem('ccs-where-' + S.me.user_id, JSON.stringify({ tab: S.tab, secs: S.secs || {}, filter: S.filter, day: S.day, at: Date.now() })); } catch (e) {} }
+  function scrLoad() {
+    if (!S.me) return null;
+    try {
+      var w = JSON.parse(sessionStorage.getItem('ccs-where-' + S.me.user_id) || 'null'); if (!w || Date.now() - w.at > WIP_MS) return null;
+      if (w.secs && typeof w.secs === 'object') S.secs = w.secs; if (typeof w.filter === 'string') S.filter = w.filter; if (typeof w.day === 'string') S.day = w.day;
+      return typeof w.tab === 'string' && w.tab !== 'new' && w.tab !== 'more' ? w.tab : null;
+    } catch (e) { return null; }
+  }
   function prod() { if (!S.setup || !D.product) return null; return S.setup.products.filter(function (p) { return p.code === D.product; })[0] || null; }
   function sizeObj() { var p = prod(); return p && D.size ? p.sizes.filter(function (s) { return s.inch === D.size; })[0] : null; }
   function dPrice() { if (D.req) { var rp = num(D.reqPrice); return rp != null && rp > 0 ? rp : null; } var s = sizeObj(); return s ? Number(s.price) * (D.qty || 1) : null; }
@@ -2405,6 +2551,9 @@
   function slPrev(s) { var k = slPos(s); return SL_ORDER[Math.max(0, k - 1)]; }
   function cents(v) { return v == null ? '' : '$' + Number(v).toFixed(2); }
   function slStage() { return D.sl == null ? 0 : D.sl; }
+  // One step back in the new order form: the Back button and the phone or browser Back do the same thing
+  function slCanBack() { return newOpen() && !D.result && STEPPER && (slPos(slStage()) > 0 || (slStage() === 3 && slPhone() && D.whenPart === 'time')); }
+  function slBack() { if (slStage() === 3 && slPhone() && D.whenPart === 'time') { D.whenPart = 'date'; D.err = null; D.errField = null; refreshStep(); return; } if (slPrev(slStage()) === 3) D.whenPart = 'time'; slGo(slPrev(slStage())); }
   function slSeen() { if (!D.slSeen) D.slSeen = []; if (D.fromCal && D.date && D.time && D.slSeen[3] == null) D.slSeen[3] = true; return D.slSeen; }
   // What each stage still needs, in words (empty = stage complete)
   function slNeeds(s) {
@@ -3225,6 +3374,7 @@
     h += '<section class="ccs-box cp-sec" id="cp-overview"><h3>Guest details</h3>';
     if (S.sheet.edit) h += customerEditor(d);
     else {
+      if (editor) h += wipBanner('cu:' + S.sheet.id, 'changes to this customer');
       h += '<table class="cp-table"><tbody>' +
         row('Mobile', c.phone) + row('Other number', c.alt_phone) + row('Email', c.email) +
         row('Prefers', { whatsapp: 'WhatsApp', phone: 'Phone call', email: 'Email' }[c.preferred_contact]) + row('Company', c.company) + row('Delivery address', c.delivery_address) +
@@ -3387,7 +3537,7 @@
       if (r.data.orders_updated) msg += ' ' + r.data.orders_updated + ' open order' + (r.data.orders_updated > 1 ? 's' : '') + ' updated.';
       if (r.data.shared_phone) msg += ' This number is also on ' + r.data.shared_phone + ' other profile' + (r.data.shared_phone > 1 ? 's' : '') + '.';
       if (r.data.consent_not_moved) msg += ' Marketing permission stays with the old number or email. Ask the customer again.';
-      clearBusy(); S.sheet.edit = false; S.sheet.conflict = null; S.sheet.ordersChoice = null; S.sheet.hist = null; S.panelErr = null; S.dirty = {}; toast(msg);
+      wipPut('cu:' + id, null); clearBusy(); S.sheet.edit = false; S.sheet.conflict = null; S.sheet.ordersChoice = null; S.sheet.hist = null; S.panelErr = null; S.dirty = {}; toast(msg);
       openCustomer(id, true); if (S.cust.loaded) loadCustomers();
     }).catch(function (e) { clearBusy(); fail(e); });
   }
@@ -4162,8 +4312,8 @@
     try {
       switch (a) {
         case 'signout':
-          if (draftHasContent() && !b.dataset.sure) { openMore(true); break; }
-          S.sheetHist = false; sheetClose('pop'); clearDraft(); sb.auth.signOut().then(function () { S.me = null; loginView(); }); break;
+          if (wipItems().length && !b.dataset.sure) { openMore(true); break; }
+          S.sheetHist = false; sheetClose('pop'); clearDraft(); wipClearAll(); sb.auth.signOut().then(function () { S.me = null; loginView(); }); break;
         case 'filter': S.filter = v; S.q = ''; S.older = null; view(); break;
         case 'reopen-order': openOrder(S.sheet.id); break;
         case 'k-reopen': openKitchen(S.sheet.id, true); break;
@@ -4195,10 +4345,10 @@
         case 'tp-find': S.q = ''; goTab('orders'); window.scrollTo(0, 0); setTimeout(function () { var q = document.getElementById('ccs-q'); if (q) q.focus(); }, 30); break;
         case 'day': S.filter = 'day'; S.day = v; S.q = ''; goTab('orders'); window.scrollTo(0, 0); break;
         case 'open-order': if (b.tagName === 'A') return; openOrder(b.dataset.id); break;
-        case 'close': if (hasTyping() && !confirmDiscard(b, 'Tap again to discard your changes')) break; S.dirty = {}; sheetClose(); break;
+        case 'close': { var pz = null; if (hasTyping()) { if (pauseable()) pz = pauseWork(); else if (!confirmDiscard(b, 'Tap again to discard your changes')) break; } S.dirty = {}; sheetClose(); if (pz) toast(pz); break; }
         case 'fill': var fi = document.getElementById(b.dataset.f); if (fi) { fi.value = v; S.dirty[fi.id] = v; fi.focus(); } break;
         case 'history': S.sheet.showHistory = true; renderSheet(); break;
-        case 'panel': if (S.panel && S.panel !== v && hasTyping() && !confirmDiscard(b)) break; S.panel = v || null; S.panelErr = null; S.dirty = {}; S.cfmHow = null; if (v === 'pay') { S.payKey = uuid(); S.payMethod = 'cash'; }
+        case 'panel': if (S.panel && S.panel !== v && hasTyping() && !confirmDiscard(b)) break; if (S.panel === 'amend' && S.panel !== v && S.sheet && S.sheet.id) wipPut('am:' + S.sheet.id, null); S.panel = v || null; S.panelErr = null; S.dirty = {}; S.cfmHow = null; if (v === 'pay') { S.payKey = uuid(); S.payMethod = 'cash'; }
           if (v === 'amend') S.am = amendInit(S.sheet.data);
           if (v === 'fulfil') { var od = S.sheet.data; S.ful = { method: od.fulfilment_method || 'collection', zone: od.delivery_zone, address: od.delivery_address || '', fee: od.delivery_fee != null ? String(Number(od.delivery_fee)) : '', contact: od.delivery_contact || '' }; }
           renderSheet(); var sb_ = document.querySelector('#ccs-sheet .ccs-sheet-body'); if (sb_ && v) sb_.scrollTop = 0; break;
@@ -4288,7 +4438,7 @@
           D.step = 1; D.reached = 1; goTab('new'); window.scrollTo(0, 0);
         })(); break;
         case 'cust-edit': S.sheet.tab = 'overview'; S.sheet.edit = !S.sheet.edit; S.sheet.conflict = null; S.sheet.ordersChoice = null; S.panelErr = null; S.dirty = {}; renderSheet(); break;
-        case 'cust-cancel': if (hasTyping() && !confirmDiscard(b)) break; S.sheet.edit = false; S.sheet.conflict = null; S.sheet.ordersChoice = null; S.panelErr = null; S.dirty = {}; renderSheet(); break;
+        case 'cust-cancel': if (hasTyping() && !confirmDiscard(b)) break; wipPut('cu:' + S.sheet.id, null); S.sheet.edit = false; S.sheet.conflict = null; S.sheet.ordersChoice = null; S.panelErr = null; S.dirty = {}; renderSheet(); break;
         case 'cust-new': openNewCustomer(); break;
         case 'cn-consent': var ci = S.sheet.consent.indexOf(v); if (ci > -1) S.sheet.consent.splice(ci, 1); else S.sheet.consent.push(v); S.sheet.c = readCustomerForm(); keepCustomerTyping(); renderSheet(); break;
         case 'cn-save': saveNewCustomer(v === 'force'); break;
@@ -4328,7 +4478,9 @@
         case 'pgo': S.secs = S.secs || {}; S.secs[b.dataset.g + '#'] = v; S.secs[b.dataset.g + '#i'] = 0; view(); break;
         case 'go-other': { secStore('order').order = 'history'; renderSheet(); var ot = document.querySelector('#ccs-sheet .ccs-other'); if (ot) { ot.scrollIntoView({ block: 'center' }); var f = ot.querySelector('button'); if (f) f.focus({ preventScroll: true }); } break; }
         case 'secgo': { var st = secStore(b.dataset.g); st[b.dataset.g] = v; if (S.sheet && /^(order|cust)/.test(b.dataset.g)) { renderSheet(); var sb2 = document.querySelector('#ccs-sheet .ccs-sheet-body'); if (sb2) sb2.scrollTop = 0; } else view(); var nb = root.querySelector('[data-act="secgo"][data-g="' + b.dataset.g + '"][data-v="' + v + '"]'); if (nb) nb.focus({ preventScroll: true }); break; }
-        case 'sl-back': if (slStage() === 3 && slPhone() && D.whenPart === 'time') { D.whenPart = 'date'; D.err = null; D.errField = null; refreshStep(); break; } if (slPrev(slStage()) === 3) D.whenPart = 'time'; slGo(slPrev(slStage())); break;
+        case 'sl-back': slBack(); break;
+        case 'wip-go': wipGo(v); break;
+        case 'wip-drop': wipDrop(v); break;
         case 'sl-heardopen': D.heardOpen = true; refreshStep(); break;
         case 'sl-whenpart': D.whenPart = v; refreshStep(); break;
         case 'sl-view': D.showSlip = !D.showSlip; refreshStep(); break;
@@ -4472,13 +4624,15 @@
   });
   root.addEventListener('input', function (e) {
     var t = e.target; setTypedIn(t);
-    if (t.id && t.closest && t.closest('#ccs-sheet') && t.type !== 'checkbox' && t.type !== 'file' && !newInSheet()) S.dirty[t.id] = t.value;
+    if (t.id && t.closest && t.closest('#ccs-sheet') && t.type !== 'checkbox' && t.type !== 'file' && !newInSheet()) { S.dirty[t.id] = t.value; wipSoon(); }
+    // The handover note is kept as it is typed, so a refresh or the minute update never loses it
+    if (t.id === 'ho-note') { S.ho = S.ho || {}; S.ho.draft = t.value; wipHo(); return; }
     if (t.id === 'tp-q') { if (t.value.trim().length >= 2) { S.q = t.value; searchOlder(t.value); goTab('orders'); var nq = document.getElementById('ccs-q'); if (nq) { nq.focus(); try { nq.setSelectionRange(nq.value.length, nq.value.length); } catch (x) {} } } return; }
     if (t.id === 'tm-q' && S.settings) { S.settings.tmQ = t.value; var tpos = t.selectionStart; view(); var tq = document.getElementById('tm-q'); if (tq) { tq.focus(); try { tq.setSelectionRange(tpos, tpos); } catch (x) {} } return; }
     if (t.id === 'ccs-q') { S.q = t.value; searchOlder(t.value); var m = document.getElementById('ccs-main'); var pos = t.selectionStart; view(); var n = document.getElementById('ccs-q'); n.focus(); try { n.setSelectionRange(pos, pos); } catch (x) {} return; }
     if (t.id === 'ccs-cq') { S.cust.q = t.value; clearTimeout(searchTimer); searchTimer = setTimeout(function () { loadCustomers().then(function () { var n = document.getElementById('ccs-cq'); if (n) { n.focus(); n.setSelectionRange(n.value.length, n.value.length); } }); }, 350); return; }
     if ((t.dataset.mf || t.dataset.mfs || t.dataset.mfv != null) && S.mf) { mfInput(t); return; }
-    if (t.dataset.am && S.am) { S.am[t.dataset.am] = t.value; S.am.preview = null; return; }
+    if (t.dataset.am && S.am) { S.am[t.dataset.am] = t.value; S.am.preview = null; wipSoon(); return; }
     if (t.dataset.f && S.ful) { S.ful[t.dataset.f] = t.value; return; }
     var k = t.dataset.n; if (!k) return;
     D[k] = k === 'qty' ? Math.max(1, Math.min(50, parseInt(t.value, 10) || 1)) : t.value;
@@ -4517,7 +4671,7 @@
     if (e.key === 'Escape' && menuOpen()) { menuSet(false); return; }
     if (e.key === 'Escape' && S.cust && S.cust.tools) { S.cust.tools = false; view(); var tb = document.querySelector('[data-act="ws-cm-tools"]'); if (tb) tb.focus(); return; }
     if (e.key !== 'Escape' || !S.sheet) return;
-    if (hasTyping()) { toast('Save or cancel your changes first.', true); return; }
+    if (hasTyping()) { if (!pauseable()) { toast('Save or cancel your changes first.', true); return; } var pz = pauseWork(); S.dirty = {}; sheetClose(); if (pz) toast(pz); return; }
     if (S.panel) { S.panel = null; S.panelErr = null; S.am = null; renderSheet(); } else sheetClose();
   });
   // Tab stays inside the open review
