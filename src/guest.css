@@ -438,3 +438,48 @@ body:has(#cc-cake-order .cco-done) .cco-bar { display: none; }
   #cc-cake-order *, .cco-shade, .cco-sheet, .cco-bar { animation: none !important; transition: none !important; }
   #cc-cake-order .cco-cake:hover, #cc-cake-order .cco-cake:hover .cco-cake-vis img { transform: none !important; }
 }
+
+
+/* Guest product-selection refinement — keep variant choices with their cake.
+   Scoped to the customer ordering interface; no order or pricing logic changes. */
+#cc-cake-order .cco-cakes { align-items: stretch; }
+#cc-cake-order .cco-cakes > .cco-sub-inline {
+  grid-column: 1 / -1;
+  min-width: 0;
+  margin: 0;
+  scroll-margin-top: 120px;
+}
+#cc-cake-order .cco-cake-req {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr);
+  align-items: center;
+  min-height: 118px;
+}
+#cc-cake-order .cco-cake-req .cco-cake-vis {
+  width: 100%;
+  height: 100%;
+  min-height: 118px;
+  aspect-ratio: auto;
+}
+#cc-cake-order .cco-cake-req .cco-disc-req { width: 62px; font-size: 12px; }
+#cc-cake-order .cco-cake-req .cco-cake-txt { padding: 16px 20px; }
+#cc-cake-order .cco-cakes .cco-chip { min-height: 44px; }
+@media (min-width: 1000px) {
+  #cc-cake-order:not(.cco-at-review) {
+    grid-template-columns: minmax(0, 1fr) minmax(290px, 320px);
+    gap: clamp(20px, 3vw, 36px);
+  }
+  #cc-cake-order .cco-side { top: max(24px, 104px); max-height: calc(100dvh - 120px); overflow-y: auto; overscroll-behavior: contain; }
+  #cc-cake-order .cco-cakes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 639px) {
+  #cc-cake-order .cco-cake-req { grid-template-columns: 84px minmax(0, 1fr); min-height: 98px; }
+  #cc-cake-order .cco-cake-req .cco-cake-vis { min-height: 98px; }
+  #cc-cake-order .cco-cake-req .cco-cake-txt { padding: 12px 14px; }
+  #cc-cake-order .cco-cake-req .cco-cake-name { font-size: 15px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #cc-cake-order .cco-cake, #cc-cake-order .cco-cake-vis img,
+  #cc-cake-order .cco-sub-inline { animation: none !important; transition: none !important; }
+}

@@ -122,17 +122,17 @@
     { key: 'Cake', q: 'Which cake would you like?', sub: 'Choose a flavour. You pick the size next.',
       summary: function () { if (S.req) return 'Custom cake, not on our menu'; return S.flavour && (!fl().variants.length || S.variant) ? cakeName() : ''; },
       body: function () {
-        var h = '<div class="cco-cakes" role="group" aria-label="Cake flavour">', sub = '';
+        var h = '<div class="cco-cakes" role="group" aria-label="Cake flavour">';
         SETUP.products.forEach(function (f) {
           var on = S.flavour === f.code;
           h += '<button type="button" class="cco-cake' + (photoOf(f) ? ' cco-has-photo' : '') + '" data-act="flavour" data-v="' + esc(f.code) + '" aria-pressed="' + on + '"><span class="cco-cake-vis">' + vis(f) + '</span><span class="cco-cake-txt"><span class="cco-cake-name">' + esc(f.name) + '</span>' + (f.description ? '<span class="cco-cake-desc">' + esc(f.description) + '</span>' : '') + '<span class="cco-cake-from">From <b>' + money(fromPrice(f)) + '</b></span></span><span class="cco-check-badge">' + ICON.tick + '</span></button>';
           if (on && f.variants.length) {
-            sub = '<div class="cco-sub' + enter('variants') + '" id="cco-variants"><span class="cco-sub-q">' + esc(f.choice_label || 'Which one?') + '</span><div class="cco-chips">' +
+            h += '<div class="cco-sub cco-sub-inline' + enter('variants') + '" id="cco-variants" role="group" aria-label="Choose cake flavour"><span class="cco-sub-q">' + esc(f.choice_label || 'Which one?') + '</span><div class="cco-chips">' +
               f.variants.map(function (v) { return '<button type="button" class="cco-chip" data-act="variant" data-v="' + esc(v) + '" aria-pressed="' + (S.variant === v) + '">' + esc(v) + '</button>'; }).join('') + '</div></div>';
           }
         });
         h += '<button type="button" class="cco-cake cco-cake-req" data-act="req" aria-pressed="' + S.req + '"><span class="cco-cake-vis">' + vis(null) + '</span><span class="cco-cake-txt"><span class="cco-cake-name">Something not on our menu</span><span class="cco-cake-desc">Tell us your idea and we send you the price.</span></span><span class="cco-check-badge">' + ICON.tick + '</span></button>';
-        return h + '</div>' + sub + err('product') + err('variant');
+        return h + '</div>' + err('product') + err('variant');
       } },
     { key: 'Size', q: function () { return S.req ? 'How big, and which flavour?' : 'What size?'; }, sub: null,
       summary: function () { if (S.req) return S.reqOk ? reqLine() : ''; return S.size == null ? '' : S.size + ' inch · ' + money(price()); },
