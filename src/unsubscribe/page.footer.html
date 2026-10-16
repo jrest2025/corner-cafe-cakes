@@ -1,0 +1,37 @@
+<script>
+(function () {
+  // Corner Café: unsubscribe from cake specials and offers. The link in our emails carries the order id (o) and its signature (s).
+  // Tapping Unsubscribe asks the unsubscribe function to switch off marketing for this customer. Order emails are not affected.
+  var FN = 'https://ilbrfwxblhidtlsjgxlh.supabase.co/functions/v1/unsubscribe';
+  var LOGO = 'https://cdn.jsdelivr.net/gh/jrest2025/corner-cafe-cakes@b2fa0b25e82552c2f883c56a7d31abd6ec7ff2ec/dist/brand/corner-cafe-logo-email.png';
+  var HOME = '/', PHONE = '+679 892 2760', TEL = 'tel:+6798922760';
+  var q = new URLSearchParams(location.search), o = q.get('o') || '', s = q.get('s') || '';
+  var ok = /^[0-9a-f-]{36}$/i.test(o) && /^[A-Za-z0-9_-]{16,64}$/.test(s);
+  var root = document.createElement('main'); root.className = 'ccu'; root.setAttribute('aria-live', 'polite');
+  document.body.insertBefore(root, document.body.firstChild);
+  function show(h) { root.innerHTML = '<div class="ccu-card"><a href="' + HOME + '" aria-label="Corner Café home"><img class="ccu-logo" src="' + LOGO + '" alt="Corner Café" width="150" height="55"></a>' + h + '</div>'; var t = root.querySelector('h1'); if (t) { t.setAttribute('tabindex', '-1'); t.focus({ preventScroll: true }); } }
+  var back = '<p class="ccu-small"><a href="' + HOME + '">Back to Corner Café</a></p>';
+  var help = '<p class="ccu-small">Need help? Call us on <a href="' + TEL + '">' + PHONE + '</a>.</p>';
+  function ask() {
+    show('<h1>Unsubscribe from our offers?</h1><p>We’ll stop sending you Corner Café cake specials and reminders, and offers from Jack’s Restaurants.</p>' +
+      '<p class="ccu-small">You’ll still get emails about cakes you order.</p><button type="button" class="ccu-btn" id="ccu-go">Unsubscribe</button>' + back);
+    root.querySelector('#ccu-go').addEventListener('click', go);
+  }
+  function go() {
+    var b = root.querySelector('#ccu-go'); b.disabled = true; b.innerHTML = '<span class="ccu-spin" aria-hidden="true"></span>Unsubscribing…';
+    fetch(FN, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ o: o, s: s }) })
+      .then(function (r) { return r.json().catch(function () { return { ok: false }; }).then(function (d) { d.status = r.status; return d; }); })
+      .then(function (d) {
+        if (d.ok && d.already) return show('<h1>You’re already unsubscribed</h1><p>You won’t get offers from us. You’ll still get emails about cakes you order.</p>' + back);
+        if (d.ok) return show('<h1>You’re unsubscribed</h1><p>You won’t get Corner Café cake specials or offers from Jack’s Restaurants any more.</p><p class="ccu-small">You’ll still get emails about cakes you order. Changed your mind? Tell us next time you order.</p>' + back);
+        if (d.status === 403 || d.status === 404) return show('<h1>This link doesn’t work</h1><p>It may be incomplete. Please use the Unsubscribe link in your latest email from us.</p>' + help + back);
+        throw new Error('server');
+      })
+      .catch(function () {
+        show('<h1>Something went wrong</h1><p>We couldn’t unsubscribe you just now. Please try again in a minute.</p><button type="button" class="ccu-btn" id="ccu-go">Try again</button>' + help + back);
+        root.querySelector('#ccu-go').addEventListener('click', go);
+      });
+  }
+  if (ok) ask(); else show('<h1>This link doesn’t work</h1><p>It may be incomplete. Please use the Unsubscribe link in your latest email from us.</p>' + help + back);
+})();
+</script>

@@ -17,6 +17,19 @@ const RESEND_KEY = Deno.env.get("RESEND_API_KEY") ?? "";
 
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { "Content-Type": "application/json" } });
 
+// Unsubscribe links in guest emails: the order id signed with HMAC-SHA256 of "cc-unsub-v1:<order id>" (same as the unsubscribe function)
+async function unsubSign(orderId: string): Promise<string> {
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(SB_KEY), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const mac = new Uint8Array(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode("cc-unsub-v1:" + orderId))).slice(0, 18);
+  return btoa(String.fromCharCode(...mac)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+async function unsubLinks(orderId: string, d: any) {
+  const id = String(orderId).toLowerCase(), s = await unsubSign(id), q = `o=${id}&s=${s}`;
+  let site = "https://www.cornercafefiji.com";
+  try { if (d?.location?.order_page_url) site = new URL(d.location.order_page_url).origin; } catch (_e) { /* keep the default */ }
+  return { page: `${site}/unsubscribe?${q}`, post: `${SB_URL}/functions/v1/unsubscribe?${q}` };
+}
+
 async function db(path: string, init: RequestInit = {}) {
   const r = await fetch(`${SB_URL}/rest/v1/${path}`, {
     ...init,
@@ -247,11 +260,11 @@ function build(kind: string, d: any): { subject: string; html: string; text?: st
   }
 }
 
-async function send(to: string, subject: string, html: string, from: string, replyTo?: string, attachments?: { filename: string; content: string }[], cc?: string[], text?: string) {
+async function send(to: string, subject: string, html: string, from: string, replyTo?: string, attachments?: { filename: string; content: string }[], cc?: string[], text?: string, headers?: Record<string, string>) {
   const r = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${RESEND_KEY}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from, to: [to], cc: cc && cc.length ? cc : undefined, subject, html, text: text || undefined, reply_to: replyTo || undefined, attachments: attachments && attachments.length ? attachments : undefined }),
+    body: JSON.stringify({ from, to: [to], cc: cc && cc.length ? cc : undefined, subject, html, text: text || undefined, reply_to: replyTo || undefined, attachments: attachments && attachments.length ? attachments : undefined, headers: headers && Object.keys(headers).length ? headers : undefined }),
   });
   const t = await r.text();
   if (!r.ok) throw new Error(`Resend ${r.status}: ${t.slice(0, 300)}`);
@@ -359,6 +372,7 @@ async function processOutbox() {
       }
       const d = await rpc("email_payload", { p_order: m.order_id });
       if (!d) throw new Error("order not found");
+      if (m.kind.startsWith("guest_")) d.unsub = await unsubLinks(m.order_id, d);
       const cfg = d.config ?? {};
       let att: { filename: string; content: string }[] | undefined;
       let { subject, html, text } = m.kind === "kitchen_slip" ? await kitchenSlip(m, d).then((k) => { att = k.attachments; return k; }) as { subject: string; html: string; text?: string } : build(m.kind, d);
@@ -366,7 +380,8 @@ async function processOutbox() {
       // Test mode: everything goes to the test inbox only, backup copies included
       if (cfg.test_mode === "true") { subject = `[TEST, for ${[to, ...cc].join(" and ")}] ${subject}`; to = cfg.test_email; cc = []; }
       const guestKind = m.kind.startsWith("guest_");
-      const id = await send(to, subject, html, cfg.from_email, guestKind ? cfg.reply_to : (m.kind === "kitchen_slip" ? undefined : (d.customer?.email || undefined)), att, cc, text);
+      const unsubHeaders = guestKind && d.unsub ? { "List-Unsubscribe": `<${d.unsub.post}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" } : undefined;
+      const id = await send(to, subject, html, cfg.from_email, guestKind ? cfg.reply_to : (m.kind === "kitchen_slip" ? undefined : (d.customer?.email || undefined)), att, cc, text, unsubHeaders);
       await db(`email_outbox?id=eq.${m.id}`, { method: "PATCH", body: JSON.stringify({ status: "sent", sent_at: new Date().toISOString(), provider_message_id: id, last_error: null }) });
       sent++;
     } catch (e) {

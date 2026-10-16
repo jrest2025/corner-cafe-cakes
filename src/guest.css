@@ -386,10 +386,9 @@ body:has(#cc-cake-order .cco-done) .cco-bar { display: none; }
 @media (max-width: 999px) { #cc-cake-order.cco-has-bar .cco-body > .cco-primary { bottom: calc(68px + env(safe-area-inset-bottom, 0px)); } }
 /* the site's WhatsApp button sits above the price bar and the pinned button, so neither is covered */
 @media (max-width: 999px) { html:has(.cco-bar.cco-show) a.ccwa { bottom: calc(76px + env(safe-area-inset-bottom, 0px)) !important; } }
-@media (max-width: 759px) {
-  html:has(#cc-cake-order .cco-step.cco-open .cco-body > .cco-primary) a.ccwa { bottom: calc(80px + env(safe-area-inset-bottom, 0px)) !important; }
-  html:has(.cco-bar.cco-show):has(#cc-cake-order .cco-step.cco-open .cco-body > .cco-primary) a.ccwa { bottom: calc(136px + env(safe-area-inset-bottom, 0px)) !important; }
-}
+/* phones: while a step with Continue or Send is open, the WhatsApp button is hidden so it never covers them.
+   It shows on the cake and size steps and after the order is sent. Guests can still choose WhatsApp in the form, or call. */
+@media (max-width: 759px) { html:has(#cc-cake-order .cco-step.cco-open .cco-body > .cco-primary) a.ccwa { display: none !important; } }
 @media (min-width: 1000px) { html:has(#cc-cake-order.cco-at-review .cco-primary) a.ccwa { bottom: 84px !important; } }
 /* touch screens: Back and Change are easy to hit */
 @media (pointer: coarse) {

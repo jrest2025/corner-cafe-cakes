@@ -3,7 +3,7 @@
 // Each email: the approved Corner Café logo, one clear status, the order as the hero, the next step, then contact details.
 // A small "More to enjoy from Jack's Restaurants" section appears only in the confirmation and thank-you emails,
 // and only when the customer agreed to offers from Jack's Restaurants (d.cross_sell_ok). Cards come from the promo_cards table.
-// Every email also has a plain-text version.
+// Every email also has a plain-text version, and an unsubscribe link for offers (d.unsub, added by index.ts).
 
 const LOGO = "https://cdn.jsdelivr.net/gh/jrest2025/corner-cafe-cakes@b2fa0b25e82552c2f883c56a7d31abd6ec7ff2ec/dist/brand/corner-cafe-logo-email.png";
 // Hero cake photo: the approved Corner Café cake photo, square, email-safe JPG, pinned to one commit
@@ -174,6 +174,7 @@ function render(d: any, m: Mail): { subject: string; html: string; text: string 
     <div style="font:14px/1.6 ${FONT};color:${MUTED};margin-top:4px">${esc(loc.address || "")}<br><a href="tel:${esc(tel)}" style="color:${GREEN};text-decoration:none">${esc(loc.phone || "")}</a>${loc.email ? ` &middot; <a href="mailto:${esc(loc.email)}" style="color:${GREEN};text-decoration:none">${esc(loc.email)}</a>` : ""}</div>
     <div style="font:12px/1.6 ${FONT};color:${MUTED};margin-top:12px">You're receiving this because you ordered a cake from ${esc(loc.name)}, part of
       <a href="https://www.jacksrestaurantsfiji.com/" style="color:${MUTED}">Jack's Restaurants Fiji</a>.</div>
+    ${d.unsub ? `<div style="font:12px/1.6 ${FONT};color:${MUTED};margin-top:6px">Don't want cake specials or offers from us? <a href="${esc(d.unsub.page)}" style="color:${MUTED}">Unsubscribe</a>. You'll still get emails about your orders.</div>` : ""}
   </td></tr>
 </table></td></tr></table></body></html>`;
   const strip = (s: string) => s.replace(/<[^>]+>/g, "").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'");
@@ -184,7 +185,8 @@ function render(d: any, m: Mail): { subject: string; html: string; text: string 
       ...m.rows.map(([k, v]) => `${k}: ${v}`), ...(m.money ?? []).map(([k, v]) => `${k}: ${v}`), ""] : []),
     ...(m.buttons ?? []).map(([l, u]) => `${l}: ${u}`), ...(m.after ?? []).map(strip),
   ].filter((x, k, a) => !(x === "" && a[k - 1] === "")).join("\n").trim() + promoText(cards, m.kind) +
-    `\n\n${loc.name}\n${loc.address || ""}\n${loc.phone || ""}${loc.email ? " · " + loc.email : ""}`;
+    `\n\n${loc.name}\n${loc.address || ""}\n${loc.phone || ""}${loc.email ? " · " + loc.email : ""}` +
+    (d.unsub ? `\n\nDon't want cake specials or offers from us? Unsubscribe: ${d.unsub.page}\nYou'll still get emails about your orders.` : "");
   return { subject: m.subject, html, text };
 }
 
