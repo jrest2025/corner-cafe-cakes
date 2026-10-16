@@ -50,7 +50,31 @@
   function occChips() { return OCCASIONS.concat(['Not specified']).map(function (o) { return '<button type="button" class="ccs-chip' + (o === 'Not specified' ? ' ccs-occ-none' : '') + '" data-act="n-occ" data-v="' + esc(o) + '" aria-pressed="' + (D.occasion === o) + '">' + esc(o === 'Not specified' ? 'Customer didn\'t say' : o) + '</button>'; }).join(''); }
   function occSend() { return D.occasion === 'Other' ? ((D.occOther || '').trim() || 'Other') : D.occasion; }
   function occOther() { return D.occasion === 'Other' ? '<div class="sl-sub"><label class="sl-k" for="n-occother">What are they celebrating? <em class="sl-req">Optional</em></label><input class="ccs-input" id="n-occother" data-n="occOther" maxlength="60" value="' + esc(D.occOther || '') + '" placeholder="For example, farewell"></div>' : ''; }
-  var DIETS = ['Vegetarian (eggless)', 'Gluten-free', 'Nut allergy', 'Other'];
+  var DIETS = ['Nuts', 'Gluten (coeliac)', 'Dairy', 'Egg', 'Other'];
+  // Cake requirements: what the cake must be (a must for the kitchen, not an allergy). Allergies stay separate and red.
+  var REQS = [['eggless', 'Eggless (vegetarian)'], ['gluten_free', 'Gluten-free'], ['dairy_free', 'Dairy-free'], ['vegan', 'Vegan (no egg, no dairy)'], ['other', 'Other']];
+  var REQ_SHORT = { eggless: 'Eggless', gluten_free: 'Gluten-free', dairy_free: 'Dairy-free', vegan: 'Vegan' };
+  function reqList(i) { i = i || {}; return (i.requirements || []).map(function (k) { return k === 'other' ? (i.requirements_note || 'Other requirement') : ((REQS.filter(function (r) { return r[0] === k; })[0]) || [k, k])[1]; }); }
+  function reqShort(i) { i = i || {}; return (i.requirements || []).map(function (k) { return k === 'other' ? (i.requirements_note || 'Other') : REQ_SHORT[k] || k; }); }
+  function reqTags(i) { return reqShort(i).map(function (t) { return '<span class="ccs-tag t-req">' + esc(t) + '</span>'; }).join(''); }
+  // Requirement chips for the order forms (st is the draft or the amendment; pre is the action prefix)
+  function reqHtml(st, pre, noTail) {
+    var r = st.reqs || [];
+    return '<span class="sl-k rq-k">Cake requirements <em class="sl-req">Optional</em></span><div class="ccs-chips rq-chips" role="group" aria-label="Cake requirements">' +
+      REQS.map(function (x) { return '<button type="button" class="ccs-chip rq-chip" data-act="' + pre + '-rq" data-v="' + x[0] + '" aria-pressed="' + (r.indexOf(x[0]) > -1) + '">' + x[1] + '</button>'; }).join('') + '</div>' +
+      (r.indexOf('other') > -1 ? '<input class="ccs-input rq-note" data-' + (pre === 'n' ? 'n' : 'am') + '="reqNote" id="' + pre + '-reqnote" maxlength="120" placeholder="What else must the cake be?" value="' + esc(st.reqNote || '') + '">' : '') +
+      (st.reqAsk ? '<div class="rq-ask"><span>Is ' + esc(REQ_SHORT[st.reqAsk].toLowerCase()) + ' for an allergy?</span><button type="button" class="ccs-chip" data-act="' + pre + '-rqallergy" data-v="yes">Yes, an allergy</button><button type="button" class="ccs-chip" data-act="' + pre + '-rqallergy" data-v="no">No, a preference</button></div>' : '') +
+      (noTail ? '' : '<span class="sl-k rq-k2">Any allergies? <em class="sl-req">Required</em></span>');
+  }
+  function reqToggle(st, v) {
+    st.reqs = st.reqs || []; var k = st.reqs.indexOf(v);
+    if (k > -1) { st.reqs.splice(k, 1); if (st.reqAsk === v) st.reqAsk = null; }
+    else { st.reqs.push(v); if (v === 'vegan') { ['eggless', 'dairy_free'].forEach(function (x) { var j = st.reqs.indexOf(x); if (j > -1) st.reqs.splice(j, 1); }); } st.reqAsk = (v === 'gluten_free' || v === 'dairy_free') ? v : null; }
+  }
+  function reqAllergy(st, yes) {
+    if (yes && st.reqAsk) { st.diet = 'yes'; st.diets = st.diets || []; var a = st.reqAsk === 'gluten_free' ? 'Gluten (coeliac)' : 'Dairy'; if (st.diets.indexOf(a) < 0) st.diets.push(a); }
+    st.reqAsk = null;
+  }
   var NEEDS = ['awaiting_review', 'awaiting_quote', 'awaiting_deposit'];
   var OPEN = ['awaiting_review', 'awaiting_quote', 'awaiting_approval', 'awaiting_deposit', 'confirmed'];
   function statusLabel(status, method) { if (status === 'completed' && method === 'delivery') return 'Delivered'; return (STATUS[status] || [status])[0]; }
@@ -372,7 +396,7 @@
   }
 
   // ---------- orders ----------
-  var ORDER_LIST = 'id,reference,revision,order_status,payment_status,production_status,fulfilment_method,delivery_zone,order_type,source,required_date,required_time,estimate_total,final_total,deposit_required,has_dietary,rush_override,created_at,contact_name,contact_phone,contact_email,customers(full_name,phone),order_items(product_name,variant,size_inch,quantity,finish,occasion,dietary_note)';
+  var ORDER_LIST = 'id,reference,revision,order_status,payment_status,production_status,fulfilment_method,delivery_zone,order_type,source,required_date,required_time,estimate_total,final_total,deposit_required,has_dietary,rush_override,created_at,contact_name,contact_phone,contact_email,customers(full_name,phone),order_items(product_name,variant,size_inch,quantity,finish,occasion,dietary_note,requirements,requirements_note)';
   // Each order keeps its own contact details. Show those, and keep the profile for the link and comparison.
   function withContact(r) {
     var rows = r && r.data ? (Array.isArray(r.data) ? r.data : [r.data]) : [];
@@ -504,6 +528,7 @@
     var late = isOverdue(o), tags = (validRef(o.reference) ? '' : '<span class="ccs-pill s-alert">No order number</span>') + (late ? '<span class="ccs-pill s-alert">Overdue</span>' : '') + pill(o.order_status, o.fulfilment_method);
     if (o.has_dietary) tags += dietUnsure(o) ? '<span class="ccs-pill s-alert">Allergies to check</span>' : '<span class="ccs-pill s-alert">Dietary or allergy</span>';
     if (o.order_type === 'custom') tags += '<span class="ccs-tag t-info">Custom</span>';
+    tags += reqTags(i);
     if (NEEDS.indexOf(o.order_status) > -1 && !o.contact_email) tags += '<span class="ccs-tag t-info">No email</span>';
     if (o.rush_override) tags += '<span class="ccs-pill s-flag">Short notice</span>';
     if (o.revision) tags += '<span class="ccs-pill s-amend">Amended</span>';
@@ -690,7 +715,7 @@
     return '<button type="button" class="ccs-mini k-' + st[1] + (isOverdue(o) || o.has_dietary ? ' is-red' : '') + phoneEdge(o) + (o.id === S.justAdded ? ' is-new' : '') + '" data-act="open-order" data-id="' + o.id + '">' + phoneRow(o, showTime) +
       '<span class="ccs-mini-t">' + (showTime ? esc(t12(o.required_time)) : esc(nice(o.required_date)) + '<small>' + esc(t12(o.required_time)) + '</small>') + '</span>' +
       '<span class="ccs-mini-m">' + (o.required_date === today() && o.order_status === 'confirmed' && o.production_status !== 'ready' ? (function () { var m = minsLeft(o); return '<span class="tq-left is-' + (m <= 180 ? 'red' : 'amber') + '">' + (m > 0 ? 'Due ' + leftTxt(m) : 'Due now') + '</span>'; })() : '') + '<b>' + esc(cakeLine(i)) + '</b><span>' + esc(c ? c.full_name : '') + ' · ' + esc(o.reference) + (receivedShort(o) ? ' · ' + esc(receivedShort(o)) : '') + '</span>' + (withAct && NEXT_BTN[o.order_status] && canP('ord.status') ? '' : nextHtml(o)) + (withAct && NEXT_BTN[o.order_status] && (o.order_status === 'awaiting_deposit' ? canP('ord.payments') : canP('ord.status')) ? '<span class="tp-nb">' + NEXT_BTN[o.order_status] + '</span>' : '') + '</span>' +
-      '<span class="ccs-mini-r">' + (o.order_status === 'confirmed' ? stagePill(o.production_status) : pill(o.order_status, o.fulfilment_method)) + ((o.order_status === 'confirmed' || o.order_status === 'awaiting_deposit') && o.payment_status !== 'paid' && canP('ord.payments') ? payPill(o.payment_status) : '') + (o.fulfilment_method === 'delivery' ? '<span class="ccs-pill s-info">Delivery</span>' : '') + (o.has_dietary && !dietUnsure(o) ? '<span class="ccs-pill s-alert">Dietary or allergy</span>' : '') + reviewFlags(o) + '</span></button>';
+      '<span class="ccs-mini-r">' + (o.order_status === 'confirmed' ? stagePill(o.production_status) : pill(o.order_status, o.fulfilment_method)) + ((o.order_status === 'confirmed' || o.order_status === 'awaiting_deposit') && o.payment_status !== 'paid' && canP('ord.payments') ? payPill(o.payment_status) : '') + (o.fulfilment_method === 'delivery' ? '<span class="ccs-pill s-info">Delivery</span>' : '') + reqTags(firstItem(o)) + (o.has_dietary && !dietUnsure(o) ? '<span class="ccs-pill s-alert">Allergy</span>' : '') + reviewFlags(o) + '</span></button>';
   }
   function todayView() {
     var t = today(), wkEnd = addDays(t, 6), money_ = canP('ord.payments');
@@ -923,7 +948,7 @@
       (canP('ord.payments') && bal === 0 && paid > 0 && total > 0 ? '<div class="os-paidfull"><span>Payment</span><b>Paid in full · ' + money(total) + '</b></div>' :
        canP('ord.payments') ? '<div><span>Price</span><b>' + (o.order_type === 'custom' && o.final_total == null && !total ? 'To price' : money(total)) + '</b></div><div><span>Paid</span><b>' + money(paid) + '</b></div><div><span>To pay</span><b>' + money(bal) + '</b></div>' : '') + '</div>';
     if ((o.order_items || []).length) h += '<div class="os-phcake"><b>' + esc(cakeLine(i)) + '</b>' + (i.finish === 'custom' ? '<p><span>Finish</span>Custom design</p>' : '') + (i.design_description ? '<p class="os-clamp"><span>Design</span>' + esc(i.design_description) + '</p>' : '') +
-      (i.cake_message ? '<p><span>Message</span>“' + esc(i.cake_message) + '”</p>' : '') + (i.candles ? '<p><span>Candles</span>' + esc(i.candles) + '</p>' : '') + ((o.order_items || []).length > 1 ? '<p><span>Also</span>' + esc(o.order_items.slice(1).map(cakeLine).join(', ')) + '</p>' : '') + '</div>';
+      (reqList(i).length ? '<p class="os-req"><span>Must be</span>' + esc(reqList(i).join(', ')) + '</p>' : '') + (i.cake_message ? '<p><span>Message</span>“' + esc(i.cake_message) + '”</p>' : '') + (i.candles ? '<p><span>Candles</span>' + esc(i.candles) + '</p>' : '') + ((o.order_items || []).length > 1 ? '<p><span>Also</span>' + esc(o.order_items.slice(1).map(cakeLine).join(', ')) + '</p>' : '') + '</div>';
     if (o.has_dietary) h += '<div class="ccs-alert">Dietary or allergy: ' + esc([].concat(i.dietary || [], i.dietary_note ? [i.dietary_note] : []).join(', ') || 'see notes') + '</div>';
     var sst = o.order_status === 'confirmed' ? slipState(o.id) : null;
     if (sst && sst.failed) h += '<div class="ccs-alert" role="alert">' + esc(SLIP_FAIL) + ' Press Print kitchen slip to print slip v' + sst.v + ' here.</div>';
@@ -934,7 +959,7 @@
     var cut = [['cake', h.length]];
     h += '<section class="ccs-box"><h3>Cake</h3><p class="ccs-big">' + esc(cakeLine(i)) + '</p><dl class="ccs-kv">' +
       kv('Finish', i.finish === 'custom' ? 'Custom design' : 'Standard finish') + kv('Design', i.design_description) +
-      kv('Message', i.cake_message ? '“' + i.cake_message + '”' : '') + kv('Candles', i.candles) + kv('Occasion', i.occasion) + kv('Serves', i.serves_label) + kv('Notes', o.customer_notes) + '</dl>' +
+      kv('Must be', reqList(i).join(', ')) + kv('Message', i.cake_message ? '“' + i.cake_message + '”' : '') + kv('Candles', i.candles) + kv('Occasion', i.occasion) + kv('Serves', i.serves_label) + kv('Notes', o.customer_notes) + '</dl>' +
       (canP('ord.edit') && OPEN.indexOf(o.order_status) > -1 ? '<button type="button" class="ccs-link" data-act="am-go" data-v="look">' + (i.candles ? 'Change candles' : 'Add candles') + '</button>' : '') +
       '</section>';
     var curAtt = (o.order_attachments || []).filter(function (a) { return !a.removed_at; }).length, phEdit = canP('ord.edit') && OPEN.indexOf(o.order_status) > -1;
@@ -1501,7 +1526,8 @@
     var when = '<div class="sl-when"><div class="sl-when-main"><span>' + (deliv ? 'Delivery' : 'Pickup') + '</span><b>' + esc(wday) + '</b><em>' + esc(dmon + ' · ' + t12(s.time)) + '</em></div><div class="sl-when-ready"><span>Ready by</span><b>' + esc(t12(readyBy)) + '</b></div></div>';
     var keys = when + '<div class="sl-key">' +
       key('Cake', cake || 'Not given', 'sl-k-cake') + key('Size', sizeTxt || 'Not given') +
-      key('Dietary', s.has_dietary ? diet : 'None given', s.has_dietary ? 'sl-diet' : 'sl-k-none') +
+      ((s.requirements || []).length ? key('Must be', reqList(s).join(' · '), 'sl-must') : '') +
+      key('Allergy', s.has_dietary ? diet : 'None given', s.has_dietary ? 'sl-diet' : 'sl-k-none') +
     '</div>';
     var SRC = { online: 'Website', walk_in: 'Walk-in', phone: 'Phone', whatsapp: 'WhatsApp', social: 'Social media', corporate: 'Corporate' };
     var at = x.ordered_at ? new Date(x.ordered_at) : null;
@@ -1846,7 +1872,7 @@
       var show = list.length > 4 ? list.slice(0, 3) : list;
       var bars = show.map(function (r) {
         var tone = r.status === 'completed' || r.stage === 'ready' ? ' is-done' : r.late ? ' is-late' : ['not_started', 'scheduled'].indexOf(r.stage) > -1 ? ' is-todo' : '';
-        var m = (r.has_dietary ? ' · Allergy' : '') + (r.finish === 'custom' && !/^Custom cake/.test(kitCake(r)) ? ' · Custom' : '');
+        var m = (reqShort(r).length ? ' · ' + reqShort(r).join(', ') : '') + (r.has_dietary ? ' · Allergy' : '') + (r.finish === 'custom' && !/^Custom cake/.test(kitCake(r)) ? ' · Custom' : '');
         return '<button type="button" class="kc-mbar' + tone + '" data-act="open-kitchen" data-id="' + r.id + '" title="' + esc(t12(r.time) + ' ' + kitCake(r) + ' · ' + kitStageText(r) + m) + '"><span class="kc-mt">' + esc(t12(r.time).replace(':00', '')) + '</span> ' + esc(kitCake(r)) + (m ? '<i>' + esc(m) + '</i>' : '') + '</button>';
       }).join('');
       return '<div class="kc-mday' + (d.slice(0, 7) !== mon ? ' is-out' : '') + (d === t ? ' is-today' : '') + (d < t ? ' is-past' : '') + (list.length ? ' has' : '') + (lt ? ' is-late' : '') + '">' +
@@ -1867,7 +1893,7 @@
     var i = (o.order_items || [])[0] || {}, c = o.customers || {}, pr = (S.setup.products || []).filter(function (p) { return p.name === i.product_name; })[0];
     var v = { date: o.required_date, time: String(o.required_time).slice(0, 5), product: pr ? pr.code : '', variant: i.variant || '', size: String(i.size_inch || ''), qty: String(i.quantity || 1),
       finish: i.finish || 'standard', design: i.design_description || '', message: i.cake_message || '', occasion: i.occasion || '', diet: o.has_dietary ? 'yes' : 'no',
-      diets: (i.dietary || []).slice(), dietNote: i.dietary_note || '', knotes: i.kitchen_notes || '', cnotes: o.customer_notes || '', cname: c.full_name || '', cemail: c.email || '', cphone: c.phone || '', price: '',
+      diets: (i.dietary || []).slice(), dietNote: i.dietary_note || '', reqs: (i.requirements || []).slice(), reqNote: i.requirements_note || '', reqs0: (i.requirements || []).join('|') + '#' + (i.requirements_note || ''), knotes: i.kitchen_notes || '', cnotes: o.customer_notes || '', cname: c.full_name || '', cemail: c.email || '', cphone: c.phone || '', price: '',
       method: o.fulfilment_method === 'delivery' ? 'delivery' : 'collection', zone: o.delivery_zone || '', address: o.delivery_address || '', dcontact: o.delivery_contact || '',
       fee: String(Number(o.delivery_fee || 0)), candles: i.candles || '', deposit: o.deposit_required != null ? String(Number(o.deposit_required)) : '' };
     return Object.assign({ orig: JSON.parse(JSON.stringify(v)), by: null, reason: '', preview: null, open: { when: true } }, v);
@@ -1922,6 +1948,18 @@
   }
   function amendSend(commit) {
     var o = S.sheet.data, a = S.am, ch = amendChanges();
+    var reqChanged = (a.reqs || []).join('|') + '#' + (a.reqNote || '') !== a.reqs0;
+    if ((a.reqs || []).indexOf('other') > -1 && !(a.reqNote || '').trim()) { S.panelErr = 'Say what the other cake requirement is.'; return renderSheet(); }
+    // Only the cake requirements changed: saved straight away and kept in the history
+    if (!Object.keys(ch).length && reqChanged) {
+      if (S.busy) return; S.busy = true; S.panelErr = null;
+      sb.rpc('order_set_requirements', { p_order: o.id, p_reqs: a.reqs || [], p_note: a.reqNote || '' }).then(function (r) {
+        S.busy = false; if (r.error) throw r.error;
+        if (!r.data.ok) { S.panelErr = r.data.message; return renderSheet(); }
+        S.panel = null; S.am = null; toast('Cake requirements saved' + (o.brief_version ? '. Print a new kitchen slip.' : '')); reloadOrderKeep(o.id); loadOrders(true);
+      }).catch(function (e) { S.busy = false; fail(e); });
+      return;
+    }
     if (!Object.keys(ch).length) { S.panelErr = 'Nothing has changed yet.'; return renderSheet(); }
     if (!a.by) { S.panelErr = 'Choose who asked for the change.'; return renderSheet(); }
     if (a.reason.trim().length < 3) { S.panelErr = 'Add a short reason for the change.'; return renderSheet(); }
@@ -1935,6 +1973,7 @@
         return renderSheet();
       }
       if (!commit) { a.preview = r.data; renderSheet(); var bd = document.querySelector('#ccs-sheet .ccs-sheet-body'); if (bd) bd.scrollTop = 0; return; }
+      if ((a.reqs || []).join('|') + '#' + (a.reqNote || '') !== a.reqs0) sb.rpc('order_set_requirements', { p_order: o.id, p_reqs: a.reqs || [], p_note: a.reqNote || '' }).then(function (x) { if (x.error || (x.data && !x.data.ok)) toast('Cake requirements were not saved' + (x.data && x.data.message ? ': ' + x.data.message : '.'), true); });
       var msg = 'Saved as revision ' + r.data.revision + '.';
       if (r.data.kitchen_ack_required) msg += ' The kitchen is asked to confirm the change.';
       if (r.data.needs_reprint) msg += ' Print the new kitchen slip.';
@@ -1979,8 +2018,8 @@
       fld('am-msg', 'message', 'Message on the cake', a.message, ' maxlength="60"') +
       fld('am-cand', 'candles', 'Candles', a.candles, ' maxlength="60" placeholder="For example: number 30 candle"') +
       '<div class="ccs-field"><label class="ccs-label" for="am-occ">Occasion</label><select class="ccs-input" id="am-occ" data-am="occasion"><option value="">Customer didn\'t say</option>' + (a.occasion && OCCASIONS.indexOf(a.occasion) < 0 ? '<option value="' + esc(a.occasion) + '" selected>' + esc(a.occasion) + (['Baby shower', 'Graduation'].indexOf(a.occasion) < 0 ? ' (Other)' : '') + '</option>' : '') + OCCASIONS.map(function (x) { return '<option value="' + esc(x) + '"' + (x === a.occasion ? ' selected' : '') + '>' + esc(x) + '</option>'; }).join('') + '</select></div>');
-    h += sec('diet', 'Dietary and allergies', a.diet === 'yes' ? ([].concat(a.diets, a.dietNote ? [a.dietNote] : []).join(', ') || 'Yes') : 'None',
-      '<div class="ccs-chips">' + chip('diet', 'no', 'No', a.diet === 'no') + chip('diet', 'yes', 'Yes', a.diet === 'yes') + '</div>' +
+    h += sec('diet', 'Requirements and allergies', [reqShort({ requirements: a.reqs || [], requirements_note: a.reqNote }).join(', '), a.diet === 'yes' ? 'Allergy: ' + ([].concat(a.diets, a.dietNote ? [a.dietNote] : []).join(', ') || 'yes') : 'No allergies'].filter(Boolean).join(' · '),
+      reqHtml(a, 'am') + '<div class="ccs-chips">' + chip('diet', 'no', 'No', a.diet === 'no') + chip('diet', 'yes', 'Yes', a.diet === 'yes') + '</div>' +
       (a.diet === 'yes' ? '<div class="ccs-chips">' + DIETS.map(function (x) { return '<button type="button" class="ccs-chip" data-act="am-diet" data-v="' + esc(x) + '" aria-pressed="' + (a.diets.indexOf(x) > -1) + '">' + esc(x) + '</button>'; }).join('') + '</div>' + fld('am-dnote', 'dietNote', 'Details for the kitchen', a.dietNote) : ''));
     h += sec('notes', 'Kitchen instructions and notes', a.knotes || a.cnotes ? 'Has notes' : 'None',
       area('am-knotes', 'knotes', 'Kitchen instructions', a.knotes, 'Filling, frosting, extras') + area('am-cnotes', 'cnotes', 'Order notes', a.cnotes));
@@ -2046,7 +2085,8 @@
     var idx = stageIndex(r.stage), done = r.status === 'completed', err = S.panelErr ? '<p class="ccs-err">' + esc(S.panelErr) + '</p>' : '';
     var h = sheetHead(esc(r.reference), stagePill(r.stage)) + '<div class="ccs-sheet-body">';
     if (r.late) h += '<div class="ccs-alert">Running late: due ' + esc(whenLabel(r.date)) + ' at ' + esc(t12(r.time)) + '.</div>';
-    if (r.has_dietary) h += '<div class="ccs-alert">Dietary or allergy: ' + esc([].concat(r.dietary || [], r.dietary_note ? [r.dietary_note] : []).join(', ') || 'see notes') + '</div>';
+    if ((r.requirements || []).length) h += '<div class="ccs-must"><span>Must be</span><b>' + esc(reqList(r).join(' · ')) + '</b></div>';
+    if (r.has_dietary) h += '<div class="ccs-alert">Allergy: ' + esc([].concat(r.dietary || [], r.dietary_note ? [r.dietary_note] : []).join(', ') || 'see notes') + '</div>';
     if (r.amend_pending && r.amend_pending.length) h += kitAckBox(r, err);
     if (r.brief_changed) h += '<p class="ccs-note">Details changed after slip v' + r.brief_version + ' was printed. Ask the counter to print v' + (r.brief_version + 1) + '.</p>';
     if (!done && r.stage !== 'ready') h += slipBox(r.id, true);
@@ -2545,7 +2585,8 @@
     if (p && p.supports_message) h += '<div class="ccs-field"><label class="ccs-label" for="n-msg">Message on the cake (optional)</label><input class="ccs-input" id="n-msg" maxlength="40" data-n="message" value="' + esc(D.message) + '"></div>' + ferr('message');
     h += '<div class="ccs-field"><label class="ccs-label" for="n-candles">Candles (optional)</label><input class="ccs-input" id="n-candles" maxlength="60" data-n="candles" placeholder="For example: number 30 candle, or 5 small candles" value="' + esc(D.candles) + '"></div>' + ferr('candles');
     h += '<div class="ccs-field"><span class="ccs-label">Occasion (required)</span><div class="ccs-chips">' + occChips() + '</div>' + occOther() + '</div>';
-    h += '<div class="ccs-field"><span class="ccs-label">Any dietary needs or allergies?</span><div class="ccs-chips"><button type="button" class="ccs-chip" data-act="n-diet" data-v="no" aria-pressed="' + (D.diet === 'no') + '">No</button><button type="button" class="ccs-chip" data-act="n-diet" data-v="yes" aria-pressed="' + (D.diet === 'yes') + '">Yes</button></div>' + ferr('diet') + '</div>';
+    h += '<div class="ccs-field rq-simple">' + reqHtml(D, 'n', true) + '</div>';
+    h += '<div class="ccs-field"><span class="ccs-label">Any allergies?</span><div class="ccs-chips"><button type="button" class="ccs-chip" data-act="n-diet" data-v="no" aria-pressed="' + (D.diet === 'no') + '">No</button><button type="button" class="ccs-chip" data-act="n-diet" data-v="yes" aria-pressed="' + (D.diet === 'yes') + '">Yes</button></div>' + ferr('diet') + '</div>';
     if (D.diet === 'yes') h += '<div class="ccs-panel"><div class="ccs-chips">' + DIETS.map(function (d) { return '<button type="button" class="ccs-chip" data-act="n-diets" data-v="' + esc(d) + '" aria-pressed="' + (D.diets.indexOf(d) > -1) + '">' + esc(d) + '</button>'; }).join('') + '</div><input class="ccs-input" data-n="dietNote" id="n-dnote" placeholder="Details for the kitchen" value="' + esc(D.dietNote) + '"></div>';
     h += '<div class="ccs-field"><label class="ccs-label" for="n-notes">Other notes (optional)</label><input class="ccs-input" id="n-notes" data-n="notes" value="' + esc(D.notes) + '"></div>';
     return h + '<button type="button" class="ccs-btn" data-act="n-finish-next">Continue</button>';
@@ -2787,10 +2828,10 @@
     h += slLine('Candles', 4, esc(D.candles), ciEd, { id: 'sl-st-4' });
     if (slStage() !== 4) h += slLine('Inscription', 4, D.message ? '“' + esc(D.message) + '”' : '', null, { change: false });
     // Stage 6: dietary
-    var dv = D.diet === 'no' ? 'No dietary needs' : D.diet === 'unsure' ? 'Not sure yet: check with the customer' : D.diet === 'yes' ? esc([].concat(D.diets, D.dietNote ? [D.dietNote] : []).join(', ') || 'Yes') : '';
-    var dEd = '<div class="ccs-chips"><button type="button" class="ccs-chip" data-act="n-diet" data-v="no" aria-pressed="' + (D.diet === 'no') + '">No dietary needs</button><button type="button" class="ccs-chip" data-act="n-diet" data-v="yes" aria-pressed="' + (D.diet === 'yes') + '">Yes, dietary need or allergy</button><button type="button" class="ccs-chip" data-act="n-diet" data-v="unsure" aria-pressed="' + (D.diet === 'unsure') + '">Not sure, check later</button></div>' + (D.diet === 'unsure' ? '<p class="ccs-note ccs-unsure" role="status">The order is saved as an allergy order and flagged. The kitchen slip says: Allergies not confirmed yet. Check with the customer before baking.</p>' : '') +
+    var dv = D.diet ? [reqShort({ requirements: D.reqs || [], requirements_note: D.reqNote }).join(', '), D.diet === 'no' ? 'No allergies' : D.diet === 'unsure' ? 'Allergies not sure yet: check with the customer' : esc('Allergy: ' + ([].concat(D.diets, D.dietNote ? [D.dietNote] : []).join(', ') || 'yes'))].filter(Boolean).join(' · ') : '';
+    var dEd = reqHtml(D, 'n') + '<div class="ccs-chips"><button type="button" class="ccs-chip" data-act="n-diet" data-v="no" aria-pressed="' + (D.diet === 'no') + '">No allergies</button><button type="button" class="ccs-chip" data-act="n-diet" data-v="yes" aria-pressed="' + (D.diet === 'yes') + '">Yes, an allergy</button><button type="button" class="ccs-chip" data-act="n-diet" data-v="unsure" aria-pressed="' + (D.diet === 'unsure') + '">Not sure, check later</button></div>' + (D.diet === 'unsure' ? '<p class="ccs-note ccs-unsure" role="status">The order is saved as an allergy order and flagged. The kitchen slip says: Allergies not confirmed yet. Check with the customer before baking.</p>' : '') +
       (D.diet === 'yes' ? '<div class="ccs-chips">' + DIETS.map(function (d) { return '<button type="button" class="ccs-chip" data-act="n-diets" data-v="' + esc(d) + '" aria-pressed="' + (D.diets.indexOf(d) > -1) + '">' + esc(d) + '</button>'; }).join('') + '</div><input class="ccs-input" data-n="dietNote" id="n-dnote" placeholder="Details for the kitchen" value="' + esc(D.dietNote) + '">' : '') + ferr('diet') + slActions(5);
-    h += slLine('Dietary or allergy', 5, dv, dEd, { req: true, id: 'sl-st-5' });
+    h += slLine('Requirements and allergies', 5, dv, dEd, { req: true, id: 'sl-st-5' });
     // Stage 7: remarks
     var rv = [D.finish === 'custom' && D.design ? esc(D.design) : '', D.occasion ? esc(occSend()) + (D.occFor ? ' for ' + esc(D.occFor) : '') : '', esc(D.notes)].filter(Boolean).join(' · ');
     var rEd = (D.finish === 'custom' ? '<label class="sl-k" for="n-design">Design details <em class="sl-req">Required</em></label><textarea class="ccs-input" id="n-design" data-n="design" placeholder="Colours, theme, toppers">' + esc(D.design) + '</textarea>' + ferr('design') : '') +
@@ -2854,7 +2895,7 @@
           '<label class="sl-k" for="n-occdate">Date of the ' + esc(D.occasion.toLowerCase()) + '</label><input class="ccs-input" id="n-occdate" type="date" data-n="occDate" value="' + esc(D.occDate || D.date || '') + '"><span class="ccs-hint">Used to remind them next year, if they agreed to messages.</span></div>' : '') +
         '<label class="sl-k" for="n-notes">Other notes</label><input class="ccs-input" id="n-notes" data-n="notes" value="' + esc(D.notes) + '" placeholder="Anything else for the order">' + slActions(4, false);
     } else if (cur === 5) {
-      ed = '<div class="ccs-chips"><button type="button" class="ccs-chip" data-act="n-diet" data-v="no" aria-pressed="' + (D.diet === 'no') + '">No dietary needs</button><button type="button" class="ccs-chip" data-act="n-diet" data-v="yes" aria-pressed="' + (D.diet === 'yes') + '">Yes, dietary need or allergy</button><button type="button" class="ccs-chip" data-act="n-diet" data-v="unsure" aria-pressed="' + (D.diet === 'unsure') + '">Not sure, check later</button></div>' + (D.diet === 'unsure' ? '<p class="ccs-note ccs-unsure" role="status">The order is saved as an allergy order and flagged. The kitchen slip says: Allergies not confirmed yet. Check with the customer before baking.</p>' : '') +
+      ed = reqHtml(D, 'n') + '<div class="ccs-chips"><button type="button" class="ccs-chip" data-act="n-diet" data-v="no" aria-pressed="' + (D.diet === 'no') + '">No allergies</button><button type="button" class="ccs-chip" data-act="n-diet" data-v="yes" aria-pressed="' + (D.diet === 'yes') + '">Yes, an allergy</button><button type="button" class="ccs-chip" data-act="n-diet" data-v="unsure" aria-pressed="' + (D.diet === 'unsure') + '">Not sure, check later</button></div>' + (D.diet === 'unsure' ? '<p class="ccs-note ccs-unsure" role="status">The order is saved as an allergy order and flagged. The kitchen slip says: Allergies not confirmed yet. Check with the customer before baking.</p>' : '') +
         (D.diet === 'yes' ? '<div class="ccs-chips">' + DIETS.map(function (d) { return '<button type="button" class="ccs-chip" data-act="n-diets" data-v="' + esc(d) + '" aria-pressed="' + (D.diets.indexOf(d) > -1) + '">' + esc(d) + '</button>'; }).join('') + '</div><input class="ccs-input" data-n="dietNote" id="n-dnote" placeholder="Details for the kitchen" value="' + esc(D.dietNote) + '">' : '') + ferr('diet') + slActions(5);
     } else if (cur === 6) {
       ed = '<span class="sl-k">Occasion <em class="sl-req">Required</em></span><div class="ccs-chips">' + occChips() + '</div>' + occOther() +
@@ -2983,6 +3024,7 @@
     if (D.heard && !D.customer) p.heard_from = D.heard;
     if (RECUR.indexOf(D.occasion) > -1) { if ((D.occFor || '').trim()) p.occasion_for = D.occFor.trim(); p.occasion_date = D.occDate || D.date; }
     var tkAt = takenAt();
+    if ((D.reqs || []).indexOf('other') > -1 && !(D.reqNote || '').trim()) { D.err = 'Say what the other cake requirement is.'; D.errField = null; return refreshStep(); }
     if ((D.taken === 'other') && !D.takenDate) { D.err = 'Choose the date the order was taken, or pick Just now.'; D.errField = null; return refreshStep(); }
     if (tkAt && Date.parse(tkAt) > Date.now() + 60000) { D.err = 'The time taken is later than now. Check the time, or pick Just now.'; D.errField = null; return refreshStep(); }
     S.busy = true; refreshStep();
@@ -2996,6 +3038,7 @@
         if (s !== D.step) { var e = D.err, ef = D.errField; goStep(s); D.err = e; D.errField = ef; refreshStep(); } else refreshStep();
         return;
       }
+      if ((D.reqs || []).length && r.data.order_id) sb.rpc('order_set_requirements', { p_order: r.data.order_id, p_reqs: D.reqs, p_note: D.reqNote || '' }).then(function (x) { if (x.error || (x.data && !x.data.ok)) toast('Order saved, but the cake requirements were not: ' + ((x.data && x.data.message) || 'add them with Change order.'), true); });
       if (tkAt && r.data.order_id) sb.rpc('order_set_taken', { p_order: r.data.order_id, p_at: tkAt }).then(function (x) { if (x.error || (x.data && !x.data.ok)) toast('Order saved, but the time taken was not recorded' + (x.data && x.data.message ? ': ' + x.data.message : '.'), true); });
       S.wl = {}; loadOrders(true); if (p.rush && p.rush.approved_by) rememberName(p.rush.approved_by);
       if (newInSheet()) { if (D.fromCal) calSaved(r.data); else homeSaved(r.data, !!((D.email || '').trim() || (D.customer && D.customer.email))); return; }
@@ -4788,6 +4831,10 @@
           // No dietary needs is a complete answer: go straight on to the next step
           if (v === 'no' && STEPPER && SLIP && slStage() === 5) setTimeout(function () { if (D.diet === 'no' && slStage() === 5) slNext(false); }, 350);
           break;
+        case 'n-rq': reqToggle(D, v); refreshStep(); break;
+        case 'n-rqallergy': reqAllergy(D, v === 'yes'); refreshStep(); break;
+        case 'am-rq': reqToggle(S.am, v); S.am.preview = null; renderSheet(); break;
+        case 'am-rqallergy': reqAllergy(S.am, v === 'yes'); S.am.preview = null; renderSheet(); break;
         case 'n-diets': var k = D.diets.indexOf(v); if (k > -1) D.diets.splice(k, 1); else D.diets.push(v); refreshStep(); break;
         case 'n-finish-next':
           if (D.finish === 'custom' && D.design.trim().length < 3) { D.err = 'Describe the design for the kitchen.'; D.errField = 'design'; refreshStep(); break; }

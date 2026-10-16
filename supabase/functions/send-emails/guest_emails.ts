@@ -60,7 +60,10 @@ function orderRows(d: any): Row[] {
   if (i.finish === "custom" || isRequest(i)) rows.push(["Design", i.design_description || "Custom design"]);
   if (i.cake_message) rows.push(["On the cake", `“${i.cake_message}”`]);
   if (i.candles) rows.push(["Candles", i.candles]);
-  if (o.has_dietary) rows.push(["Allergies or dietary", [...(i.dietary ?? []), i.dietary_note].filter(Boolean).join(", ") || "Noted on your order", true]);
+  const REQ: Record<string, string> = { eggless: "Eggless (vegetarian)", gluten_free: "Gluten-free", dairy_free: "Dairy-free", vegan: "Vegan (no egg, no dairy)" };
+  const reqs = (i.requirements ?? []).map((k: string) => k === "other" ? (i.requirements_note || "Other") : REQ[k] || k);
+  if (reqs.length) rows.push(["Your cake must be", reqs.join(", "), true]);
+  if (o.has_dietary) rows.push(["Allergies", [...(i.dietary ?? []), i.dietary_note].filter(Boolean).join(", ") || "Noted on your order", true]);
   else if (o.dietary_status === "unsure") rows.push(["Allergies", "To check with you before we bake", true]);
   rows.push(isDelivery(o) ? ["Delivery to", [o.delivery_address, o.delivery_zone].filter(Boolean).join(", ")] : ["Collect from", `${d.location.name}, ${d.location.address}`]);
   return rows.filter((r) => r[1]);

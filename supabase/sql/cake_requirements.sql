@@ -1,0 +1,6 @@
+-- Corner Café cakes: cake requirements kept apart from allergies (APPLIED 17 Oct 2026 as migrations cake_requirements, kitchen_snapshot_requirements)
+-- order_items.requirements text[] (eggless, gluten_free, dairy_free, vegan, other) and requirements_note (the other requirement, up to 120 characters).
+-- Allergies stay in has_dietary, dietary and dietary_note, shown in red everywhere.
+-- order_set_requirements(p_order, p_reqs, p_note): staff (ord.create or ord.edit), open orders only, history line (kind requirements).
+-- submit_online_order: takes p.requirements and p.requirements_note from the website form.
+-- _kitchen_snapshot: adds requirements only when there are some (older slips are not marked as changed).

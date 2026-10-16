@@ -85,7 +85,7 @@ async function renderSlip(PDFLib, { snapshot: s, slip, version, changes, printed
   if (s.rush) { const rw = width(B, "SHORT NOTICE", 7.5) + 8; page.drawRectangle({ x: W - M - rw, y: y - 3, width: rw, height: 12, borderColor: BLACK, borderWidth: 1.2 }); text("SHORT NOTICE", W - M - rw + 4, y, B, 7.5); }
   y -= 8;
   if (version > 1 && changes && changes.length) {
-    const NAMES = { variant: "flavour", message: "inscription", has_dietary: "dietary", dietary_note: "dietary note", method: "collection or delivery", area: "delivery area", photos: "reference photos", kitchen_notes: "kitchen notes", order_notes: "order notes", customer: "name", rush: "short notice" };
+    const NAMES = { variant: "flavour", message: "inscription", has_dietary: "dietary", dietary_note: "dietary note", requirements: "cake requirements", requirements_note: "cake requirements", method: "collection or delivery", area: "delivery area", photos: "reference photos", kitchen_notes: "kitchen notes", order_notes: "order notes", customer: "name", rush: "short notice" };
     const named = changes.map((k) => NAMES[k] || k).filter((v, i, a) => a.indexOf(v) === i);
     const lines = wrap(B, `Changed since v${version - 1}: ${named.join(", ")}. Throw away the old slip.`, 8.5, CW - 10);
     const bh = lines.length * 11 + 8; page.drawRectangle({ x: M, y: y - bh, width: CW, height: bh, borderColor: BLACK, borderWidth: 1.5 });
@@ -125,6 +125,10 @@ async function renderSlip(PDFLib, { snapshot: s, slip, version, changes, printed
   const sizeTxt = s.size ? `${s.size} inch` + (s.quantity > 1 ? ` × ${s.quantity} cakes` : "") : req ? (s.serves || "") + (s.quantity > 1 ? ` × ${s.quantity} cakes` : "") : "";
   const h2 = Math.max(cellH(half, cake, 13), cellH(half, sizeTxt, 13));
   cell(M, y, half, "CAKE", cake, 13, false, h2); cell(M + half, y, half, "SIZE", sizeTxt, 13, false, h2); y -= h2;
+  // Cake requirements (eggless, gluten-free, dairy-free, vegan) are a must for the kitchen, shown apart from allergies
+  const REQ = { eggless: "EGGLESS (VEGETARIAN)", gluten_free: "GLUTEN-FREE", dairy_free: "DAIRY-FREE", vegan: "VEGAN (NO EGG, NO DAIRY)" };
+  const reqs = (s.requirements || []).map((k) => k === "other" ? String(s.requirements_note || "OTHER").toUpperCase() : REQ[k] || k);
+  if (reqs.length) { const hr = cell(M, y, CW, "MUST BE", reqs.join(" · "), 15, true); y -= hr; }
   const diet = s.has_dietary ? [].concat(s.dietary || [], s.dietary_note ? [s.dietary_note] : []).join(", ") || "See order notes" : "None given";
   const hd = cell(M, y, CW, s.has_dietary ? "DIETARY OR ALLERGY" : "DIETARY", diet, 13, false);
   if (s.has_dietary) page.drawRectangle({ x: M + 1.5, y: y - hd + 1.5, width: CW - 3, height: hd - 3, borderColor: BLACK, borderWidth: 2 });

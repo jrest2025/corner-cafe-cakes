@@ -979,3 +979,16 @@
 #cc-staff .dx-secbody > .lt-wrap { display: block; min-height: max-content; }
 #cc-staff .lt-wrap > * + * { margin-top: 10px; }
 #cc-staff .lt-wrap .dx-card-h { margin-top: 18px; }
+
+/* Cake requirements (a must, not an allergy): dark neutral tag; allergies stay red */
+#cc-staff .ccs-tag.t-req, #ccs-sheet .ccs-tag.t-req { background: #1F2A37; color: #FFFFFF; border-color: #1F2A37; font-weight: 700; }
+#cc-staff .ccs-must, #ccs-sheet .ccs-must { background: #1F2A37; color: #fff; border-radius: 10px; padding: 10px 14px; display: flex; flex-direction: column; gap: 2px; }
+#cc-staff .ccs-must span, #ccs-sheet .ccs-must span { font-size: calc(12 * var(--u, 1px)); letter-spacing: .08em; text-transform: uppercase; opacity: .8; }
+#cc-staff .ccs-must b, #ccs-sheet .ccs-must b { font-size: calc(18 * var(--u, 1px)); }
+#cc-staff .rq-k, #cc-staff .rq-k2, #ccs-sheet .rq-k, #ccs-sheet .rq-k2 { display: block; margin: 4px 0 8px; }
+#cc-staff .rq-k2, #ccs-sheet .rq-k2 { margin-top: 14px; }
+#cc-staff .rq-chips, #ccs-sheet .rq-chips { margin-bottom: 8px; }
+#cc-staff .rq-ask, #ccs-sheet .rq-ask { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 10px; background: #FFFAEB; border: 1px solid #FEC84B; border-radius: 10px; margin: 4px 0 8px; font-weight: 600; color: #93370D; }
+#ccs-sheet .os-phcake p.os-req { background: #1F2A37; color: #fff; border-radius: 8px; padding: 6px 10px; }
+#ccs-sheet .os-phcake p.os-req span { color: #D0D5DD; }
+#cc-staff .sl-k.sl-must b, #ccs-sheet .sl-k.sl-must b { background: #1F2A37; color: #fff; padding: 2px 6px; border-radius: 4px; }

@@ -94,11 +94,12 @@ function staffNewOrder(d: any): { subject: string; html: string } {
   const phone = o.contact_phone || c.phone || "";
   const email = o.contact_email || c.email || "";
   const diet = o.has_dietary ? [...(i.dietary ?? []), i.dietary_note].filter(Boolean).join(", ") || "See the order" : "";
+  const reqTxt = (i.requirements ?? []).map((k: string) => k === "other" ? (i.requirements_note || "Other") : ({ eggless: "Eggless (vegetarian)", gluten_free: "Gluten-free", dairy_free: "Dairy-free", vegan: "Vegan (no egg, no dairy)" } as Record<string, string>)[k] || k).join(", ");
   const delivery = o.fulfilment_method === "delivery";
   const when = `${longDate(o.required_date)}, ${t12(o.required_time)}`;
   const paid = Number(d.paid_total ?? 0), total = Number(o.final_total ?? o.estimate_total ?? 0);
   const subject = `New ${custom ? "custom cake request" : "cake order"} ${o.reference} · ${new Date(o.required_date + "T00:00:00Z").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" })}` +
-    (diet ? " · ALLERGY OR DIETARY" : "") + (o.rush_override ? " · SHORT NOTICE" : "");
+    (reqTxt ? " · " + reqTxt.toUpperCase() : "") + (diet ? " · ALLERGY" : "") + (o.rush_override ? " · SHORT NOTICE" : "");
 
   const kv = (k: string, v: string) => v ? `<tr><td style="padding:7px 0;width:118px;vertical-align:top;font-size:13px;color:${MUTED}">${esc(k)}</td><td style="padding:7px 0;font-size:15px;font-weight:bold;color:${INK};line-height:1.4;word-break:break-word">${v}</td></tr>` : "";
   const section = (n: string, title: string, inner: string) =>
@@ -114,6 +115,7 @@ function staffNewOrder(d: any): { subject: string; html: string } {
     `<div style="font-size:32px;font-weight:bold;color:${INK};line-height:1.1;margin-top:4px">${esc(o.reference)}</div></td>` +
     `<td style="vertical-align:bottom;text-align:right"><span style="display:inline-block;padding:6px 12px;border-radius:999px;background:#FBEFD9;color:#7A4A0C;font-size:13px;font-weight:bold;white-space:nowrap">${status}</span></td></tr></table>`;
   if (diet) b += `<div style="background:#F8E3DD;border-left:5px solid ${RED};border-radius:8px;padding:12px 16px;margin:0 0 14px;color:${RED}"><div style="font-size:12px;letter-spacing:1.5px;text-transform:uppercase;font-weight:bold">Allergy or dietary need</div><div style="font-size:18px;font-weight:bold;margin-top:3px">${esc(diet)}</div></div>`;
+  if (reqTxt) b += `<div style="background:#1F231C;border-radius:8px;padding:12px 16px;margin:0 0 14px;color:#FFFFFF"><div style="font-size:12px;letter-spacing:1.5px;text-transform:uppercase">Must be</div><div style="font-size:18px;font-weight:bold;margin-top:4px">${esc(reqTxt)}</div></div>`;
   if (o.rush_override) b += `<div style="background:#FBEFD9;border-radius:8px;padding:12px 16px;margin:0 0 14px;color:#7A4A0C;font-weight:bold">Short notice${o.rush_reason ? `: ${esc(o.rush_reason)}` : ""}</div>`;
 
   b += section("01", delivery ? "Delivery" : "Collection", grid(
@@ -163,7 +165,10 @@ function cakeRows(d: any, staff: boolean): [string, string][] {
   if (i.design_description) rows.push(["Design", i.design_description]);
   if (i.cake_message) rows.push(["Message", `“${i.cake_message}”`]);
   if (i.occasion) rows.push(["Occasion", i.occasion]);
-  if (o.has_dietary) rows.push(["Dietary", [...(i.dietary ?? []), i.dietary_note].filter(Boolean).join(", ")]);
+  { const REQ: Record<string, string> = { eggless: "Eggless (vegetarian)", gluten_free: "Gluten-free", dairy_free: "Dairy-free", vegan: "Vegan (no egg, no dairy)" };
+    const reqs = (i.requirements ?? []).map((k: string) => k === "other" ? (i.requirements_note || "Other") : REQ[k] || k);
+    if (reqs.length) rows.push(["Must be", reqs.join(", ")]); }
+  if (o.has_dietary) rows.push(["Allergy", [...(i.dietary ?? []), i.dietary_note].filter(Boolean).join(", ")]);
   rows.push(["Collection", `${longDate(o.required_date)} at ${t12(o.required_time)}`]);
   if (staff) {
     rows.push(["Customer", `${c.full_name}${c.past_orders > 0 ? ` (returning, ${c.past_orders} earlier order${c.past_orders > 1 ? "s" : ""})` : " (new customer)"}`]);
@@ -264,7 +269,7 @@ async function send(to: string, subject: string, html: string, from: string, rep
   const r = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${RESEND_KEY}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from, to: [to], cc: cc && cc.length ? cc : undefined, subject, html, text: text || undefined, reply_to: replyTo || undefined, attachments: attachments && attachments.length ? attachments : undefined, headers: headers && Object.keys(headers).length ? headers : undefined }),
+    body: JSON.stringify({ from, to: [to], cc: cc && cc.length ? cc : undefined, subject, html, text: text || undefined, reply_to: (replyTo && /^[^@,<> ]+@[^@,<> ]+[.][^@,<> ]+$/.test(replyTo.trim()) ? replyTo.trim() : undefined), attachments: attachments && attachments.length ? attachments : undefined, headers: headers && Object.keys(headers).length ? headers : undefined }),
   });
   const t = await r.text();
   if (!r.ok) throw new Error(`Resend ${r.status}: ${t.slice(0, 300)}`);
@@ -312,7 +317,8 @@ async function kitchenSlip(m: any, d: any) {
   const dl = s.method === "delivery";
   const when = `${new Date(s.date + "T12:00:00Z").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" }).replace(",", "")} ${t12(s.time)}`;
   const diet = s.has_dietary ? ([] as string[]).concat(s.dietary || [], s.dietary_note ? [s.dietary_note] : []).join(", ") || "See the slip" : "";
-  const subject = `Kitchen slip ${o.reference} v${v} · ${dl ? "Delivery" : "Pickup"} ${when}` + (diet ? " · ALLERGY" : "") + (v > 1 ? " · REPLACES v" + (v - 1) : "");
+  const reqTag = (s.requirements || []).length ? " · " + (s.requirements as string[]).map((k) => ({ eggless: "EGGLESS", gluten_free: "GLUTEN-FREE", dairy_free: "DAIRY-FREE", vegan: "VEGAN" } as Record<string, string>)[k] || "SPECIAL REQUIREMENT").join(", ") : "";
+  const subject = `Kitchen slip ${o.reference} v${v} · ${dl ? "Delivery" : "Pickup"} ${when}` + reqTag + (diet ? " · ALLERGY" : "") + (v > 1 ? " · REPLACES v" + (v - 1) : "");
   // The email body reads like a kitchen docket; the attached PDF stays the official printed slip
   const html = slipEmailHtml({ s, version: v, changes: br.changes || [], fileName: name, sentBy: br.printed_by_label });
   return { subject, html, attachments: [{ filename: name + ".pdf", content: b64(pdf) }] };

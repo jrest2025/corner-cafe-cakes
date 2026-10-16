@@ -39,8 +39,13 @@ export function slipEmailHtml({ s, version, changes, fileName, sentBy }) {
     `<td style="padding:10px 14px 10px 0;font:bold 19px/1.3 ${FONT};color:${INK}">${esc(dayLine(s.date))}<br><span style="font:bold 24px/1.3 ${FONT}">${esc(t12(s.time))}</span></td></tr></table></td></tr>`;
   // Alerts first, so nobody misses them
   if (diet) rows += `<tr><td style="padding:0 20px 12px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${RED_BG};border-left:5px solid ${RED}"><tr><td style="padding:10px 14px">` +
-    `<div style="font:bold 11px/1 ${FONT};letter-spacing:1.6px;text-transform:uppercase;color:${RED}">Allergy or dietary need</div>` +
+    `<div style="font:bold 11px/1 ${FONT};letter-spacing:1.6px;text-transform:uppercase;color:${RED}">Allergy</div>` +
     `<div style="font:bold 17px/1.35 ${FONT};color:${RED};padding-top:5px">${esc(diet)}</div></td></tr></table></td></tr>`;
+  const REQ = { eggless: "Eggless (vegetarian)", gluten_free: "Gluten-free", dairy_free: "Dairy-free", vegan: "Vegan (no egg, no dairy)" };
+  const reqs = (s.requirements || []).map((k) => k === "other" ? (s.requirements_note || "Other") : REQ[k] || k);
+  if (reqs.length) rows += `<tr><td style="padding:0 20px 12px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${INK}"><tr><td style="padding:10px 14px">` +
+    `<div style="font:bold 11px/1 ${FONT};letter-spacing:1.6px;text-transform:uppercase;color:#FFFFFF">Must be</div>` +
+    `<div style="font:bold 19px/1.35 ${FONT};color:#FFFFFF;padding-top:5px">${esc(reqs.join(" · "))}</div></td></tr></table></td></tr>`;
   if (upd) rows += `<tr><td style="padding:0 20px 12px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${AMBER_BG};border-left:5px solid ${AMBER}"><tr><td style="padding:10px 14px">` +
     `<div style="font:bold 11px/1 ${FONT};letter-spacing:1.6px;text-transform:uppercase;color:${AMBER}">Changed since v${v - 1}</div>` +
     `<div style="font:bold 15px/1.4 ${FONT};color:${INK};padding-top:5px">${ch.length ? esc(ch.join(", ")) : "Order details updated. Check the whole slip."}</div></td></tr></table></td></tr>`;

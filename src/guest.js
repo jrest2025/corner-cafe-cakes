@@ -23,11 +23,14 @@
   var PRE_OCC = URLP ? String(URLP.get('occasion') || '').toLowerCase().replace(/-/g, '_') : '';
   var CAMPAIGN = URLP ? String(URLP.get('campaign') || URLP.get('utm_campaign') || '').toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 60) : '';
   var REFERRAL = (function () { try { var r = document.referrer ? new URL(document.referrer) : null; return r && r.hostname !== location.hostname ? r.hostname.slice(0, 120) : ''; } catch (e) { return ''; } })();
-  var DIETS = ['Vegetarian (eggless)', 'Gluten-free', 'Nut allergy', 'Other'];
+  var DIETS = ['Nuts', 'Gluten (coeliac)', 'Dairy', 'Egg', 'Other'];
+  // What the cake must be (the same list as the staff app). Allergies are asked separately.
+  var REQS = [['eggless', 'Eggless (vegetarian)'], ['gluten_free', 'Gluten-free'], ['dairy_free', 'Dairy-free'], ['vegan', 'Vegan (no egg, no dairy)'], ['other', 'Something else']];
+  function reqText() { return (S.reqs || []).map(function (k) { return k === 'other' ? (S.reqNote.trim() || 'Something else') : ((REQS.filter(function (r) { return r[0] === k; })[0]) || [k, k])[1]; }); }
   var MAX_PHOTOS = 5;
   var SETUP = null, KEY = uid();
   var S = { req: false, size_note: '', reqFlav: '', flavour: null, variant: null, size: null, showServes: false, finish: null, design: '', photos: [], msgOpen: false, message: '', occasion: null, occOther: '', occPre: false, method: 'collection', zone: null, address: '', receiver: '', candOpen: false, candles: '', noteOpen: false, notes: '',
-    diet: null, diets: [], dietNote: '', date: null, time: null, name: '', phone: '', whatsapp: true, emailOpen: false, email: '', updates: false, detailsOk: false, know: true, sending: false, howOpen: false, dateNote: '' };
+    diet: null, diets: [], dietNote: '', reqs: [], reqNote: '', date: null, time: null, name: '', phone: '', whatsapp: true, emailOpen: false, email: '', updates: false, detailsOk: false, know: true, sending: false, howOpen: false, dateNote: '' };
   var open = 0, reached = 0, errors = {}, formError = null, fresh = {}, animStep = -1;
   // ---------- carry on later: the order in progress is kept on this device for 24 hours, and removed once it is sent ----------
   var S0 = JSON.stringify(S), GKEY = 'cco-draft-v1', GMS = 24 * 3600e3, finished = false, restoredAt = null;
@@ -124,7 +127,7 @@
   function sooner() { return '<div class="cco-sooner"><p><b>Need it sooner?</b> Call or WhatsApp us and we\u2019ll see what we can do.</p><div class="cco-sooner-acts">' + soonerLinks() + '</div></div>'; }
   var ASK = 'Tell us who the cake is for, any colours or theme, and add a photo if you have one.';
   function fromPrice(f) { return Math.min.apply(null, f.sizes.map(function (s) { return Number(s.price); })); }
-  function finishSummary() { return [S.req ? 'Your design' : S.finish === 'custom' ? 'Custom design' : 'Standard finish', S.message.trim() ? '“' + S.message.trim() + '”' : '', occText(), S.diet === 'yes' ? (S.diets.join(', ') || 'Dietary needs noted') : S.diet === 'unsure' ? 'Allergies to check' : 'No dietary needs'].filter(Boolean).join(' · '); }
+  function finishSummary() { return [S.req ? 'Your design' : S.finish === 'custom' ? 'Custom design' : 'Standard finish', S.message.trim() ? '“' + S.message.trim() + '”' : '', occText(), reqText().join(', '), S.diet === 'yes' ? 'Allergy: ' + (S.diets.join(', ') || 'noted') : S.diet === 'unsure' ? 'Allergies to check' : 'No allergies'].filter(Boolean).join(' · '); }
 
   var STEPS = [
     { key: 'Cake', q: 'Which cake would you like?', sub: 'Choose a flavour. You pick the size next.',
@@ -191,7 +194,10 @@
         if (S.noteOpen) h += '<div class="cco-field' + enter('note') + '"><div class="cco-lbl"><label for="cco-notes">Anything else we should know</label><span class="cco-lbl-r">' + opt() + '<button type="button" class="cco-hide" data-act="noteClose">Hide</button></span></div><textarea class="cco-input" id="cco-notes" data-in="notes" maxlength="300" rows="3" placeholder="For example, it is a surprise, please do not call before 5 PM"' + described('notes') + '>' + esc(S.notes) + '</textarea>' + err('notes') + '</div>';
         else h += '<button type="button" class="cco-link" data-act="noteOpen"><span class="cco-plus" aria-hidden="true">' + (S.notes.trim() ? '✓' : '+') + '</span>' + (S.notes.trim() ? 'Note added' : 'Add a note for our team') + '</button>';
         h += '</div>'; var a1 = h.length;
-        h += '<div class="cco-field"><span class="cco-lbl" id="cco-diet-l"><span>Any dietary needs or allergies?</span></span><div class="cco-yesno" role="group" aria-labelledby="cco-diet-l"><button type="button" class="cco-chip" data-act="diet" data-v="no" aria-pressed="' + (S.diet === 'no') + '">No</button><button type="button" class="cco-chip" data-act="diet" data-v="yes" aria-pressed="' + (S.diet === 'yes') + '">Yes</button><button type="button" class="cco-chip" data-act="diet" data-v="unsure" aria-pressed="' + (S.diet === 'unsure') + '">Not sure</button></div>' + (S.diet === 'unsure' ? '<p class="cco-hint">No problem. We will check with you about allergies before we bake.</p>' : '') + err('diet') + '</div>';
+        h += '<div class="cco-field cco-reqs"><span class="cco-lbl" id="cco-req-l"><span>Does the cake need to be any of these?</span>' + opt() + '</span><div class="cco-chips" role="group" aria-labelledby="cco-req-l">' +
+          REQS.map(function (r) { return '<button type="button" class="cco-chip" data-act="must" data-v="' + r[0] + '" aria-pressed="' + ((S.reqs || []).indexOf(r[0]) > -1) + '">' + r[1] + '</button>'; }).join('') + '</div>' +
+          ((S.reqs || []).indexOf('other') > -1 ? '<div class="cco-sub' + enter('reqo') + '"><label class="cco-sub-q" for="cco-reqnote">What should the cake be?</label><input type="text" class="cco-input" id="cco-reqnote" data-in="reqNote" maxlength="120" value="' + esc(S.reqNote) + '" placeholder="For example, no alcohol"></div>' : '') + err('requirements') + '</div>';
+        h += '<div class="cco-field"><span class="cco-lbl" id="cco-diet-l"><span>Any allergies?</span></span><div class="cco-yesno" role="group" aria-labelledby="cco-diet-l"><button type="button" class="cco-chip" data-act="diet" data-v="no" aria-pressed="' + (S.diet === 'no') + '">No</button><button type="button" class="cco-chip" data-act="diet" data-v="yes" aria-pressed="' + (S.diet === 'yes') + '">Yes</button><button type="button" class="cco-chip" data-act="diet" data-v="unsure" aria-pressed="' + (S.diet === 'unsure') + '">Not sure</button></div>' + (S.diet === 'unsure' ? '<p class="cco-hint">No problem. We will check with you about allergies before we bake.</p>' : '') + err('diet') + '</div>';
         if (S.diet === 'yes') h += '<div class="cco-sub' + enter('diet') + '"><span class="cco-sub-q">Which apply?</span><div class="cco-chips">' + DIETS.map(function (d) { return '<button type="button" class="cco-chip" data-act="diets" data-v="' + esc(d) + '" aria-pressed="' + (S.diets.indexOf(d) > -1) + '">' + esc(d) + '</button>'; }).join('') + '</div><div class="cco-field">' + lbl('cco-dnote', 'Anything our team should know', true) + '<input type="text" class="cco-input" data-in="dietNote" id="cco-dnote" maxlength="200" value="' + esc(S.dietNote) + '" placeholder="For example, severe peanut allergy"></div><span class="cco-hint">Our team confirms what can be prepared before your order is confirmed.</span></div>';
         h += '<div class="cco-field cco-occ"><span class="cco-lbl" id="cco-occ-l"><span>What\'s the occasion?</span></span>' + (S.occPre && S.occasion ? '<span class="cco-hint">Chosen for you from the page you came from. Change it if it is for something else.</span>' : '') +
           '<div class="cco-chips cco-occs" role="group" aria-labelledby="cco-occ-l">' + occList().map(function (o) { return '<button type="button" class="cco-chip" data-act="occasion" data-v="' + o[0] + '" aria-pressed="' + (S.occasion === o[0]) + '">' + esc(o[1]) + '</button>'; }).join('') + '</div>' +
@@ -249,7 +255,8 @@
         if (S.occasion) d.push('<span class="cco-rv-d">Occasion: ' + esc(S.occasion === 'not_specified' ? 'Not said' : occText()) + '</span>');
         if (S.candles.trim()) d.push('<span class="cco-rv-d">Candles: ' + esc(S.candles.trim()) + '</span>');
         if (S.notes.trim()) d.push('<span class="cco-rv-d">Note: ' + esc(S.notes.trim()) + '</span>');
-        d.push(S.diet === 'yes' ? '<span class="cco-rv-d cco-alert">Dietary: ' + esc([S.diets.join(', '), S.dietNote.trim()].filter(Boolean).join('. ')) + '</span>' : S.diet === 'unsure' ? '<span class="cco-rv-d cco-alert">Allergies: not sure yet. We will check with you before we bake.</span>' : '<span class="cco-rv-d">No dietary needs</span>');
+        if ((S.reqs || []).length) d.push('<span class="cco-rv-d cco-must">Must be: ' + esc(reqText().join(', ')) + '</span>');
+        d.push(S.diet === 'yes' ? '<span class="cco-rv-d cco-alert">Allergy: ' + esc([S.diets.join(', '), S.dietNote.trim()].filter(Boolean).join('. ')) + '</span>' : S.diet === 'unsure' ? '<span class="cco-rv-d cco-alert">Allergies: not sure yet. We will check with you before we bake.</span>' : '<span class="cco-rv-d">No allergies</span>');
         if (photos.length) d.push('<span class="cco-rv-thumbs">' + photos.map(function (p) { return p.url ? '<img src="' + p.url + '" alt="' + esc(p.name) + '">' : ''; }).join('') + '</span><span class="cco-rv-d">' + photos.length + ' photo' + (photos.length > 1 ? 's' : '') + ' attached</span>');
         h += row('', 'Design and dietary', S.req ? 'Your design' : S.finish === 'custom' ? 'Custom design' : 'Standard finish', d.join(''), 2, true);
         h += isDel() ? row('', 'Delivery', esc(longDate(S.date)) + ' at ' + t12(S.time), esc(S.zone + ' · ' + S.address.trim() + (S.receiver.trim() ? ' · For ' + S.receiver.trim() : '')), 3)
@@ -286,6 +293,7 @@
     line('Size', S.req ? reqLine() : S.size != null ? S.size + ' inch' + (sz() && sz().serves ? ', ' + sz().serves : '') : '', 1);
     line('Look', STEPS[2].summary() ? [S.req ? 'Your design' : S.finish === 'custom' ? 'Custom design' : 'Standard finish', S.message.trim() ? '“' + S.message.trim() + '”' : ''].filter(Boolean).join(', ') : '', 2);
     line('Occasion', STEPS[2].summary() ? occText() : '', 2);
+    line('Must be', STEPS[2].summary() ? reqText().join(', ') : '', 2);
     line(isDel() ? 'Delivery' : 'Collection', STEPS[3].summary() ? longDate(S.date) + ', ' + t12(S.time) + (isDel() ? ', ' + S.zone : '') : '', 3);
     line('Name', S.detailsOk ? S.name.trim() : '', 4);
     var amount = S.req ? '<em>To confirm</em>' : p == null ? '<em>Choose a size</em>' : '<strong>' + money(total()) + '</strong>';
@@ -470,7 +478,7 @@
     errors = {}; formError = null;
     S.sending = true; render();
     var p = { idempotency_key: KEY, location: 'corner-cafe', product_code: S.req ? 'custom-cake' : S.flavour, variant: S.req ? S.reqFlav.trim() : S.variant, size_inch: S.req ? null : S.size, size_note: S.req ? S.size_note.trim() : null, finish: S.req ? 'custom' : S.finish, design: S.design, message: S.req || (fl() && fl().supports_message) ? S.message : '', occasion: S.occasion === 'not_specified' ? 'Not specified' : occText(), candles: S.candles.trim(), notes: S.notes.trim(),
-      has_dietary: S.diet, dietary: S.diet === 'yes' ? S.diets : [], dietary_note: S.dietNote, date: S.date, time: S.time, attachments: donePhotos().map(function (x) { return x.path; }),
+      has_dietary: S.diet, dietary: S.diet === 'yes' ? S.diets : [], dietary_note: S.dietNote, requirements: S.reqs || [], requirements_note: (S.reqs || []).indexOf('other') > -1 ? S.reqNote.trim() : '', date: S.date, time: S.time, attachments: donePhotos().map(function (x) { return x.path; }),
       customer: { name: S.name.trim(), phone: S.phone.trim(), email: S.email.trim(), whatsapp: S.whatsapp, opt_in: S.updates },
       campaign: CAMPAIGN || null, referral: REFERRAL || null,
       delivery: isDel() ? { method: 'delivery', zone: S.zone, address: S.address.trim(), contact: S.receiver.trim() } : { method: 'collection' } };
@@ -558,6 +566,7 @@
     if (a === 'msgOpen') { S.msgOpen = true; fresh.msg = true; return render('#cco-message'); }
     if (a === 'occasion') { S.occasion = v; S.occPre = false; if (v === 'other') fresh.occo = true; delete errors.occasion; return render(v === 'other' ? '#cco-occother' : null); }
     if (a === 'diet') { if (v === 'yes' && S.diet !== 'yes') fresh.diet = true; S.diet = v; if (v !== 'yes') { S.diets = []; S.dietNote = ''; } delete errors.diet; return render(); }
+    if (a === 'must') { S.reqs = S.reqs || []; var rk = S.reqs.indexOf(v); if (rk > -1) S.reqs.splice(rk, 1); else { S.reqs.push(v); if (v === 'vegan') S.reqs = S.reqs.filter(function (x) { return x !== 'eggless' && x !== 'dairy_free'; }); } delete errors.requirements; return render(); }
     if (a === 'diets') { var k = S.diets.indexOf(v); if (k > -1) S.diets.splice(k, 1); else S.diets.push(v); delete errors.diet; return render(); }
     if (a === 'next2') {
       errors = {};
@@ -565,7 +574,8 @@
       if (!S.finish) errors.finish = 'Choose a finish.';
       if (!S.diet) errors.diet = 'Please answer No, Yes or Not sure.';
       if (!S.occasion) errors.occasion = 'Choose the occasion, or Prefer not to say.';
-      if (S.diet === 'yes' && !S.diets.length && !S.dietNote.trim()) errors.diet = 'Tell us which dietary need or allergy applies.';
+      if (S.diet === 'yes' && !S.diets.length && !S.dietNote.trim()) errors.diet = 'Tell us which allergy applies.';
+      if ((S.reqs || []).indexOf('other') > -1 && !S.reqNote.trim()) errors.requirements = 'Tell us what the cake should be.';
       if (Object.keys(errors).length) { render(); return toFirstError(); }
       return go(nextIncomplete(3));
     }

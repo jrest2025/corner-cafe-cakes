@@ -447,3 +447,7 @@ body:has(#cc-cake-order .cco-done) .cco-bar { display: none; }
   #cc-cake-order *, .cco-shade, .cco-sheet, .cco-bar { animation: none !important; transition: none !important; }
   #cc-cake-order .cco-cake:hover, #cc-cake-order .cco-cake:hover .cco-cake-vis img { transform: none !important; }
 }
+
+/* What the cake must be: shown plainly, apart from allergies */
+#cc-cake-order .cco-reqs .cco-chips { margin-top: 8px; }
+#cc-cake-order .cco-rv-d.cco-must { font-weight: 700; color: #1F2A37; }
