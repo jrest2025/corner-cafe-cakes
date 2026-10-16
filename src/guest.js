@@ -114,6 +114,14 @@
   function described(k) { return errors[k] ? ' aria-invalid="true" aria-describedby="cco-err-' + k + '"' : ''; }
   function reqLine() { return [S.reqFlav.trim(), S.size_note.trim()].filter(Boolean).join(', '); }
   // Same prompt the counter staff see, so a website order carries the same details
+  // Need it sooner? Short-notice requests go to the team by phone or WhatsApp; staff can book them with the short-notice option
+  var WA_NO = '6799993546';
+  function soonerLinks() {
+    var L = SETUP.location, tel = String(L.phone || '').replace(/[^\d+]/g, '');
+    var wa = 'https://wa.me/' + WA_NO + '?text=' + encodeURIComponent('Hi Corner Café, I need a cake sooner than the online calendar shows. Can you help?');
+    return '<a class="cco-sooner-btn" href="tel:' + esc(tel) + '" aria-label="Call us on ' + esc(L.phone) + '">Call us</a><a class="cco-sooner-btn" href="' + esc(wa) + '" target="_blank" rel="noopener">WhatsApp us</a>';
+  }
+  function sooner() { return '<div class="cco-sooner"><p><b>Need it sooner?</b> Call or WhatsApp us and we\u2019ll see what we can do.</p><div class="cco-sooner-acts">' + soonerLinks() + '</div></div>'; }
   var ASK = 'Tell us who the cake is for, any colours or theme, and add a photo if you have one.';
   function fromPrice(f) { return Math.min.apply(null, f.sizes.map(function (s) { return Number(s.price); })); }
   function finishSummary() { return [S.req ? 'Your design' : S.finish === 'custom' ? 'Custom design' : 'Standard finish', S.message.trim() ? '“' + S.message.trim() + '”' : '', occText(), S.diet === 'yes' ? (S.diets.join(', ') || 'Dietary needs noted') : S.diet === 'unsure' ? 'Allergies to check' : 'No dietary needs'].filter(Boolean).join(' · '); }
@@ -207,7 +215,7 @@
               '<div class="cco-field"><div class="cco-lbl"><label for="cco-receiver">Who will receive it?</label><span class="cco-lbl-r">' + opt() + '</span></div><input id="cco-receiver" class="cco-input" data-in="receiver" maxlength="80" value="' + esc(S.receiver) + '" placeholder="For example: front desk"></div>';
           }
         }
-        h += (S.dateNote ? '<p class="cco-notice" role="status">' + esc(S.dateNote) + '</p>' : '') + '<button type="button" class="cco-date' + (errors.date ? ' cco-bad' : '') + '" data-act="cal"' + described('date') + '><span class="cco-date-l"><span class="cco-date-ico">' + ICON.cal + '</span><span>' + (S.date ? esc(longDate(S.date)) : 'Choose a date') + '</span></span><span class="cco-date-r">' + (S.date ? 'Change' : 'Open calendar') + '</span></button>' + err('date');
+        h += (S.dateNote ? '<p class="cco-notice" role="status">' + esc(S.dateNote) + '</p>' : '') + '<button type="button" class="cco-date' + (errors.date ? ' cco-bad' : '') + '" data-act="cal"' + described('date') + '><span class="cco-date-l"><span class="cco-date-ico">' + ICON.cal + '</span><span>' + (S.date ? esc(longDate(S.date)) : 'Choose a date') + '</span></span><span class="cco-date-r">' + (S.date ? 'Change' : 'Open calendar') + '</span></button>' + err('date') + (S.date ? '' : sooner());
         if (S.date) {
           var L = SETUP.location, o = L.collection_open.split(':').map(Number), c = L.collection_close.split(':').map(Number), groups = [['Morning', []], ['Afternoon', []], ['Evening', []]];
           // The same times the server accepts: on the slot steps of the day, inside opening hours, and not already past today
@@ -292,7 +300,7 @@
   function stateOf(i) { return i === open ? 'open' : (i <= reached && STEPS[i].summary() ? 'done' : 'locked'); }
 
   function render(focusSel) {
-    var n = STEPS.length, L0 = SETUP.location, h = (restoredAt ? '<div class="cco-resume" role="status"><p><b>Welcome back.</b> We kept the order you started at ' + esc(gTime(restoredAt)) + '. Carry on where you left off.</p><button type="button" class="cco-resume-btn" data-act="restart">Start again</button></div>' : '') + (reached === 0 && !restoredAt ? '<div class="cco-strip"><p><b>No payment now.</b> Order at least ' + L0.lead_days_standard + (L0.lead_days_standard == 1 ? ' day' : ' days') + ' ahead' + (L0.lead_days_custom > L0.lead_days_standard ? ', or ' + L0.lead_days_custom + ' days for a custom design' : '') + '.</p><button type="button" class="cco-strip-btn" data-act="how" aria-expanded="' + S.howOpen + '">How it works</button>' + (S.howOpen ? '<ol class="cco-strip-steps"><li><b>Choose your cake</b><span>Flavour, size and finish</span></li><li><b>Pick a day</b><span>Collect from our counter</span></li><li><b>We confirm</b><span>By WhatsApp or a call, before anything is booked</span></li></ol>' : '') + '</div>' : '') + rail() + '<div class="cco-progress" aria-hidden="true"><div class="cco-progress-track">' + STEPS.map(function (_s, i) { return '<i' + (i <= open ? ' class="cco-on"' : '') + '></i>'; }).join('') + '</div><span>Step ' + (open + 1) + ' of ' + n + ' <b>' + STEPS[open].key + '</b></span></div><div class="cco-steps">';
+    var n = STEPS.length, L0 = SETUP.location, h = (restoredAt ? '<div class="cco-resume" role="status"><p><b>Welcome back.</b> We kept the order you started at ' + esc(gTime(restoredAt)) + '. Carry on where you left off.</p><button type="button" class="cco-resume-btn" data-act="restart">Start again</button></div>' : '') + (reached === 0 && !restoredAt ? '<div class="cco-strip"><p><b>No payment now.</b> We confirm everything with you before your cake is booked.</p><button type="button" class="cco-strip-btn" data-act="how" aria-expanded="' + S.howOpen + '">How it works</button>' + (S.howOpen ? '<ol class="cco-strip-steps"><li><b>Choose your cake</b><span>Flavour, size and finish</span></li><li><b>Pick a day</b><span>Collect from our counter</span></li><li><b>We confirm</b><span>By WhatsApp or a call, before anything is booked</span></li></ol>' : '') + '</div>' : '') + rail() + '<div class="cco-progress" aria-hidden="true"><div class="cco-progress-track">' + STEPS.map(function (_s, i) { return '<i' + (i <= open ? ' class="cco-on"' : '') + '></i>'; }).join('') + '</div><span>Step ' + (open + 1) + ' of ' + n + ' <b>' + STEPS[open].key + '</b></span></div><div class="cco-steps">';
     STEPS.forEach(function (s, i) {
       var st = stateOf(i); if (st === 'locked' || (open === STEPS.length - 1 && st === 'done')) return;
       var sub = typeof s.sub === 'function' ? s.sub() : s.sub;
@@ -594,7 +602,7 @@
   var view = null, lastFocus = null, shade;
   function buildCal() {
     shade = document.createElement('div'); shade.className = 'cco-shade'; shade.setAttribute('aria-hidden', 'true');
-    shade.innerHTML = '<div class="cco-sheet" role="dialog" aria-modal="true" aria-label="Choose a collection date"><div class="cco-cal-head"><button type="button" class="cco-nav" data-nav="-1" aria-label="Previous month">‹</button><b aria-live="polite"></b><button type="button" class="cco-nav" data-nav="1" aria-label="Next month">›</button></div><div class="cco-grid"></div><p class="cco-cal-note"></p><button type="button" class="cco-close">Close</button></div>';
+    shade.innerHTML = '<div class="cco-sheet" role="dialog" aria-modal="true" aria-label="Choose a collection date"><div class="cco-cal-head"><button type="button" class="cco-nav" data-nav="-1" aria-label="Previous month">‹</button><b aria-live="polite"></b><button type="button" class="cco-nav" data-nav="1" aria-label="Next month">›</button></div><div class="cco-grid"></div><p class="cco-cal-note"></p><div class="cco-cal-sooner"></div><button type="button" class="cco-close">Close</button></div>';
     document.body.appendChild(shade);
     shade.addEventListener('click', function (e) {
       if (e.target === shade || e.target.classList.contains('cco-close')) return closeCal();
@@ -629,6 +637,7 @@
     }
     shade.querySelector('.cco-grid').innerHTML = h;
     shade.querySelector('.cco-cal-note').textContent = (S.finish === 'custom' ? 'Custom designs need ' + SETUP.location.lead_days_custom : 'Cakes need ' + leadDays()) + ' days’ notice. Greyed-out days are not available.';
+    shade.querySelector('.cco-cal-sooner').innerHTML = '<p><b>Need it sooner?</b> Call or WhatsApp us.</p><div class="cco-sooner-acts">' + soonerLinks() + '</div>';
   }
 
   // ---------- start ----------

@@ -433,6 +433,16 @@ body:has(#cc-cake-order .cco-done) .cco-bar { display: none; }
   #cc-cake-order.cco-at-review .cco-body > .cco-primary { width: 100%; justify-self: stretch; }
 }
 
+/* Need it sooner? Short-notice route on the collection step and in the calendar */
+#cc-cake-order .cco-sooner { margin-top: 12px; padding: 14px 16px; border: 1px solid var(--o-line); border-radius: var(--o-r-sm); background: var(--o-paper); }
+#cc-cake-order .cco-sooner p, .cco-cal-sooner p { margin: 0 0 10px; font-size: 15px; line-height: 1.5; color: #6B645D; }
+#cc-cake-order .cco-sooner b, .cco-cal-sooner b { color: #24211D; }
+.cco-sooner-acts { display: flex; flex-wrap: wrap; gap: 8px; }
+.cco-sooner-btn { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 8px 16px; border: 1px solid #5F7A4A; border-radius: 10px; background: #fff; color: #3F5D34 !important; font-weight: 600; font-size: 15px; text-decoration: none !important; flex: 1 1 140px; }
+.cco-sooner-btn:hover { background: #F1F5EC; }
+.cco-sooner-btn:focus-visible { outline: 3px solid #C7D3BA; outline-offset: 2px; }
+.cco-cal-sooner { margin: 4px 0 12px; padding-top: 12px; border-top: 1px solid #E6E4DF; }
+
 @media (prefers-reduced-motion: reduce) {
   #cc-cake-order *, .cco-shade, .cco-sheet, .cco-bar { animation: none !important; transition: none !important; }
   #cc-cake-order .cco-cake:hover, #cc-cake-order .cco-cake:hover .cco-cake-vis img { transform: none !important; }
