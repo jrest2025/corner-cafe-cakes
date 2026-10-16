@@ -623,9 +623,9 @@
   #cc-staff .ccs-card > .ccs-prow, #cc-staff .ccs-mini > .ccs-prow { padding-left: 20px !important; }
   /* Name first: darker and larger; order number smaller and lighter */
   #cc-staff .ccs-prow-m b { font-size: 17px !important; color: #101828 !important; }
-  #cc-staff .ccs-prow-m span { font-size: 13px !important; color: #98A2B3 !important; letter-spacing: .02em; }
+  #cc-staff .ccs-prow-m span { font-size: 14px !important; color: #475467 !important; letter-spacing: .02em; }
   #cc-staff .ccs-prow-t b { font-size: 14px !important; color: #344054 !important; }
-  #cc-staff .ccs-prow-t span { font-size: 13px !important; color: #667085 !important; }
+  #cc-staff .ccs-prow-t span { font-size: 14px !important; color: #475467 !important; }
   /* Needs attention: the same reason shows once as a heading, with its orders underneath */
   #cc-staff .at-row.is-rep > .at-why { display: none !important; }
   #cc-staff .at-row:not(.is-rep):not(:first-child) { margin-top: 8px; }
@@ -655,4 +655,34 @@
   #ccs-sheet .os-phdanger { display: block; text-align: center; padding: 16px 0 8px; margin-top: 8px; border-top: 1px solid #EAECF0; }
   #ccs-sheet .os-detail .ccs-secbar { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; overflow: visible !important; -webkit-mask-image: none !important; mask-image: none !important; padding-right: 4px !important; width: 100%; }
   #ccs-sheet .os-detail .ccs-secbar .ccs-secbtn { justify-content: center; padding: 0 4px !important; font-size: 15px !important; min-width: 0; }
+}
+
+/* Order screen on phones, second pass: a band in the order's state colour, the cake up top, larger text for easy reading */
+#ccs-sheet .os-band, #ccs-sheet .os-phcake { display: none; }
+@media (max-width: 759px) {
+  #ccs-sheet .ccs-sheet-head { position: relative; }
+  #ccs-sheet .ccs-sheet-head > .os-band { display: block; position: absolute; left: 0; right: 0; top: 0; height: 8px; order: 9; }
+  #ccs-sheet .os-band.pf-red { background: #D92D20; }
+  #ccs-sheet .os-band.pf-amber { background: #E8A33D; }
+  #ccs-sheet .os-band.pf-green { background: #5F7A4A; }
+  #ccs-sheet .os-band.pf-none { background: #D0D5DD; }
+  #ccs-sheet .ccs-sheet-head:has(.os-band) { padding-top: calc(18px + env(safe-area-inset-top, 0px)) !important; }
+  #ccs-sheet .os-tph b { font-size: clamp(26px, 7.4vw, 30px) !important; line-height: 1.15; }
+  #ccs-sheet .os-tph small { font-size: 17px !important; color: #344054 !important; margin-top: 4px; }
+  #ccs-sheet .os-phcake { display: block; background: #FFFFFF; border: 1.5px solid #98A2B3; border-radius: 12px; padding: 12px 14px; }
+  #ccs-sheet .os-phcake > b { display: block; font-size: 21px; font-weight: 700; color: #101828; line-height: 1.25; }
+  #ccs-sheet .os-phcake p { margin: 6px 0 0; font-size: 17px; line-height: 1.35; color: #101828; }
+  #ccs-sheet .os-phcake p span { display: block; font-size: 15px; font-weight: 600; color: #475467; }
+  #ccs-sheet .os-phcake p.os-clamp { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+  #ccs-sheet .ccs-sheet-body { font-size: 17px; }
+  #ccs-sheet .ccs-ostrip span { font-size: 15px !important; color: #475467 !important; }
+  #ccs-sheet .ccs-ostrip b { font-size: 18px !important; }
+  #ccs-sheet .ccs-nextline { font-size: 17px !important; line-height: 1.35; }
+  #ccs-sheet .ccs-hint, #ccs-sheet .ccs-note { font-size: 16px !important; color: #344054; }
+  #ccs-sheet .ccs-alert { font-size: 17px !important; }
+  #ccs-sheet .ccs-kv dt { font-size: 15px !important; color: #475467 !important; }
+  #ccs-sheet .ccs-kv dd { font-size: 17px !important; color: #101828 !important; }
+  #ccs-sheet .ccs-big { font-size: 21px !important; }
+  #ccs-sheet .ccs-box h3 { font-size: 17px !important; }
+  #ccs-sheet .ccs-more-row .ccs-link, #ccs-sheet .os-phdanger .ccs-link { font-size: 17px !important; }
 }
