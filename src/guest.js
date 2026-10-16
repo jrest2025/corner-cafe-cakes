@@ -89,7 +89,7 @@
   // Cake photos come from Image elements on the Webflow page (data-cake-photo="<cake code>"), so they can be swapped in the Designer.
   // An image left as Webflow's placeholder is ignored and the drawn cake is shown instead.
   var PHOTOS = null;
-  function photoOf(f) {
+  function photoOf(f, v) {
     if (!PHOTOS) {
       PHOTOS = {};
       [].forEach.call(document.querySelectorAll('[data-cake-photos] img[data-cake-photo]'), function (im) {
@@ -97,12 +97,14 @@
         if (src && !/placeholder/i.test(src)) PHOTOS[im.getAttribute('data-cake-photo')] = { src: src, srcset: im.getAttribute('srcset') || '' };
       });
     }
-    return PHOTOS[f.code] || (f.image_url ? { src: f.image_url, srcset: '' } : null);
+    // A flavour can have its own photo (data-cake-photo="black-white-forest--white-forest"); otherwise the cake's photo is used
+    var vk = v ? f.code + '--' + String(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') : '';
+    return (vk && PHOTOS[vk]) || PHOTOS[f.code] || (f.image_url ? { src: f.image_url, srcset: '' } : null);
   }
-  function vis(f) {
+  function vis(f, v) {
     if (!f) return '<span class="cco-disc-req" aria-hidden="true">Your<br>idea</span>';
     if (f === 'none') return '<span class="cco-disc cco-disc-empty" aria-hidden="true"></span>';
-    var p = photoOf(f);
+    var p = photoOf(f, v);
     return p ? '<img src="' + esc(p.src) + '"' + (p.srcset ? ' srcset="' + esc(p.srcset) + '" sizes="(min-width: 760px) 240px, 50vw"' : '') + ' alt="" loading="lazy">' : '<span class="cco-disc" style="background:' + esc(f.swatch || '#E6DCCF') + '"></span>';
   }
   function opt() { return ' <span class="cco-optional">Optional</span>'; }
@@ -232,7 +234,7 @@
       summary: function () { return ''; },
       body: function () {
         var f = fl(), photos = donePhotos(), h = '<div class="cco-review">';
-        h += S.req ? row(vis(null), 'Your cake', 'Custom cake', esc(reqLine()), 1) : row(vis(f), 'Your cake', esc(cakeName()), esc(S.size + ' inch' + (sz() && sz().serves ? ' · ' + sz().serves : '')), 0);
+        h += S.req ? row(vis(null), 'Your cake', 'Custom cake', esc(reqLine()), 1) : row(vis(f, S.variant), 'Your cake', esc(cakeName()), esc(S.size + ' inch' + (sz() && sz().serves ? ' · ' + sz().serves : '')), 0);
         var d = [];
         if (S.finish === 'custom') d.push('<span class="cco-rv-d">' + esc(S.design.trim()) + '</span>');
         if (S.message.trim()) d.push('<span class="cco-rv-d">Message: “' + esc(S.message.trim()) + '”</span>');
@@ -280,8 +282,8 @@
     line('Name', S.detailsOk ? S.name.trim() : '', 4);
     var amount = S.req ? '<em>To confirm</em>' : p == null ? '<em>Choose a size</em>' : '<strong>' + money(total()) + '</strong>';
     var sub = !S.req && p != null && isDel() && zoneFee() != null ? 'Includes delivery, ' + money(zoneFee()) : !S.req && S.finish === 'custom' ? 'Custom design priced after we see it' : S.req ? 'We send it after we see your idea' : '';
-    var tk = S.req ? 'req' : S.flavour || '', fresh1 = tk !== ticket.last; ticket.last = tk;
-    return '<div class="cco-ticket' + (S.flavour || S.req ? '' : ' cco-ticket-empty') + '"><div class="cco-tk-photo' + (fresh1 ? ' cco-tk-new' : '') + '">' + vis(S.req ? null : f || 'none') + '</div>' +
+    var tk = S.req ? 'req' : (S.flavour || '') + '|' + (S.variant || ''), fresh1 = tk !== ticket.last; ticket.last = tk;
+    return '<div class="cco-ticket' + (S.flavour || S.req ? '' : ' cco-ticket-empty') + '"><div class="cco-tk-photo' + (fresh1 ? ' cco-tk-new' : '') + '">' + vis(S.req ? null : f || 'none', S.variant) + '</div>' +
       '<div class="cco-tk-body"><p class="cco-tk-name">' + (who ? esc(who) : 'Your cake') + '</p>' + (who ? '' : '<p class="cco-tk-hint">Choose a cake to start. Your choices show here as you go.</p>') +
       (tl.length ? '<div class="cco-tk-rows">' + tl.join('') + '</div>' : '') +
       (who ? '<div class="cco-tk-total"><span>Price' + (sub ? '<small>' + sub + '</small>' : '') + '</span>' + amount + '</div>' : '') +
@@ -486,7 +488,7 @@
     root.innerHTML = '<div class="cco-done" role="status" tabindex="-1"><div class="cco-done-head"><div class="cco-tick" aria-hidden="true">' + ICON.tick + '</div>' +
       '<h2>Thanks ' + esc(S.name.trim().split(' ')[0]) + ', we’ve received your cake request.</h2>' +
       '<div class="cco-refbox"><span class="cco-refbox-k">Your reference</span><b class="cco-refbox-v">' + esc(d.reference) + '</b><button type="button" class="cco-copy" data-act="copyRef" data-v="' + esc(d.reference) + '">Copy</button></div></div>' +
-      '<div class="cco-done-cake"><span class="cco-rv-vis">' + vis(f) + '</span><span><b>' + esc(S.req ? 'Custom cake' + (reqLine() ? ', ' + reqLine() : '') : cakeName() + ', ' + S.size + ' inch') + '</b><span>' + (S.req ? 'Your design' : S.finish === 'custom' ? 'Custom design' : 'Standard finish') + ' · Requested for ' + esc(longDate(S.date)) + ' at ' + esc(t12(S.time)) + '</span></span></div>' +
+      '<div class="cco-done-cake"><span class="cco-rv-vis">' + vis(f, S.variant) + '</span><span><b>' + esc(S.req ? 'Custom cake' + (reqLine() ? ', ' + reqLine() : '') : cakeName() + ', ' + S.size + ' inch') + '</b><span>' + (S.req ? 'Your design' : S.finish === 'custom' ? 'Custom design' : 'Standard finish') + ' · Requested for ' + esc(longDate(S.date)) + ' at ' + esc(t12(S.time)) + '</span></span></div>' +
       '<p class="cco-status"><strong>Request received, not yet confirmed.</strong> ' + (quote ? 'Our cake team will send you a price for your design first.' : 'Our cake team reviews every request before it is booked.') + '</p>' +
       '<ol class="cco-next">' +
         '<li data-n="1" class="cco-now"><span><b>Request received</b><span>' + (SETUP.guest_emails && S.email.trim() ? 'We have emailed the details to ' + esc(S.email.trim()) + '.' : 'Keep your reference handy.') + '</span></span></li>' +

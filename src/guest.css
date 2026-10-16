@@ -115,7 +115,7 @@ body:has(#cc-cake-order .cco-done) .cco-help { display: none; }
 #cc-cake-order .cco-cake:hover { border-color: var(--o-leaf-line); box-shadow: 0 16px 30px -22px rgba(36, 33, 29, .45); transform: translateY(-2px); }
 #cc-cake-order .cco-cake:active { transform: scale(.99); }
 #cc-cake-order .cco-cake[aria-pressed="true"] { border-color: var(--o-leaf); box-shadow: 0 0 0 2px var(--o-leaf); transform: none; }
-#cc-cake-order .cco-cake-vis { aspect-ratio: 4 / 3; display: grid; place-items: center; overflow: hidden; background: var(--o-crumb); }
+#cc-cake-order .cco-cake-vis { aspect-ratio: 1 / 1; display: grid; place-items: center; overflow: hidden; background: var(--o-crumb); }
 #cc-cake-order .cco-cake-vis img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .5s var(--o-ease); }
 #cc-cake-order .cco-cake:hover .cco-cake-vis img { transform: scale(1.04); }
 #cc-cake-order .cco-cake-txt { flex: 1; display: grid; gap: 3px; align-content: start; padding: 12px 14px 14px; }
@@ -248,7 +248,7 @@ body:has(#cc-cake-order .cco-done) .cco-help { display: none; }
 #cc-cake-order .cco-ticket { position: relative; background: var(--o-paper); border: 1px solid var(--o-line-2); border-radius: 4px 4px var(--o-r) var(--o-r); box-shadow: 0 24px 44px -32px rgba(36, 33, 29, .45); }
 /* torn top edge, like the slip from the kitchen printer */
 #cc-cake-order .cco-ticket::before { content: ""; position: absolute; left: -1px; right: -1px; top: -9px; height: 10px; background: radial-gradient(circle at 8px 0, transparent 6px, var(--o-line-2) 6px, var(--o-line-2) 7px, var(--o-paper) 7px) 0 0 / 16px 10px repeat-x; }
-#cc-cake-order .cco-tk-photo { aspect-ratio: 4 / 3; margin: 14px 14px 0; border-radius: var(--o-r-sm); overflow: hidden; background: var(--o-crumb); display: grid; place-items: center; }
+#cc-cake-order .cco-tk-photo { aspect-ratio: 1 / 1; margin: 14px 14px 0; border-radius: var(--o-r-sm); overflow: hidden; background: var(--o-crumb); display: grid; place-items: center; }
 #cc-cake-order .cco-tk-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
 #cc-cake-order .cco-tk-new > * { animation: cco-fade .45s var(--o-ease) both; }
 #cc-cake-order .cco-tk-photo .cco-disc, #cc-cake-order .cco-tk-photo .cco-disc-req { width: 38%; }

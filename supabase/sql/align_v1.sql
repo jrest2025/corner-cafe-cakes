@@ -297,12 +297,14 @@ begin
 
   -- 6. Early website orders: the allergy answer recorded as No ------------------------------------
   update public.orders set dietary_status = case when has_dietary then 'yes' else 'no' end
-  where source = 'online' and dietary_status is null and reference not like 'H-%';
+  where source = 'online' and dietary_status is null and reference not like 'H-%' and deleted_at is null;
 
 
-  -- 7. Cake photos on the order page (hosted with the app, pinned to one version; managers can replace them in the staff app)
-  update public.products p set image_url = 'https://cdn.jsdelivr.net/gh/jrest2025/corner-cafe-cakes@d34ff66373f8719fd47b0e986f306de6d7c321a1/dist/brand/cakes/' || p.code || '.jpg'
-  where p.code in ('chocolate-mudcake-mocha', 'red-velvet', 'black-white-forest', 'vanilla-pina-colada') and p.image_url is null;
+  -- 7. Cake photos on the order page (hosted with the app, pinned to one version). Photos set in the Webflow page or the staff app take priority.
+  update public.products p set image_url = 'https://cdn.jsdelivr.net/gh/jrest2025/corner-cafe-cakes@75512bacc31362422ed4273d06e76e0047417fee/dist/brand/cakes/'
+      || case p.code when 'black-white-forest' then 'black-forest' else p.code end || '.jpg'
+  where p.code in ('chocolate-mudcake-mocha', 'red-velvet', 'black-white-forest', 'vanilla-pina-colada')
+    and (p.image_url is null or p.image_url like 'https://cdn.jsdelivr.net/gh/jrest2025/corner-cafe-cakes@%');
 
   -- Checks --------------------------------------------------------------------------------------------
   select count(*) into v_bad
