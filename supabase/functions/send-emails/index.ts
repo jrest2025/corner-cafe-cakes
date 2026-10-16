@@ -305,6 +305,31 @@ async function kitchenSlip(m: any, d: any) {
   return { subject, html, attachments: [{ filename: name + ".pdf", content: b64(pdf) }] };
 }
 
+// The backup Google Sheet stopped copying (or works again). Plain wording, point form, for the café's alert addresses.
+function fijiWhen(iso: string | null) {
+  if (!iso) return "never";
+  const d = new Date(iso);
+  return d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "Pacific/Fiji" }) + ", " +
+    d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: "Pacific/Fiji" });
+}
+async function backupEmail(kind: string) {
+  const [ms] = await db(`mirror_status?id=eq.1&select=last_ack_at,last_error,sheet_url,sheet_title`);
+  const last = fijiWhen(ms?.last_ack_at ?? null), sheet = ms?.sheet_title || "Corner Café Cake Orders Backup";
+  const link = ms?.sheet_url ? `<p style="margin:14px 0 0"><a href="${ms.sheet_url}" style="color:#4B6339;font-weight:bold">Open ${sheet}</a></p>` : "";
+  const li = (x: string[]) => "<ul style=\"margin:8px 0 0;padding-left:20px\">" + x.map((t) => `<li style="margin:4px 0">${t}</li>`).join("") + "</ul>";
+  const wrap = (h: string, body: string) => `<!doctype html><html><body style="margin:0;background:#ffffff;font-family:Arial,Helvetica,sans-serif;color:${INK}"><div style="max-width:560px;padding:20px 16px;font-size:15px;line-height:1.5"><h1 style="font-size:20px;margin:0 0 10px">${h}</h1>${body}</div></body></html>`;
+  if (kind === "ops_backup_ok") {
+    const pts = [`The backup Sheet is copying orders again.`, `Last successful copy: ${last}.`, `Nothing else to do. If anyone wrote orders in the Downtime orders tab, check each one has been entered in the staff app.`];
+    return { subject: "Cake order backup is working again", html: wrap("Cake order backup is working again", li(pts) + link), text: pts.join("\n") };
+  }
+  const pts = [`The backup Sheet (${sheet}) has not copied any orders for over 30 minutes.`, `Last successful copy: ${last}.`,
+    `Problem reported: ${ms?.last_error || "none reported. The Sheet's script may have stopped running."}`,
+    `The staff app still works. Only the backup copy is behind.`,
+    `To fix: open the Sheet, then the Cake backup menu, then Copy now. If it says the access code is wrong, use Change the access code with the code from the staff app (Settings, administrators only).`,
+    `If it still fails: in the Sheet open Extensions, then Apps Script, then Triggers, and check that sync runs every minute.`];
+  return { subject: "Cake order backup has stopped copying", html: wrap("Cake order backup has stopped copying", li(pts) + link), text: pts.join("\n") };
+}
+
 async function processOutbox() {
   const batch: any[] = await rpc("claim_outbox", { p_limit: 20 });
   let sent = 0, failed = 0, held = 0;
@@ -320,6 +345,15 @@ async function processOutbox() {
         let to = m.to_email, subject = t.subject, cc: string[] = m.cc || [];
         if (cfg.test_mode === "true") { subject = `[TEST, for ${[to, ...cc].join(" and ")}] ${subject}`; to = cfg.test_email; cc = []; }
         const id = await send(to, subject, t.html, cfg.from_email, undefined, t.attachments, cc);
+        await db(`email_outbox?id=eq.${m.id}`, { method: "PATCH", body: JSON.stringify({ status: "sent", sent_at: new Date().toISOString(), provider_message_id: id, last_error: null }) });
+        sent++; continue;
+      }
+      // Backup Sheet alerts for the café's alert addresses: no order attached
+      if (m.kind === "ops_backup_alert" || m.kind === "ops_backup_ok") {
+        const cfg = await config(), b = await backupEmail(m.kind);
+        let to = m.to_email, subject = b.subject, cc: string[] = m.cc || [];
+        if (cfg.test_mode === "true") { subject = `[TEST, for ${[to, ...cc].join(" and ")}] ${subject}`; to = cfg.test_email; cc = []; }
+        const id = await send(to, subject, b.html, cfg.from_email, undefined, undefined, cc, b.text);
         await db(`email_outbox?id=eq.${m.id}`, { method: "PATCH", body: JSON.stringify({ status: "sent", sent_at: new Date().toISOString(), provider_message_id: id, last_error: null }) });
         sent++; continue;
       }

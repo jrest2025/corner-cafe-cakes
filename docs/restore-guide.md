@@ -8,7 +8,7 @@ Last restore test: 13 October 2026, passed. Results are kept in the database (ta
 |---|---|---|---|
 | Deleted orders | Orders deleted in the app stay in the database, hidden | An order deleted by mistake | An admin, from Settings, Deleted orders, Restore |
 | Full copies inside the database | backup_20261013: all 46 tables. backup_20261012: older copy of 11 tables, before the customer changes | A wrong change to some records | The developer, with the steps below |
-| Google Sheet copy | One row per order, updated every 5 minutes | Losing the database; reading orders when the app is down | Not linked yet. An admin links it in Settings, Backup to Google Sheet |
+| Google Sheet copy (Corner Café Cake Orders Backup) | Every order, upcoming production, payments and change history, copied every minute, with a row check | Losing the database; reading orders when the app is down | Managers open it from Google Drive. See outage-procedure.md |
 | Host backups (Supabase, Pro plan) | The whole database, daily | Losing the database | The account owner, from the Supabase dashboard. Replaces everything, so changes since the backup are lost |
 
 The copies inside the database sit in the same database. They do not protect against losing the database itself. They cannot be reached from the app or the website.
