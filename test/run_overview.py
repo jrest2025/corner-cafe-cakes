@@ -7,7 +7,7 @@ R = []
 def check(n, ok, d=''):
     R.append(bool(ok)); print(('PASS ' if ok else 'FAIL ') + n + (' -> ' + str(d)[:400] if not ok and d != '' else ''))
 async def open_dash(b, vp, errs):
-    ctx = await b.new_context(viewport=vp, is_mobile=vp['width'] < 760, has_touch=vp['width'] < 760); pg = await ctx.new_page()
+    ctx = await b.new_context(viewport=vp, is_mobile=vp['width'] < 760, has_touch=vp['width'] < 760, accept_downloads=True); pg = await ctx.new_page()
     pg.on("pageerror", lambda e: errs.append(str(e)))
     await pg.add_init_script("window.__role='admin'; try{localStorage.clear()}catch(e){}")
     await pg.goto((HERE / PAGE).as_uri()); await pg.wait_for_timeout(900)
@@ -65,16 +65,34 @@ async def main():
         n = await pg.locator('button.ov-arow').count()
         check('needs attention has tappable rows', n >= 1, n)
         # periods
-        await pg.select_option('#dx-p', 'all'); await pg.wait_for_timeout(500)
+        await pg.evaluate("(function(){var t=document.querySelector('[data-act=dx-filters][aria-expanded=false]'); t&&t.click()})()"); await pg.wait_for_timeout(250); await pg.select_option('#dx-p', 'all'); await pg.wait_for_timeout(500)
         check('all time groups by month', await pg.locator('[data-act="dx-unit"][data-v="m"][aria-pressed="true"]').count() == 1 and await pg.locator('[data-act="dx-unit"][data-v="d"][disabled]').count() == 1)
         await pg.screenshot(path=str(OUT / 'ov-1280-all.png'), full_page=True)
-        await pg.select_option('#dx-p', '12'); await pg.wait_for_timeout(400)
-        await pg.select_option('#dx-prod', 'Cheesecake'); await pg.wait_for_timeout(400)
+        await pg.evaluate("(function(){var t=document.querySelector('[data-act=dx-filters][aria-expanded=false]'); t&&t.click()})()"); await pg.wait_for_timeout(250); await pg.select_option('#dx-p', '12'); await pg.wait_for_timeout(400)
+        await pg.evaluate("(function(){var t=document.querySelector('[data-act=dx-filters][aria-expanded=false]'); t&&t.click()})()"); await pg.wait_for_timeout(250); await pg.select_option('#dx-prod', 'Cheesecake'); await pg.wait_for_timeout(400)
         check('cake filter keeps the page working', 'Top selling cakes' in await pg.inner_text('#ccs-main'))
         # tabs: no duplicate channels tab
         tabs = await pg.locator('.dx-secs [data-act="secgo"]').all_inner_texts()
         check('duplicate Channels and cakes tab removed', not any('Channels and cakes' in x for x in tabs), tabs)
         print('tabs:', tabs)
+        await ctx.close()
+        # Every detail section opens; order list filter and export still work (these checks came from the old dashboard test)
+        ctx, pg = await open_dash(b, {'width': 1280, 'height': 900}, errs)
+        await pg.evaluate("(function(){var t=document.querySelector('[data-act=dx-filters][aria-expanded=false]'); t&&t.click()})()"); await pg.wait_for_timeout(250); await pg.select_option('#dx-p', 'all'); await pg.wait_for_timeout(500)
+        keys = await pg.evaluate("Array.from(document.querySelectorAll('.dx-secs [data-act=secgo]')).map(function(b){return b.dataset.v})")
+        ok = True
+        for k in keys[1:]:
+            await pg.click(f'.dx-secs [data-act="secgo"][data-v="{k}"]'); await pg.wait_for_timeout(250)
+            if await pg.locator('.dx-secbody').count() != 1: ok = False
+        check('every dashboard section opens', ok and len(keys) >= 7, keys)
+        await pg.click('.dx-secs [data-act="secgo"][data-v="ol"]'); await pg.wait_for_timeout(300)
+        await pg.evaluate("(function(){var t=document.querySelector('[data-act=dx-filters][aria-expanded=false]'); t&&t.click()})()"); await pg.wait_for_timeout(250); await pg.select_option('#dx-st', 'off'); await pg.wait_for_timeout(300)
+        rows = await pg.evaluate("Array.from(document.querySelectorAll('.dx-secbody tbody tr')).map(function(r){return r.innerText})")
+        check('order list status filter shows only cancelled', all('Cancelled' in r or 'Declined' in r for r in rows), rows[:3])
+        async with pg.expect_download() as dl:
+            await pg.click('[data-act="dx-export"]')
+        csv = open(await (await dl.value).path()).read()
+        check('export has the summary and order rows', 'Sales value' in csv and 'Order,Order date,Pickup date' in csv, csv[:200])
         await ctx.close()
         check('no page errors', not errs, errs)
         await b.close()

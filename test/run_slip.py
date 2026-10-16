@@ -101,15 +101,11 @@ async def main():
         # Candles on the order screen
         ctx, pg, errs = await newpage(b)
         await open_order(pg, 'CC-1007')
-        check('order screen offers Add candles', await pg.locator('#ccs-sheet [data-act="panel"][data-v="candles"]').count() == 1)
-        await jsclick(pg, '#ccs-sheet [data-act="panel"][data-v="candles"]')
-        await pg.fill('#ccs-candles', 'x' * 61) if False else None
-        await pg.evaluate("document.getElementById('ccs-candles').value='5 small candles'")
-        await jsclick(pg, '#ccs-sheet [data-act="do-candles"]'); await pg.wait_for_timeout(400)
-        sent = await pg.evaluate("window.__candlesSet")
-        check('saving candles calls the database with the text', sent and sent.get('p_candles') == '5 small candles', sent)
-        toast = await pg.evaluate("(document.getElementById('ccs-toast')||{}).textContent||''")
-        check('reprint reminder after changing candles', 'Print the new kitchen slip' in toast, toast)
+        # Since 16 Oct candles are changed through Change order (one change history); saving is checked in run_amend_all.py
+        lk = await pg.evaluate("[].slice.call(document.querySelectorAll('#ccs-sheet [data-act=am-go]')).map(function(e){return e.textContent.trim()})")
+        check('order screen offers Add candles (opens Change order)', any(t in ('Add candles', 'Change candles') for t in lk), lk)
+        await pg.evaluate("(function(){var e=[].slice.call(document.querySelectorAll('#ccs-sheet [data-act=am-go]')).filter(function(x){return /candles/i.test(x.textContent)})[0]; if(e) e.click()})()"); await pg.wait_for_timeout(500)
+        check('Add candles opens Change order with the candles field', await pg.locator('#am-cand').count() == 1)
         await ctx.close()
         # Candles while taking an order
         ctx, pg, errs = await newpage(b)

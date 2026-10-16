@@ -8,6 +8,15 @@ R = []
 def check(n, ok, d=''):
     R.append(bool(ok)); print(('PASS ' if ok else 'FAIL ') + n + (' -> ' + str(d)[:400] if not ok and d != '' else ''))
 DESK = {'width': 1366, 'height': 900}; TAB = {'width': 1024, 'height': 768}; PHONE = {'width': 390, 'height': 844}
+
+async def occ_skip(pg):
+    """Occasion is compulsory on the Extras step (since 16 Oct): choose Birthday there; elsewhere press Skip if offered, else Next."""
+    t = await pg.evaluate("(document.querySelector('.sl-steptitle')||{}).textContent||''")
+    if 'Anything to add' in t:
+        await pg.evaluate("(function(){var o=document.querySelector('[data-act=n-occ][data-v=Birthday]'); if(o&&o.getAttribute('aria-pressed')!=='true') o.click()})()"); await pg.wait_for_timeout(250)
+        await pg.evaluate("(function(){var n=document.querySelector('.sl-stepbar [data-act=sl-next]')||document.querySelector('[data-act=sl-next]'); if(n) n.click()})()"); await pg.wait_for_timeout(350); return
+    await pg.evaluate("(function(){var n=document.querySelector('.sl-stepbar [data-act=sl-skip]')||document.querySelector('[data-act=sl-skip]')||document.querySelector('.sl-stepbar [data-act=sl-next]'); if(n) n.click()})()"); await pg.wait_for_timeout(350)
+
 async def start(b, vp, role='front_of_house', init=''):
     ctx = await b.new_context(viewport=vp, is_mobile=vp['width'] < 760, has_touch=vp['width'] < 760); pg = await ctx.new_page(); errs = []
     pg.on("pageerror", lambda e: errs.append(str(e)))
@@ -37,10 +46,11 @@ async def main():
         for vp, nm in [(DESK, 'desktop'), (TAB, 'tablet'), (PHONE, 'phone')]:
             ctx, pg, errs = await start(b, vp)
             tabs = await pg.evaluate("[].slice.call(document.querySelectorAll('.ccs-nav [data-tab]')).map(function(x){return x.dataset.tab})")
+            await pg.evaluate("(function(){var x=document.querySelector('[data-tab=orders]'); x&&x.click()})()"); await pg.wait_for_timeout(300)
             vis = await pg.evaluate("[].slice.call(document.querySelectorAll('[data-tab=new]:not(.tp-act)')).filter(function(e){return e.offsetParent}).map(function(e){var r=e.getBoundingClientRect();return [Math.round(r.right), Math.round(r.top), Math.round(r.height)]})")
-            check(f'{nm}: New order is not a menu tab and one New order button at the top right (the New cake order card on Today opens the same steps)', 'new' not in tabs and len(vis) == 1 and vis[0][0] >= vp['width'] - 120 and vis[0][1] < 80 and vis[0][2] >= 44, [tabs, vis])
+            check(f'{nm}: New order is not a menu tab and one New order button at the top right on Orders (on Today the New cake order card starts an order)', 'new' not in tabs and len(vis) == 1 and vis[0][0] >= vp['width'] - 120 and vis[0][1] < 80 and vis[0][2] >= 44, [tabs, vis])
             await new_btn(pg)
-            check(f'{nm}: New order opens in a panel with the dashboard still behind it', await pg.locator('#ccs-sheet.ccs-open .sl-stepper').count() == 1 and await pg.locator('#ccs-main .ccs-dash-head').count() == 1)
+            check(f'{nm}: New order opens in a panel with the screen still behind it', await pg.locator('#ccs-sheet.ccs-open .sl-stepper').count() == 1 and await pg.evaluate("(document.getElementById('ccs-main')||{}).children ? document.getElementById('ccs-main').children.length > 0 : false"))
             sw = await pg.evaluate("document.documentElement.scrollWidth")
             check(f'{nm}: no sideways scrolling', sw <= vp['width'], sw)
             await pg.screenshot(path=str(OUT / f'{nm}-panel.png'))
@@ -56,7 +66,7 @@ async def main():
         t = await pg.inner_text('#ccs-sheet')
         check('allergies offer No, Yes and Not sure', await pg.locator('[data-act="n-diet"][data-v="unsure"]').count() == 1)
         check('Not sure explains what happens', 'Allergies not confirmed yet. Check with the customer before baking.' in t, t[-600:])
-        await nxt(pg); await js(pg, '.sl-stepbar [data-act="sl-skip"]')
+        await nxt(pg); await occ_skip(pg)
         check('reaches Check and save', 'Step 7 of 7' in await stage(pg), await stage(pg))
         await js(pg, '[data-act="n-plan"][data-v="later"]')
         live = await pg.inner_text('.sl-live')
@@ -77,7 +87,7 @@ async def main():
         await pg.screenshot(path=str(OUT / 'back-on-today.png'))
         # confirm now changes the button
         await new_btn(pg)
-        await take(pg, 'Counter Paying Guest', '912 0556', diet='no'); await js(pg, '.sl-stepbar [data-act="sl-skip"]')
+        await take(pg, 'Counter Paying Guest', '912 0556', diet='no'); await occ_skip(pg)
         await js(pg, '[data-act="n-plan"][data-v="later"]'); await pg.check('[data-nc="confirmNow"]'); await pg.wait_for_timeout(250)
         btn = await pg.inner_text('[data-act="n-submit"]')
         check('ticking confirm now changes the button to Save and confirm', btn.startswith('Save and confirm'), btn)
@@ -90,7 +100,10 @@ async def main():
         c = await creates(pg)
         check('Paid in full by M-PAiSA: confirmed with a full payment', c and c[-1].get('confirm_now') and c[-1].get('payment') == {'amount': 95, 'method': 'mpaisa', 'kind': 'full'}, c[-1] if c else None)
         toast = await pg.inner_text('#ccs-toast')
-        check('saved message names the day and offers Open order', 'Open order' in toast and ' for ' in toast, toast)
+        # Since 17 Oct a confirmed order's saved message offers Make kitchen slip instead of Open order
+        check('saved message names the day and offers Make kitchen slip', 'Make kitchen slip' in toast and ' for ' in toast, toast)
+        await js(pg, '#ccs-toast [data-act="open-slip"]'); await pg.wait_for_timeout(900)
+        check('Make kitchen slip opens the order with the slip choice, nothing emailed yet', await pg.locator('#ccs-sheet [data-act="do-brief"]').count() >= 1 and (await pg.evaluate("window.__briefCalls || 0")) == 0)
         check('no page errors (take order)', not errs, errs); await ctx.close()
 
         # 3. Customer emails on an order, and review flags

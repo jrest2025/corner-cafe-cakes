@@ -37,7 +37,7 @@ async def main():
             await pg.fill('#am-reason', 'Guest increased the number of servings')
             await pg.click('[data-act="am-review"]'); await pg.wait_for_timeout(300)
             t = await pg.inner_text('#ccs-sheet')
-            check(f'{name} review shows before and after', 'collection time' in t.lower() and '4:00pm' in t and '10-inch' in t and 'new total' in t.lower(), t[:300])
+            check(f'{name} review shows before and after', 'collection time' in t.lower() and '4:00 PM' in t and '10-inch' in t and 'new total' in t.lower(), t[:300])
             calls = await pg.evaluate("window.__calls.filter(c=>c[1]==='staff_amend_order').map(c=>c[2])")
             check(f'{name} preview sends only changed fields, not saved', calls[-1]['p_commit'] is False and set(calls[-1]['p_changes'].keys()) == {'time', 'size_inch'}, calls[-1])
             await pg.screenshot(path=str(OUT / f'{name}-2-review.png'), full_page=False)
@@ -68,7 +68,7 @@ async def main():
         await ctx.close()
         # kitchen acknowledgement
         ctx, pg = await page(b, 'kitchen', {"width": 1180, "height": 820}, errs); await pg.wait_for_timeout(300)
-        check('kitchen card flags the change', 'Changed: kitchen to confirm' in await pg.inner_text('#ccs-main'))
+        kt = await pg.inner_text('#ccs-main'); check('kitchen card flags the change (Today view says Changed: confirm the change, Board says Changed: kitchen to confirm)', 'Changed: confirm the change' in kt or 'Changed: kitchen to confirm' in kt, kt[:300])
         await pg.click('[data-act="open-kitchen"][data-id="o1"]'); await pg.wait_for_timeout(400)
         t = await pg.inner_text('#ccs-sheet')
         check('kitchen sees exactly what changed', 'changed after you started' in t and 'Happy 40th Sam' in t and '10-inch' in t, t[:300])

@@ -10,6 +10,15 @@ T = datetime.datetime.now(zoneinfo.ZoneInfo('Pacific/Fiji')).date()
 def iso(n): return (T + datetime.timedelta(days=n)).isoformat()
 D1, D2 = iso(1), iso(2)
 
+
+async def occ_skip(pg):
+    """Occasion is compulsory on the Extras step (since 16 Oct): choose Birthday there; elsewhere press Skip if offered, else Next."""
+    t = await pg.evaluate("(document.querySelector('.sl-steptitle')||{}).textContent||''")
+    if 'Anything to add' in t:
+        await pg.evaluate("(function(){var o=document.querySelector('[data-act=n-occ][data-v=Birthday]'); if(o&&o.getAttribute('aria-pressed')!=='true') o.click()})()"); await pg.wait_for_timeout(250)
+        await pg.evaluate("(function(){var n=document.querySelector('.sl-stepbar [data-act=sl-next]')||document.querySelector('[data-act=sl-next]'); if(n) n.click()})()"); await pg.wait_for_timeout(350); return
+    await pg.evaluate("(function(){var n=document.querySelector('.sl-stepbar [data-act=sl-skip]')||document.querySelector('[data-act=sl-skip]')||document.querySelector('.sl-stepbar [data-act=sl-next]'); if(n) n.click()})()"); await pg.wait_for_timeout(350)
+
 async def newpage(b, vp, errs, role='manager'):
     ctx = await b.new_context(viewport=vp, is_mobile=vp['width'] < 760, has_touch=vp['width'] < 760); pg = await ctx.new_page()
     pg.on("pageerror", lambda e: errs.append(str(e)))
@@ -47,7 +56,7 @@ async def finish_rest(pg):
     for _ in range(6):
         st = await pg.inner_text('.sl-progress')
         if 'Step 7 of 7' in st: await js(pg, '[data-act="n-plan"][data-v="later"]'); break
-        if 'Step 4' in st or 'Step 6' in st: await js(pg, '[data-act="sl-skip"]') if await pg.locator('[data-act="sl-skip"]').count() else await js(pg, '[data-act="sl-next"]')
+        if 'Step 4' in st or 'Step 6' in st: await occ_skip(pg)
         elif 'Step 5' in st: await js(pg, '[data-act="n-diet"][data-v="no"]'); await pg.wait_for_timeout(500)
         else: await js(pg, '[data-act="sl-next"]')
 
@@ -66,7 +75,7 @@ async def desktop(b, errs):
     check('desk day panel shows full date, 3 orders and 5 cakes', ('3\norders' in side and '5\ncakes' in side), side[:300])
     check('desk day panel has New order for this date', await pg.locator('.ccs-calside [data-act="cal-add"]').count() == 1)
     times = await pg.locator('.ccs-calside .ccs-cev-t').all_inner_texts()
-    check('desk pickups listed in time order', times == ['2:00pm', '2:00pm', '2:15pm'], times)
+    check('desk pickups listed in time order', times == ['2:00 PM', '2:00 PM', '2:15 PM'], times)
     await pg.select_option('#cal-status', 'off'); await pg.wait_for_timeout(200)
     check('desk filter shows cancelled orders only', 'CC-1008' not in side and (await pg.locator('.ccs-calside .ccs-cev').count()) == 1)
     await pg.select_option('#cal-status', 'active'); await pg.wait_for_timeout(200)
@@ -87,12 +96,12 @@ async def desktop(b, errs):
     await pg.screenshot(path=str(OUT / 'desk-3-week.png'), full_page=True)
     await pg.click(f'.ccs-wadd[data-v="{D2}"][data-t="15:00"]', force=True); await pg.wait_for_timeout(350)
     note = await pg.inner_text('#ccs-sheet')
-    check('desk time slot opens New order as a panel with date and time', await pg.locator('#ccs-sheet.ccs-open .ccs-newsheet').count() == 1 and 'Pickup date from the calendar' in note and '3:00pm' in note, note[:300])
+    check('desk time slot opens New order as a panel with date and time', await pg.locator('#ccs-sheet.ccs-open .ccs-newsheet').count() == 1 and 'Pickup date from the calendar' in note and '3:00 PM' in note, note[:300])
     check('desk calendar stays on screen behind the panel', await pg.locator('#ccs-main .ccs-wgrid').count() == 1)
     await fill_new_customer_and_cake(pg)
     await finish_rest(pg)
     main = await pg.inner_text('#ccs-sheet')
-    check('desk When step already filled from the slot', '3:00pm' in main and 'Save cake order' in main and 'Step 7 of 7' in main, main[:600])
+    check('desk When step already filled from the slot', '3:00 PM' in main and 'Save cake order' in main and 'Step 7 of 7' in main, main[:600])
     await pg.screenshot(path=str(OUT / 'desk-4-new.png'), full_page=True)
     # double tap guard
     await pg.evaluate("var b=document.querySelector('[data-act=\"n-submit\"]'); b.click(); b.click();"); await pg.wait_for_timeout(400)
@@ -126,7 +135,7 @@ async def desktop(b, errs):
     await pg.click('[data-act="cal-view"][data-v="month"]'); await pg.wait_for_timeout(300)
     await pg.evaluate("window.__calFail=true"); await pg.click('[data-act="cal-move"][data-v="1"]'); await pg.wait_for_timeout(350)
     t = await pg.inner_text('#ccs-main')
-    check('desk load failure says so, not "no pickups"', 'could not load' in t and 'No pickups' not in t, t[:300])
+    check('desk load failure says so, not "no pickups"', 'couldn\'t load' in t and 'No pickups' not in t, t[:300])
     await pg.evaluate("window.__calFail=false"); await pg.click('[data-act="cal-retry"]'); await pg.wait_for_timeout(350)
     check('desk retry loads the month', await pg.locator('.ccs-mgrid').count() == 1)
     await ctx.close()

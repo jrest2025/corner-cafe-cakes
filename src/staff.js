@@ -108,7 +108,7 @@
     t.className = 'ccs-toast' + (bad ? ' ccs-bad' : '') + (action ? ' has-action' : ''); t.textContent = msg; t.hidden = false;
     // A saved order offers Open order, so staff can check it straight away
     // An Undo (or other) action runs its own function; Open order uses the normal button
-    if (action) { var ab = document.createElement('button'); ab.type = 'button'; ab.className = 'ccs-toast-act'; if (action.fn) { ab.addEventListener('click', function (ev) { ev.stopPropagation(); t.hidden = true; action.fn(); }); } else { ab.dataset.act = 'open-order'; ab.dataset.id = action.id; ab.addEventListener('click', function () { t.hidden = true; }); } ab.textContent = action.label; t.appendChild(ab); }
+    if (action) { var ab = document.createElement('button'); ab.type = 'button'; ab.className = 'ccs-toast-act'; if (action.fn) { ab.addEventListener('click', function (ev) { ev.stopPropagation(); t.hidden = true; action.fn(); }); } else { ab.dataset.act = action.act || 'open-order'; ab.dataset.id = action.id; ab.addEventListener('click', function () { t.hidden = true; }); } ab.textContent = action.label; t.appendChild(ab); }
     S.undoUntil = action && action.fn ? Date.now() + 10000 : 0;
     clearTimeout(toastTimer); toastTimer = setTimeout(function () { t.hidden = true; }, bad ? 7000 : action && action.fn ? 10000 : action ? 9000 : 3200);
   }
@@ -1260,10 +1260,13 @@
       if (r.error) throw r.error;
       if (!r.data.ok) { if (r.data.error === 'changed') { S.panelErr = CONFLICT; reloadOrderKeep(o.id); } else { S.panelErr = r.data.message; renderSheet(); } return; }
       var msg = { confirm: r.data.status === 'awaiting_deposit' ? 'Accepted. Waiting for the deposit.' : 'Order confirmed', decline: 'Order declined', cancel: 'Order cancelled', collected: o.fulfilment_method === 'delivery' ? 'Marked as delivered' : 'Marked as collected', note: 'Note saved', waive_deposit: 'Deposit waived, order confirmed' }[action];
-      if (!(S.setup && S.setup.guest_emails) && ['confirm', 'decline', 'cancel', 'waive_deposit'].indexOf(action) > -1) msg += '. Now let the customer know.';
+      var tellGuest = !(S.setup && S.setup.guest_emails) && ['confirm', 'decline', 'cancel', 'waive_deposit'].indexOf(action) > -1;
+      // Every order that reaches the kitchen opens the kitchen slip choice (Email, Download, Print), so no confirmed order is left without a slip.
+      // Nothing is emailed until staff choose it.
+      var toKitchen = (action === 'confirm' || action === 'waive_deposit') && r.data.status === 'confirmed';
+      msg += toKitchen && tellGuest ? '. Now make the kitchen slip and let the customer know.' : toKitchen ? '. Now make the kitchen slip.' : tellGuest ? '. Now let the customer know.' : '';
       toast(msg); S.panel = null; loadOrders(true);
-      var toKitchen = action === 'confirm' && o.order_type === 'custom' && r.data.status === 'confirmed';
-      openOrder(o.id).then(function () { if (toKitchen && S.sheet && S.sheet.id === o.id && S.sheet.data) printBrief(S.slip.paper); });
+      openOrder(o.id).then(function () { if (toKitchen && S.sheet && S.sheet.id === o.id && S.sheet.data && validRef(S.sheet.data.reference) && !S.panel) { S.panel = 'brief'; S.panelErr = null; S.dirty = {}; renderSheet(); } });
     }).catch(function (e) { S.busy = false; fail(e); });
   }
   // Custom cakes: add or change the price (and, for a cake not on the menu, its flavour and size)
@@ -2430,8 +2433,8 @@
     if (D.result) {
       var r = D.result;
       return '<div class="ccs-done"><div class="ccs-tick" aria-hidden="true">✓</div><h1 class="ccs-title">' + esc(r.reference) + ' is saved</h1><p>' + esc(statusLabel(r.status)) + '. ' +
-        (r.status === 'confirmed' ? 'Hand the customer their order number.' : r.status === 'awaiting_deposit' ? 'It confirms itself as soon as the deposit is recorded.' : 'It is waiting in Needs attention.') + '</p>' +
-        '<div class="ccs-actions-row">' + '<button type="button" class="ccs-btn ccs-ghost" data-act="open-order" data-id="' + r.order_id + '">Open order</button>' + (D.fromCal ? '<button type="button" class="ccs-btn ccs-ghost" data-act="cal-back">Back to calendar</button>' : '') + '<button type="button" class="ccs-btn ccs-new" data-act="new-again">' + NAV_ICON['new'] + 'New order</button>' + (newInSheet() ? '' : '<button type="button" class="ccs-btn ccs-ghost" data-tab="orders">Go to orders</button>') + '</div></div>';
+        (r.status === 'confirmed' ? 'Hand the customer their order number, then make the kitchen slip.' : r.status === 'awaiting_deposit' ? 'It confirms itself as soon as the deposit is recorded.' : 'It is waiting in Needs attention.') + '</p>' +
+        '<div class="ccs-actions-row">' + (r.status === 'confirmed' && validRef(r.reference) ? '<button type="button" class="ccs-btn ccs-good" data-act="open-slip" data-id="' + r.order_id + '">Make kitchen slip</button>' : '') + '<button type="button" class="ccs-btn ccs-ghost" data-act="open-order" data-id="' + r.order_id + '">Open order</button>' + (D.fromCal ? '<button type="button" class="ccs-btn ccs-ghost" data-act="cal-back">Back to calendar</button>' : '') + '<button type="button" class="ccs-btn ccs-new" data-act="new-again">' + NAV_ICON['new'] + 'New order</button>' + (newInSheet() ? '' : '<button type="button" class="ccs-btn ccs-ghost" data-tab="orders">Go to orders</button>') + '</div></div>';
     }
     var inSheet = newInSheet();
     var h = inSheet ? (draftHasContent() && !D.confirmReset ? '<div class="ccs-newtop"><button type="button" class="ccs-link ccs-red" data-act="new-again">Start over</button></div>' : '')
@@ -2634,13 +2637,15 @@
   function slPhone() { return !!(window.matchMedia && window.matchMedia('(max-width: 759px)').matches) || !!(D && D.date && (tooSoon() || D.method === 'delivery')); }
   // Phones: pickup is two screens, the date and then the time
   function slWhenDateNeeds() { var closedL = (S.setup && S.setup.closed_dates) || [], w = []; if (!D.date) return ['Choose the date']; if (closedL.indexOf(D.date) > -1) return ['Choose a day the café is open']; if (tooSoon() && !rushOk()) w.push('Give the short-notice reason and who approved it'); if (D.method === 'delivery' && !delivOk()) w.push('Finish the delivery details'); return w; }
+  // Join step messages into sentences with exactly one full stop each
+  function sentences(list) { return list.map(function (x) { return String(x).replace(/[.\s]+$/, ''); }).join('. ') + '.'; }
   function slNext(skip) {
     if (STEPPER && slStage() === 3 && slPhone() && !(D.whenPart === 'time' && D.date)) {
-      var nd = slWhenDateNeeds(); if (nd.length) { D.err = nd.join('. ') + '.'; D.errField = 'stage'; refreshStep(); return; }
+      var nd = slWhenDateNeeds(); if (nd.length) { D.err = sentences(nd); D.errField = 'stage'; refreshStep(); return; }
       D.whenPart = 'time'; D.err = null; D.errField = null; refreshStep(); return;
     }
     var s = slStage(), need = slNeeds(s);
-    if (need.length && !skip) { D.err = need.join('. ') + '.'; D.errField = 'stage'; refreshStep(); return; }
+    if (need.length && !skip) { D.err = sentences(need); D.errField = 'stage'; refreshStep(); return; }
     slSeen()[s] = true; slGo(slNextStage(s));
   }
   // Custom cake not on the menu: one button under the price table, then its own short set of fields
@@ -2690,7 +2695,7 @@
     if (STEPPER) return slipStepper();
     var p = prod(), dl = D.method === 'delivery', me = S.me || {}, now = new Date(), so = sizeObj(), cur = slStage();
     var h = '<p class="sl-progress">Step ' + (cur + 1) + ' of 8 · <b>' + SL_STAGES[cur] + '</b></p>';
-    h += '<div class="sl-card"><div class="sl-band"><div class="sl-logo">' + SLIP_LOGO + '</div><div class="sl-hours">MONDAY - SUNDAY<br>8AM - 9PM</div></div>';
+    h += '<div class="sl-card"><div class="sl-band"><div class="sl-logo">' + SLIP_LOGO + '</div></div>';
     // Stage 1: the price table, as on the paper slip
     h += '<div id="sl-st-0" class="sl-cakepick' + (cur === 0 ? ' is-open' : '') + '">' + slTable();
     if (cur === 0) {
@@ -2823,7 +2828,7 @@
     var wv = D.date && D.time ? esc(nice(D.date, true)) + ', ' + esc(t12(D.time)) + '<small>' + (dl ? 'Delivery to ' + esc(D.zone || '') + (D.address ? ', ' + esc(D.address) : '') : 'Collect from café') + (tooSoon() ? ' · Short notice, approved by ' + esc(D.rushBy) : '') + '</small>' : '';
     var dv = D.diet === 'no' ? 'No dietary needs' : D.diet === 'unsure' ? 'Not sure yet: check with the customer' : D.diet === 'yes' ? esc([].concat(D.diets, D.dietNote ? [D.dietNote] : []).join(', ') || 'Yes') : '';
     var rv = [D.occasion ? esc(occSend()) + (D.occFor ? ' for ' + esc(D.occFor) : '') : '', esc(D.notes)].filter(Boolean).join(' · ');
-    var live = '<aside class="sl-live" aria-label="The order slip so far"><div class="sl-band"><div class="sl-logo">' + SLIP_LOGO + '</div><div class="sl-hours">MONDAY - SUNDAY<br>8AM - 9PM</div></div>' +
+    var live = '<aside class="sl-live" aria-label="The order slip so far"><div class="sl-band"><div class="sl-logo">' + SLIP_LOGO + '</div></div>' +
       (D.diet === 'yes' ? '<div class="sl-ldiet">Dietary or allergy: ' + dv + '</div>' : D.diet === 'unsure' ? '<div class="sl-ldiet">Allergies not confirmed yet. Check with the customer before baking.</div>' : '') +
       '<div class="sl-llines">' +
       line('Guest Name', 1, nm) + line('Contact', 2, ct) + line(dl ? 'Delivery' : 'Pickup', 3, wv) +
@@ -3233,7 +3238,9 @@
     if (S.tab !== 'today') goTab('today'); else view();
     var when = savedWhen ? ' for ' + savedWhen : '';
     var where = r.status === 'confirmed' ? 'Confirmed' + when + '.' : r.status === 'awaiting_deposit' ? 'Waiting for the deposit' + when + '.' : r.status === 'awaiting_quote' ? 'Needs a price' + when + '.' : r.status === 'awaiting_approval' ? 'Waiting for the customer to agree the price' + when + '.' : 'Saved' + when + ', waiting in Needs attention.';
-    toast(r.reference + ' saved. ' + where + (hadEmail ? '' : ' No email address was given, so no email was sent.'), false, { label: 'Open order', id: r.order_id });
+    // A confirmed order goes to the kitchen: the message offers Make kitchen slip (the board also shows No slip yet until one is made)
+    var slipNow = r.status === 'confirmed' && validRef(r.reference);
+    toast(r.reference + ' saved. ' + where + (slipNow ? ' Make the kitchen slip now.' : '') + (hadEmail ? '' : ' No email address was given, so no email was sent.'), false, slipNow ? { label: 'Make kitchen slip', id: r.order_id, act: 'open-slip' } : { label: 'Open order', id: r.order_id });
   }
   // Saved from the calendar panel: close it, stay on the day and mark the new order
   function calSaved(r) {
@@ -4423,6 +4430,8 @@
         case 'tp-find': S.q = ''; goTab('orders'); window.scrollTo(0, 0); setTimeout(function () { var q = document.getElementById('ccs-q'); if (q) q.focus(); }, 30); break;
         case 'day': S.filter = 'day'; S.day = v; S.q = ''; goTab('orders'); window.scrollTo(0, 0); break;
         case 'open-order': if (b.tagName === 'A') return; openOrder(b.dataset.id); break;
+        // A confirmed order straight from New order: open it with the kitchen slip choice (Email, Download, Print)
+        case 'open-slip': { var sid = b.dataset.id; openOrder(sid).then(function () { if (S.sheet && S.sheet.id === sid && S.sheet.data && !S.panel) { S.panel = 'brief'; renderSheet(); } }); break; }
         case 'close': { var pz = null; if (hasTyping()) { if (pauseable()) pz = pauseWork(); else if (!confirmDiscard(b, 'Tap again to discard your changes')) break; } S.dirty = {}; sheetClose(); if (pz) toast(pz); break; }
         case 'fill': var fi = document.getElementById(b.dataset.f); if (fi) { fi.value = v; S.dirty[fi.id] = v; fi.focus(); } break;
         case 'history': S.sheet.showHistory = true; renderSheet(); break;
