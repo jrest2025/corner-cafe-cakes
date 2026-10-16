@@ -1,5 +1,5 @@
 -- Backup Google Sheet: a "Cake requirements" column (eggless, gluten-free, dairy-free, vegan, other) right after "Allergy or dietary",
--- on the All Cake Orders and Upcoming Production tabs. Prepared 17 Oct 2026; NOT applied yet (apply at publish time, with approval).
+-- Prepared and applied 17 Oct 2026 at publish (approved by Roneel). First Sheet copy after it: 11:34 AM Fiji, no error.
 -- The Sheet's script (google-sheet/CakeBackup.gs) sizes every tab from the data, rebuilds the filter and finds money columns by header,
 -- so it needs no change: the next one-minute copy shows the new column. Only mirror_snapshot() changes, plus one new helper.
 -- The old v1 backup (sheet_backup_rows_data, never linked) is left as it is.
