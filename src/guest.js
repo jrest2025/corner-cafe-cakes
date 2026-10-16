@@ -452,6 +452,10 @@
     render('#cco-drop');
   }
 
+  // Meta Pixel events (only when the pixel is on the page). The order reference is the event id, so a later server-side copy is not counted twice.
+  var startedTracked = false;
+  function track(ev, data, id) { try { if (typeof window.fbq === 'function') window.fbq('track', ev, data || {}, id ? { eventID: id } : {}); } catch (e) { /* tracking must never break ordering */ } }
+  function trackStart() { if (startedTracked) return; startedTracked = true; track('InitiateCheckout', { content_category: 'Cakes', currency: 'FJD' }); }
   // ---------- send ----------
   var FIELD_STEP = { product: 0, variant: 0, size: 1, size_note: 1, finish: 2, design: 2, message: 2, candles: 2, notes: 2, diet: 2, occasion: 2, date: 3, time: 3, zone: 3, address: 3, fee: 3, method: 3, name: 4, phone: 4, email: 4 };
   function checkDetails() {
@@ -494,6 +498,7 @@
   }
   function fallbackCopy(v) { var t = document.createElement('textarea'); t.value = v; t.setAttribute('readonly', ''); t.style.position = 'fixed'; t.style.opacity = '0'; document.body.appendChild(t); t.select(); var r = false; try { r = document.execCommand('copy'); } catch (e) {} t.remove(); return r; }
   function done(d) {
+    track('Lead', { content_name: S.req ? 'Custom cake' : ((fl() || {}).name || 'Cake'), content_category: 'Cakes', value: total() || 0, currency: 'FJD' }, d.reference);
     finished = true; gClear();
     var bar = document.getElementById('cco-bar'); if (bar) bar.classList.remove('cco-show');
     root.classList.remove('cco-has-bar');
@@ -521,6 +526,7 @@
     var a = b.dataset.act, v = b.dataset.v;
     if (a === 'edit') return go(Number(v));
     if (a === 'req') {
+      trackStart();
       if (!S.req) { S.req = true; S.flavour = null; S.variant = null; S.size = null; S.finish = 'custom'; delete errors.product; }
       checkDate('A custom cake'); return go(nextIncomplete(1));
     }
@@ -531,6 +537,7 @@
       S.reqOk = true; return go(nextIncomplete(2));
     }
     if (a === 'flavour') {
+      trackStart();
       if (S.req) { S.req = false; S.reqOk = false; S.finish = null; }
       if (S.flavour !== v) { S.flavour = v; S.variant = null; fresh.variants = true; var f = fl(); if (S.size != null && !f.sizes.some(function (s) { return s.inch === S.size; })) S.size = null; if (!f.supports_custom && S.finish === 'custom') S.finish = null; }
       checkDate('This cake'); if (!fl().variants.length) return go(nextIncomplete(1));
