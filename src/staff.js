@@ -917,7 +917,8 @@
     cut.push(['customer', h.length]);
     if (c) {
       h += '<section class="ccs-box"><h3>Customer</h3><p class="ccs-big">' + esc(c.full_name) + '</p><dl class="ccs-kv">' +
-        kv('Mobile', c.phone + (c.preferred_contact === 'whatsapp' ? ' (WhatsApp)' : '')) + kv('Email', c.email) + kv('Ordered via', SOURCE_LABEL[o.source]) +
+        kv('Mobile', c.phone + ((o.contact_pref || c.preferred_contact) === 'whatsapp' ? ' (WhatsApp)' : '')) + (o.contact_pref ? kv('Asked to be contacted by', { whatsapp: 'WhatsApp', phone: 'Phone call', email: 'Email' }[o.contact_pref]) : '') + kv('Email', c.email) + kv('Ordered via', SOURCE_LABEL[o.source]) +
+        (o.campaign || o.referral ? kv('Came from', [o.campaign ? 'Campaign: ' + o.campaign.replace(/[-_]+/g, ' ') : '', o.referral ? 'Link on ' + o.referral : ''].filter(Boolean).join(' · ')) : '') +
         (o.profile && o.profile.full_name && o.profile.full_name !== c.full_name ? kv('Profile name', o.profile.full_name + ' (the name on this order is kept as it was)') : '') +
         (S.sheet.custOrders != null ? kv('History', S.sheet.custOrders > 1 ? 'Returning customer, ' + S.sheet.custOrders + ' orders' : 'First order') : '') + '</dl>' +
         '<div class="ccs-actions-row"><a class="ccs-btn ccs-ghost" href="' + esc(waLink(c.phone)) + '" target="_blank" rel="noopener">WhatsApp</a><a class="ccs-btn ccs-ghost" href="tel:' + esc(digits(c.phone)) + '">Call</a>' +
@@ -2197,14 +2198,14 @@
   }
 
   // ---------- inspiration photos: same rules as the website form (photos only, 5 MB each) ----------
-  var PH_TYPES = /^image\/(jpeg|png|webp|heic|heif)$/;
+  var PH_TYPES = /^image\/(jpeg|png|webp)$/;
   function phLive(list) { return list.filter(function (x) { return x.status !== 'failed'; }); }
   function phBusy(list) { return list.filter(function (x) { return x.status === 'busy'; }).length; }
   function phUpload(list, files, max, done) {
     var errs = [];
     [].slice.call(files || []).forEach(function (file) {
       if (phLive(list).length >= max) { if (errs.indexOf('max') < 0) errs.push('max'); return; }
-      if (file.type && !PH_TYPES.test(file.type)) { errs.push(file.name + ' is not a photo. Choose a JPEG, PNG, WebP or HEIC image.'); return; }
+      if (file.type && !PH_TYPES.test(file.type)) { errs.push(/hei[cf]/i.test(file.type) ? file.name + ' is an iPhone HEIC photo, which some screens cannot show. Choose it from Photos on the phone, or save it as JPG first.' : file.name + ' is not a photo. Choose a JPG, PNG or WebP image.'); return; }
       if (file.size > 5 * 1024 * 1024) { errs.push(file.name + ' is over 5 MB. Choose a smaller photo.'); return; }
       var safe = file.name.toLowerCase().replace(/[^a-z0-9.]+/g, '-').slice(-60) || 'photo.jpg', ph = { name: file.name, path: 'incoming/' + uuid() + '/' + safe, url: null, status: 'busy' };
       try { ph.url = URL.createObjectURL(file); } catch (e) {}
@@ -2222,7 +2223,7 @@
         '<button type="button" class="ccs-ph-x" data-act="' + act + '" data-v="' + i + '" aria-label="Remove ' + esc(x.name) + '">×</button></div>';
     }).join('') + '</div>';
   }
-  function phPicker(id, label, link) { return '<label class="' + (link ? 'ccs-link ccs-phlink' : 'ccs-btn ccs-ghost ccs-phadd') + '"><input type="file" id="' + id + '" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" multiple class="ccs-sr">' + label + '</label>'; }
+  function phPicker(id, label, link) { return '<label class="' + (link ? 'ccs-link ccs-phlink' : 'ccs-btn ccs-ghost ccs-phadd') + '"><input type="file" id="' + id + '" accept="image/jpeg,image/png,image/webp" multiple class="ccs-sr">' + label + '</label>'; }
   function freshDraft() { return { key: uuid(), source: 'walk_in', step: 0, reached: 0, phone: '', matches: null, customer: null, isNew: false, name: '', email: '', whatsapp: true, optIn: null,
     product: null, req: false, sizeNote: '', reqPrice: '', variant: null, size: null, finish: 'standard', design: '', photos: [], phErr: null, message: '', candles: '', occasion: null, occOther: '', diet: null, diets: [], dietNote: '', notes: '', qty: 1,
     date: '', time: '', rush: '', rushBy: '', fromCal: false, method: 'collection', zone: null, address: '', fee: '', contact: '', confirmNow: false, askDeposit: false, deposit: '', payNow: false, payAmount: '', payMethod: 'cash', result: null, err: null, errField: null }; }
@@ -3635,8 +3636,8 @@
       }).join('') + '</div><button type="button" class="ccs-btn" data-act="mf-open" data-id="">Add a cake</button>';
   }
   function mfFrom(p) {
-    if (!p) return { id: null, name: '', choice_label: 'Which flavour?', flavours: [], sizes: [{ id: null, inch: '6', price: '', serves: '', active: true }, { id: null, inch: '8', price: '', serves: '', active: true }], lead_days: '', supports_custom: true, supports_message: true, dietary_info: '', allergen_info: '', status: 'active' };
-    return { id: p.id, name: p.name, choice_label: p.choice_label || 'Which flavour?', lead_days: p.lead_days == null ? '' : String(p.lead_days), supports_custom: !!p.supports_custom, supports_message: !!p.supports_message,
+    if (!p) return { id: null, name: '', description: '', image_url: '', choice_label: 'Which flavour?', flavours: [], sizes: [{ id: null, inch: '6', price: '', serves: '', active: true }, { id: null, inch: '8', price: '', serves: '', active: true }], lead_days: '', supports_custom: true, supports_message: true, dietary_info: '', allergen_info: '', status: 'active' };
+    return { id: p.id, name: p.name, description: p.description || '', image_url: p.image_url || '', choice_label: p.choice_label || 'Which flavour?', lead_days: p.lead_days == null ? '' : String(p.lead_days), supports_custom: !!p.supports_custom, supports_message: !!p.supports_message,
       dietary_info: p.dietary_info || '', allergen_info: p.allergen_info || '', status: p.status,
       flavours: (p.product_variants || []).slice().sort(function (a, b) { return (a.sort || 0) - (b.sort || 0); }).map(function (v) { return { id: v.id, name: v.name, active: v.active }; }),
       sizes: (p.product_sizes || []).slice().sort(function (a, b) { return a.size_inch - b.size_inch; }).map(function (s) { return { id: s.id, inch: String(s.size_inch), price: String(Number(s.price)), serves: s.serves_label || '', active: s.active }; }) };
@@ -3669,7 +3670,8 @@
       if ((was.serves || '') !== x.serves.trim()) out.push(inch + ' inch serves: ' + (x.serves.trim() || 'not shown'));
       if (was.active !== x.active) out.push(inch + ' inch: ' + (x.active ? 'offered again' : 'no longer offered'));
     });
-    [['choice_label', 'Flavour question'], ['lead_days', 'Notice days'], ['dietary_info', 'Dietary notes'], ['allergen_info', 'Allergen notes']].forEach(function (k) { if (!isNew && String(f[k[0]]).trim() !== String(o[k[0]]).trim()) out.push(k[1] + ': ' + (String(f[k[0]]).trim() || 'none')); });
+    if (!isNew && (f.image_url || '') !== (o.image_url || '')) out.push(f.image_url ? (o.image_url ? 'Photo replaced' : 'Photo added') : 'Photo removed');
+    [['description', 'Description'], ['choice_label', 'Flavour question'], ['lead_days', 'Notice days'], ['dietary_info', 'Dietary notes'], ['allergen_info', 'Allergen notes']].forEach(function (k) { if (!isNew && String(f[k[0]]).trim() !== String(o[k[0]]).trim()) out.push(k[1] + ': ' + (String(f[k[0]]).trim() || 'none')); });
     if (!isNew && f.supports_custom !== o.supports_custom) out.push(f.supports_custom ? 'Custom designs allowed' : 'Custom designs not allowed');
     if (!isNew && f.supports_message !== o.supports_message) out.push(f.supports_message ? 'Written message allowed' : 'Written message not allowed');
     return { list: out, big: big };
@@ -3677,6 +3679,8 @@
   function mfCheck() {
     var f = S.mf.f, seen = {}, fseen = {};
     if (f.name.trim().length < 2) return 'Give the cake a name.';
+    if ((f.description || '').trim().length > 160) return 'Keep the description to 160 characters.';
+    if (S.mf.phBusy) return 'The photo is still uploading. Wait a moment.';
     var live = f.sizes.filter(function (s) { return s.active; });
     if (f.status === 'active' && !live.length) return 'A cake on sale needs at least one size offered.';
     for (var i = 0; i < f.sizes.length; i++) {
@@ -3702,6 +3706,13 @@
     }
     h += '<section class="ccs-box"><h3>Cake</h3><div class="ccs-field"><label class="ccs-label" for="mf-name">Name, as staff and guests see it</label><input class="ccs-input" id="mf-name" data-mf="name" maxlength="60" value="' + esc(f.name) + '" placeholder="For example: Tiramisu"></div>' +
       '<div class="ccs-chips" role="group" aria-label="On sale"><button type="button" class="ccs-chip" data-act="mf-status" data-v="active" aria-pressed="' + (f.status === 'active') + '">On sale</button><button type="button" class="ccs-chip" data-act="mf-status" data-v="hidden" aria-pressed="' + (f.status !== 'active') + '">Off sale</button></div></section>';
+    // How the cake shows on the website: one photo and one line
+    h += '<section class="ccs-box"><h3>On the website</h3><div class="ccs-mf-photo">' +
+      (f.image_url ? '<img src="' + esc(f.image_url) + '" alt="' + esc(f.name) + '">' : '<span class="ccs-mf-nophoto">No photo yet</span>') +
+      '<div><label class="ccs-btn ccs-ghost ccs-phadd"><input type="file" id="mf-photo" accept="image/jpeg,image/png,image/webp" class="ccs-sr">' + (S.mf.phBusy ? 'Uploading…' : f.image_url ? 'Replace photo' : 'Add a photo') + '</label>' +
+      (f.image_url ? '<button type="button" class="ccs-link ccs-red" data-act="mf-photo-rm">Remove photo</button>' : '') +
+      '<p class="ccs-hint">A square photo of the whole cake works best. JPG or PNG, up to 5 MB.</p>' + (S.mf.phErr ? '<p class="ccs-err" role="alert">' + esc(S.mf.phErr) + '</p>' : '') + '</div></div>' +
+      '<div class="ccs-field"><label class="ccs-label" for="mf-desc">Short description (optional)</label><input class="ccs-input" id="mf-desc" data-mf="description" maxlength="160" value="' + esc(f.description) + '" placeholder="For example: Baked New York style, rich and creamy"></div></section>';
     h += '<section class="ccs-box"><h3>Sizes and prices</h3><div class="ccs-mf-rows">' + f.sizes.map(function (s, i) {
       return '<div class="ccs-mf-row"><div class="ccs-field"><label class="ccs-label" for="mf-si-' + i + '">Size (inch)</label><input class="ccs-input" id="mf-si-' + i + '" data-mfs="' + i + '|inch" inputmode="numeric" value="' + esc(s.inch) + '"' + (s.id ? ' readonly' : '') + '></div>' +
         '<div class="ccs-field"><label class="ccs-label" for="mf-sp-' + i + '">Price (FJD)</label><input class="ccs-input" id="mf-sp-' + i + '" data-mfs="' + i + '|price" inputmode="decimal" value="' + esc(s.price) + '"></div>' +
@@ -3730,9 +3741,24 @@
     else if (t.dataset.mfs) { var a = t.dataset.mfs.split('|'); f.sizes[Number(a[0])][a[1]] = t.value; }
     else if (t.dataset.mfv != null) f.flavours[Number(t.dataset.mfv)].name = t.value;
   }
+  // Menu photo: goes to the public cake-menu folder; the cake keeps the link once the changes are saved
+  function mfPhoto(file) {
+    var m = S.mf; if (!file || !m) return;
+    m.phErr = null;
+    if (file.type && !/^image\/(jpeg|png|webp)$/.test(file.type)) { m.phErr = 'Choose a JPG, PNG or WebP photo.'; return renderSheet(); }
+    if (file.size > 5 * 1024 * 1024) { m.phErr = 'That photo is over 5 MB. Choose a smaller one.'; return renderSheet(); }
+    var ext = (file.type.split('/')[1] || 'jpg').replace('jpeg', 'jpg'), slug = (m.f.name || 'cake').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'cake';
+    var path = slug + '-' + Date.now().toString(36) + '.' + ext;
+    m.phBusy = true; renderSheet();
+    sb.storage.from('cake-menu').upload(path, file, { contentType: file.type || 'image/jpeg', upsert: false, cacheControl: '31536000' }).then(function (r) {
+      m.phBusy = false;
+      if (r.error) { m.phErr = /row-level|not allowed|unauthor/i.test(r.error.message || '') ? 'Only managers can change cake photos.' : 'The photo did not upload. Try again.'; return renderSheet(); }
+      m.f.image_url = sb.storage.from('cake-menu').getPublicUrl(path).data.publicUrl; S.dirty['mf-ph'] = 1; renderSheet();
+    }, function () { m.phBusy = false; m.phErr = 'The photo did not upload. Check the connection and try again.'; renderSheet(); });
+  }
   function mfSave() {
     var m = S.mf, f = m.f; if (S.busy) return;
-    var body = { id: f.id, name: f.name.trim(), choice_label: f.flavours.length ? f.choice_label.trim() : null, lead_days: String(f.lead_days).trim(), supports_custom: f.supports_custom, supports_message: f.supports_message,
+    var body = { id: f.id, name: f.name.trim(), description: (f.description || '').trim(), image_url: f.image_url || '', choice_label: f.flavours.length ? f.choice_label.trim() : null, lead_days: String(f.lead_days).trim(), supports_custom: f.supports_custom, supports_message: f.supports_message,
       dietary_info: f.dietary_info, allergen_info: f.allergen_info, status: f.status, summary: m.review.list,
       flavours: f.flavours.filter(function (v) { return v.name.trim(); }).map(function (v) { return { id: v.id, name: v.name.trim(), active: v.active }; }),
       sizes: f.sizes.map(function (s) { return { id: s.id, inch: parseInt(s.inch, 10), price: num(s.price), serves: s.serves.trim(), active: s.active }; }) };
@@ -4525,6 +4551,7 @@
         case 'rem-sent': (function () { var cid = b.dataset.id, dt = v; markBusy(b, 'Saving…'); sb.rpc('staff_mark_reminded', { p_customer: cid, p_date: dt }).then(function (r) { if (r.error) throw r.error; if (!r.data.ok) throw userErr(r.data.message); S.rem.rows = (S.rem.rows || []).filter(function (x) { return !(x.id === cid && x.date === dt); }); toast('Marked as sent'); view(); }).catch(fail); })(); break;
         case 'mf-open': if (S.settings) { S.menuOpen = true; mfOpen(b.dataset.id || null); } break;
         case 'mf-status': S.mf.f.status = v; S.dirty['mf-st'] = 1; renderSheet(); break;
+        case 'mf-photo-rm': S.mf.f.image_url = ''; S.mf.phErr = null; S.dirty['mf-ph'] = 1; renderSheet(); break;
         case 'mf-add-size': (function () { var last = S.mf.f.sizes.map(function (s) { return parseInt(s.inch, 10) || 0; }); var nx = (last.length ? Math.max.apply(null, last) : 4) + 2; S.mf.f.sizes.push({ id: null, inch: String(nx), price: '', serves: '', active: true }); S.dirty['mf-sz'] = 1; renderSheet(); var f = document.getElementById('mf-sp-' + (S.mf.f.sizes.length - 1)); if (f) f.focus(); })(); break;
         case 'mf-drop-size': S.mf.f.sizes.splice(Number(v), 1); renderSheet(); break;
         case 'mf-add-flavour': S.mf.f.flavours.push({ id: null, name: '', active: true }); S.dirty['mf-fl'] = 1; renderSheet(); (function () { var f = document.getElementById('mf-fl-' + (S.mf.f.flavours.length - 1)); if (f) f.focus(); })(); break;
@@ -4690,6 +4717,7 @@
   root.addEventListener('change', function (e) {
     if (e.target.id === 'n-photos') { D.phErr = phUpload(D.photos, e.target.files, 5, function () { saveDraft(); refreshStep(); }); e.target.value = ''; refreshStep(); return; }
     if (e.target.id === 'o-photos') { orderPhotos(e.target.files); e.target.value = ''; return; }
+    if (e.target.id === 'mf-photo' && S.mf) { mfPhoto(e.target.files[0]); e.target.value = ''; return; }
     var k = e.target.dataset.nc; if (!k) return; D[k] = e.target.checked; D.restored = false;
     if (k === 'confirmNow' && !D.confirmNow) { D.askDeposit = false; D.deposit = ''; }
     refreshStep();

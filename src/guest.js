@@ -3,9 +3,6 @@
   'use strict';
   var SB_URL = 'https://ilbrfwxblhidtlsjgxlh.supabase.co', SB_KEY = 'sb_publishable_4c9NdubC5PYevEOSMYH0ag_mv1LJ76E', TZ = 'Pacific/Fiji';
   var root = document.getElementById('cc-cake-order'); if (!root) return;
-  // Three allergy answers (No, Yes, Not sure) sit side by side; this rule is also in guest.css for the next page-head update
-  if (!document.getElementById('cco-x1')) { var x1 = document.createElement('style'); x1.id = 'cco-x1'; x1.textContent = '.cco-yesno{grid-template-columns:repeat(3,1fr)}'; document.head.appendChild(x1); }
-  if (!document.getElementById('cco-x2')) { var x2 = document.createElement('style'); x2.id = 'cco-x2'; x2.textContent = '.cco-disc-req{display:grid;place-items:center;width:62px;height:62px;border-radius:50%;border:2px dashed #C9A97A;color:#8C5A22;font-weight:700;font-size:13px;line-height:1.1;text-align:center;background:#FFFDF9}.cco-ask{margin:0 0 10px;padding:10px 12px;border-left:3px solid #C9A97A;background:#FBF6EE;border-radius:6px;font-size:14px;line-height:1.45;color:#3A3F36}'; document.head.appendChild(x2); }
   var sb = window.__ccoMock || window.supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: false } });
   // Occasions: the same names as the staff app and the database list (codes are worked out from these names)
   var OCC = [['birthday', 'Birthday'], ['anniversary', 'Anniversary'], ['mothers_day', 'Mother\'s Day'], ['fathers_day', 'Father\'s Day'], ['christmas', 'Christmas'], ['valentines_day', 'Valentine\'s Day'],
@@ -104,6 +101,7 @@
   }
   function vis(f) {
     if (!f) return '<span class="cco-disc-req" aria-hidden="true">Your<br>idea</span>';
+    if (f === 'none') return '<span class="cco-disc cco-disc-empty" aria-hidden="true"></span>';
     var p = photoOf(f);
     return p ? '<img src="' + esc(p.src) + '"' + (p.srcset ? ' srcset="' + esc(p.srcset) + '" sizes="(min-width: 760px) 240px, 50vw"' : '') + ' alt="" loading="lazy">' : '<span class="cco-disc" style="background:' + esc(f.swatch || '#E6DCCF') + '"></span>';
   }
@@ -125,13 +123,13 @@
         var h = '<div class="cco-cakes" role="group" aria-label="Cake flavour">', sub = '';
         SETUP.products.forEach(function (f) {
           var on = S.flavour === f.code;
-          h += '<button type="button" class="cco-cake' + (photoOf(f) ? ' cco-has-photo' : '') + '" data-act="flavour" data-v="' + esc(f.code) + '" aria-pressed="' + on + '"><span class="cco-cake-vis">' + vis(f) + '</span><span class="cco-cake-txt"><span class="cco-cake-name">' + esc(f.name) + '</span><span class="cco-cake-from">From <b>' + money(fromPrice(f)) + '</b></span></span><span class="cco-check-badge">' + ICON.tick + '</span></button>';
+          h += '<button type="button" class="cco-cake' + (photoOf(f) ? ' cco-has-photo' : '') + '" data-act="flavour" data-v="' + esc(f.code) + '" aria-pressed="' + on + '"><span class="cco-cake-vis">' + vis(f) + '</span><span class="cco-cake-txt"><span class="cco-cake-name">' + esc(f.name) + '</span>' + (f.description ? '<span class="cco-cake-desc">' + esc(f.description) + '</span>' : '') + '<span class="cco-cake-from">From <b>' + money(fromPrice(f)) + '</b></span></span><span class="cco-check-badge">' + ICON.tick + '</span></button>';
           if (on && f.variants.length) {
             sub = '<div class="cco-sub' + enter('variants') + '" id="cco-variants"><span class="cco-sub-q">' + esc(f.choice_label || 'Which one?') + '</span><div class="cco-chips">' +
               f.variants.map(function (v) { return '<button type="button" class="cco-chip" data-act="variant" data-v="' + esc(v) + '" aria-pressed="' + (S.variant === v) + '">' + esc(v) + '</button>'; }).join('') + '</div></div>';
           }
         });
-        h += '<button type="button" class="cco-cake" data-act="req" aria-pressed="' + S.req + '"><span class="cco-cake-vis">' + vis(null) + '</span><span class="cco-cake-txt"><span class="cco-cake-name">Something not on our menu</span><span class="cco-cake-from">Your idea. We send the price.</span></span><span class="cco-check-badge">' + ICON.tick + '</span></button>';
+        h += '<button type="button" class="cco-cake cco-cake-req" data-act="req" aria-pressed="' + S.req + '"><span class="cco-cake-vis">' + vis(null) + '</span><span class="cco-cake-txt"><span class="cco-cake-name">Something not on our menu</span><span class="cco-cake-desc">Tell us your idea and we send you the price.</span></span><span class="cco-check-badge">' + ICON.tick + '</span></button>';
         return h + '</div>' + sub + err('product') + err('variant');
       } },
     { key: 'Size', q: function () { return S.req ? 'How big, and which flavour?' : 'What size?'; }, sub: null,
@@ -145,7 +143,7 @@
         var f = fl(), anyServes = f.sizes.some(function (s) { return s.serves; });
         var max = Math.max.apply(null, f.sizes.map(function (s) { return s.inch; }));
         var h = '<div class="cco-sizes" role="group" aria-label="Cake size">' + f.sizes.map(function (s) {
-          var d = Math.round(24 + 30 * (s.inch / max));
+          var d = Math.max(28, Math.round(62 * s.inch / max));
           return '<button type="button" class="cco-size" data-act="size" data-v="' + s.inch + '" aria-pressed="' + (S.size === s.inch) + '"><span class="cco-ring" aria-hidden="true"><i style="width:' + d + 'px;height:' + d + 'px"></i></span><span><span class="cco-size-in">' + s.inch + '<em>inch</em></span><span class="cco-size-price">' + money(s.price) + '</span>' + (S.showServes && s.serves ? '<small>' + esc(s.serves) + '</small>' : '') + '</span></button>';
         }).join('') + '</div>';
         if (!S.showServes && anyServes) h += '<button type="button" class="cco-link" data-act="serves">How many does each size serve?</button>';
@@ -161,16 +159,15 @@
         if (!S.finish) return h;
         if (S.finish === 'custom') {
           h += '<div class="cco-field' + enter('custom') + '">' + lbl('cco-design', S.req ? 'What should it look like?' : 'Tell us about your design') + '<p class="cco-ask">' + ASK + '</p><textarea class="cco-input' + (errors.design ? ' cco-bad' : '') + '" id="cco-design" maxlength="600" data-in="design" placeholder="For example, for my daughter turning 6, pink and gold, unicorn theme"' + described('design') + '>' + esc(S.design) + '</textarea>' + err('design') + '</div>';
-          h += '<div class="cco-field' + enter('custom') + '"><span class="cco-lbl"><span>Inspiration photos</span>' + opt() + '</span>';
-          if (S.photos.length) {
-            h += '<div class="cco-thumbs">' + S.photos.map(function (p, i) {
-              return '<div class="cco-thumb' + (p.status === 'busy' ? ' cco-busy' : p.status === 'failed' ? ' cco-failed' : '') + (p.isNew ? ' cco-enter' : '') + '">' + (p.url ? '<img src="' + p.url + '" alt="' + esc(p.name) + '">' : '') +
-                '<button type="button" class="cco-thumb-x" data-act="photoX" data-v="' + i + '" aria-label="Remove ' + esc(p.name) + '">×</button></div>';
-            }).join('') + '</div>';
-          }
+          h += '<div class="cco-field' + enter('custom') + '"><span class="cco-lbl"><span>Inspiration photos</span>' + opt() + '</span><div class="cco-photos">' + S.photos.map(function (p, i) {
+            return '<div class="cco-thumb' + (p.status === 'busy' ? ' cco-busy' : p.status === 'failed' ? ' cco-failed' : '') + (p.isNew ? ' cco-enter' : '') + '">' + (p.url ? '<img src="' + p.url + '" alt="' + esc(p.name) + '">' : '<span class="cco-thumb-name">' + esc(p.name) + '</span>') +
+              (p.status === 'busy' ? '<span class="cco-thumb-st">Uploading</span>' : p.status === 'failed' ? '<span class="cco-thumb-st">Not uploaded</span>' : '') +
+              '<button type="button" class="cco-thumb-x" data-act="photoX" data-v="' + i + '" aria-label="Remove ' + esc(p.name) + '">×</button></div>';
+          }).join('');
           if (S.photos.filter(function (p) { return p.status !== 'failed'; }).length < MAX_PHOTOS) {
-            h += '<label class="cco-drop" id="cco-drop"><input type="file" id="cco-photos" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" multiple><span class="cco-drop-ico">' + ICON.upload + '</span><b>' + (S.photos.length ? 'Add another photo' : 'Tap to add a photo') + '</b><span>Or drag it here. JPG, PNG or HEIC, up to 5 MB, ' + MAX_PHOTOS + ' photos.</span></label>';
+            h += '<label class="cco-drop' + (S.photos.length ? '' : ' cco-drop-wide') + '" id="cco-drop"><input type="file" id="cco-photos" accept="image/jpeg,image/png,image/webp" multiple><span class="cco-drop-ico">' + ICON.upload + '</span><b>' + (S.photos.length ? 'Add another' : 'Add a photo') + '</b><span>' + (S.photos.length ? 'Up to ' + MAX_PHOTOS : 'Tap to choose, or drag it here. JPG or PNG, up to 5 MB each, ' + MAX_PHOTOS + ' photos.') + '</span></label>';
           }
+          h += '</div>';
           h += (busyPhotos() ? '<span class="cco-hint" aria-live="polite">Uploading ' + busyPhotos() + ' photo' + (busyPhotos() > 1 ? 's' : '') + '…</span>' : '') + err('photos') + '</div>';
         }
         var a0 = h.length;
@@ -185,7 +182,7 @@
         else h += '<button type="button" class="cco-link" data-act="noteOpen"><span class="cco-plus" aria-hidden="true">' + (S.notes.trim() ? '✓' : '+') + '</span>' + (S.notes.trim() ? 'Note added' : 'Add a note for our team') + '</button>';
         h += '</div>'; var a1 = h.length;
         h += '<div class="cco-field"><span class="cco-lbl" id="cco-diet-l"><span>Any dietary needs or allergies?</span></span><div class="cco-yesno" role="group" aria-labelledby="cco-diet-l"><button type="button" class="cco-chip" data-act="diet" data-v="no" aria-pressed="' + (S.diet === 'no') + '">No</button><button type="button" class="cco-chip" data-act="diet" data-v="yes" aria-pressed="' + (S.diet === 'yes') + '">Yes</button><button type="button" class="cco-chip" data-act="diet" data-v="unsure" aria-pressed="' + (S.diet === 'unsure') + '">Not sure</button></div>' + (S.diet === 'unsure' ? '<p class="cco-hint">No problem. We will check with you about allergies before we bake.</p>' : '') + err('diet') + '</div>';
-        if (S.diet === 'yes') h += '<div class="cco-sub' + enter('diet') + '"><span class="cco-sub-q">Which apply?</span><div class="cco-chips">' + DIETS.map(function (d) { return '<button type="button" class="cco-chip" data-act="diets" data-v="' + esc(d) + '" aria-pressed="' + (S.diets.indexOf(d) > -1) + '">' + esc(d) + '</button>'; }).join('') + '</div><div class="cco-field">' + lbl('cco-dnote', 'Anything our team should know', true) + '<input type="text" class="cco-input" data-in="dietNote" id="cco-dnote" value="' + esc(S.dietNote) + '" placeholder="For example, severe peanut allergy"></div><span class="cco-hint">Our team confirms what can be prepared before your order is confirmed.</span></div>';
+        if (S.diet === 'yes') h += '<div class="cco-sub' + enter('diet') + '"><span class="cco-sub-q">Which apply?</span><div class="cco-chips">' + DIETS.map(function (d) { return '<button type="button" class="cco-chip" data-act="diets" data-v="' + esc(d) + '" aria-pressed="' + (S.diets.indexOf(d) > -1) + '">' + esc(d) + '</button>'; }).join('') + '</div><div class="cco-field">' + lbl('cco-dnote', 'Anything our team should know', true) + '<input type="text" class="cco-input" data-in="dietNote" id="cco-dnote" maxlength="200" value="' + esc(S.dietNote) + '" placeholder="For example, severe peanut allergy"></div><span class="cco-hint">Our team confirms what can be prepared before your order is confirmed.</span></div>';
         h += '<div class="cco-field cco-occ"><span class="cco-lbl" id="cco-occ-l"><span>What\'s the occasion?</span></span>' + (S.occPre && S.occasion ? '<span class="cco-hint">Chosen for you from the page you came from. Change it if it is for something else.</span>' : '') +
           '<div class="cco-chips cco-occs" role="group" aria-labelledby="cco-occ-l">' + occList().map(function (o) { return '<button type="button" class="cco-chip" data-act="occasion" data-v="' + o[0] + '" aria-pressed="' + (S.occasion === o[0]) + '">' + esc(o[1]) + '</button>'; }).join('') + '</div>' +
           (S.occasion === 'other' ? '<div class="cco-sub' + enter('occo') + '"><label class="cco-sub-q" for="cco-occother">What are you celebrating?' + opt() + '</label><input type="text" class="cco-input" id="cco-occother" data-in="occOther" maxlength="60" value="' + esc(S.occOther) + '" placeholder="For example, farewell"></div>' : '') + err('occasion') + '</div>';
@@ -201,11 +198,11 @@
             [['collection', 'Collect from the café', 'No extra charge'], ['delivery', 'Delivery', 'From ' + money(Math.min.apply(null, zs.map(function (z) { return Number(z.fee); })))]].map(function (o) {
               return '<button type="button" class="cco-opt" data-act="method" data-v="' + o[0] + '" aria-pressed="' + (S.method === o[0]) + '"><b>' + o[1] + '</b><span>' + o[2] + '</span></button>'; }).join('') + '</div></div>';
           if (isDel()) {
-            h += '<div class="cco-field"><span class="cco-period">Delivery area</span><div class="cco-times" role="group" aria-label="Delivery area">' + zs.map(function (z) {
+            h += '<div class="cco-field"><span class="cco-period">Delivery area</span><div class="cco-chips cco-zones" role="group" aria-label="Delivery area">' + zs.map(function (z) {
               return '<button type="button" class="cco-chip" data-act="zone" data-v="' + esc(z.name) + '" aria-pressed="' + (S.zone === z.name) + '">' + esc(z.name) + ' · ' + money(z.fee) + '</button>'; }).join('') + '</div>' +
               '<p class="cco-hint">Another area? Call us on ' + esc(SETUP.location.phone) + '.</p>' + err('zone') + '</div>' +
-              '<div class="cco-field"><div class="cco-lbl"><label for="cco-address">Delivery address</label></div><textarea id="cco-address" class="cco-in' + (errors.address ? ' cco-bad' : '') + '" data-in="address" rows="2" maxlength="200" placeholder="For example: Room 214, Sofitel, Denarau"' + described('address') + '>' + esc(S.address) + '</textarea>' + err('address') + '</div>' +
-              '<div class="cco-field"><div class="cco-lbl"><label for="cco-receiver">Who will receive it?</label><span class="cco-lbl-r">' + opt() + '</span></div><input id="cco-receiver" class="cco-in" data-in="receiver" maxlength="80" value="' + esc(S.receiver) + '" placeholder="For example: front desk"></div>';
+              '<div class="cco-field"><div class="cco-lbl"><label for="cco-address">Delivery address</label></div><textarea id="cco-address" class="cco-input' + (errors.address ? ' cco-bad' : '') + '" data-in="address" rows="2" maxlength="200" placeholder="For example: Room 214, Sofitel, Denarau"' + described('address') + '>' + esc(S.address) + '</textarea>' + err('address') + '</div>' +
+              '<div class="cco-field"><div class="cco-lbl"><label for="cco-receiver">Who will receive it?</label><span class="cco-lbl-r">' + opt() + '</span></div><input id="cco-receiver" class="cco-input" data-in="receiver" maxlength="80" value="' + esc(S.receiver) + '" placeholder="For example: front desk"></div>';
           }
         }
         h += (S.dateNote ? '<p class="cco-notice" role="status">' + esc(S.dateNote) + '</p>' : '') + '<button type="button" class="cco-date' + (errors.date ? ' cco-bad' : '') + '" data-act="cal"' + described('date') + '><span class="cco-date-l"><span class="cco-date-ico">' + ICON.cal + '</span><span>' + (S.date ? esc(longDate(S.date)) : 'Choose a date') + '</span></span><span class="cco-date-r">' + (S.date ? 'Change' : 'Open calendar') + '</span></button>' + err('date');
@@ -235,7 +232,7 @@
       summary: function () { return ''; },
       body: function () {
         var f = fl(), photos = donePhotos(), h = '<div class="cco-review">';
-        h += S.req ? row('', 'Your cake', 'Custom cake', esc(reqLine()), 1) : row('', 'Your cake', esc(cakeName()), esc(S.size + ' inch' + (sz() && sz().serves ? ' · ' + sz().serves : '')), 0);
+        h += S.req ? row(vis(null), 'Your cake', 'Custom cake', esc(reqLine()), 1) : row(vis(f), 'Your cake', esc(cakeName()), esc(S.size + ' inch' + (sz() && sz().serves ? ' · ' + sz().serves : '')), 0);
         var d = [];
         if (S.finish === 'custom') d.push('<span class="cco-rv-d">' + esc(S.design.trim()) + '</span>');
         if (S.message.trim()) d.push('<span class="cco-rv-d">Message: “' + esc(S.message.trim()) + '”</span>');
@@ -262,12 +259,38 @@
       } }
   ];
   function row(icon, k, v, d, step, raw) {
-    return '<div class="cco-rv"><span><span class="cco-rv-k">' + k + '</span><span class="cco-rv-v">' + v + '</span>' + (raw ? d : '<span class="cco-rv-d">' + d + '</span>') + '</span><button type="button" class="cco-rv-edit" data-act="edit" data-v="' + step + '" aria-label="Edit ' + k.toLowerCase().replace(/^your /, '') + '">Edit</button></div>';
+    return '<div class="cco-rv' + (icon ? ' cco-rv-pic' : '') + '">' + (icon ? '<span class="cco-rv-vis">' + icon + '</span>' : '') + '<span><span class="cco-rv-k">' + k + '</span><span class="cco-rv-v">' + v + '</span>' + (raw ? d : '<span class="cco-rv-d">' + d + '</span>') + '</span><button type="button" class="cco-rv-edit" data-act="edit" data-v="' + step + '" aria-label="Edit ' + k.toLowerCase().replace(/^your /, '') + '">Edit</button></div>';
+  }
+  // Steps in order, named; finished steps can be opened again
+  function rail() {
+    return '<ol class="cco-rail">' + STEPS.map(function (s, i) {
+      var st = i === open ? 'now' : i <= reached && STEPS[i].summary() ? 'done' : 'todo';
+      var inner = '<span class="cco-rail-n" aria-hidden="true">' + (st === 'done' ? ICON.tick : i + 1) + '</span><span class="cco-rail-t">' + s.key + '</span>';
+      return '<li class="cco-rail-' + st + '"' + (st === 'now' ? ' aria-current="step"' : '') + '>' + (st === 'done' ? '<button type="button" data-act="edit" data-v="' + i + '" aria-label="' + s.key + ', done. Change">' + inner + '</button>' : '<span>' + inner + '</span>') + '</li>';
+    }).join('') + '</ol>';
+  }
+  // The order so far, like the slip the kitchen gets, kept beside the form on wide screens
+  function ticket() {
+    var f = fl(), p = price(), tl = [], who = S.req ? 'Custom cake' : cakeName();
+    var line = function (k, v, step) { if (!v) return; var go = step <= reached && step !== open; tl.push('<div class="cco-tk-row">' + (go ? '<button type="button" data-act="edit" data-v="' + step + '">' : '<div>') + '<span class="cco-tk-k">' + k + '</span><span class="cco-tk-v">' + esc(v) + '</span>' + (go ? '</button>' : '</div>') + '</div>'); };
+    line('Size', S.req ? reqLine() : S.size != null ? S.size + ' inch' + (sz() && sz().serves ? ', ' + sz().serves : '') : '', 1);
+    line('Look', STEPS[2].summary() ? [S.req ? 'Your design' : S.finish === 'custom' ? 'Custom design' : 'Standard finish', S.message.trim() ? '“' + S.message.trim() + '”' : ''].filter(Boolean).join(', ') : '', 2);
+    line('Occasion', STEPS[2].summary() ? occText() : '', 2);
+    line(isDel() ? 'Delivery' : 'Collection', STEPS[3].summary() ? longDate(S.date) + ', ' + t12(S.time) + (isDel() ? ', ' + S.zone : '') : '', 3);
+    line('Name', S.detailsOk ? S.name.trim() : '', 4);
+    var amount = S.req ? '<em>To confirm</em>' : p == null ? '<em>Choose a size</em>' : '<strong>' + money(total()) + '</strong>';
+    var sub = !S.req && p != null && isDel() && zoneFee() != null ? 'Includes delivery, ' + money(zoneFee()) : !S.req && S.finish === 'custom' ? 'Custom design priced after we see it' : S.req ? 'We send it after we see your idea' : '';
+    var tk = S.req ? 'req' : S.flavour || '', fresh1 = tk !== ticket.last; ticket.last = tk;
+    return '<div class="cco-ticket' + (S.flavour || S.req ? '' : ' cco-ticket-empty') + '"><div class="cco-tk-photo' + (fresh1 ? ' cco-tk-new' : '') + '">' + vis(S.req ? null : f || 'none') + '</div>' +
+      '<div class="cco-tk-body"><p class="cco-tk-name">' + (who ? esc(who) : 'Your cake') + '</p>' + (who ? '' : '<p class="cco-tk-hint">Choose a cake to start. Your choices show here as you go.</p>') +
+      (tl.length ? '<div class="cco-tk-rows">' + tl.join('') + '</div>' : '') +
+      (who ? '<div class="cco-tk-total"><span>Price' + (sub ? '<small>' + sub + '</small>' : '') + '</span>' + amount + '</div>' : '') +
+      '<p class="cco-tk-note">No payment now. We confirm with you before it is booked.</p></div></div>';
   }
   function stateOf(i) { return i === open ? 'open' : (i <= reached && STEPS[i].summary() ? 'done' : 'locked'); }
 
   function render(focusSel) {
-    var n = STEPS.length, L0 = SETUP.location, h = (restoredAt ? '<div class="cco-resume" role="status"><p><b>Welcome back.</b> We kept the order you started at ' + esc(gTime(restoredAt)) + '. Carry on where you left off.</p><button type="button" class="cco-resume-btn" data-act="restart">Start again</button></div>' : '') + (reached === 0 && !restoredAt ? '<div class="cco-strip"><p><b>No payment now.</b> Order at least ' + L0.lead_days_standard + (L0.lead_days_standard == 1 ? ' day' : ' days') + ' ahead' + (L0.lead_days_custom > L0.lead_days_standard ? ', or ' + L0.lead_days_custom + ' days for a custom design' : '') + '.</p><button type="button" class="cco-strip-btn" data-act="how" aria-expanded="' + S.howOpen + '">How it works</button>' + (S.howOpen ? '<ol class="cco-strip-steps"><li><b>Choose your cake</b><span>Flavour, size and finish</span></li><li><b>Pick a day</b><span>Collect from our counter</span></li><li><b>We confirm</b><span>By WhatsApp or a call, before anything is booked</span></li></ol>' : '') + '</div>' : '') + '<div class="cco-progress" aria-hidden="true"><div class="cco-progress-track"><i style="width:' + Math.round((open + 1) / n * 100) + '%"></i></div><span>Step ' + (open + 1) + ' of ' + n + ' <b>' + STEPS[open].key + '</b></span></div><div class="cco-steps">';
+    var n = STEPS.length, L0 = SETUP.location, h = (restoredAt ? '<div class="cco-resume" role="status"><p><b>Welcome back.</b> We kept the order you started at ' + esc(gTime(restoredAt)) + '. Carry on where you left off.</p><button type="button" class="cco-resume-btn" data-act="restart">Start again</button></div>' : '') + (reached === 0 && !restoredAt ? '<div class="cco-strip"><p><b>No payment now.</b> Order at least ' + L0.lead_days_standard + (L0.lead_days_standard == 1 ? ' day' : ' days') + ' ahead' + (L0.lead_days_custom > L0.lead_days_standard ? ', or ' + L0.lead_days_custom + ' days for a custom design' : '') + '.</p><button type="button" class="cco-strip-btn" data-act="how" aria-expanded="' + S.howOpen + '">How it works</button>' + (S.howOpen ? '<ol class="cco-strip-steps"><li><b>Choose your cake</b><span>Flavour, size and finish</span></li><li><b>Pick a day</b><span>Collect from our counter</span></li><li><b>We confirm</b><span>By WhatsApp or a call, before anything is booked</span></li></ol>' : '') + '</div>' : '') + rail() + '<div class="cco-progress" aria-hidden="true"><div class="cco-progress-track">' + STEPS.map(function (_s, i) { return '<i' + (i <= open ? ' class="cco-on"' : '') + '></i>'; }).join('') + '</div><span>Step ' + (open + 1) + ' of ' + n + ' <b>' + STEPS[open].key + '</b></span></div><div class="cco-steps">';
     STEPS.forEach(function (s, i) {
       var st = stateOf(i); if (st === 'locked' || (open === STEPS.length - 1 && st === 'done')) return;
       var sub = typeof s.sub === 'function' ? s.sub() : s.sub;
@@ -275,11 +298,13 @@
         ? '<button type="button" class="cco-sum" data-act="edit" data-v="' + i + '"><span class="cco-tickdot" aria-hidden="true">' + ICON.tick + '</span><span><span class="cco-sum-k">' + s.key + '</span><span class="cco-sum-v">' + esc(s.summary()) + '</span></span><span class="cco-sum-e">Change</span></button>'
         : '<div class="cco-body' + (i === animStep ? ' cco-enter' : '') + '"><div class="cco-head"><h2 class="cco-q" tabindex="-1">' + (typeof s.q === 'function' ? s.q() : s.q) + '</h2>' + (i > 0 ? '<button type="button" class="cco-back" data-act="edit" data-v="' + (i - 1) + '">Back<span class="cco-sr"> to ' + esc(STEPS[i - 1].key.toLowerCase()) + '</span></button>' : '') + '</div>' + (sub ? '<p class="cco-qsub">' + esc(sub) + '</p>' : '') + s.body() + '</div>') + '</section>';
     });
-    root.innerHTML = h + '</div>'; gSave();
+    var atReview = open === STEPS.length - 1;
+    root.classList.toggle('cco-at-review', atReview);
+    root.innerHTML = '<div class="cco-shell"><div class="cco-main">' + h + '</div></div></div>' + (atReview ? '' : '<aside class="cco-side" aria-label="Your order so far">' + ticket() + '</aside>'); gSave();
     fresh = {}; animStep = -1; S.photos.forEach(function (p) { p.isNew = false; });
     var p = price(), bar = document.getElementById('cco-bar'), showBar = !!p && open < 5;
     root.classList.toggle('cco-has-bar', showBar);
-    if (bar) { bar.classList.toggle('cco-show', showBar); bar.querySelector('span').textContent = [cakeName(), S.size != null ? S.size + ' inch' : ''].filter(Boolean).join(' · '); bar.querySelector('strong').textContent = p ? money(p) : ''; }
+    if (bar) { bar.classList.toggle('cco-show', showBar); bar.querySelector('span').textContent = [cakeName(), S.size != null ? S.size + ' inch' : ''].filter(Boolean).join(' · '); bar.querySelector('strong').textContent = p ? money(total()) : ''; }
     if (focusSel) { var el = root.querySelector(focusSel); if (el) { el.focus({ preventScroll: true }); reveal(el.closest('.cco-field') || el); } }
   }
   function go(i, errs, forceScroll, fromPop) {
@@ -334,7 +359,7 @@
   }
   function keepAnchor(from, oldTop, to, newTop) {
     var a = document.getElementById('cco-step-' + from), t = oldTop;
-    if (!a || t == null) { a = document.getElementById('cco-step-' + to); t = newTop; }
+    if (!a || t == null || !a.offsetParent) { a = document.getElementById('cco-step-' + to); t = newTop; }
     if (!a || t == null) return;
     var d = a.getBoundingClientRect().top - t;
     if (Math.abs(d) > 1) jumpTo(window.pageYOffset + d);
@@ -387,7 +412,7 @@
     var list = Array.prototype.slice.call(files, 0, Math.max(0, room));
     if (files.length > list.length) errors.photos = 'You can add up to ' + MAX_PHOTOS + ' photos.';
     list.forEach(function (file) {
-      if (file.type && !/^image\/(jpeg|png|webp|heic|heif)$/.test(file.type)) { errors.photos = file.name + ' is not a photo we can take. Please choose a JPG, PNG, WEBP or HEIC photo.'; return; }
+      if (file.type && !/^image\/(jpeg|png|webp)$/.test(file.type)) { errors.photos = /hei[cf]/i.test(file.type) ? file.name + ' is an iPhone HEIC photo. Please choose it from your Photos, or save it as a JPG first.' : file.name + ' is not a photo we can take. Please choose a JPG, PNG or WEBP photo.'; return; }
       if (file.size > 5 * 1024 * 1024) { errors.photos = file.name + ' is over 5 MB. Please choose a smaller photo.'; return; }
       var safe = file.name.toLowerCase().replace(/[^a-z0-9.]+/g, '-').slice(-60) || 'photo.jpg', path = 'incoming/' + uid() + '/' + safe;
       var ph = { name: file.name, path: path, url: null, status: 'busy', isNew: true };
