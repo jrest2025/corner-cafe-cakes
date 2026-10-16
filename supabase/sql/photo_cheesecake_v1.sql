@@ -1,4 +1,4 @@
--- Corner Café cakes: Cheesecake photo on the order page (16 October 2026).
+-- Corner Café cakes: Cheesecake photo on the order page (16 October 2026). Run on the live database 16 October 2026, 11:41 PM.
 -- Only fills the photo if none is set, or if it is one of our pinned hosted photos. A photo uploaded in the staff app is never replaced.
 do $photo_cheesecake_v1$
 begin
