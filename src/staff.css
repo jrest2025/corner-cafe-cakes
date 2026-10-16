@@ -804,3 +804,25 @@
   #cc-staff .tq-w { flex-wrap: wrap !important; row-gap: 0 !important; }
   #cc-staff .tq-w span { flex-basis: 100%; padding-left: 20px; white-space: normal; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; }
 }
+
+/* Calendar day panel, cockpit rows: one line per order, coloured edge only for what needs attention */
+#cc-staff .cq-dayneed { display: flex; align-items: center; gap: 8px; margin: 4px 0 8px; font-weight: 700; color: #93370D; font-size: calc(15 * var(--u, 1px)); }
+#cc-staff .cq-dayneed i { width: 10px; height: 10px; border-radius: 50%; background: #DC6803; }
+#cc-staff .cq-list { display: grid; gap: 8px; }
+#cc-staff .cq-row { appearance: none; width: 100%; text-align: left; display: flex; align-items: center; gap: 12px; min-height: 58px; padding: 8px 12px 8px 16px; background: #fff; border: 1px solid #D0D5DD; border-radius: 12px; position: relative; overflow: hidden; font: inherit; cursor: pointer; box-shadow: 0 1px 2px rgba(16,24,40,.06); }
+#cc-staff .cq-row::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: #D0D5DD; }
+#cc-staff .cq-row.pf-red::before { background: #D92D20; } #cc-staff .cq-row.pf-amber::before { background: #E8A33D; }
+#cc-staff .cq-row:hover { border-color: #98A2B3; }
+#cc-staff .cq-t { flex: 0 0 calc(76 * var(--u, 1px)); display: flex; flex-direction: column; font-weight: 700; font-size: calc(15 * var(--u, 1px)); color: #344054; }
+#cc-staff .cq-t small { font-weight: 600; font-size: calc(13 * var(--u, 1px)); color: #1D4F84; }
+#cc-staff .cq-m { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; line-height: 1.3; }
+#cc-staff .cq-m b { font-size: calc(16 * var(--u, 1px)); color: #101828; overflow-wrap: anywhere; }
+#cc-staff .cq-m span { font-size: calc(14 * var(--u, 1px)); color: #475467; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#cc-staff .cq-f { display: inline-flex !important; flex: none; align-items: center; gap: 5px; font-size: calc(13 * var(--u, 1px)); font-weight: 700; padding: 4px 8px; border-radius: 999px; white-space: nowrap; }
+#cc-staff .cq-f::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+#cc-staff .cq-f.is-red { background: #FBE9E6; color: #A2402B; } #cc-staff .cq-f.is-amber { background: #FBF0DD; color: #8A5A12; }
+#cc-staff .cq-done { flex: none; font-size: calc(13 * var(--u, 1px)); font-weight: 600; color: #027A48; }
+
+#cc-staff .cq-m b { overflow-wrap: normal; word-break: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+#cc-staff .cq-m .cq-f, #cc-staff .cq-m .cq-done { align-self: flex-start; margin-top: 4px; font-style: normal; }
+#cc-staff .cq-t { flex-basis: calc(70 * var(--u, 1px)); }

@@ -381,7 +381,7 @@
   }
   function loadOrders(silent) {
     var from = addDays(today(), -45);
-    return sb.from('orders').select(ORDER_LIST).or('required_date.gte.' + from + ',order_status.in.(' + OPEN.join(',') + ')')
+    return sb.from('orders').select(ORDER_LIST).eq('is_test', false).or('required_date.gte.' + from + ',order_status.in.(' + OPEN.join(',') + ')')
       .order('required_date', { ascending: true }).order('required_time', { ascending: true }).limit(400)
       .then(withContact).then(function (r) {
         if (r.error) throw r.error;
@@ -816,7 +816,9 @@
   function sheetClose(how) {
     var wasSheet = !!S.sheet;
     if (S.sheet && S.sheet.type === 'new' && draftHasContent()) { saveDraft(); toast('Unfinished order kept. Tap New order on the same day to carry on.'); } if (S.cal) S.cal.pre = null;
-    if (wasSheet && S.tab === 'calendar' && S.me) setTimeout(function () { calLoad(true); }, 0);
+    var calBack_ = wasSheet && S.sheet.type === 'order' && S.cal && S.cal.reopen && S.tab === 'calendar' && !calWide() && how !== 'replace';
+    if (S.cal) S.cal.reopen = false;
+    if (wasSheet && S.tab === 'calendar' && S.me) setTimeout(function () { calLoad(true); if (calBack_ && S.cal.sel && !S.sheet) calPanel(); }, 0);
     S.sheet = null; S.panel = null; S.dirty = {}; var s = document.getElementById('ccs-sheet'), sh = document.getElementById('ccs-shade'); if (s) { s.classList.remove('ccs-open'); sh.classList.remove('ccs-open'); }
     if (wasSheet && how !== 'replace') setTimeout(sheetReturn, 0); else S.sheetFrom = null;
     if (S.sheetHist) { S.sheetHist = false; if (how !== 'pop' && how !== 'replace') { S.ignorePop = true; try { history.back(); } catch (x) { S.ignorePop = false; } } }
@@ -3073,7 +3075,7 @@
     if (!rg) { c.rows = []; c.range = null; c.loading = false; c.err = false; calRefresh(); return Promise.resolve(); }
     var key = rg.join('|');
     if (key !== c.range || !silent) { c.loading = key !== c.range; c.err = false; if (key !== c.range) c.rows = []; calRefresh(); }
-    return sb.from('orders').select(CAL_LIST).gte('required_date', rg[0]).lte('required_date', rg[1])
+    return sb.from('orders').select(CAL_LIST).eq('is_test', false).gte('required_date', rg[0]).lte('required_date', rg[1])
       .order('required_date', { ascending: true }).order('required_time', { ascending: true }).limit(1000)
       .then(withContact).then(function (r) {
         if (seq !== c.seq) return; if (r.error) throw r.error;
@@ -3106,6 +3108,14 @@
     return '<button type="button" class="ccs-cev k-' + tone + (full ? ' is-full' : '') + (S.cal.pre === o.id ? ' is-sel' : '') + (S.cal.justAdded === o.id ? ' is-new' : '') + '" data-act="cal-pre" data-id="' + o.id + '" aria-label="' + esc(t12(o.required_time) + ', ' + who + ', ' + cakeLine(i) + ', ' + statusLabel(o.order_status, o.fulfilment_method) + (dl ? ', delivery' : '')) + '">' +
       '<span class="ccs-cev-t">' + esc(t12(o.required_time)) + '</span><span class="ccs-cev-n">' + esc(who) + '</span>' +
       (full ? '<span class="ccs-cev-c">' + esc(cakeLine(i)) + '</span><span class="ccs-tags">' + pill(o.order_status, o.fulfilment_method) + (dl ? '<span class="ccs-tag t-info">Delivery</span>' : '') + (o.has_dietary ? '<span class="ccs-pill s-alert">Dietary or allergy</span>' : '') + (amendWaiting(o) ? '<span class="ccs-pill s-amend">Change for kitchen</span>' : '') + '</span>' : '') + '</button>';
+  }
+  // One order per slim row: time, customer and order number with the cake, one marker. A tap opens the order pop-up.
+  function calRow(o) {
+    var i = firstItem(o) || {}, cu = o.customers || {}, f = phoneFlag(o), edge = f ? (f[1] === 'is-red' ? 'pf-red' : 'pf-amber') : 'pf-none';
+    return '<button type="button" class="cq-row ' + edge + (S.cal.justAdded === o.id ? ' is-new' : '') + '" data-act="cal-pre" data-id="' + o.id + '">' +
+      '<span class="cq-t">' + esc(t12(o.required_time)) + (o.fulfilment_method === 'delivery' ? '<small>Delivery</small>' : '') + '</span>' +
+      '<span class="cq-m"><b>' + esc(cu.full_name || o.contact_name || 'Customer') + '</b><span>' + esc(o.reference) + ' · ' + esc(cakeLine(i)) + '</span>' +
+      (f ? '<em class="ccs-prow-f cq-f ' + f[1] + '">' + esc(f[0]) + '</em>' : (o.order_status === 'completed' ? '<em class="cq-done">Handed over</em>' : '')) + '</span></button>';
   }
   function calErrBox(act) { return '<div class="ccs-empty ccs-calerr" role="alert"><b>We couldn\'t load the calendar.</b><span>This is a connection problem, not an empty day. Nothing has changed.</span><button type="button" class="ccs-btn" data-act="' + act + '">Try again</button></div>'; }
 
@@ -3226,7 +3236,10 @@
     h += capLine(d);
     if (add) h += '<button type="button" class="ccs-btn ccs-new ccs-wide" data-act="cal-add" data-v="' + d + '">' + NAV_ICON['new'] + 'New order for this date</button>';
     h += calAsk();
-    h += list.length ? '<div class="ccs-daylist">' + list.map(function (o) { return calChip(o, true); }).join('') + '</div>'
+    // Same count and words as the calendar square, so the two never disagree
+    var flagged = list.filter(function (o) { return NEEDS.indexOf(o.order_status) > -1; }).length;
+    if (flagged) h += '<p class="cq-dayneed"><i aria-hidden="true"></i>' + flagged + (flagged === 1 ? ' needs action' : ' need action') + '</p>';
+    h += list.length ? '<div class="ccs-daylist cq-list">' + list.map(calRow).join('') + '</div>'
       : '<div class="ccs-empty"><b>No pickups scheduled</b>' + (c.status !== 'active' || c.type !== 'all' ? '<span>Nothing matches the filters for this day.</span>' : '') + '</div>';
     if (c.view !== 'day') h += '<button type="button" class="ccs-link" data-act="cal-openday" data-v="' + d + '">Open the day by time</button>';
     return h + '</div>';
@@ -3344,7 +3357,7 @@
     var w = S.wl[d];
     if (!w || (w.at && Date.now() - w.at > 60000 && !w.loading)) {
       S.wl[d] = { loading: true, at: w && w.at, rows: w && w.rows };
-      sb.from('orders').select(CAL_LIST).eq('required_date', d).limit(300).then(withContact).then(function (r) {
+      sb.from('orders').select(CAL_LIST).eq('is_test', false).eq('required_date', d).limit(300).then(withContact).then(function (r) {
         if (r.error) throw r.error; S.wl[d] = { at: Date.now(), rows: r.data || [] };
         if (newOpen() && (SLIP ? slStage() === 3 : D.step === 3) && D.date === d) refreshStep();
       }).catch(function (e) { console.error(e); S.wl[d] = { at: Date.now(), err: true }; if (newOpen() && (SLIP ? slStage() === 3 : D.step === 3) && D.date === d) refreshStep(); });
@@ -4616,7 +4629,7 @@
         case 'cal-sel': calSelect(v); break;
         case 'cal-month': S.cal.view = 'month'; S.cal.anchor = v; S.cal.sel = null; S.cal.pre = null; calLoad(); break;
         case 'cal-openday': S.cal.view = 'day'; S.cal.anchor = v; S.cal.sel = v; S.cal.pre = null; if (S.sheet && S.sheet.type === 'cal') sheetClose(); calLoad(); window.scrollTo(0, 0); break;
-        case 'cal-pre': S.cal.pre = b.dataset.id || null; S.cal.ask = null; if (S.cal.pre) { var po = S.cal.rows.filter(function (r) { return r.id === S.cal.pre; })[0]; if (po && S.cal.view !== 'day') S.cal.sel = po.required_date; } calPanel(); break;
+        case 'cal-pre': { var pid = b.dataset.id || null; S.cal.pre = null; S.cal.ask = null; if (pid) { var po = S.cal.rows.filter(function (r) { return r.id === pid; })[0]; if (po && S.cal.view !== 'day') S.cal.sel = po.required_date; if (calWide()) view(); else { if (S.sheet && S.sheet.type === 'cal') sheetClose('replace'); S.cal.reopen = true; } openOrder(pid); } else calPanel(); break; }
         case 'cal-basis': S.cal.basis = v; view(); break;
         case 'cal-retry': var hadErr_ = S.cal.err || S.cal.cErr; S.cal.err = false; S.cal.cErr = false; if (hadErr_) S.cal.range = null; calLoad(); break;
         case 'cal-add': calStart(v, b.dataset.t || ''); break;
