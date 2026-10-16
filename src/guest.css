@@ -379,6 +379,61 @@ body:has(#cc-cake-order .cco-done) .cco-bar { display: none; }
 @keyframes cco-pop { from { opacity: 0; transform: scale(.6); } to { opacity: 1; transform: none; } }
 @keyframes cco-fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes cco-spin { to { transform: rotate(360deg); } }
+/* ---------- viewport fit (16 October 2026): main action always in view, density by device ---------- */
+/* Continue and Send stay at the bottom of the screen while a long step scrolls, then settle in place.
+   The white ring hides what scrolls beneath; at rest it sits on the white page and cannot be seen. */
+#cc-cake-order .cco-body > .cco-primary { position: sticky; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 6; box-shadow: 0 0 0 10px var(--o-paper), 0 14px 26px -14px rgba(36, 33, 29, .45); }
+@media (max-width: 999px) { #cc-cake-order.cco-has-bar .cco-body > .cco-primary { bottom: calc(68px + env(safe-area-inset-bottom, 0px)); } }
+/* the site's WhatsApp button sits above the price bar and the pinned button, so neither is covered */
+@media (max-width: 999px) { html:has(.cco-bar.cco-show) a.ccwa { bottom: calc(76px + env(safe-area-inset-bottom, 0px)) !important; } }
+@media (max-width: 759px) {
+  html:has(#cc-cake-order .cco-step.cco-open .cco-body > .cco-primary) a.ccwa { bottom: calc(80px + env(safe-area-inset-bottom, 0px)) !important; }
+  html:has(.cco-bar.cco-show):has(#cc-cake-order .cco-step.cco-open .cco-body > .cco-primary) a.ccwa { bottom: calc(136px + env(safe-area-inset-bottom, 0px)) !important; }
+}
+@media (min-width: 1000px) { html:has(#cc-cake-order.cco-at-review .cco-primary) a.ccwa { bottom: 84px !important; } }
+/* touch screens: Back and Change are easy to hit */
+@media (pointer: coarse) {
+  #cc-cake-order .cco-back { min-height: 44px; padding: 8px 6px; }
+  #cc-cake-order .cco-sum-e { padding: 12px 10px; }
+  #cc-cake-order .cco-rail li > button, #cc-cake-order .cco-rail li > span { min-height: 44px; }
+  #cc-cake-order .cco-tk-row > button { min-height: 44px; align-items: center; }
+}
+/* occasions in fewer rows wherever there is room */
+@media (min-width: 640px) { #cc-cake-order .cco-occs { grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); } #cc-cake-order .cco-occs .cco-chip { padding: 8px 6px; font-size: 15px; } }
+/* "Anything to add?" links side by side on wider screens; an opened field takes the full width */
+@media (min-width: 640px) {
+  #cc-cake-order .cco-adds { display: flex; flex-wrap: wrap; align-items: center; column-gap: 28px; row-gap: 0; }
+  #cc-cake-order .cco-adds > .cco-period, #cc-cake-order .cco-adds > .cco-field { flex: 1 1 100%; }
+  #cc-cake-order .cco-adds > .cco-field { padding: 6px 0 10px; }
+}
+/* laptops and desktops with a mouse: compact but readable */
+@media (min-width: 1000px) and (pointer: fine) {
+  #cc-cake-order .cco-body { gap: 14px; }
+  #cc-cake-order .cco-qsub { margin-top: -6px; }
+  #cc-cake-order .cco-opt { min-height: 62px; padding: 12px 16px; }
+  #cc-cake-order .cco-chip { min-height: 42px; }
+  #cc-cake-order .cco-yesno .cco-chip, #cc-cake-order .cco-occs .cco-chip, #cc-cake-order .cco-times .cco-chip { min-height: 44px; }
+  #cc-cake-order .cco-input { min-height: 46px; padding: 11px 14px; }
+  #cc-cake-order .cco-primary { min-height: 50px; padding: 13px 22px; }
+  #cc-cake-order .cco-link { min-height: 40px; padding: 6px 0; }
+}
+/* short laptop screens: a shorter page intro so the first step starts higher */
+@media (min-width: 1000px) and (max-height: 900px) {
+  .cco-page { padding-top: 26px; }
+  .cco-page .cco-intro { margin-bottom: 18px; }
+  .cco-page .cco-h1 { font-size: 36px; margin-bottom: 6px; }
+  .cco-page .cco-lead { font-size: 16px; }
+}
+/* Check your order on wide screens: the order on the left, price and Send on the right */
+@media (min-width: 1000px) {
+  #cc-cake-order.cco-at-review .cco-shell { max-width: none; }
+  #cc-cake-order.cco-at-review .cco-step.cco-open > .cco-body { grid-template-columns: minmax(0, 1fr) 360px; column-gap: 40px; align-items: start; }
+  #cc-cake-order.cco-at-review .cco-body > .cco-head, #cc-cake-order.cco-at-review .cco-body > .cco-qsub { grid-column: 1 / -1; }
+  #cc-cake-order.cco-at-review .cco-body > .cco-review { grid-column: 1; grid-row: 3 / span 6; }
+  #cc-cake-order.cco-at-review .cco-body > :not(.cco-head):not(.cco-qsub):not(.cco-review) { grid-column: 2; }
+  #cc-cake-order.cco-at-review .cco-body > .cco-primary { width: 100%; justify-self: stretch; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   #cc-cake-order *, .cco-shade, .cco-sheet, .cco-bar { animation: none !important; transition: none !important; }
   #cc-cake-order .cco-cake:hover, #cc-cake-order .cco-cake:hover .cco-cake-vis img { transform: none !important; }

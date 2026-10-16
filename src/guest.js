@@ -345,7 +345,14 @@
     });
     return off;
   }
-  function bottomCover() { var b = document.getElementById('cco-bar'); if (!b || !b.classList.contains('cco-show')) return 0; var r = b.getBoundingClientRect(); return r.top < viewH() ? viewH() - r.top : 0; }
+  function bottomCover() {
+    var v = viewH(), c = 0, b = document.getElementById('cco-bar');
+    if (b && b.classList.contains('cco-show')) { var r = b.getBoundingClientRect(); if (r.top < v) c = v - r.top; }
+    // the step's main button is pinned to the bottom of the screen while the step scrolls: keep fields clear of it
+    var p = root.querySelector('.cco-step.cco-open .cco-body > .cco-primary');
+    if (p) { var q = p.getBoundingClientRect(); if (q.height && q.top < v && q.bottom > v - c - q.height - 40) c = Math.max(c, v - q.top + 10); }
+    return c;
+  }
   // Keep the page still while the form redraws: hold its height (no clamping when a step closes)
   // and keep the step the guest was looking at in the same place on screen.
   var releaseTimer = 0;
