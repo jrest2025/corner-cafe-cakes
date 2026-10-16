@@ -193,14 +193,15 @@
     dash: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10h3v10zm6.5 0V4h3v16zM17 20v-7h3v7z"/></svg>',
     settings: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.4 13a7.6 7.6 0 0 0 0-2l2.1-1.6-2-3.4-2.5 1a7.4 7.4 0 0 0-1.7-1L15 3.3h-4l-.4 2.7a7.4 7.4 0 0 0-1.7 1l-2.5-1-2 3.4L6.6 11a7.6 7.6 0 0 0 0 2l-2.1 1.6 2 3.4 2.5-1c.5.4 1.1.7 1.7 1l.4 2.7h4l.4-2.7c.6-.3 1.2-.6 1.7-1l2.5 1 2-3.4zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/></svg>'
   };
+  function navMini() { try { return localStorage.getItem('ccs-navmini') === '1'; } catch (e) { return false; } }
   function navTabs() {
     if (kitchenOnly()) return [['kitchen', 'Kitchen']];
     var tabs = [['today', 'Today'], ['attn', 'Needs attention'], ['orders', 'Orders'], ['calendar', 'Calendar']];
-    if (canP('ord.view') || canP('kit.view')) tabs.splice(2, 0, ['handover', 'Handover']);
     if (canP('kit.view')) tabs.push(['kitchen', 'Kitchen']);
+    if (canP('ord.view') || canP('kit.view')) tabs.push(['handover', 'Handover']);
+    if (canP('nav.customers') && canP('cust.view')) tabs.push(['customers', 'Customers']);
     if (canP('mgmt.analytics') || canP('mgmt.reports')) tabs.push(['dash', 'Dashboard']);
     if (canP('mgmt.reports')) tabs.push(['register', 'Register']);
-    if (canP('nav.customers') && canP('cust.view')) tabs.push(['customers', 'Customers']);
     if (canSettings()) tabs.push(['settings', 'Settings']);
     tabs.push(['more', 'More']);
     return tabs;
@@ -209,15 +210,17 @@
   function navHtml() {
     var needs = needsCount();
     // On phones the bottom bar is Today, Needs attention (with its count), Orders and More; Calendar and the rest live under More
+    var GROUP = { today: 'Service', customers: 'Customers', dash: 'Business', settings: 'Set-up' }, firstBiz = true;
     return navTabs().map(function (t) {
+      var gh = GROUP[t[0]] || (t[0] === 'register' && firstBiz && !navTabs().some(function (x) { return x[0] === 'dash'; }) ? 'Business' : '');
       var where = t[0] === 'more' ? ' ccs-nav-phone' : (t[0] === 'calendar' || t[0] === 'handover' || t[0] === 'customers' || t[0] === 'settings' || t[0] === 'kitchen' || t[0] === 'dash' || t[0] === 'register') ? ' ccs-nav-wide' : '';
-      return '<button type="button" class="ccs-nav-item' + (t[0] === 'new' ? ' ccs-nav-new' : '') + where + '" data-tab="' + t[0] + '"' + (S.tab === t[0] ? ' aria-current="page"' : '') + '>' + NAV_ICON[t[0]] + '<span>' + t[1] + '</span>' +
+      return (gh ? '<p class="ccs-navh" aria-hidden="true">' + gh + '</p>' : '') + '<button type="button" class="ccs-nav-item' + (t[0] === 'new' ? ' ccs-nav-new' : '') + where + '" data-tab="' + t[0] + '" title="' + esc(t[1]) + '"' + (S.tab === t[0] ? ' aria-current="page"' : '') + '>' + NAV_ICON[t[0]] + '<span>' + t[1] + '</span>' +
         (t[0] === 'orders' && needs ? '<span class="ccs-count">' + needs + '</span>' : '') + (t[0] === 'attn' && S.loaded && attnCount() ? '<span class="ccs-count at-count">' + attnCount() + '</span>' : '') + '</button>';
     }).join('');
   }
   function shell() {
     root.innerHTML =
-      '<div class="ccs-app' + (kitchenOnly() ? ' is-single' : '') + '">' + (kitchenOnly() ? '' : '<div class="ccs-topbar"><button type="button" class="ccs-btn ccs-ghost ccs-menubtn" data-menu="open" aria-controls="ccs-side" aria-expanded="false">Menu</button><span class="ccs-topbrand">Corner Café <small>Cakes</small></span></div><div class="ccs-menushade" data-menu="close"></div>') + '<aside class="ccs-side" id="ccs-side"><div class="ccs-brand">Corner Café<small>Cakes</small></div>' + (canP('ord.create') ? '<button type="button" class="ccs-btn ccs-new ccs-topnew" data-tab="new">' + NAV_ICON['new'] + 'New order</button>' : '') +
+      '<div class="ccs-app' + (kitchenOnly() ? ' is-single' : '') + (navMini() ? ' is-mini' : '') + '">' + (kitchenOnly() ? '' : '<div class="ccs-topbar"><button type="button" class="ccs-btn ccs-ghost ccs-menubtn" data-menu="open" aria-controls="ccs-side" aria-expanded="false">Menu</button><span class="ccs-topbrand">Corner Café <small>Cakes</small></span></div><div class="ccs-menushade" data-menu="close"></div>') + '<aside class="ccs-side" id="ccs-side"><div class="ccs-brandrow"><div class="ccs-brand">Corner Café<small>Cakes</small></div><button type="button" class="ccs-collapse" data-act="nav-mini" aria-label="Shrink or widen the menu" title="Shrink or widen the menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button></div>' + (canP('ord.create') ? '<button type="button" class="ccs-btn ccs-new ccs-topnew" data-tab="new">' + NAV_ICON['new'] + 'New order</button>' : '') +
       '<nav class="ccs-nav" aria-label="Sections">' + navHtml() + '</nav>' +
       '<div class="ccs-who"><span class="ccs-avatar" aria-hidden="true">' + esc((S.me.full_name || '?').trim().charAt(0).toUpperCase()) + '</span><span class="ccs-who-name">' + esc(S.me.full_name) + '<small>' + esc((ROLES.filter(function (r) { return r[0] === S.me.role; })[0] || ['', ''])[1]) + '</small></span><button type="button" class="ccs-signout" data-act="signout">Sign out</button></div></aside>' +
       '<main class="ccs-main" id="ccs-main"></main></div>' +
@@ -555,11 +558,12 @@
     var paid = function (o) { return o.payment_status === 'paid'; };
     var dueWord = function (d) { return d === t ? 'today' : d === addDays(t, 1) ? 'tomorrow' : nice(d); };
     var G = [
-      ['overdue', 'Overdue', 'is-red', canP('ord.status') || canP('ord.payments'), function (o) { return isOverdue(o) ? 'Was due ' + nice(o.required_date) + ', ' + t12(o.required_time) + '. Hand over, cancel or change the date.' : ''; }],
+      ['overdue', 'Overdue', 'is-red', canP('ord.status') || canP('ord.payments'), function (o) { return isOverdue(o) ? 'Overdue since ' + nice(o.required_date) + ', ' + t12(o.required_time) + '. Hand over, cancel or change the date.' : ''; }],
       ['soon', 'Due within 3 hours, not ready', 'is-red', canP('ord.status') || canP('kit.view'), function (o) { return o.order_status === 'confirmed' && o.production_status !== 'ready' && o.required_date === t && mins(o) - nowM <= 180 ? (mins(o) < nowM ? 'Late: was due ' : 'Due ') + t12(o.required_time) + '. Kitchen: ' + (STAGE_LABEL[o.production_status] || 'Not started').toLowerCase() + '.' : ''; }],
+      ['todaykit', 'Due today, kitchen not finished', 'is-amber', canP('ord.status') || canP('kit.view'), function (o) { if (o.order_status !== 'confirmed' || o.production_status === 'ready' || o.required_date !== t || mins(o) - nowM <= 180) return ''; var ns = !o.production_status || o.production_status === 'not_started'; return 'Due ' + t12(o.required_time) + ', ' + leftTxt(minsLeft(o)) + '. ' + (ns ? 'Kitchen hasn\'t started.' : 'Kitchen: ' + (STAGE_LABEL[o.production_status] || o.production_status).toLowerCase() + '.'); }],
       ['unconf', 'Not confirmed, due in the next 2 days', 'is-amber', canP('ord.status'), function (o) { return o.order_status !== 'confirmed' && o.required_date >= t && o.required_date <= t2 ? 'Due ' + dueWord(o.required_date) + ', ' + t12(o.required_time) + ', and not confirmed yet.' : ''; }],
       ['waiting', 'Waiting on you', '', canP('ord.status') || canP('ord.payments'), function (o) { var n = NEEDS.indexOf(o.order_status) > -1 ? nextStep(o) : null; return n ? n[0] + '.' : ''; }],
-      ['pay', 'Balance still to pay', '', canP('ord.payments'), function (o) { return o.order_status === 'confirmed' && !paid(o) && (o.production_status === 'ready' || o.required_date <= t2) ? (o.production_status === 'ready' ? 'Cake is ready. ' : 'Due ' + dueWord(o.required_date) + '. ') + 'Take the balance before handing over.' : ''; }],
+      ['pay', 'Balance still to pay', '', canP('ord.payments'), function (o) { return o.order_status === 'confirmed' && !paid(o) && (o.production_status === 'ready' || o.required_date <= t2) ? (isOverdue(o) ? 'Take the balance first.' : o.production_status === 'ready' ? 'Cake is ready. Take the balance before handing over.' : o.required_date === t ? 'Take the balance before handing over.' : 'Due ' + dueWord(o.required_date) + '. Take the balance before handing over.') : ''; }],
       ['allergy', 'Allergies to check', '', canP('ord.edit') || canP('ord.status'), function (o) { return dietUnsure(o) && o.required_date >= t ? 'The customer has not confirmed the allergies yet.' : ''; }],
       ['data', 'Missing details', '', canP('ord.edit'), function (o) { return !validRef(o.reference) ? 'No valid order number.' : NEEDS.indexOf(o.order_status) > -1 && !o.contact_email ? 'No email address, so the customer gets no updates.' : ''; }]
     ].filter(function (g) { return g[3]; });
@@ -692,7 +696,7 @@
     var t = today(), wkEnd = addDays(t, 6), money_ = canP('ord.payments');
     var first = ((S.me && S.me.full_name) || '').trim().split(' ')[0];
     var who = (S.me && S.me.level_name) || (canP('staff.users') ? 'Admin' : canP('ord.override') ? 'Manager' : 'Counter');
-    var h = '<div class="ccs-dash-head tp-head tq-head"><div><p class="ccs-eyebrow">Corner Café · ' + esc(who) + '</p><h1 class="ccs-title">' + esc(nice(t, true)) + '</h1>' + (S.loaded ? freshLine(S.ordAt, S.ordFails, 'reload-orders') : '') + '</div>' +
+    var h = '<div class="ccs-dash-head tp-head tq-head"><div><h1 class="ccs-title">' + esc(nice(t, true)) + '</h1>' + (S.loaded ? freshLine(S.ordAt, S.ordFails, 'reload-orders') : '') + '</div>' +
       '<div class="tq-tools">' + (canP('ord.status') ? '<button type="button" class="ccs-btn tq-new" data-tab="new">' + NAV_ICON['new'] + 'New order</button>' : '') + '<button type="button" class="ccs-btn ccs-ghost tq-find" data-act="tp-find"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>Find an order</button></div></div>';
     h += resumeCard();
     if (!S.loaded) return h + (S.ordErr ? loadErr(S.ordErr, 'reload-orders') : '<p class="ccs-loading">Loading today…</p>');
@@ -702,19 +706,6 @@
     // Warning panel: only what needs someone, each line names the order and opens it. Red first, then amber, soonest first.
     var warn = [], seen = {}, nm = function (o) { return (o.customers && o.customers.full_name) || o.contact_name || 'Customer'; };
     attnGroups().forEach(function (g) { g.rows.forEach(function (r) { seen[r.o.id] = 1; warn.push({ o: r.o, tone: g.tone === 'is-red' ? 'red' : 'amber', txt: r.why.join(' ') }); }); });
-    live.forEach(function (o) {
-      if (seen[o.id] || o.order_status !== 'confirmed' || o.production_status === 'ready') return;
-      var notStarted = !o.production_status || o.production_status === 'not_started', kw = notStarted ? 'Kitchen hasn\'t started.' : 'Kitchen: ' + (STAGE_LABEL[o.production_status] || o.production_status).toLowerCase() + '.';
-      if (o.required_date === t) { var left = minsLeft(o); warn.push({ o: o, tone: left <= 180 ? 'red' : 'amber', txt: 'Due ' + t12(o.required_time) + ', ' + leftTxt(left) + '. ' + kw }); }
-      else if (o.required_date === addDays(t, 1) && notStarted) warn.push({ o: o, tone: 'amber', txt: 'Due tomorrow ' + t12(o.required_time) + '. ' + kw });
-    });
-    // Cakes due today that the kitchen has not finished: lead with the time left and the kitchen stage
-    warn.forEach(function (x) {
-      var o = x.o; if (o.required_date !== t || o.order_status !== 'confirmed' || o.production_status === 'ready') return;
-      var m = minsLeft(o), ns = !o.production_status || o.production_status === 'not_started';
-      x.txt = 'Due ' + t12(o.required_time) + ', ' + leftTxt(m) + '. ' + (ns ? 'Kitchen hasn\'t started.' : 'Kitchen: ' + (STAGE_LABEL[o.production_status] || o.production_status).toLowerCase() + '.') + (o.payment_status !== 'paid' && canP('ord.payments') ? ' Take the balance before handing over.' : '');
-      if (m <= 180) x.tone = 'red';
-    });
     warn.sort(function (a, b) { if (a.tone !== b.tone) return a.tone === 'red' ? -1 : 1; return (a.o.required_date + a.o.required_time) < (b.o.required_date + b.o.required_time) ? -1 : 1; });
     var WMAX = 3, nRed = warn.filter(function (x) { return x.tone === 'red'; }).length, nAmb = warn.length - nRed;
     h += '<section class="tq-warn' + (warn.length ? '' : ' is-clear') + '" aria-label="Needs attention">' + (warn.length ?
@@ -729,7 +720,6 @@
     var atN0 = attnCount();
     h += '<div class="tq-stats" role="group" aria-label="Today in numbers">' +
       stat('data-act="goto" data-v="today"', todays0.length, 'Due today', done0 + ' of ' + todays0.length + ' handed over', '') +
-      stat('data-tab="attn"', atN0, 'Needs attention', atN0 ? (atN0 === 1 ? 'order to act on' : 'orders to act on') : 'All clear', atN0 ? 'attn' : '') +
       (money_ ? stat('data-act="goto" data-v="deposit"', owing0.length, 'Payments to collect', owing0.length === 1 ? 'order with money owing' : 'orders with money owing', '') : '') +
       stat('data-act="goto" data-v="upcoming"', wk0.length, 'Next 7 days', wk0.length === 1 ? 'cake to make' : 'cakes to make', '') + '</div>';
     var needs = S.orders.filter(function (o) { return NEEDS.indexOf(o.order_status) > -1; }).sort(function (a, b) { if (a.id === S.justAdded) return -1; if (b.id === S.justAdded) return 1; return (a.required_date + a.required_time) < (b.required_date + b.required_time) ? -1 : 1; });
@@ -746,30 +736,17 @@
     var dueP;
     dueP = (['due', 'Due today', todays.length, '<section class="ccs-panel-card tp-card"><div class="ccs-card-head"><h2>Due today' + (todays.length ? ' (' + todays.length + ')' : '') + '</h2>' + (todays.length > CAP ? '<button type="button" class="ccs-link" data-act="goto" data-v="today">See all ' + todays.length + '</button>' : '') + (todays.length ? '<span class="ccs-hint">' + collected + ' of ' + todays.length + ' handed over</span>' : '') + '</div>' +
       (todays.length ? '<div class="ccs-minis">' + todays.slice(0, CAP).map(function (o) { return miniRow(o, true); }).join('') + '</div>' : '<p class="ccs-quiet">No cakes are due for collection today.</p>') + '</section>']);
-    P.push(dueP, needsP);
-    // seven day strip
+    // This week across the page, then Due today, then Waiting on you (one quiet line when nothing is waiting)
     var strip = '';
     for (var d = 0; d < 7; d++) {
       var iso = addDays(t, d), n = live.filter(function (o) { return o.required_date === iso && OPEN.concat(['completed']).indexOf(o.order_status) > -1; }).length;
       var closed = (S.setup && S.setup.closed_dates || []).indexOf(iso) > -1;
       strip += '<button type="button" class="ccs-daycell' + (d === 0 ? ' is-today' : '') + (closed ? ' is-closed' : '') + '" data-act="day" data-v="' + iso + '"><span>' + (d === 0 ? 'Today' : new Date(iso + 'T12:00:00Z').toLocaleDateString('en-GB', { weekday: 'short', timeZone: 'UTC' })) + '</span><b>' + new Date(iso + 'T12:00:00Z').getUTCDate() + '</b><em>' + (closed ? 'Closed' : n ? n + (n === 1 ? ' cake' : ' cakes') : '—') + '</em></button>';
     }
-    P.push(['week', 'This week', null, '<section class="ccs-panel-card tp-card"><div class="ccs-card-head"><h2>This week</h2><button type="button" class="ccs-link" data-act="goto" data-v="upcoming">See all upcoming</button></div><div class="ccs-week">' + strip + '</div></section>']);
-    var fu = fuPanel(); if (fu) P.push(['fu', 'Follow-ups', null, fu]);
-    // where orders come from, last 30 days
-    var since = addDays(t, -30), recent = S.orders.filter(function (o) { return (o.created_at || '').slice(0, 10) >= since; });
-    if (recent.length && canP('mgmt.reports')) {
-      var bySrc = {}; recent.forEach(function (o) { bySrc[o.source] = (bySrc[o.source] || 0) + 1; });
-      var rows = Object.keys(bySrc).sort(function (a, b) { return bySrc[b] - bySrc[a]; });
-      P.push(['src', 'Order sources', null, '<section class="ccs-panel-card tp-card"><div class="ccs-card-head"><h2>Order sources</h2><span class="ccs-hint">Last 30 days · ' + recent.length + ' orders</span></div><div class="ccs-bars">' +
-        rows.map(function (k) { var pct = Math.round(bySrc[k] / recent.length * 100); return '<div class="ccs-barrow"><span>' + esc(SOURCE_LABEL[k] || k) + '</span><span class="ccs-bartrack"><i style="width:' + pct + '%"></i></span><b>' + bySrc[k] + '</b></div>'; }).join('') + '</div></section>']);
-    }
-    var keys = P.map(function (x) { return x[0]; }), lower = P.slice(2), curP = secCur('todayP', keys), curB = lower.length ? secCur('todayB', lower.map(function (x) { return x[0]; })) : '';
-    h += '<div class="ccs-today">' +
-      '<div class="tp-barP">' + secBar('todayP', P.map(function (x) { return [x[0], x[1], x[2]]; }), curP, 'Today sections') + '</div>' +
-      '<div class="tp-top">' + P.slice(0, 2).map(function (x) { return '<div class="tp tp-' + x[0] + (x[0] === curP ? ' curP' : '') + '">' + x[3] + '</div>'; }).join('') + '</div>' +
-      (lower.length ? '<div class="tp-lower"><div class="tp-barB">' + secBar('todayB', lower.map(function (x) { return [x[0], x[1]]; }), curB, 'More for today') + '</div>' +
-        lower.map(function (x) { return '<div class="tp tp-' + x[0] + (x[0] === curP ? ' curP' : '') + (x[0] === curB ? ' curB' : '') + '">' + x[3] + '</div>'; }).join('') + '</div>' : '') + '</div>';
+    h += '<section class="tq-week" aria-label="This week"><div class="tq-weekh"><h2>This week</h2><button type="button" class="ccs-link" data-act="goto" data-v="upcoming">All upcoming →</button></div><div class="tq-days">' + strip + '</div></section>';
+    h += '<div class="ccs-today tq-main' + (needs.length ? '' : ' is-calm') + '">' + dueP[3] +
+      (needs.length ? needsP[3] : '<p class="tq-caught"><span aria-hidden="true">✓</span> Waiting on you: all caught up.</p>') + '</div>';
+    if (fuPanel()) h += '<p class="tq-fu">Customer follow-ups are in <button type="button" class="ccs-link" data-tab="customers">Customers</button>.</p>';
     if (money_ && canP('mgmt.analytics')) h += '<p class="tq-biz"><span>Booked this week</span><b>' + money(weekValue) + '</b><small>confirmed orders due in the next 7 days</small></p>';
     return h;
   }
@@ -4573,6 +4550,7 @@
     if (a.indexOf('dx-') === 0) { try { dashAct(a, b, v); } catch (err) { fail(err); } return; }
     if (a.indexOf('rg-') === 0) { try { regAct(a, b, v); } catch (err) { fail(err); } return; }
     if (a.indexOf('pm-') === 0) { try { permAct(a, b, v); } catch (err) { fail(err); } return; }
+    if (a === 'nav-mini') { var ap = document.querySelector('#cc-staff .ccs-app'), on = ap && !ap.classList.contains('is-mini'); if (ap) ap.classList.toggle('is-mini', on); try { localStorage.setItem('ccs-navmini', on ? '1' : '0'); } catch (x) {} return; }
     if (a.indexOf('oc-') === 0) { try { occAct(a, b, v); } catch (err) { fail(err); } return; }
     if (a === 'ws-cm-tools') { S.cust.tools = !S.cust.tools; view(); return; }
     if (a.indexOf('ws-cm-') === 0) { if (S.cust) S.cust.tools = false; try { clAct(a, b, v); } catch (err) { fail(err); } return; }
