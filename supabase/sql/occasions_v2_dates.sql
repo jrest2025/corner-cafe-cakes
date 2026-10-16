@@ -1,7 +1,9 @@
 -- Corner Café cakes: Occasion Intelligence, Phase 1 (database)
 -- Occasions stay one master list (Mother's Day is created once). Each year's date is a separate row in occasion_dates,
 -- so years can be compared without duplicate occasions and without touching history.
--- Additive only: nothing existing is removed or renamed. Runs as one block; if a check at the end fails, nothing changes.
+-- Additive only: nothing existing is removed or renamed.
+-- APPLIED 17 Oct 2026 as migrations occasions_v2_a_schema, occasions_v2_b1_matching, occasions_v2_b2_settings_read_save, occasions_v2_b3_merge_dates, occasions_v2_b5_grants.
+-- Not applied: occasion_date_delete (removing a date is not offered yet; dates are edited instead). Tests ran in a rolled-back block: permissions, duplicate names and years, rename keeps old name matching, merge keeps the words on past orders, archive and restore, audit log.
 do $occ2$
 declare v_items int; v_text_before bigint; v_text_after bigint; v_codes_before bigint; v_codes_after bigint;
 begin

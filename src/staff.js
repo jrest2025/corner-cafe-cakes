@@ -3705,7 +3705,7 @@
     S.settings = null; S.setErr = null; view();
     var reqs = [sb.from('locations').select('*').eq('code', 'corner-cafe').single(), sb.from('closed_dates').select('*').gte('closed_on', today()).order('closed_on'), sb.from('products').select('*, product_sizes(*), product_variants(*)').order('sort'), sb.from('delivery_zones').select('*').order('sort')];
     var nil = Promise.resolve(null); reqs.push(canP('staff.users') ? sb.rpc('admin_list_team') : nil); reqs.push(canP('ord.restore') ? sb.rpc('admin_deleted_orders') : nil); reqs.push(canP('staff.permissions') ? sb.rpc('admin_levels') : nil);
-    Promise.all(reqs).then(function (rs) { rs.forEach(function (r) { if (r && r.error) throw r.error; }); S.settings = { loc: rs[0].data, closed: rs[1].data || [], products: rs[2].data || [], zones: rs[3].data || [], team: rs[4] ? (rs[4].data && rs[4].data.team) || [] : null, deleted: rs[5] && rs[5].data && rs[5].data.ok ? rs[5].data.orders : null, levels: rs[6] && rs[6].data && rs[6].data.ok ? rs[6].data.levels : null }; if (S.tab === 'settings') view(); s5SettingsLoad(); prLoad(); mirLoad(); alLoad(); }).catch(function (e) {
+    Promise.all(reqs).then(function (rs) { rs.forEach(function (r) { if (r && r.error) throw r.error; }); S.settings = { loc: rs[0].data, closed: rs[1].data || [], products: rs[2].data || [], zones: rs[3].data || [], team: rs[4] ? (rs[4].data && rs[4].data.team) || [] : null, deleted: rs[5] && rs[5].data && rs[5].data.ok ? rs[5].data.orders : null, levels: rs[6] && rs[6].data && rs[6].data.ok ? rs[6].data.levels : null }; if (S.tab === 'settings') view(); s5SettingsLoad(); prLoad(); mirLoad(); alLoad(); occLoad(); }).catch(function (e) {
       console.error(e); if (errKind(e) === 'expired') return sessionExpired();
       S.setErr = errKind(e) === 'offline' ? 'No internet connection, so we couldn\'t load the settings.' : errKind(e) === 'denied' ? 'Your login cannot see these settings. Ask a manager.' : 'We couldn\'t load the settings. Try again.';
       if (S.tab === 'settings') view();
@@ -3950,6 +3950,7 @@
     h += '<details><summary>Delivery areas <span>' + st.zones.filter(function (z) { return z.active; }).length + ' areas</span></summary><div class="ccs-set-body"><p class="ccs-hint">Leave the fee blank where staff set the fee for each order. Website guests cannot choose delivery yet.</p>' +
       st.zones.map(function (z) { return '<div class="ccs-row" style="align-items:end">' + sf('dz-n-' + z.id, 'Area', z.name, 'text') + sf('dz-f-' + z.id, 'Fee (FJD)', z.fee == null ? '' : Number(z.fee)) + '<label class="ccs-check" style="padding-bottom:14px"><input type="checkbox" id="dz-a-' + z.id + '"' + (z.active ? ' checked' : '') + '> Offered</label></div>'; }).join('') +
       '<button type="button" class="ccs-btn ccs-ghost" data-act="save-zones">Save delivery areas</button><div class="ccs-row" style="align-items:end">' + sf('dz-new-n', 'New area', '', 'text') + sf('dz-new-f', 'Fee (FJD)', '') + '<button type="button" class="ccs-btn ccs-ghost" data-act="add-zone">Add area</button></div></div></details>';
+    h += occView(st);
     h += (st.team ? '' : s5PermView(st)) + s5BackupCheckView(st) + alertsView(st) + printView(st);
     if (st.team) {
       var tm = st.tmDraft || {};
@@ -3964,6 +3965,105 @@
       h += deletedView(st);
     }
     return h + '</div>';
+  }
+  // ---------- occasions and special dates: one master list; each year's date kept separately ----------
+  // Mother's Day is created once; its 2026, 2027 and 2028 dates are separate rows, so years compare without duplicate occasions.
+  var OCC_CAT = [['personal', 'Personal celebration'], ['holiday', 'Calendar holiday'], ['business', 'Business'], ['other', 'Other']];
+  var OCC_COL = [['#C2410C', 'Orange'], ['#BE185D', 'Pink'], ['#9D174D', 'Plum'], ['#DC2626', 'Red'], ['#1D4ED8', 'Blue'], ['#0E7490', 'Teal'], ['#15803D', 'Green'], ['#7C3AED', 'Purple'], ['#4338CA', 'Indigo'], ['#A16207', 'Gold'], ['#B45309', 'Amber'], ['#334155', 'Slate'], ['#6B7280', 'Grey']];
+  function occLoad() {
+    var st = S.settings; if (!st || !(canP('mgmt.settings') || canP('mgmt.analytics'))) return;
+    sb.rpc('occasion_admin').then(function (r) {
+      if (S.settings !== st) return; if (r.error) throw r.error; if (!r.data.ok) throw userErr(r.data.message);
+      st.occ = r.data; st.occErr = null; if (S.tab === 'settings') view();
+    }).catch(function (e) { if (S.settings !== st) return; st.occErr = errKind(e) === 'offline' ? 'No internet connection.' : 'We couldn\'t load the occasions. Try again.'; if (S.tab === 'settings') view(); });
+  }
+  function occName(code) { var o = ((S.settings && S.settings.occ && S.settings.occ.occasions) || []).filter(function (x) { return x.code === code; })[0]; return o ? o.label : code; }
+  function occView(st) {
+    if (!(canP('mgmt.settings') || canP('mgmt.analytics'))) return '';
+    var oc = st.occ, U = st.occUi = st.occUi || { tab: 'list', year: Number(today().slice(0, 4)) };
+    var live = oc ? oc.occasions.filter(function (o) { return !o.merged_into; }) : [], yrs = oc ? oc.dates.map(function (d) { return d.year; }) : [];
+    var tag = !oc ? (st.occErr ? 'Could not load' : 'Checking…') : live.filter(function (o) { return o.active; }).length + ' occasions' + (yrs.length ? ' · dates to ' + Math.max.apply(null, yrs) : '');
+    var h = '<details' + (st.occOpen ? ' open' : '') + '><summary>Occasions and special dates <span>' + esc(tag) + '</span></summary><div class="ccs-set-body oc-set">';
+    if (!oc) return h + (st.occErr ? '<p class="ccs-err" role="alert">' + esc(st.occErr) + '</p><button type="button" class="ccs-btn ccs-ghost" data-act="oc-reload">Try again</button>' : '<p class="ccs-loading">Checking…</p>') + '</div></details>';
+    var ed = oc.can_edit;
+    h += '<p class="ccs-hint">Each occasion is created once. Its date for each year is kept separately under Dates by year, so years can be compared without duplicate occasions.' + (ed ? '' : ' Your login can view these but not change them.') + '</p>';
+    h += '<div class="ccs-chips pm-tabs" role="group" aria-label="Occasions">' + [['list', 'Occasions'], ['dates', 'Dates by year']].map(function (x) { return '<button type="button" class="ccs-chip" data-act="oc-tab" data-v="' + x[0] + '" aria-pressed="' + (U.tab === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div>';
+    if (U.err && !U.edit && !U.dedit) h += '<p class="ccs-err" role="alert">' + esc(U.err) + '</p>';
+    if (U.tab === 'dates') return h + occDatesView(oc, U, ed) + '</div></details>';
+    var cat = function (k) { return ((OCC_CAT.filter(function (c) { return c[0] === k; })[0]) || ['', ''])[1]; };
+    h += '<div class="oc-list">' + oc.occasions.map(function (o, k) {
+      var st_ = o.merged_into ? 'Merged into ' + occName(o.merged_into) : !o.active ? 'Archived' : '';
+      var row = '<div class="oc-row' + (o.active && !o.merged_into ? '' : ' is-off') + '"><i class="oc-dot" style="background:' + esc(o.colour) + '" aria-hidden="true"></i>' +
+        '<span class="oc-n"><b>' + esc(o.label) + '</b><small>' + esc(cat(o.category)) + ' · ' + o.orders + (o.orders === 1 ? ' order' : ' orders') + (o.has_dates ? ' · has dates' : '') + (o.featured ? '' : ' · not on website list') + (st_ ? ' · ' + esc(st_) : '') + '</small></span>' +
+        (ed && !o.merged_into ? '<span class="oc-acts">' + (!o.system ? '<button type="button" class="ccs-link" data-act="oc-up" data-v="' + o.code + '" aria-label="Move ' + esc(o.label) + ' up">↑</button><button type="button" class="ccs-link" data-act="oc-down" data-v="' + o.code + '" aria-label="Move ' + esc(o.label) + ' down">↓</button>' : '') +
+          '<button type="button" class="ccs-link" data-act="oc-edit" data-v="' + o.code + '">' + (U.edit === o.code ? 'Close' : 'Edit') + '</button></span>' : '') + '</div>';
+      if (U.edit === o.code) row += occForm(o, oc);
+      return row;
+    }).join('') + '</div>';
+    if (ed) h += U.edit === '__new' ? occForm(null, oc) : '<button type="button" class="ccs-btn ccs-ghost" data-act="oc-edit" data-v="__new">+ Add an occasion</button>';
+    return h + '</div></details>';
+  }
+  function occForm(o, oc) {
+    var n = !o, f = 'oc-f-', U = S.settings.occUi;
+    var h = '<div class="oc-form"><div class="ccs-row">' + sf(f + 'label', 'Name', n ? '' : o.label, 'text') +
+      '<div class="ccs-field"><label class="ccs-label" for="' + f + 'cat">Category</label><select class="ccs-input" id="' + f + 'cat">' + OCC_CAT.map(function (c) { return '<option value="' + c[0] + '"' + ((n ? 'personal' : o.category) === c[0] ? ' selected' : '') + '>' + c[1] + '</option>'; }).join('') + '</select></div>' +
+      '<div class="ccs-field"><label class="ccs-label" for="' + f + 'col">Colour</label><select class="ccs-input" id="' + f + 'col">' + OCC_COL.map(function (c) { return '<option value="' + c[0] + '"' + ((n ? '#C2410C' : o.colour).toUpperCase() === c[0] ? ' selected' : '') + '>' + c[1] + '</option>'; }).join('') + '</select></div></div>' +
+      '<label class="ccs-check"><input type="checkbox" id="' + f + 'feat"' + (n || o.featured ? ' checked' : '') + '> Show in the occasion list on the order forms</label>' +
+      '<label class="ccs-check"><input type="checkbox" id="' + f + 'dates"' + (!n && o.has_dates ? ' checked' : '') + '> Falls on a calendar date each year (for example Mother\'s Day)</label>' +
+      (U.err ? '<p class="ccs-err" role="alert">' + esc(U.err) + '</p>' : '') + '<div class="ccs-actions-row"><button type="button" class="ccs-btn" data-act="oc-save" data-v="' + (n ? '' : o.code) + '">' + (n ? 'Add occasion' : 'Save changes') + '</button><button type="button" class="ccs-btn ccs-ghost" data-act="oc-edit" data-v="">Cancel</button></div>';
+    if (!n && !o.system) {
+      h += '<div class="oc-more"><button type="button" class="ccs-link" data-act="oc-archive" data-v="' + o.code + '">' + (o.active ? 'Archive (hide from the order forms, keep its history)' : 'Restore') + '</button>';
+      var targets = oc.occasions.filter(function (x) { return x.code !== o.code && !x.merged_into && x.code !== 'not_specified'; });
+      h += '<div class="oc-merge"><label class="ccs-label" for="oc-f-into">Merge into another occasion</label><div class="ccs-row" style="align-items:end"><select class="ccs-input" id="oc-f-into"><option value="">Choose…</option>' + targets.map(function (x) { return '<option value="' + x.code + '"' + (U.into === x.code ? ' selected' : '') + '>' + esc(x.label) + '</option>'; }).join('') + '</select>' +
+        (U.mergeAsk === o.code && U.into ? '<button type="button" class="ccs-btn ccs-danger" data-act="oc-merge-yes" data-v="' + o.code + '">Yes, merge</button>' : '<button type="button" class="ccs-btn ccs-ghost" data-act="oc-merge" data-v="' + o.code + '">Merge</button>') + '</div>' +
+        (U.mergeAsk === o.code && U.into ? '<p class="ccs-note">' + o.orders + (o.orders === 1 ? ' order moves' : ' orders move') + ' to ' + esc(occName(U.into)) + '. The words written on past orders stay as they are. This cannot be undone.</p>' : '<p class="ccs-hint">Use this for duplicates, such as two spellings of the same occasion.</p>') + '</div>';
+      h += '</div>';
+    }
+    return h + '</div>';
+  }
+  function occDatesView(oc, U, ed) {
+    var yrs = {}; oc.dates.forEach(function (d) { yrs[d.year] = 1; }); var ty = Number(today().slice(0, 4)); for (var y = ty - 2; y <= ty + 2; y++) yrs[y] = 1;
+    var list = Object.keys(yrs).map(Number).sort();
+    var h = '<div class="ccs-chips oc-years" role="group" aria-label="Year">' + list.map(function (y) { return '<button type="button" class="ccs-chip" data-act="oc-year" data-v="' + y + '" aria-pressed="' + (U.year === y) + '">' + y + '</button>'; }).join('') + '</div>';
+    var rows = oc.dates.filter(function (d) { return d.year === U.year; });
+    h += rows.length ? '<div class="oc-list">' + rows.map(function (d) {
+      var o = oc.occasions.filter(function (x) { return x.code === d.code; })[0] || { label: d.code, colour: '#6B7280' };
+      var promo = addDays(d.starts_on, -d.promo_days);
+      var r = '<div class="oc-row"><i class="oc-dot" style="background:' + esc(o.colour) + '" aria-hidden="true"></i><span class="oc-n"><b>' + esc(o.label) + ' · ' + esc(nice(d.starts_on, true)) + (d.ends_on ? ' to ' + esc(nice(d.ends_on, true)) : '') + '</b>' +
+        '<small>Start promoting ' + esc(nice(promo, true)) + ' (' + d.promo_days + ' days before)' + (d.source === 'rule' ? ' · set by the usual rule' : ' · edited') + (d.note ? ' · ' + esc(d.note) : '') + '</small></span>' +
+        (ed ? '<span class="oc-acts"><button type="button" class="ccs-link" data-act="oc-dedit" data-v="' + d.id + '">' + (U.dedit === d.id ? 'Close' : 'Edit') + '</button></span>' : '') + '</div>';
+      if (U.dedit === d.id) r += occDateForm(d, oc);
+      return r;
+    }).join('') + '</div>' : '<p class="ccs-hint">No dates set for ' + U.year + ' yet.</p>';
+    if (ed) h += U.dedit === '__new' ? occDateForm(null, oc) : '<button type="button" class="ccs-btn ccs-ghost" data-act="oc-dedit" data-v="__new">+ Add a date for ' + U.year + '</button>';
+    return h;
+  }
+  function occDateForm(d, oc) {
+    var n = !d, U = S.settings.occUi, opts = oc.occasions.filter(function (x) { return !x.merged_into && !x.system; });
+    return '<div class="oc-form"><div class="ccs-row">' +
+      '<div class="ccs-field"><label class="ccs-label" for="oc-d-code">Occasion</label><select class="ccs-input" id="oc-d-code">' + opts.map(function (x) { return '<option value="' + x.code + '"' + ((n ? '' : d.code) === x.code ? ' selected' : '') + '>' + esc(x.label) + '</option>'; }).join('') + '</select></div>' +
+      sf('oc-d-start', 'Date', n ? U.year + '-01-01' : d.starts_on, 'date') + sf('oc-d-end', 'Last day, if it runs several days (optional)', n || !d.ends_on ? '' : d.ends_on, 'date') + '</div><div class="ccs-row">' +
+      sf('oc-d-promo', 'Start promoting this many days before', n ? 21 : d.promo_days) + sf('oc-d-note', 'Note (optional)', n ? '' : d.note || '', 'text') + '</div>' +
+      (U.err ? '<p class="ccs-err" role="alert">' + esc(U.err) + '</p>' : '') + '<div class="ccs-actions-row"><button type="button" class="ccs-btn" data-act="oc-dsave" data-v="' + (n ? '' : d.id) + '">' + (n ? 'Add date' : 'Save date') + '</button><button type="button" class="ccs-btn ccs-ghost" data-act="oc-dedit" data-v="">Cancel</button></div></div>';
+  }
+  function occAct(a, b, v) {
+    var st = S.settings; if (!st) return; var U = st.occUi = st.occUi || { tab: 'list', year: Number(today().slice(0, 4)) }; st.occOpen = true;
+    var val = function (id) { var e = document.getElementById(id); return e ? (e.type === 'checkbox' ? e.checked : e.value) : null; };
+    var done = function (msg) { return function (r) { clearBusy(); if (r.error) throw r.error; if (!r.data.ok) { U.err = r.data.message; view(); return; } U.err = null; U.edit = null; U.dedit = null; U.mergeAsk = null; U.into = null; Object.keys(S.setTyped || {}).forEach(function (id) { if (id.indexOf('oc-') === 0) delete S.setTyped[id]; }); if (msg) toast(typeof msg === 'function' ? msg(r.data) : msg); occLoad(); }; };
+    var go = function (pr, msg, label) { markBusy(b, label || 'Saving…'); pr.then(done(msg)).catch(function (e) { clearBusy(); fail(e); }); };
+    switch (a) {
+      case 'oc-reload': st.occErr = null; occLoad(); view(); break;
+      case 'oc-tab': U.tab = v; U.err = null; view(); break;
+      case 'oc-year': U.year = Number(v); U.dedit = null; view(); break;
+      case 'oc-edit': U.edit = U.edit === v ? null : v || null; U.mergeAsk = null; U.into = null; U.err = null; view(); break;
+      case 'oc-dedit': U.dedit = U.dedit === v ? null : v || null; U.err = null; view(); break;
+      case 'oc-up': case 'oc-down': go(sb.rpc('occasion_move', { p_code: v, p_dir: a === 'oc-up' ? -1 : 1 }), '', 'Moving…'); break;
+      case 'oc-archive': { var o = st.occ.occasions.filter(function (x) { return x.code === v; })[0]; go(sb.rpc('occasion_archive', { p_code: v, p_archive: !!(o && o.active) }), o && o.active ? 'Archived. Its past orders keep it.' : 'Restored'); break; }
+      case 'oc-save': go(sb.rpc('occasion_save', { p: { code: v || null, label: val('oc-f-label'), category: val('oc-f-cat'), colour: val('oc-f-col'), featured: val('oc-f-feat'), has_dates: val('oc-f-dates') } }), v ? 'Occasion saved' : 'Occasion added'); break;
+      case 'oc-merge': U.into = val('oc-f-into'); U.mergeAsk = U.into ? v : null; U.err = U.into ? null : 'Choose the occasion to merge into.'; view(); break;
+      case 'oc-merge-yes': go(sb.rpc('occasion_merge', { p_from: v, p_into: U.into }), function (d) { return 'Merged. ' + d.moved + (d.moved === 1 ? ' order moved.' : ' orders moved.'); }, 'Merging…'); break;
+      case 'oc-dsave': go(sb.rpc('occasion_date_save', { p: { id: v || null, code: val('oc-d-code'), starts_on: val('oc-d-start'), ends_on: val('oc-d-end'), promo_days: val('oc-d-promo'), note: val('oc-d-note') } }), 'Date saved'); break;
+    }
   }
   // ---------- order alerts (administrators choose who is emailed about new website orders) ----------
   function alLoad() {
@@ -4472,6 +4572,7 @@
     if (a.indexOf('dx-') === 0) { try { dashAct(a, b, v); } catch (err) { fail(err); } return; }
     if (a.indexOf('rg-') === 0) { try { regAct(a, b, v); } catch (err) { fail(err); } return; }
     if (a.indexOf('pm-') === 0) { try { permAct(a, b, v); } catch (err) { fail(err); } return; }
+    if (a.indexOf('oc-') === 0) { try { occAct(a, b, v); } catch (err) { fail(err); } return; }
     if (a === 'ws-cm-tools') { S.cust.tools = !S.cust.tools; view(); return; }
     if (a.indexOf('ws-cm-') === 0) { if (S.cust) S.cust.tools = false; try { clAct(a, b, v); } catch (err) { fail(err); } return; }
     if (SET_SAVES[a] && b.closest('.ccs-set details')) S.setSaved = setSec(b);
