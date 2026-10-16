@@ -50,4 +50,5 @@ async def main():
             for n, c in checks: print(("PASS " if c else "FAIL ") + n); res.append(c)
         await b.close()
     print(f"{sum(res)} of {len(res)} checks pass"); sys.exit(0 if all(res) else 1)
-asyncio.run(main())
+if __name__ == '__main__':
+    asyncio.run(main())

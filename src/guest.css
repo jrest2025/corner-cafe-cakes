@@ -390,10 +390,13 @@ body:has(#cc-cake-order .cco-done) .cco-bar { display: none; }
   html:has(#cc-cake-order .cco-step.cco-open .cco-body > .cco-primary) a.ccwa { bottom: calc(80px + env(safe-area-inset-bottom, 0px)) !important; }
   html:has(.cco-bar.cco-show):has(#cc-cake-order .cco-step.cco-open .cco-body > .cco-primary) a.ccwa { bottom: calc(136px + env(safe-area-inset-bottom, 0px)) !important; }
 }
+@media (min-width: 1000px) { html:has(#cc-cake-order.cco-at-review .cco-primary) a.ccwa { bottom: 84px !important; } }
 /* touch screens: Back and Change are easy to hit */
 @media (pointer: coarse) {
   #cc-cake-order .cco-back { min-height: 44px; padding: 8px 6px; }
   #cc-cake-order .cco-sum-e { padding: 12px 10px; }
+  #cc-cake-order .cco-rail li > button, #cc-cake-order .cco-rail li > span { min-height: 44px; }
+  #cc-cake-order .cco-tk-row > button { min-height: 44px; align-items: center; }
 }
 /* occasions in fewer rows wherever there is room */
 @media (min-width: 640px) { #cc-cake-order .cco-occs { grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); } #cc-cake-order .cco-occs .cco-chip { padding: 8px 6px; font-size: 15px; } }
