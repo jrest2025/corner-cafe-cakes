@@ -208,9 +208,9 @@
   function needsCount() { return S.orders.filter(function (o) { return NEEDS.indexOf(o.order_status) > -1; }).length; }
   function navHtml() {
     var needs = needsCount();
-    // On phones, Customers and Settings move under More so the bottom bar keeps 5 large tabs (U15)
+    // On phones the bottom bar is Today, Needs attention (with its count), Orders and More; Calendar and the rest live under More
     return navTabs().map(function (t) {
-      var where = t[0] === 'more' ? ' ccs-nav-phone' : (t[0] === 'attn' || t[0] === 'handover' || t[0] === 'customers' || t[0] === 'settings' || t[0] === 'kitchen' || t[0] === 'dash' || t[0] === 'register') ? ' ccs-nav-wide' : '';
+      var where = t[0] === 'more' ? ' ccs-nav-phone' : (t[0] === 'calendar' || t[0] === 'handover' || t[0] === 'customers' || t[0] === 'settings' || t[0] === 'kitchen' || t[0] === 'dash' || t[0] === 'register') ? ' ccs-nav-wide' : '';
       return '<button type="button" class="ccs-nav-item' + (t[0] === 'new' ? ' ccs-nav-new' : '') + where + '" data-tab="' + t[0] + '"' + (S.tab === t[0] ? ' aria-current="page"' : '') + '>' + NAV_ICON[t[0]] + '<span>' + t[1] + '</span>' +
         (t[0] === 'orders' && needs ? '<span class="ccs-count">' + needs + '</span>' : '') + (t[0] === 'attn' && S.loaded && attnCount() ? '<span class="ccs-count at-count">' + attnCount() + '</span>' : '') + '</button>';
     }).join('');
@@ -832,7 +832,7 @@
     h += '<section class="ccs-box"><h3>Signed in</h3><p class="ccs-big">' + esc(S.me.full_name || '') + '</p><p class="ccs-hint">' + esc(role) + '</p></section>';
     var links = '';
     if (!kitchenOnly() && (canP('ord.view') || canP('kit.view'))) links += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-tab="handover">Shift handover</button>';
-    if (!kitchenOnly()) links += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-tab="attn">Needs attention' + (attnCount() ? ' (' + attnCount() + ')' : '') + '</button>';
+    if (!kitchenOnly()) links += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-tab="calendar">Calendar</button>';
     if (canP('kit.view')) links += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-tab="kitchen">Kitchen</button>';
     if (canP('nav.customers') && canP('cust.view')) links += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-tab="customers">Customers</button>';
     if (canP('mgmt.analytics') || canP('mgmt.reports')) links += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-tab="dash">Dashboard</button>';
@@ -4785,7 +4785,7 @@
     setTimeout(function () { if (document.activeElement === t && t.scrollIntoView) t.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 320);
   });
   function tick() { if (!S.me || document.visibilityState !== 'visible') return; if (S.tab === 'kitchen') loadKitchen(true); else loadOrders(true); if (S.tab === 'calendar' && !S.sheet) calLoad(true); }
-  setInterval(tick, 60000);
+  setInterval(tick, 30000); // new orders show within 30 seconds while the app is open
   document.addEventListener('visibilitychange', tick);
 
   boot();
