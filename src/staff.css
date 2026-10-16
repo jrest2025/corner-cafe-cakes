@@ -1,3 +1,10 @@
+:root { --u: 0.0625rem; }
+/* Text follows the phone's own text size setting. Every font size is built as a multiple of --u (see build/build.py), which is 1px at the normal setting, so nothing changes until a person enlarges text.
+   iPhone and iPad: Settings, Display and Brightness, Text Size (and Accessibility, Larger Text). Android and computers: the browser follows the system and browser text size. */
+@supports (font: -apple-system-body) and (-webkit-touch-callout: none) {
+  html { font: -apple-system-body; }
+  :root { --u: calc(1rem / 17); }
+}
 /* Corner Café Cakes — staff app. All classes are prefixed ccs- so they never clash with the Webflow site. */
 #cc-staff {
   --ccs-bg: #FFFFFF; --ccs-paper: #FFFFFF; --ccs-cream: #F1F4F8; --ccs-line: #C5CED9; --ccs-line-soft: #DCE3EB;
@@ -600,7 +607,7 @@
 @media (max-width: 759px) {
   #cc-staff .ccs-card, #cc-staff .ccs-mini { display: block !important; min-height: 0 !important; padding: 0 !important; }
   #cc-staff .ccs-card > :not(.ccs-ph), #cc-staff .ccs-mini > :not(.ccs-ph) { display: none !important; }
-  #cc-staff .ccs-card > .ccs-prow, #cc-staff .ccs-mini > .ccs-prow { display: grid !important; grid-template-columns: 86px minmax(0, 1fr) auto; align-items: center; gap: 10px; min-height: 60px; padding: 10px 14px 10px 16px; flex-direction: row; }
+  #cc-staff .ccs-card > .ccs-prow, #cc-staff .ccs-mini > .ccs-prow { display: flex !important; flex-wrap: wrap; row-gap: 4px; grid-template-columns: none; align-items: center; gap: 10px; min-height: 60px; padding: 10px 14px 10px 16px; flex-direction: row; }
   #cc-staff .ccs-prow-t { display: flex; flex-direction: column; line-height: 1.25; }
   #cc-staff .ccs-prow-t b { font-size: 15px; font-weight: 700; color: var(--ccs-ink); }
   #cc-staff .ccs-prow-t span { font-size: 14px; color: var(--ccs-muted); }
@@ -641,9 +648,8 @@
   #ccs-sheet .os-tph small { font-size: 15px; font-weight: 600; color: #475467; margin-top: 3px; }
   #ccs-sheet .ccs-sheet-body, #ccs-sheet.ccs-sheet { background: #FFFFFF !important; }
   #ccs-sheet .ccs-ostrip > .os-when, #ccs-sheet .ccs-ostrip > .os-cust { grid-column: 1 / -1 !important; }
-  #ccs-sheet .ccs-ostrip > .os-when b { white-space: nowrap; }
   #ccs-sheet .ccs-ostrip > .os-cust > span, #ccs-sheet .ccs-ostrip > .os-cust > b, #ccs-sheet .ccs-ostrip > .os-cust > a { display: none !important; }
-  #ccs-sheet .ccs-ostrip > .os-cust .os-callrow { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 2px 0 4px; }
+  #ccs-sheet .ccs-ostrip > .os-cust .os-callrow { display: grid; grid-template-columns: repeat(auto-fit, minmax(calc(130 * var(--u, 1px)), 1fr)); gap: 8px; margin: 2px 0 4px; }
   #ccs-sheet .ccs-ostrip .os-callrow a { display: inline-flex !important; align-items: center; justify-content: center; min-height: 44px; text-decoration: none !important; font-size: 15px; font-weight: 600; color: #1D4F84 !important; border-radius: 10px; padding: 6px 10px; text-align: center; }
   #ccs-sheet .os-dknext, #ccs-sheet .os-dkonly { display: none !important; }
   #ccs-sheet .os-phnext { display: block; }
@@ -667,7 +673,7 @@
   #ccs-sheet .os-band.pf-green { background: #5F7A4A; }
   #ccs-sheet .os-band.pf-none { background: #D0D5DD; }
   #ccs-sheet .ccs-sheet-head:has(.os-band) { padding-top: calc(18px + env(safe-area-inset-top, 0px)) !important; }
-  #ccs-sheet .os-tph b { font-size: clamp(26px, 7.4vw, 30px) !important; line-height: 1.15; }
+  #ccs-sheet .os-tph b { font-size: clamp(calc(26 * var(--u, 1px)), 7.4vw, calc(30 * var(--u, 1px))) !important; line-height: 1.15; }
   #ccs-sheet .os-tph small { font-size: 17px !important; color: #344054 !important; margin-top: 4px; }
   #ccs-sheet .os-phcake { display: block; background: #FFFFFF; border: 1.5px solid #98A2B3; border-radius: 12px; padding: 12px 14px; }
   #ccs-sheet .os-phcake > b { display: block; font-size: 21px; font-weight: 700; color: #101828; line-height: 1.25; }
@@ -685,4 +691,20 @@
   #ccs-sheet .ccs-big { font-size: 21px !important; }
   #ccs-sheet .ccs-box h3 { font-size: 17px !important; }
   #ccs-sheet .ccs-more-row .ccs-link, #ccs-sheet .os-phdanger .ccs-link { font-size: 17px !important; }
+}
+
+/* Larger phone text (phone setting): rows wrap instead of squeezing; the top bar and bottom tabs grow only a little, as on iPhone and Android apps */
+@media (max-width: 759px) {
+  #cc-staff .ccs-prow-t { flex: 0 0 calc(86 * var(--u, 1px)); }
+  #cc-staff .ccs-prow-m { flex: 1 1 calc(80 * var(--u, 1px)); }
+  #cc-staff .ccs-prow-f { flex: none; margin-left: auto; }
+  #cc-staff .ccs-nav-item { font-size: min(calc(15 * var(--u, 1px)), 17px) !important; }
+  #cc-staff .ccs-nav-item svg { width: 20px; height: 20px; }
+  #cc-staff .ccs-topbar, #cc-staff .ccs-topbar *, #cc-staff .ccs-topnew, #cc-staff .ccs-who, #cc-staff .ccs-who * { font-size: min(calc(16 * var(--u, 1px)), 17px) !important; }
+  #cc-staff .ccs-brand { font-size: min(calc(20 * var(--u, 1px)), 21px) !important; }
+  #cc-staff .ccs-brand small { font-size: min(calc(13 * var(--u, 1px)), 13.5px) !important; }
+  #cc-staff .ccs-side .ccs-brand { min-width: 0; flex: 0 1 auto; overflow: hidden; text-overflow: ellipsis; }
+  #cc-staff .ccs-side .ccs-who, #cc-staff .ccs-side .ccs-topnew { flex-shrink: 0; }
+  #ccs-sheet .ccs-sheet-head .ccs-x { flex: none; }
+  #ccs-sheet .os-callrow a { white-space: normal; }
 }

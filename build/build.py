@@ -34,7 +34,7 @@ import hashlib, base64, glob
 css = open('dist/staff.min.css').read().strip()
 run('npx -y csso-cli@4.0.2 staff.cal.css -o dist/staff.cal.min.css')
 calcss = open('dist/staff.cal.min.css').read().strip()
-app = "(function(){var s=document.createElement('style');s.id='ccs-style';s.textContent=" + json.dumps(css + calcss) + ";document.head.appendChild(s)})();\n" + s + "\n"
+app = "(function(){var s=document.createElement('style');s.id='ccs-style';s.textContent=" + json.dumps(re.sub(r'font-size:(\d+(?:\.\d+)?)px', r'font-size:calc(\1*var(--u,1px))', css + calcss)) + ";document.head.appendChild(s)})();\n" + s + "\n"
 raw = app.encode('utf-8')
 name = 'staff-app.' + hashlib.sha256(raw).hexdigest()[:10] + '.js'
 os.makedirs('dist/app', exist_ok=True)
