@@ -1155,19 +1155,25 @@
         '<div class="ccs-actions-row"><button type="button" class="ccs-btn ccs-good" data-act="do-collected">' + (dl ? 'Delivered' : 'Collected') + '</button><button type="button" class="ccs-btn ccs-ghost" data-act="panel" data-v="">Back</button></div></div>';
     }
     if (p === 'brief') {
-      var ppr = S.slip.paper;
-      return '<div class="ccs-panel"><b>Print kitchen slip</b><p class="ccs-hint">The slip is emailed as a PDF to the admin and counter inboxes, ready to print. You can also download it. ' + (o.brief_version ? 'Version ' + o.brief_version + ' was made before. If anything changed since, this makes a new version and marks what changed.' : 'This is the first slip for this order.') + ' One ' + ppr + ' page, with the guest name, phone number and price.</p>' + err +
-        '<div class="ccs-actions-row"><button type="button" class="ccs-btn" data-act="do-brief" data-v="' + ppr + '">Email slip to print</button><button type="button" class="ccs-btn ccs-ghost" data-act="panel" data-v="">Back</button></div></div>';
+      var ppr = S.slip.paper, pk = slipPick(), any = pk.email || pk.dl || pk.print;
+      var opt = function (k, t, sub) { return '<label class="ccs-slipopt"><input type="checkbox" data-slipopt="' + k + '"' + (pk[k] ? ' checked' : '') + '><span><b>' + t + '</b><small>' + sub + '</small></span></label>'; };
+      return '<div class="ccs-panel"><b>Kitchen slip</b><p class="ccs-hint">' + (o.brief_version ? 'Version ' + o.brief_version + ' was made before. If anything changed since, this makes a new version and marks what changed.' : 'This is the first slip for this order.') + ' One ' + ppr + ' page, with the guest name, phone number and price. Choose one or more:</p>' +
+        '<div class="ccs-slipopts" role="group" aria-label="What to do with the slip">' +
+        opt('email', 'Email to the kitchen printer', 'Sent as a PDF to the admin and counter inboxes') +
+        opt('dl', 'Download PDF', 'Saved on this device') +
+        opt('print', 'Print on this device', 'Opens the print window here') + '</div>' + err +
+        (any ? '' : '<p class="ccs-note" role="status">Tick at least one.</p>') +
+        '<div class="ccs-actions-row"><button type="button" class="ccs-btn" data-act="do-brief" data-v="' + ppr + '"' + (any ? '' : ' disabled aria-disabled="true"') + '>Make slip</button><button type="button" class="ccs-btn ccs-ghost" data-act="panel" data-v="">Back</button></div></div>';
     }
     if (p === 'brief-done' && S.briefDone && S.briefDone.id === o.id) {
       var bd = S.briefDone.b, em = bd.email || {}, who = [em.to, em.cc].filter(Boolean).join(' and '), sst2 = slipState(o.id);
       var emTxt = em.state === 'queued' ? 'Emailed to ' + who + ' for printing.' : em.state === 'recent' ? 'This slip was emailed to ' + who + ' less than a minute ago, so it was not sent again.' :
-        em.state === 'off' ? 'Emailing slips is switched off in Settings, Kitchen printing. Download it or print it here.' : em.state === 'no_address' ? 'No email address is set for kitchen slips, so it was not emailed. Download it or print it here, and ask an admin to add the address in Settings, Kitchen printing.' : 'The slip was not emailed. Download it or print it here.';
+        em.state === 'skipped' ? 'Not emailed. You chose not to send it to the kitchen printer.' : em.state === 'off' ? 'Emailing slips is switched off in Settings, Kitchen printing. Download it or print it here.' : em.state === 'no_address' ? 'No email address is set for kitchen slips, so it was not emailed. Download it or print it here, and ask an admin to add the address in Settings, Kitchen printing.' : 'The slip was not emailed. Download it or print it here.';
       var emOk = em.state === 'queued' || em.state === 'recent';
       return '<div class="ccs-panel ccs-briefdone"><b>Kitchen slip ' + esc(bd.snapshot.reference) + ' v' + bd.version + '</b>' +
         '<p class="' + (emOk ? 'ccs-hint' : 'ccs-note') + '" role="status">' + esc(emTxt) + '</p>' +
         (emOk && sst2 && sst2.v === bd.version ? (sst2.failed ? '<div class="ccs-alert" role="alert">' + esc(SLIP_FAIL) + ' Download it or print it here.</div>' : '<p class="ccs-slipst' + (sst2.printed ? ' is-ok' : '') + '">' + esc(sst2.text) + '</p>') : '') + err +
-        '<div class="ccs-actions-row"><button type="button" class="ccs-btn" data-act="brief-pdf">Download slip (PDF)</button><button type="button" class="ccs-btn ccs-ghost" data-act="brief-print">Print on this device</button><button type="button" class="ccs-btn ccs-ghost" data-act="panel" data-v="">Done</button></div></div>';
+        '<div class="ccs-actions-row"><button type="button" class="ccs-btn" data-act="brief-pdf">Download slip (PDF)</button><button type="button" class="ccs-btn ccs-ghost" data-act="brief-print">Print on this device</button>' + (em.state === 'skipped' && canP('ord.edit') ? '<button type="button" class="ccs-btn ccs-ghost" data-act="brief-email">Email slip to print</button>' : '') + '<button type="button" class="ccs-btn ccs-ghost" data-act="panel" data-v="">Done</button></div></div>';
     }
     if (p === 'pay') {
       if (!S.payKey) S.payKey = uuid();
@@ -1355,11 +1361,18 @@
   // Every slip, file and record carries the order's own number; without one, nothing prints
   function validRef(r) { return typeof r === 'string' && /^[A-Z]{1,4}-[0-9]{3,}$/.test(r.trim()); }
   var NO_REF = 'This order has no order number, so its slip cannot print. Ask a manager to fix the order.';
-  function printBrief(size) {
+  // What to do with a new slip: email, download, print here. Remembered on this device.
+  function slipPick() {
+    if (!S.slipPick) { var d = { email: true, dl: false, print: false }; try { var j = JSON.parse(localStorage.getItem('ccs-slip-pick') || 'null'); if (j && typeof j === 'object') d = { email: !!j.email, dl: !!j.dl, print: !!j.print }; } catch (e) {} S.slipPick = d; }
+    return S.slipPick;
+  }
+  function slipPickSet(k, on) { var pk = slipPick(); pk[k] = !!on; try { localStorage.setItem('ccs-slip-pick', JSON.stringify(pk)); } catch (e) {} }
+  function printBrief(size, opts) {
     var o = S.sheet.data; if (S.busy) return;
+    opts = opts || { email: true };
     if (!validRef(o.reference)) { S.panelErr = NO_REF; return renderSheet(); }
     S.busy = true; S.panelErr = null;
-    sb.rpc('staff_print_brief', { p_order: o.id }).then(function (r) {
+    sb.rpc('staff_print_brief', { p_order: o.id, p_email: opts.email !== false }).then(function (r) {
       S.busy = false; if (r.error) throw r.error;
       if (!r.data.ok) { S.panelErr = r.data.message; return renderSheet(); }
       if (!r.data.snapshot || !validRef(r.data.snapshot.reference) || r.data.snapshot.reference !== o.reference) { S.panelErr = NO_REF; return renderSheet(); }
@@ -1369,6 +1382,7 @@
       openOrder(o.id).then(function () {
         if (!S.sheet || S.sheet.id !== o.id) return;
         S.panel = 'brief-done'; S.panelErr = null; renderSheet();
+        (opts.dl ? briefPdf() : Promise.resolve()).then(function () { if (opts.print && S.briefDone && S.briefDone.id === o.id) briefPrintHere(); });
         [3000, 8000, 20000].forEach(function (ms) { setTimeout(function () { if (S.sheet && S.sheet.id === o.id && S.panel === 'brief-done') slipLoad([o.id]); }, ms); });
       });
     }).catch(function (e) { S.busy = false; fail(e); });
@@ -1396,10 +1410,10 @@
     return pdfLibP;
   }
   function briefPdf() {
-    var d = S.briefDone; if (!d || S.busy) return;
+    var d = S.briefDone; if (!d || S.busy) return Promise.resolve();
     var b = d.b; S.busy = true; S.panelErr = null;
     var logo = fetch(SLIP_LOGO_PNG).then(function (r) { return r.ok ? r.arrayBuffer() : null; }).then(function (x) { return x ? new Uint8Array(x) : null; }, function () { return null; });
-    Promise.all([pdfLib(), logo]).then(function (z) {
+    return Promise.all([pdfLib(), logo]).then(function (z) {
       return SlipPdf.buildSlipPdf(z[0], { snapshot: b.snapshot, slip: b.slip || {}, version: b.version, changes: b.changes || [], printedAt: b.first_printed_at, logoPng: z[1], location: {}, paper: b.paper || d.size || 'A5' });
     }).then(function (bytes) {
       S.busy = false; clearBusy();
@@ -4453,7 +4467,8 @@
         case 'do-fulfil': saveFulfil(); break;
         case 'f-method': S.ful.method = v; renderSheet(); break;
         case 'f-zone': S.ful.zone = v; renderSheet(); break;
-        case 'do-brief': printBrief(v); break;
+        case 'do-brief': { var pk0 = slipPick(); if (!(pk0.email || pk0.dl || pk0.print)) break; printBrief(v, { email: pk0.email, dl: pk0.dl, print: pk0.print }); break; }
+        case 'brief-email': printBrief(S.slip.paper, { email: true }); break;
         case 'brief-pdf': markBusy(b, 'Preparing…'); briefPdf(); break;
         case 'brief-print': briefPrintHere(); break;
         case 'open-kitchen': openKitchen(b.dataset.id); break;
@@ -4710,6 +4725,7 @@
     saveDraft();
   });
   root.addEventListener('change', function (e) {
+    if (e.target.dataset && e.target.dataset.slipopt) { slipPickSet(e.target.dataset.slipopt, e.target.checked); renderSheet(); var f = document.querySelector('#ccs-sheet [data-slipopt="' + e.target.dataset.slipopt + '"]'); if (f) f.focus(); return; }
     if (e.target.tagName === 'SELECT' || e.target.type === 'checkbox') setTypedIn(e.target);
     var d = e.target.dataset;
     if ((e.target.id === 'tm-flv' || e.target.id === 'tm-fst') && S.settings) { if (e.target.id === 'tm-flv') S.settings.tmLv = e.target.value; else S.settings.tmSt = e.target.value; view(); return; }

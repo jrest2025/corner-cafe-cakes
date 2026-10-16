@@ -2721,3 +2721,12 @@ body.ccs-is-off #cc-staff .ccs-side { top: var(--ccs-offh, 44px); }
   #cc-staff [data-act="dx-gapmore"] { min-height: 32px !important; display: inline-flex; align-items: center; }
   #cc-staff .ov-hc { min-height: 26px !important; }
 }
+
+/* Kitchen slip: choose email, download, print (any together) */
+#cc-staff .ccs-slipopts { display: grid; gap: 8px; margin: 10px 0 12px; }
+#cc-staff .ccs-slipopt { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--ccs-line); border-radius: 10px; background: #fff; cursor: pointer; min-height: 44px; box-sizing: border-box; }
+#cc-staff .ccs-slipopt input { width: 20px; height: 20px; margin: 0; flex: none; accent-color: var(--ds-primary); }
+#cc-staff .ccs-slipopt span { display: flex; flex-direction: column; gap: 2px; }
+#cc-staff .ccs-slipopt small { color: var(--ccs-muted); font-size: 13px; }
+#cc-staff .ccs-slipopt:has(input:checked) { border-color: var(--ds-primary); }
+@media (pointer: coarse) { #cc-staff .ccs-slipopt { min-height: 56px !important; } #cc-staff .ccs-slipopt input { width: 24px; height: 24px; } }
