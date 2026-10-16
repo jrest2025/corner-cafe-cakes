@@ -1030,3 +1030,13 @@ html.ccs-tablet-mode #ccs-sheet .tb-saved span { font-size: calc(19 * var(--u, 1
 /* Tablet: the order steps keep their Next bar pinned to the very bottom */
 html.ccs-tablet-mode #ccs-sheet .ccs-sheet-body:has(.sl-stepper) { padding-bottom: 0 !important; }
 html.ccs-tablet-mode #ccs-sheet .sl-stepbar { padding: 14px 0 18px; }
+/* New order steps: Back and a quiet Start over sit together on the left of the bottom bar */
+#cc-staff .sl-stepbar-l { display: flex; align-items: center; gap: 14px; min-width: 0; }
+#cc-staff .sl-stepbar .sl-restart, #ccs-sheet .sl-stepbar .sl-restart { color: var(--ccs-muted); font-weight: 600; font-size: calc(15 * var(--u, 1px)); min-height: 44px; padding: 0 4px; white-space: nowrap; }
+#cc-staff .sl-stepbar .sl-restart:hover, #ccs-sheet .sl-stepbar .sl-restart:hover { color: var(--ccs-red); }
+#cc-staff .sl-found { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; padding: 12px 14px; border: 1px solid var(--ccs-line); border-radius: 10px; margin-bottom: 6px; }
+#cc-staff .sl-found .sl-fixed { margin: 0; }
+#cc-staff .sl-found .sl-fixed2 { font-weight: 400; color: var(--ccs-muted); }
+#cc-staff .sl-found .ccs-hint { flex-basis: 100%; }
+#cc-staff .sl-stepbody .sl-k .sl-req, #cc-staff .sl-stepbody .sl-k .sl-opt { margin-left: 6px; }
+html.ccs-tablet-mode #ccs-sheet .sl-restart { min-height: 56px; font-size: calc(18 * var(--u, 1px)); }

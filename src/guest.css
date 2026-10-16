@@ -451,3 +451,43 @@ body:has(#cc-cake-order .cco-done) .cco-bar { display: none; }
 /* What the cake must be: shown plainly, apart from allergies */
 #cc-cake-order .cco-reqs .cco-chips { margin-top: 8px; }
 #cc-cake-order .cco-rv-d.cco-must { font-weight: 700; color: #1F2A37; }
+
+/* ---------- five steps (Oct 2026): cake and size on one step, one Back, compact finished steps ---------- */
+#cc-cake-order .cco-rail { grid-template-columns: repeat(5, minmax(0, 1fr)) !important; }
+#cc-cake-order .cco-progress-track { grid-template-columns: repeat(5, 1fr); }
+/* an older page footer added its own Back button; the form now has one, so that one is hidden */
+#cc-cake-order .cco-progress-back { display: none !important; }
+/* Back: a clear button at the top of every step after the first */
+#cc-cake-order .cco-body > .cco-back { justify-self: start; margin: -4px 0 -6px; padding: 6px 14px 6px 12px; min-height: 40px; border: 1px solid var(--o-line-2); border-radius: 999px; background: var(--o-paper); color: var(--o-leaf-deep); font-size: 15px; }
+#cc-cake-order .cco-body > .cco-back:hover { border-color: var(--o-leaf); color: var(--o-ink); background: var(--o-leaf-wash); }
+#cc-cake-order .cco-body > .cco-back:focus-visible { outline: 3px solid var(--o-leaf-line); outline-offset: 2px; }
+@media (pointer: coarse) { #cc-cake-order .cco-body > .cco-back { min-height: 44px; } }
+/* the chosen cake's versions sit right under it, across the whole row */
+#cc-cake-order .cco-cakes > .cco-sub-inline { grid-column: 1 / -1; }
+/* size, on the same step as the cake */
+#cc-cake-order .cco-cakesize { display: grid; gap: 12px; padding-top: 18px; border-top: 1px solid var(--o-line); }
+#cc-cake-order .cco-cakesize.cco-enter { animation: cco-rise .22s var(--o-ease) both; }
+#cc-cake-order .cco-sizes-q { font-size: 19px; font-weight: 700; color: var(--o-ink); letter-spacing: -.01em; }
+/* finished steps: one compact line, Change opens the parts */
+#cc-cake-order .cco-sumline { overflow: hidden; }
+#cc-cake-order .cco-sl { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 6px 6px 6px 14px; min-height: 48px; }
+#cc-cake-order .cco-sl .cco-tickdot { width: 22px; height: 22px; }
+#cc-cake-order .cco-sl .cco-tickdot svg { width: 11px; height: 11px; }
+#cc-cake-order .cco-sl-v { min-width: 0; font-size: 15px; font-weight: 600; color: var(--o-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#cc-cake-order .cco-sl-e { appearance: none; border: 0; background: none; font: inherit; font-size: 15px; font-weight: 600; color: var(--o-leaf-deep); padding: 8px 10px; min-height: 40px; cursor: pointer; border-radius: 8px; }
+#cc-cake-order .cco-sl-e:hover { background: var(--o-leaf-wash); }
+#cc-cake-order .cco-sumline .cco-sum { grid-template-columns: minmax(0, 1fr) auto; min-height: 50px; border-top: 1px solid var(--o-line); border-radius: 0; padding: 8px 6px 8px 14px; }
+@media (pointer: coarse) { #cc-cake-order .cco-sl-e { min-height: 44px; } }
+/* the main button stays in the flow on tablets and computers, so it never sits over the optional extras */
+@media (min-width: 760px) { #cc-cake-order .cco-body > .cco-primary, #cc-cake-order.cco-has-bar .cco-body > .cco-primary { position: static; box-shadow: none; } }
+/* allergies: the cake's own notes and the safety wording */
+#cc-cake-order .cco-allergen { margin: 0; font-size: 15px; line-height: 1.5; color: var(--o-ink); }
+#cc-cake-order .cco-safety { margin: 0; padding: 10px 12px; border: 1px solid var(--o-note-line); background: var(--o-note); border-radius: 8px; font-size: 15px; line-height: 1.5; color: var(--o-body); }
+#cc-cake-order .cco-yesno-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+#cc-cake-order .cco-occs .cco-occmore { background: var(--o-paper); color: var(--o-leaf-deep); font-weight: 600; border-style: dashed; }
+@media (min-width: 1000px) {
+  #cc-cake-order.cco-at-review .cco-step.cco-open > .cco-body > .cco-back.cco-back { grid-column: 1 / -1; grid-row: 1; }
+  #cc-cake-order.cco-at-review .cco-body > .cco-head { grid-row: 2; }
+  #cc-cake-order.cco-at-review .cco-body > .cco-qsub { grid-row: 3; }
+  #cc-cake-order.cco-at-review .cco-body > .cco-review { grid-row: 4 / span 6; }
+}
