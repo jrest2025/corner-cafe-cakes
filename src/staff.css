@@ -578,3 +578,16 @@
 .ccs-slip .sl-ordno span { font-size: 10pt; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
 .ccs-slip .sl-ordno b { font-size: 30pt; font-weight: 900; letter-spacing: .02em; line-height: 1; }
 .ccs-slip .sl-ordno i { font-style: normal; font-size: 16pt; font-weight: 700; border: 2pt solid #000; padding: 0 2mm; margin-left: auto; }
+
+/* Kitchen slip: the day first and largest, then the date and time, with ready by beside (16 October 2026) */
+.ccs-slip .sl-when { display: grid; grid-template-columns: 64% 36%; background: #000; color: #fff; margin: 2pt 0 0; }
+.ccs-slip .sl-when > div { padding: 5pt 7pt 6pt; display: flex; flex-direction: column; min-width: 0; }
+.ccs-slip .sl-when span { font-size: 8.5pt; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.ccs-slip .sl-when-main b { font-size: 38pt; font-weight: 900; line-height: 1.05; text-transform: uppercase; letter-spacing: .01em; }
+.ccs-slip .sl-when-main em { font-style: normal; font-size: 18pt; font-weight: 700; line-height: 1.15; }
+.ccs-slip .sl-when-ready { border-left: 1pt solid #fff; }
+.ccs-slip .sl-when-ready b { font-size: 22pt; font-weight: 800; line-height: 1.1; }
+.ccs-slip .sl-when + .sl-key { margin-top: 0; border-top: 0; }
+.ccs-slip-DL .sl-when-main b { font-size: 22pt; }
+.ccs-slip-DL .sl-when-main em { font-size: 12pt; }
+.ccs-slip-DL .sl-when-ready b { font-size: 16pt; }

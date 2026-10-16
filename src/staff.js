@@ -1434,16 +1434,19 @@
     var cents = function (v) { return v == null || v === '' ? '' : '$' + Number(v).toFixed(2); };
     var line = function (k, v, cls) { return '<div class="sl-line' + (cls ? ' ' + cls : '') + '"><span>' + k + ':</span><b>' + (v ? esc(v) : '&nbsp;') + '</b></div>'; };
     var pair = function (k1, v1, k2, v2) { return '<div class="sl-pair">' + line(k1, v1) + line(k2, v2) + '</div>'; };
-    var cake = (s.variant || s.cake || '') + (s.variant && s.cake && s.variant !== s.cake ? ' (' + s.cake + ')' : '') + (s.finish === 'custom' ? ' · Custom design' : '');
+    var cake = (s.variant || s.cake || '') + (s.variant && s.cake && s.variant !== s.cake && s.cake.indexOf(s.variant) < 0 ? ' (' + s.cake + ')' : '') + (s.finish === 'custom' ? ' · Custom design' : '');
     var sizeTxt = s.size ? s.size + ' inch' + (s.quantity > 1 ? ' × ' + s.quantity + ' cakes' : '') + (s.serves ? ' · ' + s.serves : '') : (s.serves || '') + (s.quantity > 1 ? ' × ' + s.quantity + ' cakes' : '');
-    if (!s.size && s.cake === 'Custom cake') cake = 'Custom cake' + (s.variant ? ', ' + s.variant : '');
-    var remarks = [s.finish === 'custom' && s.design ? 'Design: ' + s.design : '', s.occasion ? 'Occasion: ' + s.occasion : '', s.order_notes ? 'Order notes: ' + s.order_notes : '', s.kitchen_notes ? 'Kitchen notes: ' + s.kitchen_notes : ''].filter(Boolean).join(' · ');
+    if (!s.size && s.cake === 'Custom cake') cake = s.variant ? s.variant + ' (custom)' : 'Custom cake';
+    var remarks = [s.finish === 'custom' && s.design ? 'Design: ' + s.design : '', s.order_notes ? 'Order notes: ' + s.order_notes : '', s.kitchen_notes ? 'Kitchen notes: ' + s.kitchen_notes : ''].filter(Boolean).join(' · ');
     var paidAmt = Number(x.paid || 0), due2 = x.price != null ? Math.max(Number(x.price) - paidAmt, 0) : null;
-    var priceTxt = x.price != null ? cents(x.price) + '  ·  Paid ' + cents(paidAmt) + '  ·  To pay ' + cents(due2) : 'To be priced';
+    // One plain payment line: paid in full, deposit paid with the balance, or nothing paid yet
+    var priceTxt = x.price == null || x.price === '' ? 'To be priced' : paidAmt >= Number(x.price) - 0.005 ? 'Paid in full (' + cents(x.price) + ')' : paidAmt > 0.005 ? 'Deposit paid ' + cents(paidAmt) + '  ·  Balance ' + cents(due2) + ' to pay' : 'Full payment pending  ·  ' + cents(x.price) + ' to pay';
     // What the kitchen needs at a glance: when, which cake, what size, any dietary need. Large type.
     var key = function (k, v, cls, sub) { return '<div class="sl-k' + (cls ? ' ' + cls : '') + '"><span>' + k + '</span><b>' + esc(v) + '</b>' + (sub ? '<small>' + esc(sub) + '</small>' : '') + '</div>'; };
-    var keys = '<div class="sl-key">' +
-      key(deliv ? 'Delivery' : 'Pickup', nice(s.date, true) + ', ' + t12(s.time), 'sl-k-when') + key('Ready by', t12(readyBy), 'sl-k-when sl-k-ready') +
+    // When: the weekday largest, so the kitchen reads the day at a glance; the date and time below; ready by beside
+    var dd = new Date(s.date + 'T12:00:00Z'), wday = dd.toLocaleDateString('en-GB', { weekday: 'long', timeZone: 'UTC' }), dmon = dd.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', timeZone: 'UTC' });
+    var when = '<div class="sl-when"><div class="sl-when-main"><span>' + (deliv ? 'Delivery' : 'Pickup') + '</span><b>' + esc(wday) + '</b><em>' + esc(dmon + ' · ' + t12(s.time)) + '</em></div><div class="sl-when-ready"><span>Ready by</span><b>' + esc(t12(readyBy)) + '</b></div></div>';
+    var keys = when + '<div class="sl-key">' +
       key('Cake', cake || 'Not given', 'sl-k-cake') + key('Size', sizeTxt || 'Not given') +
       key('Dietary', s.has_dietary ? diet : 'None given', s.has_dietary ? 'sl-diet' : 'sl-k-none') +
     '</div>';
@@ -1453,19 +1456,19 @@
     var otime = at ? apFix(at.toLocaleTimeString('en-GB', { timeZone: TZ, hour: 'numeric', minute: '2-digit', hour12: true })) : '';
     return '<div class="ccs-slip ccs-slip-' + size + '">' +
       '<div class="sl-ordno"><span>Order</span><b>' + esc(s.reference) + '</b><i>v' + b.version + '</i></div>' +
-      '<div class="sl-head"><div class="sl-logo">' + SLIP_LOGO + '</div><div class="sl-hours">MONDAY - SUNDAY<br>8AM - 9PM</div></div>' +
+      '<div class="sl-head"><div class="sl-logo">' + SLIP_LOGO + '</div></div>' +
       '<div class="sl-meta"><span>Kitchen slip v' + b.version + ' · Printed ' + esc(stamp(new Date().toISOString())) + '</span>' + (s.rush ? '<em>Short notice</em>' : '') + '</div>' +
       (b.version > 1 && changed.length ? '<div class="sl-changed">Changed since v' + (b.version - 1) + ': ' + esc(changed.join(', ')) + '. Throw away the old slip.</div>' : '') +
       keys +
       '<div class="sl-lines">' +
         line('Guest Name', x.name || s.customer) + line('Contact', x.phone) +
         (deliv ? line('Deliver to', [s.area, x.address].filter(Boolean).join(', ') + (x.receiver ? ' (for ' + x.receiver + ')' : ''), 'sl-wrap') : '') +
-        line('Price', priceTxt) + line('Candles', s.candles) +
+        line('Payment', priceTxt) + line('Occasion', s.occasion) + line('Candles', s.candles) +
         line('Inscription', s.message ? '“' + s.message + '”' : '', 'sl-big') + line('Remarks', remarks + (!s.has_dietary ? (remarks ? ' · ' : '') + 'No dietary needs or allergies given.' : ''), 'sl-wrap') +
         line('Order Taken by', (x.taken_by || '') + (x.source && x.source !== 'online' ? ' (' + (SRC[x.source] || x.source) + ')' : '')) + pair('Date', odate, 'Time', otime) +
       '</div>' +
       (urls.length ? '<div class="sl-photos">' + urls.map(function (u) { return '<img src="' + esc(u) + '" alt="Reference photo">'; }).join('') + '</div>' : '') +
-      '<div class="sl-foot"><b>Phone: + 679 8922760 | Email: cornercafe@jacksfiji.com</b><small>All prices include 12.5% VAT. Note: 2% Surcharge applies for all overseas Credit card transactions. Foreign currencies are just the estimate convertible values for guests guide.</small></div>' +
+      '<div class="sl-foot"><b>Phone: + 679 8922760 | Email: cornercafe@jacksfiji.com</b><small>All prices include 12.5% VAT. 2% surcharge applies to all credit card payments.</small></div>' +
     '</div>';
   }
   // Printing or saving as PDF uses the page title as the file name, so the slip is named for the order

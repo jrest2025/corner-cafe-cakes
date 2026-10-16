@@ -7,6 +7,16 @@ const MM = 72 / 25.4;
 function t12(t) { const [h, m] = String(t || "").slice(0, 5).split(":").map(Number); if (isNaN(h)) return ""; return `${h % 12 || 12}:${String(m).padStart(2, "0")}${h < 12 ? " AM" : " PM"}`; }
 function dot12(t) { return t12(t).replace(":", "."); }
 function longDate(d) { return d ? new Date(d + "T00:00:00Z").toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }) : ""; }
+function weekday(d) { return d ? new Date(d + "T12:00:00Z").toLocaleDateString("en-GB", { weekday: "long", timeZone: "UTC" }) : ""; }
+function dayMonth(d) { return d ? new Date(d + "T12:00:00Z").toLocaleDateString("en-GB", { day: "numeric", month: "long", timeZone: "UTC" }) : ""; }
+// One plain payment line: paid in full, deposit paid with the balance, or nothing paid yet
+export function payLine(price, paid) {
+  if (price == null || price === "") return "To be priced";
+  const p = Number(price), d = Math.max(Number(paid || 0), 0);
+  if (d >= p - 0.005) return `Paid in full (${cents(p)})`;
+  if (d > 0.005) return `Deposit paid ${cents(d)} · Balance ${cents(p - d)} to pay`;
+  return `Full payment pending · ${cents(p)} to pay`;
+}
 function shortDate(d) { return d ? new Date(d + "T12:00:00Z").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" }).replace(",", "") : ""; }
 function cents(v) { return v == null || v === "" ? "" : "$" + Number(v).toFixed(2); }
 
@@ -61,12 +71,11 @@ async function renderSlip(PDFLib, { snapshot: s, slip, version, changes, printed
   text(vtxt, W - M - vw + 5, y - 20, B, 16);
   y -= 32; page.drawLine({ start: { x: M, y }, end: { x: W - M, y }, thickness: 2, color: BLACK });
 
-  // 2. Black band with the logo and hours
+  // 2. Black band with the logo (no opening hours: the kitchen does not need them)
   y -= 6; const bandH = 42;
   page.drawRectangle({ x: M, y: y - bandH, width: CW, height: bandH, color: BLACK });
   if (logoPng) { const img = await doc.embedPng(logoPng); const h = 28, w = img.width * h / img.height; page.drawImage(img, { x: M + 10, y: y - bandH + (bandH - h) / 2, width: w, height: h }); }
   else text("Corner Café", M + 10, y - 27, B, 16, WHITE);
-  ["MONDAY - SUNDAY", "8AM - 9PM"].forEach((l, k) => text(l, W - M - 10 - width(B, l, 8.5), y - 17 - k * 11, B, 8.5, WHITE));
   y -= bandH + 10;
 
   // 3. Printed line, short notice, what changed
@@ -76,7 +85,9 @@ async function renderSlip(PDFLib, { snapshot: s, slip, version, changes, printed
   if (s.rush) { const rw = width(B, "SHORT NOTICE", 7.5) + 8; page.drawRectangle({ x: W - M - rw, y: y - 3, width: rw, height: 12, borderColor: BLACK, borderWidth: 1.2 }); text("SHORT NOTICE", W - M - rw + 4, y, B, 7.5); }
   y -= 8;
   if (version > 1 && changes && changes.length) {
-    const lines = wrap(B, `Changed since v${version - 1}: ${changes.join(", ")}. Throw away the old slip.`, 8.5, CW - 10);
+    const NAMES = { variant: "flavour", message: "inscription", has_dietary: "dietary", dietary_note: "dietary note", method: "collection or delivery", area: "delivery area", photos: "reference photos", kitchen_notes: "kitchen notes", order_notes: "order notes", customer: "name", rush: "short notice" };
+    const named = changes.map((k) => NAMES[k] || k).filter((v, i, a) => a.indexOf(v) === i);
+    const lines = wrap(B, `Changed since v${version - 1}: ${named.join(", ")}. Throw away the old slip.`, 8.5, CW - 10);
     const bh = lines.length * 11 + 8; page.drawRectangle({ x: M, y: y - bh, width: CW, height: bh, borderColor: BLACK, borderWidth: 1.5 });
     lines.forEach((l, k) => text(l, M + 5, y - 12 - k * 11, B, 8.5)); y -= bh + 6;
   }
@@ -94,11 +105,23 @@ async function renderSlip(PDFLib, { snapshot: s, slip, version, changes, printed
     const c = inverse ? WHITE : BLACK; text(label, x + 5, yTop - 10, B, 6.5, c);
     lines.forEach((l, k) => text(l, x + 5, yTop - 12 - (k + 1) * (size + 2) + 2, B, size, c)); return h;
   };
-  const when = `${longDate(s.date)}, ${t12(s.time)}`, h1 = Math.max(cellH(half, when, 14), cellH(half, readyBy, 14));
-  cell(M, y, half, dl ? "DELIVERY" : "PICKUP", when, 14, true, h1); cell(M + half, y, half, "READY BY", readyBy, 14, true, h1); y -= h1;
+  // When: the weekday largest, so the kitchen reads the day at a glance; the date and time below; ready by beside
+  const leftW = CW * 0.64, rightW = CW - leftW, whenH = 78;
+  page.drawRectangle({ x: M, y: y - whenH, width: CW, height: whenH, color: BLACK });
+  page.drawLine({ start: { x: M + leftW, y: y - 6 }, end: { x: M + leftW, y: y - whenH + 6 }, thickness: 1, color: WHITE });
+  const wd = weekday(s.date).toUpperCase();
+  let wdSize = 36; while (wdSize > 14 && width(B, wd, wdSize) > leftW - 12) wdSize -= 1;
+  text(dl ? "DELIVERY" : "PICKUP", M + 6, y - 10, B, 6.5, WHITE);
+  text(wd, M + 6, y - 12 - wdSize, B, wdSize, WHITE);
+  let dtTxt = `${dayMonth(s.date)} · ${t12(s.time)}`, dtSize = 16; while (dtSize > 9 && width(B, dtTxt, dtSize) > leftW - 12) dtSize -= 0.5;
+  text(dtTxt, M + 6, y - whenH + 9, B, dtSize, WHITE);
+  text("READY BY", M + leftW + 6, y - 10, B, 6.5, WHITE);
+  let rbSize = 20; while (rbSize > 11 && width(B, readyBy, rbSize) > rightW - 12) rbSize -= 1;
+  text(readyBy, M + leftW + 6, y - 12 - rbSize, B, rbSize, WHITE);
+  y -= whenH;
   // A custom cake that is not on the menu has no tin size: show its flavour and the size or servings agreed
   const req = !s.size && s.cake === "Custom cake";
-  const cake = req ? "Custom cake" + (s.variant ? `, ${s.variant}` : "") : (s.variant || s.cake || "") + (s.variant && s.cake && s.variant !== s.cake ? ` (${s.cake})` : "") + (s.finish === "custom" ? " · Custom design" : "");
+  const cake = req ? (s.variant ? `${s.variant} (custom)` : "Custom cake") : (s.variant || s.cake || "") + (s.variant && s.cake && s.variant !== s.cake && !s.cake.includes(s.variant) ? ` (${s.cake})` : "") + (s.finish === "custom" ? " · Custom design" : "");
   const sizeTxt = s.size ? `${s.size} inch` + (s.quantity > 1 ? ` × ${s.quantity} cakes` : "") : req ? (s.serves || "") + (s.quantity > 1 ? ` × ${s.quantity} cakes` : "") : "";
   const h2 = Math.max(cellH(half, cake, 13), cellH(half, sizeTxt, 13));
   cell(M, y, half, "CAKE", cake, 13, false, h2); cell(M + half, y, half, "SIZE", sizeTxt, 13, false, h2); y -= h2;
@@ -109,13 +132,13 @@ async function renderSlip(PDFLib, { snapshot: s, slip, version, changes, printed
 
   // 5. Slip lines
   const sl = slip || {}, paid = Number(sl.paid || 0);
-  const priceTxt = sl.price != null && sl.price !== "" ? cents(sl.price) + (paid > 0 ? ` · Paid ${cents(paid)} · To pay ${cents(Math.max(Number(sl.price) - paid, 0))}` : "") : "To be priced";
-  const remarks = [s.finish === "custom" && s.design ? "Design: " + s.design : "", s.occasion ? "Occasion: " + s.occasion : "", s.order_notes ? "Order notes: " + s.order_notes : "", s.kitchen_notes ? "Kitchen notes: " + s.kitchen_notes : ""].filter(Boolean).join(" · ") + (!s.has_dietary ? " · No dietary needs or allergies given." : "");
+  const priceTxt = payLine(sl.price, paid);
+  const remarks = [s.finish === "custom" && s.design ? "Design: " + s.design : "", s.order_notes ? "Order notes: " + s.order_notes : "", s.kitchen_notes ? "Kitchen notes: " + s.kitchen_notes : ""].filter(Boolean).join(" · ") + (!s.has_dietary ? " · No dietary needs or allergies given." : "");
   const SRC = { online: "Website", walk_in: "Walk-in", phone: "Phone", whatsapp: "WhatsApp", social: "Social media", corporate: "Corporate" };
   const at = sl.ordered_at ? new Date(sl.ordered_at) : null;
   const rows = [["Guest Name", sl.name || s.customer], ["Contact", sl.phone]];
   if (dl) rows.push(["Deliver to", [s.area, sl.address].filter(Boolean).join(", ") + (sl.receiver ? ` (for ${sl.receiver})` : "")]);
-  rows.push(["Price", priceTxt], ["Candles", s.candles], ["Inscription", s.message ? `“${s.message}”` : "", 12], ["Remarks", remarks.replace(/^ · /, "")],
+  rows.push(["Payment", priceTxt], ["Occasion", s.occasion], ["Candles", s.candles], ["Inscription", s.message ? `“${s.message}”` : "", 12], ["Remarks", remarks.replace(/^ · /, "")],
     ["Order Taken by", (sl.taken_by || "") + (sl.source && sl.source !== "online" ? ` (${SRC[sl.source] || sl.source})` : "")],
     ["Date", at ? at.toLocaleDateString("en-GB", { timeZone: "Pacific/Fiji", day: "numeric", month: "short", year: "numeric" }) + ", " + at.toLocaleTimeString("en-GB", { timeZone: "Pacific/Fiji", hour: "numeric", minute: "2-digit", hour12: true }).replace(/\s?([ap])\.?m\.?$/i, (_m, x) => " " + x.toUpperCase() + "M") : ""]);
   const LW = 78;
@@ -128,7 +151,7 @@ async function renderSlip(PDFLib, { snapshot: s, slip, version, changes, printed
 
   // 6. Footer
   const loc = location || {};
-  const f2 = "All prices include 12.5% VAT. 2% surcharge applies to overseas credit card transactions.";
+  const f2 = "All prices include 12.5% VAT. 2% surcharge applies to all credit card payments.";
   const f1 = `Phone: ${loc.phone || "+ 679 8922760"} | Email: ${loc.email || "cornercafe@jacksfiji.com"}`;
   const f1y = M + 12 + (wrap(R, f2, 6, CW).length - 1) * 7;
   text(f1, (W - width(B, f1, 7.5)) / 2, f1y, B, 7.5);
