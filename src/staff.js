@@ -893,7 +893,7 @@
     h += '<section class="ccs-box"><h3>Cake</h3><p class="ccs-big">' + esc(cakeLine(i)) + '</p><dl class="ccs-kv">' +
       kv('Finish', i.finish === 'custom' ? 'Custom design' : 'Standard finish') + kv('Design', i.design_description) +
       kv('Message', i.cake_message ? '“' + i.cake_message + '”' : '') + kv('Candles', i.candles) + kv('Occasion', i.occasion) + kv('Serves', i.serves_label) + kv('Notes', o.customer_notes) + '</dl>' +
-      (canP('ord.edit') && OPEN.indexOf(o.order_status) > -1 ? '<button type="button" class="ccs-link" data-act="panel" data-v="candles">' + (i.candles ? 'Change candles' : 'Add candles') + '</button>' : '') +
+      (canP('ord.edit') && OPEN.indexOf(o.order_status) > -1 ? '<button type="button" class="ccs-link" data-act="am-go" data-v="look">' + (i.candles ? 'Change candles' : 'Add candles') + '</button>' : '') +
       '</section>';
     var curAtt = (o.order_attachments || []).filter(function (a) { return !a.removed_at; }).length, phEdit = canP('ord.edit') && OPEN.indexOf(o.order_status) > -1;
     var phAdd = phEdit ? phThumbs(S.sheet.addPh || [], 'o-phx') + (S.sheet.phErr ? '<p class="ccs-err" role="alert">' + esc(S.sheet.phErr) + '</p>' : '') +
@@ -907,7 +907,7 @@
       (deliv ? '<dl class="ccs-kv">' + kv('Area', o.delivery_zone) + kv('Address', o.delivery_address) + kv('Receiving', o.delivery_contact) + kv('Delivery fee', o.delivery_fee != null ? money(o.delivery_fee) : '') + '</dl>' : '<p class="ccs-hint">Collect from the café counter.</p>') +
       (o.handed_over_at ? '<p class="ccs-hint">Handed over ' + esc(stamp(o.handed_over_at)) + (o.handover_to ? ' to ' + esc(o.handover_to) : '') + '</p>' : '') +
       (o.rush_override ? '<p class="ccs-note">Short-notice order: ' + esc(o.rush_reason) + '</p>' : '') +
-      (!closedSt && canP('ord.edit') ? '<button type="button" class="ccs-link" data-act="panel" data-v="fulfil">Change collection or delivery</button>' : '') + '</section>';
+      (!closedSt && canP('ord.edit') ? '<button type="button" class="ccs-link" data-act="am-go" data-v="deliv">Change collection or delivery</button>' : '') + '</section>';
     cut.push(['kitchen', h.length]);
     if (o.order_status === 'confirmed' || o.order_status === 'completed') {
       h += '<section class="ccs-box"><h3>Kitchen</h3><div class="ccs-tags">' + stagePill(o.production_status) + (o.brief_version ? '<span class="ccs-pill">Kitchen slip v' + o.brief_version + '</span>' : '<span class="ccs-pill s-action">Slip not printed</span>') + '</div>' + (o.brief_version ? slipBox(o.id, false) : '') + '<dl class="ccs-kv">' +
@@ -1794,11 +1794,15 @@
     var i = (o.order_items || [])[0] || {}, c = o.customers || {}, pr = (S.setup.products || []).filter(function (p) { return p.name === i.product_name; })[0];
     var v = { date: o.required_date, time: String(o.required_time).slice(0, 5), product: pr ? pr.code : '', variant: i.variant || '', size: String(i.size_inch || ''), qty: String(i.quantity || 1),
       finish: i.finish || 'standard', design: i.design_description || '', message: i.cake_message || '', occasion: i.occasion || '', diet: o.has_dietary ? 'yes' : 'no',
-      diets: (i.dietary || []).slice(), dietNote: i.dietary_note || '', knotes: i.kitchen_notes || '', cnotes: o.customer_notes || '', cname: c.full_name || '', cemail: c.email || '', cphone: c.phone || '', price: '' };
+      diets: (i.dietary || []).slice(), dietNote: i.dietary_note || '', knotes: i.kitchen_notes || '', cnotes: o.customer_notes || '', cname: c.full_name || '', cemail: c.email || '', cphone: c.phone || '', price: '',
+      method: o.fulfilment_method === 'delivery' ? 'delivery' : 'collection', zone: o.delivery_zone || '', address: o.delivery_address || '', dcontact: o.delivery_contact || '',
+      fee: String(Number(o.delivery_fee || 0)), candles: i.candles || '', deposit: o.deposit_required != null ? String(Number(o.deposit_required)) : '' };
     return Object.assign({ orig: JSON.parse(JSON.stringify(v)), by: null, reason: '', preview: null, open: { when: true } }, v);
   }
   function amendSet(f, v) {
     var a = S.am; a[f] = v; a.preview = null;
+    // a delivery area with a set fee fills the fee in; staff can still type a different amount
+    if (f === 'zone') { var zz = ((S.setup && S.setup.delivery_zones) || []).filter(function (x) { return x.name === v; })[0]; if (zz && zz.fee != null) a.fee = String(Number(zz.fee)); }
     if (f === 'product') { var p = amProduct(); a.variant = p && p.variants.length ? (p.variants.indexOf(a.variant) > -1 ? a.variant : '') : ''; if (p && !p.sizes.some(function (z) { return String(z.inch) === a.size; })) a.size = ''; if (p && !p.supports_custom) a.finish = 'standard'; }
     renderSheet();
   }
@@ -1824,6 +1828,16 @@
     if (a.cemail !== o0.cemail) ch.customer_email = a.cemail;
     if (a.cphone !== o0.cphone) ch.customer_phone = a.cphone;
     if (String(a.price).trim() !== '') ch.price = num(a.price);
+    // Collection or delivery: a switch to delivery sends the whole address so the server can check it
+    if (a.method !== o0.method) { ch.method = a.method; if (a.method === 'delivery') { ch.zone = a.zone; ch.address = a.address; ch.delivery_contact = a.dcontact; ch.fee = a.fee; } }
+    else if (a.method === 'delivery') {
+      if (a.zone !== o0.zone) ch.zone = a.zone;
+      if (a.address !== o0.address) ch.address = a.address;
+      if (a.dcontact !== o0.dcontact) ch.delivery_contact = a.dcontact;
+      if (String(a.fee).trim() !== String(o0.fee).trim()) ch.fee = String(a.fee).trim() === '' ? null : num(a.fee);
+    }
+    if (a.candles !== o0.candles) ch.candles = a.candles;
+    if (String(a.deposit).trim() !== String(o0.deposit).trim()) ch.deposit_required = String(a.deposit).trim() === '' ? 0 : num(a.deposit);
     return ch;
   }
   function dietMissing(diet, diets, note) {
@@ -1870,6 +1884,14 @@
     h += sec('when', 'Date and time', nice(a.date) + ', ' + t12(a.time),
       '<div class="ccs-row"><div class="ccs-field"><label class="ccs-label" for="am-date">Date</label><input class="ccs-input" type="date" id="am-date" data-am="date" value="' + esc(a.date) + '"></div>' +
       '<div class="ccs-field"><label class="ccs-label" for="am-time">Time</label><select class="ccs-input" id="am-time" data-am="time">' + slots.map(function (x) { return '<option value="' + x + '"' + (x === a.time ? ' selected' : '') + '>' + t12(x) + '</option>'; }).join('') + '</select></div></div>');
+    var zones = (S.setup && S.setup.delivery_zones) || [], zNow = zones.filter(function (x) { return x.name === a.zone; })[0];
+    h += sec('deliv', 'Collection or delivery', a.method === 'delivery' ? 'Delivery' + (a.zone ? ' to ' + a.zone : '') + ' · ' + money(num(a.fee) || 0) : 'Collect from the café',
+      '<div class="ccs-chips">' + chip('method', 'collection', 'Collect from the café', a.method === 'collection') + chip('method', 'delivery', 'Delivery', a.method === 'delivery') + '</div>' +
+      (a.method === 'delivery' ? '<div class="ccs-row"><div class="ccs-field"><label class="ccs-label" for="am-zone">Delivery area</label><select class="ccs-input" id="am-zone" data-am="zone"><option value="">Choose an area</option>' +
+        zones.map(function (x) { return '<option value="' + esc(x.name) + '"' + (x.name === a.zone ? ' selected' : '') + '>' + esc(x.name) + (x.fee != null ? ' (' + money(Number(x.fee)) + ')' : '') + '</option>'; }).join('') + '</select></div>' +
+        fld('am-fee', 'fee', 'Delivery fee (FJD)', a.fee, ' inputmode="decimal" style="max-width:180px"') + '</div>' +
+        (zNow && zNow.fee != null && num(a.fee) !== Number(zNow.fee) ? '<p class="ccs-hint">The usual fee for ' + esc(zNow.name) + ' is ' + money(Number(zNow.fee)) + '. The change history records both.</p>' : '') +
+        area('am-addr', 'address', 'Delivery address', a.address) + fld('am-dcontact', 'dcontact', 'Who receives it (optional)', a.dcontact) : ''));
     if (isReq((o.order_items || [])[0])) h += '<p class="ccs-hint">Custom cake: change its flavour, size or price with Change the price on the order' + (OPEN.indexOf(o.order_status) > -1 && ['awaiting_review','awaiting_quote','awaiting_approval'].indexOf(o.order_status) > -1 ? '' : ' (before it is confirmed)') + '.</p>';
     else {
     h += sec('cake', 'Cake, size and quantity', (a.variant || (p ? p.name : 'Cake')) + ', ' + (a.size || '?') + ' inch' + (a.qty !== '1' ? ' × ' + a.qty : ''),
@@ -1882,6 +1904,7 @@
       '<div class="ccs-chips">' + chip('finish', 'standard', 'Standard finish', a.finish === 'standard') + (!p || p.supports_custom ? chip('finish', 'custom', 'Custom design', a.finish === 'custom') : '') + '</div>' +
       (a.finish === 'custom' || a.design ? area('am-design', 'design', 'Design', a.design) : '') +
       fld('am-msg', 'message', 'Message on the cake', a.message, ' maxlength="60"') +
+      fld('am-cand', 'candles', 'Candles', a.candles, ' maxlength="60" placeholder="For example: number 30 candle"') +
       '<div class="ccs-field"><label class="ccs-label" for="am-occ">Occasion</label><select class="ccs-input" id="am-occ" data-am="occasion"><option value="">Customer didn\'t say</option>' + (a.occasion && OCCASIONS.indexOf(a.occasion) < 0 ? '<option value="' + esc(a.occasion) + '" selected>' + esc(a.occasion) + (['Baby shower', 'Graduation'].indexOf(a.occasion) < 0 ? ' (Other)' : '') + '</option>' : '') + OCCASIONS.map(function (x) { return '<option value="' + esc(x) + '"' + (x === a.occasion ? ' selected' : '') + '>' + esc(x) + '</option>'; }).join('') + '</select></div>');
     h += sec('diet', 'Dietary and allergies', a.diet === 'yes' ? ([].concat(a.diets, a.dietNote ? [a.dietNote] : []).join(', ') || 'Yes') : 'None',
       '<div class="ccs-chips">' + chip('diet', 'no', 'No', a.diet === 'no') + chip('diet', 'yes', 'Yes', a.diet === 'yes') + '</div>' +
@@ -1891,8 +1914,13 @@
     h += sec('cust', 'Contact on this order', a.cname + (a.cphone ? ' · ' + a.cphone : '') + (a.cemail ? ' · ' + a.cemail : ''),
       '<div class="ccs-row">' + fld('am-cname', 'cname', 'Name', a.cname) + fld('am-cphone', 'cphone', 'Mobile', a.cphone, ' inputmode="tel"') + '</div>' + fld('am-cemail', 'cemail', 'Email', a.cemail, ' type="email"') +
       '<p class="ccs-hint">Changes this order only. The customer profile stays as it is. To change the profile, open Customer profile.</p>');
-    if (canP('ord.override')) h += sec('price', 'Agreed price', a.price ? money(num(a.price)) + ' (set by you)' : money(total) + ' now',
-      fld('am-price', 'price', 'New agreed price (FJD)', a.price, ' inputmode="decimal" placeholder="Leave blank to recalculate from the price list"') + '<p class="ccs-hint">Payments already recorded are never changed.</p>');
+    var depOk = o.order_status === 'awaiting_deposit' || o.order_status === 'confirmed';
+    // Menu cakes keep the price list (a manager can still change it); custom cake prices are agreed, so staff can change them
+    var priceOk = a.finish === 'custom' || isReq((o.order_items || [])[0]) || canP('ord.override');
+    if (priceOk || depOk) h += sec('price', depOk ? 'Price and deposit' : 'Agreed price', (a.price ? money(num(a.price)) + ' (set by you)' : money(total) + ' now') + (depOk && a.deposit && num(a.deposit) ? ' · deposit ' + money(num(a.deposit)) : ''),
+      (priceOk ? fld('am-price', 'price', 'New agreed price (FJD)', a.price, ' inputmode="decimal" placeholder="Leave blank to recalculate from the price list"') : '<p class="ccs-hint">Menu cakes use the price list.</p>') +
+      (depOk ? fld('am-dep', 'deposit', 'Deposit required (FJD)', a.deposit, ' inputmode="decimal" placeholder="Blank or 0 for no deposit" style="max-width:220px"') : '') +
+      '<p class="ccs-hint">Payments already recorded are never changed.</p>');
     h += '<div class="ccs-field"><span class="ccs-label">Who asked for the change?</span><div class="ccs-chips">' + [['guest', 'Guest'], ['staff', 'Our team'], ['other', 'Someone else']].map(function (x) { return chip('by', x[0], x[1], a.by === x[0]); }).join('') + '</div>' +
       (a.by === 'staff' ? '<span class="ccs-hint">A time change by our team is recorded as our delay, not the guest\'s request.</span>' : '') + '</div>';
     h += area('am-reason', 'reason', 'Reason', a.reason, 'For example: guest wants a bigger cake for more people');
@@ -4426,6 +4454,8 @@
         case 'am-set': amendSet(b.dataset.f, v); break;
         case 'am-diet': var dl_ = S.am.diets.indexOf(v); if (dl_ > -1) S.am.diets.splice(dl_, 1); else S.am.diets.push(v); S.am.preview = null; renderSheet(); break;
         case 'am-open': S.am.open[v] = !S.am.open[v]; renderSheet(); break;
+        // Delivery and candles are changed through Change order, so every change goes into the same change history
+        case 'am-go': if (S.panel && S.panel !== 'amend' && hasTyping() && !confirmDiscard(b)) break; if (S.panel !== 'amend' || !S.am) { S.panel = 'amend'; S.panelErr = null; S.dirty = {}; S.am = amendInit(S.sheet.data); } S.am.open = {}; S.am.open[v] = true; renderSheet(); (function () { var bd = document.querySelector('#ccs-sheet .ccs-sheet-body'); if (bd) bd.scrollTop = 0; })(); break;
         case 'am-review': amendSend(false); break;
         case 'am-save': amendSend(true); break;
         case 'am-edit': S.am.preview = null; S.panelErr = null; renderSheet(); break;
@@ -4671,6 +4701,7 @@
     if (e.target.id === 'ccs-seg') { clSegChange(e.target.value); return; }
     if (e.target.id === 'cal-status' || e.target.id === 'cal-type') { S.cal[e.target.id === 'cal-status' ? 'status' : 'type'] = e.target.value; S.cal.pre = null; calRefresh(); return; }
     if (e.target.id === 'am-prod' && S.am) { amendSet('product', e.target.value); return; }
+    if (e.target.id === 'am-zone' && S.am) { amendSet('zone', e.target.value); return; }
   });
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape' && menuOpen()) { menuSet(false); return; }
