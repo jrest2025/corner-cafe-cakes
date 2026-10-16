@@ -390,7 +390,7 @@ body:has(#cc-cake-order .cco-done) .cco-bar { display: none; }
   #cc-cake-order .cco-sum-e { padding: 12px 10px; }
 }
 /* occasions in fewer rows wherever there is room */
-@media (min-width: 640px) { #cc-cake-order .cco-occs { grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); } }
+@media (min-width: 640px) { #cc-cake-order .cco-occs { grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); } #cc-cake-order .cco-occs .cco-chip { padding: 8px 6px; font-size: 15px; } }
 /* "Anything to add?" links side by side on wider screens; an opened field takes the full width */
 @media (min-width: 640px) {
   #cc-cake-order .cco-adds { display: flex; flex-wrap: wrap; align-items: center; column-gap: 28px; row-gap: 0; }
