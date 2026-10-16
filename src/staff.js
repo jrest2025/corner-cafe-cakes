@@ -173,6 +173,8 @@
   function isTextField(t) { return t && (t.tagName === 'TEXTAREA' || (t.tagName === 'INPUT' && !/^(checkbox|radio|button|submit|range|color|file)$/i.test(t.type)) || (t.tagName === 'SELECT')); }
   document.addEventListener('focusin', function (e) { if (isTextField(e.target)) document.body.classList.add('ccs-kb'); });
   document.addEventListener('focusout', function () { setTimeout(function () { if (!isTextField(document.activeElement)) document.body.classList.remove('ccs-kb'); }, 60); });
+  // iPad and phone: when the on-screen keyboard opens, side panels shrink to the visible area so Save and Cancel stay above it
+  if (window.visualViewport) { var vvSet = function () { document.documentElement.style.setProperty('--ccs-vvh', Math.round(window.visualViewport.height) + 'px'); }; window.visualViewport.addEventListener('resize', vvSet); vvSet(); }
   window.addEventListener('offline', netBanner);
   window.addEventListener('online', function () { netBanner(); if (S.me) { toast('Back online'); tick(); } });
 
