@@ -242,6 +242,7 @@
   window.addEventListener('beforeunload', function (e) { if (S.me && S.sheet && hasTyping()) { e.preventDefault(); e.returnValue = ''; } });
   function view() {
     var m = document.getElementById('ccs-main'); if (!m) return;
+    m.setAttribute('data-screen', S.tab || '');
     var keepFocus = captureFocus(m);
     viewInner(m); restoreFocus(keepFocus); saveDraft(); markMore(m); scrKeep(); scrApply();
   }
@@ -4042,8 +4043,8 @@
     var n = !d, U = S.settings.occUi, opts = oc.occasions.filter(function (x) { return !x.merged_into && !x.system; });
     return '<div class="oc-form"><div class="ccs-row">' +
       '<div class="ccs-field"><label class="ccs-label" for="oc-d-code">Occasion</label><select class="ccs-input" id="oc-d-code">' + opts.map(function (x) { return '<option value="' + x.code + '"' + ((n ? '' : d.code) === x.code ? ' selected' : '') + '>' + esc(x.label) + '</option>'; }).join('') + '</select></div>' +
-      sf('oc-d-start', 'Date', n ? U.year + '-01-01' : d.starts_on, 'date') + sf('oc-d-end', 'Last day, if it runs several days (optional)', n || !d.ends_on ? '' : d.ends_on, 'date') + '</div><div class="ccs-row">' +
-      sf('oc-d-promo', 'Start promoting this many days before', n ? 21 : d.promo_days) + sf('oc-d-note', 'Note (optional)', n ? '' : d.note || '', 'text') + '</div>' +
+      sf('oc-d-start', 'Date', n ? U.year + '-01-01' : d.starts_on, 'date') + sf('oc-d-end', 'Last day (optional)', n || !d.ends_on ? '' : d.ends_on, 'date') + '</div><div class="ccs-row">' +
+      sf('oc-d-promo', 'Promote, days before', n ? 21 : d.promo_days) + sf('oc-d-note', 'Note (optional)', n ? '' : d.note || '', 'text') + '</div>' +
       (U.err ? '<p class="ccs-err" role="alert">' + esc(U.err) + '</p>' : '') + '<div class="ccs-actions-row"><button type="button" class="ccs-btn" data-act="oc-dsave" data-v="' + (n ? '' : d.id) + '">' + (n ? 'Add date' : 'Save date') + '</button><button type="button" class="ccs-btn ccs-ghost" data-act="oc-dedit" data-v="">Cancel</button></div></div>';
   }
   function occAct(a, b, v) {

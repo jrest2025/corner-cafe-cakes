@@ -840,3 +840,59 @@
 #cc-staff .oc-form { border: 1px solid #DCE3EB; border-radius: 10px; padding: 12px; margin: 0 0 8px; background: #fff; display: grid; gap: 8px; }
 #cc-staff .oc-more { border-top: 1px solid #EAECF0; padding-top: 10px; display: grid; gap: 8px; }
 #cc-staff .oc-years { margin-top: 8px; }
+
+/* Back office, compact on computers and tablets (Settings first). Phones keep touch sizes. Sizes follow the device text setting. */
+@media (min-width: 760px) {
+  #ccs-main[data-screen="settings"] { font-size: calc(15 * var(--u, 1px)); }
+  #ccs-main[data-screen="settings"] .ccs-head { margin-bottom: 8px; }
+  #ccs-main[data-screen="settings"] .ccs-head .ccs-title { font-size: calc(24 * var(--u, 1px)) !important; }
+  #ccs-main[data-screen="settings"] .ccs-set.is-fit { grid-template-columns: 200px minmax(0, 1fr); gap: 12px; }
+  #ccs-main[data-screen="settings"] .ccs-setnav { gap: 0 !important; }
+  #ccs-main[data-screen="settings"] .ccs-setnav .ccs-secbtn { min-height: 36px !important; padding: 6px 12px !important; font-size: calc(14 * var(--u, 1px)) !important; line-height: 1.25; }
+  #ccs-main[data-screen="settings"] .ccs-set summary { min-height: 44px; padding: 10px 14px; font-size: calc(16 * var(--u, 1px)); }
+  #ccs-main[data-screen="settings"] .ccs-set summary span { font-size: calc(14 * var(--u, 1px)); }
+  #ccs-main[data-screen="settings"] .ccs-set .ccs-set-body { padding: 0 14px 14px; gap: 10px; }
+  #ccs-main[data-screen="settings"] .ccs-row { display: grid !important; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px 12px; align-items: end; }
+  #ccs-main[data-screen="settings"] .ccs-field { gap: 2px; margin: 0; }
+  #ccs-main[data-screen="settings"] .ccs-label { font-size: calc(13 * var(--u, 1px)) !important; font-weight: 600; color: #475467 !important; margin: 0 0 2px; }
+  #ccs-main[data-screen="settings"] .ccs-input, #ccs-main[data-screen="settings"] select.ccs-input { min-height: 40px !important; height: 40px; padding: 6px 10px !important; font-size: calc(15 * var(--u, 1px)) !important; border-radius: 8px; }
+  #ccs-main[data-screen="settings"] textarea.ccs-input { height: auto; }
+  #ccs-main[data-screen="settings"] .ccs-btn { min-height: 40px !important; padding: 6px 14px !important; font-size: calc(15 * var(--u, 1px)) !important; border-radius: 8px; }
+  #ccs-main[data-screen="settings"] .ccs-actions-row { gap: 8px; }
+  #ccs-main[data-screen="settings"] .ccs-actions-row .ccs-btn { flex: 0 0 auto !important; }
+  #ccs-main[data-screen="settings"] .ccs-chip { min-height: 34px !important; padding: 4px 12px !important; font-size: calc(14 * var(--u, 1px)) !important; }
+  #ccs-main[data-screen="settings"] .ccs-chips { gap: 6px; }
+  #ccs-main[data-screen="settings"] .ccs-hint, #ccs-main[data-screen="settings"] .ccs-note { font-size: calc(14 * var(--u, 1px)) !important; margin: 0; }
+  #ccs-main[data-screen="settings"] .ccs-note { padding: 8px 12px !important; }
+  #ccs-main[data-screen="settings"] .ccs-check { font-size: calc(15 * var(--u, 1px)); min-height: 32px; gap: 8px; }
+  #ccs-main[data-screen="settings"] .ccs-seth { font-size: calc(15 * var(--u, 1px)); margin: 6px 0 0; }
+  #ccs-main[data-screen="settings"] .ccs-history > div { padding: 6px 0; }
+  /* Lists read as a table: joined rows, small links at the end */
+  #ccs-main[data-screen="settings"] .oc-list { gap: 0; border: 1px solid #DCE3EB; border-radius: 10px; overflow: hidden; margin: 4px 0 8px; }
+  #ccs-main[data-screen="settings"] .oc-row { border: 0; border-radius: 0; border-top: 1px solid #EAECF0; padding: 5px 10px; min-height: 40px; gap: 10px; }
+  #ccs-main[data-screen="settings"] .oc-list > .oc-row:first-child { border-top: 0; }
+  #ccs-main[data-screen="settings"] .oc-n { flex-direction: row; flex-wrap: wrap; align-items: baseline; gap: 0 10px; }
+  #ccs-main[data-screen="settings"] .oc-n b { font-size: calc(15 * var(--u, 1px)); }
+  #ccs-main[data-screen="settings"] .oc-n small { font-size: calc(13 * var(--u, 1px)); }
+  #ccs-main[data-screen="settings"] .oc-dot { width: 10px; height: 10px; }
+  #ccs-main[data-screen="settings"] .oc-acts .ccs-link { min-height: 30px; min-width: 30px; padding: 0 6px; font-size: calc(14 * var(--u, 1px)); }
+  #ccs-main[data-screen="settings"] .oc-form { border: 0; border-top: 1px solid #EAECF0; border-radius: 0; margin: 0; padding: 10px; background: #F9FAFB; gap: 8px; }
+  #ccs-main[data-screen="settings"] .oc-form { display: flex; flex-wrap: wrap; align-items: flex-end; }
+  #ccs-main[data-screen="settings"] .oc-form > .ccs-row { display: contents !important; }
+  #ccs-main[data-screen="settings"] .oc-form .ccs-field { flex: 1 1 140px; }
+  #ccs-main[data-screen="settings"] .oc-form > .ccs-check, #ccs-main[data-screen="settings"] .oc-form > .oc-more, #ccs-main[data-screen="settings"] .oc-form > .ccs-err { flex: 1 1 100%; }
+  #ccs-main[data-screen="settings"] .oc-form > .ccs-actions-row { flex: 0 0 auto; }
+  #ccs-main[data-screen="settings"] .oc-list + .ccs-btn, #ccs-main[data-screen="settings"] .oc-set > .ccs-btn { align-self: start; justify-self: start; }
+}
+
+@media (min-width: 760px) {
+  /* Settings lists as tables; buttons only as wide as their words */
+  #ccs-main[data-screen="settings"] .ccs-set-body > .ccs-btn, #ccs-main[data-screen="settings"] .ccs-set-body > div > .ccs-btn:only-child { justify-self: start; width: auto !important; }
+  #ccs-main[data-screen="settings"] .ccs-menu-list { display: grid; gap: 0 !important; border: 1px solid #DCE3EB; border-radius: 10px; overflow: hidden; }
+  #ccs-main[data-screen="settings"] .ccs-menu-row { border: 0 !important; border-top: 1px solid #EAECF0 !important; border-radius: 0 !important; padding: 6px 10px 6px 12px !important; min-height: 44px; box-shadow: none !important; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  #ccs-main[data-screen="settings"] .ccs-menu-row:first-child { border-top: 0 !important; }
+  #ccs-main[data-screen="settings"] .ccs-menu-row > div { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 10px; }
+  #ccs-main[data-screen="settings"] .ccs-menu-row b { font-size: calc(15 * var(--u, 1px)) !important; }
+  #ccs-main[data-screen="settings"] .ccs-menu-row span { font-size: calc(13 * var(--u, 1px)) !important; }
+  #ccs-main[data-screen="settings"] .ccs-menu-row .ccs-btn, #ccs-main[data-screen="settings"] .ccs-history .ccs-btn { min-height: 32px !important; padding: 2px 12px !important; font-size: calc(14 * var(--u, 1px)) !important; }
+}
