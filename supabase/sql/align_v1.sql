@@ -10,6 +10,7 @@
 -- 5. Cake menu: each cake can have a short description and a photo, set by managers in the staff app (Settings, Cake menu).
 --    Photos go in a new public folder, cake-menu. Only managers can add or change them.
 -- 6. Six early website orders get their allergy answer filled in from what was recorded (No).
+-- 7. Photos for four cakes on the order page. Cheesecake and Strawberry keep the plain plate until a photo is added.
 -- Runs as one block: if any check at the end fails, nothing is changed.
 do $align_v1$
 declare v_bad int;
@@ -297,6 +298,11 @@ begin
   -- 6. Early website orders: the allergy answer recorded as No ------------------------------------
   update public.orders set dietary_status = case when has_dietary then 'yes' else 'no' end
   where source = 'online' and dietary_status is null and reference not like 'H-%';
+
+
+  -- 7. Cake photos on the order page (hosted with the app, pinned to one version; managers can replace them in the staff app)
+  update public.products p set image_url = 'https://cdn.jsdelivr.net/gh/jrest2025/corner-cafe-cakes@d34ff66373f8719fd47b0e986f306de6d7c321a1/dist/brand/cakes/' || p.code || '.jpg'
+  where p.code in ('chocolate-mudcake-mocha', 'red-velvet', 'black-white-forest', 'vanilla-pina-colada') and p.image_url is null;
 
   -- Checks --------------------------------------------------------------------------------------------
   select count(*) into v_bad

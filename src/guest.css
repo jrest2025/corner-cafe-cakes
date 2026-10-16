@@ -256,6 +256,7 @@ body:has(#cc-cake-order .cco-done) .cco-help { display: none; }
 #cc-cake-order .cco-tk-name { font-size: 20px; font-weight: 700; line-height: 1.2; letter-spacing: -.015em; color: var(--o-ink); }
 #cc-cake-order .cco-ticket-empty .cco-tk-name { color: var(--o-faint); }
 #cc-cake-order .cco-ticket-empty .cco-tk-photo { aspect-ratio: 16 / 7; }
+#cc-cake-order .cco-ticket-empty .cco-tk-photo .cco-disc { width: 24%; box-shadow: 0 0 0 7px #fff, 0 0 0 8px var(--o-line); }
 #cc-cake-order .cco-tk-hint { font-size: 15px; color: var(--o-muted); margin-top: -6px; }
 #cc-cake-order .cco-tk-rows { display: grid; border-top: 1px dashed var(--o-line-2); }
 #cc-cake-order .cco-tk-row > button, #cc-cake-order .cco-tk-row > div { appearance: none; width: 100%; display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 10px; padding: 9px 0; border: 0; border-bottom: 1px dashed var(--o-line-2); background: none; text-align: left; font-size: 15px; line-height: 1.4; }
