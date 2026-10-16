@@ -630,3 +630,29 @@
   #cc-staff .at-row.is-rep > .at-why { display: none !important; }
   #cc-staff .at-row:not(.is-rep):not(:first-child) { margin-top: 8px; }
 }
+
+/* Order screen on phones: name and cake first, tidy summary, plain next step, fewer big buttons, Delete at the bottom, section buttons fit, white background */
+#ccs-sheet .os-tph, #ccs-sheet .os-callrow, #ccs-sheet .os-phnext, #ccs-sheet .os-phdanger { display: none; }
+@media (max-width: 759px) {
+  #ccs-sheet .ccs-sheet-head > .ccs-title { white-space: normal !important; flex: 1 1 0 !important; min-width: 0; }
+  #ccs-sheet .os-tref { display: none; }
+  #ccs-sheet .os-tph { display: flex; flex-direction: column; line-height: 1.2; }
+  #ccs-sheet .os-tph b { font-size: 24px; font-weight: 700; color: #101828; overflow-wrap: anywhere; }
+  #ccs-sheet .os-tph small { font-size: 15px; font-weight: 600; color: #475467; margin-top: 3px; }
+  #ccs-sheet .ccs-sheet-body, #ccs-sheet.ccs-sheet { background: #FFFFFF !important; }
+  #ccs-sheet .ccs-ostrip > .os-when, #ccs-sheet .ccs-ostrip > .os-cust { grid-column: 1 / -1 !important; }
+  #ccs-sheet .ccs-ostrip > .os-when b { white-space: nowrap; }
+  #ccs-sheet .ccs-ostrip > .os-cust > span, #ccs-sheet .ccs-ostrip > .os-cust > b, #ccs-sheet .ccs-ostrip > .os-cust > a { display: none !important; }
+  #ccs-sheet .ccs-ostrip > .os-cust .os-callrow { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 2px 0 4px; }
+  #ccs-sheet .ccs-ostrip .os-callrow a { display: inline-flex !important; align-items: center; justify-content: center; min-height: 44px; text-decoration: none !important; font-size: 15px; font-weight: 600; color: #1D4F84 !important; border-radius: 10px; padding: 6px 10px; text-align: center; }
+  #ccs-sheet .os-dknext, #ccs-sheet .os-dkonly { display: none !important; }
+  #ccs-sheet .os-phnext { display: block; }
+  #ccs-sheet .ccs-actions [data-v="collected"][disabled] { display: none !important; }
+  #ccs-sheet .ccs-actions > .ccs-actions-row:not(.ccs-more-row) { display: grid !important; grid-template-columns: 1fr 1fr; gap: 8px; }
+  #ccs-sheet .ccs-actions > .ccs-actions-row:not(.ccs-more-row) > .ccs-btn { grid-column: auto; min-height: 44px !important; font-size: 15px !important; }
+  #ccs-sheet .ccs-actions > .ccs-actions-row:not(.ccs-more-row) > .ccs-btn:not(.ccs-ghost) { grid-column: 1 / -1; min-height: 52px !important; font-size: 17px !important; }
+  #ccs-sheet .ccs-more-row [data-act="go-other"] { display: none !important; }
+  #ccs-sheet .os-phdanger { display: block; text-align: center; padding: 16px 0 8px; margin-top: 8px; border-top: 1px solid #EAECF0; }
+  #ccs-sheet .os-detail .ccs-secbar { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; overflow: visible !important; -webkit-mask-image: none !important; mask-image: none !important; padding-right: 4px !important; width: 100%; }
+  #ccs-sheet .os-detail .ccs-secbar .ccs-secbtn { justify-content: center; padding: 0 4px !important; font-size: 15px !important; min-width: 0; }
+}

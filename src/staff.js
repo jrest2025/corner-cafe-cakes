@@ -900,10 +900,12 @@
     var o = S.sheet.data;
     if (!o) return sheetHead(S.sheet.err ? 'Order' : 'Loading…') + '<div class="ccs-sheet-body">' + (S.sheet.err ? loadErr(S.sheet.err, 'reopen-order') : '<p class="ccs-loading">Loading order…</p>') + '</div>';
     var i = (o.order_items || [])[0] || {}, c = o.customers, paid = paidTotal(o), total = Number(o.final_total != null ? o.final_total : o.estimate_total), bal = Math.max(total - paid, 0);
-    var h = sheetHead(esc(o.reference), pill(o.order_status, o.fulfilment_method) + (o.order_status === 'confirmed' || o.order_status === 'completed' ? payPill(o.payment_status) : '') + (o.revision ? '<span class="ccs-tag t-warn">Amended</span>' : '')) + '<div class="ccs-sheet-body">';
+    var phName = (c && c.full_name) || o.contact_name || 'Customer';
+    var h = sheetHead('<span class="os-tref">' + esc(o.reference) + '</span><span class="os-tph"><b>' + esc(phName) + '</b><small>' + esc(o.reference) + ((o.order_items || []).length ? ' · ' + esc(cakeLine(i)) : '') + '</small></span>', pill(o.order_status, o.fulfilment_method) + (o.order_status === 'confirmed' || o.order_status === 'completed' ? payPill(o.payment_status) : '') + (o.revision ? '<span class="ccs-tag t-warn">Amended</span>' : '')) + '<div class="ccs-sheet-body">';
     var dlv = o.fulfilment_method === 'delivery', gName = (c && c.full_name) || o.contact_name || '', gPhone = (c && c.phone) || o.contact_phone || '';
-    h += '<div class="ccs-ostrip"><div><span>' + (dlv ? 'Delivery' : 'Collection') + '</span><b>' + esc(nice(o.required_date)) + ', ' + esc(t12(o.required_time)) + '</b></div>' +
-      '<div><span>Customer</span><b>' + esc(gName) + '</b>' + (gPhone ? '<a href="tel:' + esc(digits(gPhone)) + '">' + esc(gPhone) + '</a>' : '') + '</div>' +
+    h += '<div class="ccs-ostrip"><div class="os-when"><span>' + (dlv ? 'Delivery' : 'Collection') + '</span><b>' + esc(nice(o.required_date)) + ', ' + esc(t12(o.required_time)) + '</b></div>' +
+      '<div class="os-cust"><span>Customer</span><b>' + esc(gName) + '</b>' + (gPhone ? '<a href="tel:' + esc(digits(gPhone)) + '">' + esc(gPhone) + '</a>' : '') +
+      (gPhone ? '<div class="os-callrow"><a class="ccs-btn ccs-ghost" href="tel:' + esc(digits(gPhone)) + '">Call ' + esc(gPhone) + '</a><a class="ccs-btn ccs-ghost" href="' + esc(waLink(gPhone)) + '" target="_blank" rel="noopener">WhatsApp</a></div>' : '') + '</div>' +
       (canP('ord.payments') ? '<div><span>Price</span><b>' + (o.order_type === 'custom' && o.final_total == null && !total ? 'To price' : money(total)) + '</b></div><div><span>Paid</span><b>' + money(paid) + '</b></div><div><span>To pay</span><b>' + money(bal) + '</b></div>' : '') + '</div>';
     if (o.has_dietary) h += '<div class="ccs-alert">Dietary or allergy: ' + esc([].concat(i.dietary || [], i.dietary_note ? [i.dietary_note] : []).join(', ') || 'see notes') + '</div>';
     var sst = o.order_status === 'confirmed' ? slipState(o.id) : null;
@@ -958,7 +960,8 @@
     var dz = !S.panel && S.sheet.danger && S.sheet.danger.length ? '<section class="ccs-box ccs-other"><h3>Other actions</h3><p class="ccs-hint">These change or remove the order. Each one asks before anything happens.</p><div class="ccs-actions-row ccs-more-row">' + S.sheet.danger.map(function (m) { return '<button type="button" class="ccs-link ccs-red" data-act="panel" data-v="' + m[0] + '">' + m[1] + '</button>'; }).join('') + '</div></section>' : '';
     h += '<section class="ccs-box"><h3>Activity</h3>' + (S.sheet.showHistory ? '<div class="ccs-history">' + (o.order_events || []).slice().sort(function (a, b) { return a.at < b.at ? -1 : 1; }).map(function (e) { return '<div><span>' + esc(stamp(e.at)) + '</span><span style="color:var(--ccs-ink)">' + esc(eventText(e)) + '</span></div>'; }).join('') + '</div>' : '<button type="button" class="ccs-link" data-act="history">Show history (' + (o.order_events || []).length + ')</button>') + '</section>' + dz;
     // One section at a time below the key facts and actions, so the panel fits the screen
-    return secSplit(h, cut, 'order', { cake: 'Cake', when: deliv ? 'Delivery' : 'Collection', kitchen: 'Kitchen', customer: 'Customer', payment: 'Payment', history: 'History' }, !!S.panel) + '</div>';
+    var phDel = !S.panel && (S.sheet.danger || []).some(function (d) { return d[0] === 'delete'; }) && secStore('order').order !== 'history' ? '<div class="os-phdanger"><button type="button" class="ccs-link ccs-red" data-act="go-other">Delete order</button></div>' : '';
+    return secSplit(h, cut, 'order', { cake: 'Cake', when: deliv ? 'Delivery' : 'Collection', kitchen: 'Kitchen', customer: 'Customer', payment: 'Payment', history: 'History' }, !!S.panel) + phDel + '</div>';
   }
   // Section buttons: one section on screen at a time (fits the screen height without scrolling)
   function secStore(group) { if (S.sheet && /^(order|cust)/.test(group)) { S.sheet.sec = S.sheet.sec || {}; return S.sheet.sec; } S.secs = S.secs || {}; return S.secs; }
@@ -1259,9 +1262,12 @@
     // Administrators: a visible way to Delete (it sits in Other actions at the end of History and still asks for the order number and a reason)
     if (danger.some(function (d) { return d[0] === 'delete'; }) && secStore('order').order !== 'history') more.push(['go-other', 'Delete order']);
     if (!main && !more.length) return '';
-    var nx = nextStep(o), nxl = nx ? '<p class="ccs-nextline' + (nx[1] === 'wait' ? ' is-wait' : '') + '"><em>Next:</em> ' + esc(nx[0]) + '</p>' : '';
+    var nx = nextStep(o), phNext = '';
+    if (st === 'confirmed' && bal > 0 && payer) phNext = 'Take ' + money(bal) + ' before handing over. ' + (o.production_status === 'ready' ? 'The cake is ready.' : 'Kitchen: ' + (STAGE_LABEL[o.production_status] || 'Not started').toLowerCase() + '.');
+    var nxl = nx ? '<p class="ccs-nextline' + (nx[1] === 'wait' ? ' is-wait' : '') + (phNext ? ' os-dknext' : '') + '"><em>Next:</em> ' + esc(nx[0]) + '</p>' : '';
+    if (phNext) nxl += '<p class="ccs-nextline os-phnext"><em>Next:</em> ' + esc(phNext) + '</p>';
     var told = S.sheet.readyAsk ? '<p class="ccs-note ccs-readyask">Sent the WhatsApp? <button type="button" class="ccs-link" data-act="ready-told">Yes, note it in the history</button></p>' : '';
-    return '<div class="ccs-actions">' + nxl + (main ? '<div class="ccs-actions-row">' + main + '</div>' : '') + (hint ? '<p class="ccs-hint" id="ccs-brief-why">' + esc(hint) + '</p>' : '') + told + (S.panelErr ? '<p class="ccs-err">' + esc(S.panelErr) + '</p>' : '') +
+    return '<div class="ccs-actions">' + nxl + (main ? '<div class="ccs-actions-row">' + main + '</div>' : '') + (hint ? '<p class="ccs-hint' + (phNext && hint === 'Record the balance before handing over.' ? ' os-dkonly' : '') + '" id="ccs-brief-why">' + esc(hint) + '</p>' : '') + told + (S.panelErr ? '<p class="ccs-err">' + esc(S.panelErr) + '</p>' : '') +
       (more.length ? '<div class="ccs-actions-row ccs-more-row">' + more.map(function (m) { return m[0] === 'go-other' ? '<button type="button" class="ccs-link ccs-red" data-act="go-other">' + m[1] + '</button>' : '<button type="button" class="ccs-link" data-act="panel" data-v="' + m[0] + '">' + m[1] + '</button>'; }).join('') + '</div>' : '') + '</div>';
   }
   function receiverChips(o, dl) {
