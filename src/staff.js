@@ -45,7 +45,7 @@
   var ROLES = [['admin', 'Admin'], ['front_of_house', 'Counter'], ['kitchen', 'Kitchen'], ['manager', 'Manager (old level)'], ['finance', 'Finance (old level)'], ['marketing', 'Marketing (old level)']];
   var ROLE_PICK = ROLES.slice(0, 3);
   // Occasions: the same list as the website and the database (each name maps to a fixed occasion code)
-  var OCCASIONS = ['Birthday', 'Anniversary', 'Mother\'s Day', 'Father\'s Day', 'Christmas', 'Valentine\'s Day', 'Wedding', 'Corporate event', 'Just because', 'Other'];
+  var OCCASIONS = ['Birthday', 'Anniversary', 'Mother\'s Day', 'Father\'s Day', 'Christmas', 'Valentine\'s Day', 'Wedding', 'Corporate event', 'Baby shower', 'Graduation', 'Just because', 'Other'];
   // Compulsory: every order records an occasion. Customer didn't say is an honest answer, saved as Not specified, never a guess.
   function occChips() { return OCCASIONS.concat(['Not specified']).map(function (o) { return '<button type="button" class="ccs-chip' + (o === 'Not specified' ? ' ccs-occ-none' : '') + '" data-act="n-occ" data-v="' + esc(o) + '" aria-pressed="' + (D.occasion === o) + '">' + esc(o === 'Not specified' ? 'Customer didn\'t say' : o) + '</button>'; }).join(''); }
   function occSend() { return D.occasion === 'Other' ? ((D.occOther || '').trim() || 'Other') : D.occasion; }

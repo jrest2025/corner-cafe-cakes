@@ -9,7 +9,7 @@
   var sb = window.__ccoMock || window.supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: false } });
   // Occasions: the same names as the staff app and the database list (codes are worked out from these names)
   var OCC = [['birthday', 'Birthday'], ['anniversary', 'Anniversary'], ['mothers_day', 'Mother\'s Day'], ['fathers_day', 'Father\'s Day'], ['christmas', 'Christmas'], ['valentines_day', 'Valentine\'s Day'],
-    ['wedding', 'Wedding'], ['corporate_event', 'Corporate event'], ['just_because', 'Just because'], ['other', 'Other'], ['not_specified', 'Prefer not to say']];
+    ['wedding', 'Wedding'], ['corporate_event', 'Corporate event'], ['baby_shower', 'Baby shower'], ['graduation', 'Graduation'], ['just_because', 'Just because'], ['other', 'Other'], ['not_specified', 'Prefer not to say']];
   // Seasonal occasions move to the front for the five weeks before the day; nothing is hidden
   function nthSunday(y, m, n) { var d = new Date(Date.UTC(y, m, 1)); d.setUTCDate(1 + (7 - d.getUTCDay()) % 7 + 7 * (n - 1)); return d; }
   function occList() {
@@ -160,7 +160,7 @@
         if (S.req) h += err('finish');
         if (!S.finish) return h;
         if (S.finish === 'custom') {
-          h += '<div class="cco-field' + enter('custom') + '">' + lbl('cco-design', S.req ? 'What should it look like?' : 'Tell us about your design') + '<p class="cco-ask">' + ASK + '</p><textarea class="cco-input' + (errors.design ? ' cco-bad' : '') + '" id="cco-design" data-in="design" placeholder="For example, for my daughter turning 6, pink and gold, unicorn theme"' + described('design') + '>' + esc(S.design) + '</textarea>' + err('design') + '</div>';
+          h += '<div class="cco-field' + enter('custom') + '">' + lbl('cco-design', S.req ? 'What should it look like?' : 'Tell us about your design') + '<p class="cco-ask">' + ASK + '</p><textarea class="cco-input' + (errors.design ? ' cco-bad' : '') + '" id="cco-design" maxlength="600" data-in="design" placeholder="For example, for my daughter turning 6, pink and gold, unicorn theme"' + described('design') + '>' + esc(S.design) + '</textarea>' + err('design') + '</div>';
           h += '<div class="cco-field' + enter('custom') + '"><span class="cco-lbl"><span>Inspiration photos</span>' + opt() + '</span>';
           if (S.photos.length) {
             h += '<div class="cco-thumbs">' + S.photos.map(function (p, i) {
@@ -211,7 +211,10 @@
         h += (S.dateNote ? '<p class="cco-notice" role="status">' + esc(S.dateNote) + '</p>' : '') + '<button type="button" class="cco-date' + (errors.date ? ' cco-bad' : '') + '" data-act="cal"' + described('date') + '><span class="cco-date-l"><span class="cco-date-ico">' + ICON.cal + '</span><span>' + (S.date ? esc(longDate(S.date)) : 'Choose a date') + '</span></span><span class="cco-date-r">' + (S.date ? 'Change' : 'Open calendar') + '</span></button>' + err('date');
         if (S.date) {
           var L = SETUP.location, o = L.collection_open.split(':').map(Number), c = L.collection_close.split(':').map(Number), groups = [['Morning', []], ['Afternoon', []], ['Evening', []]];
-          for (var m = o[0] * 60 + o[1]; m <= c[0] * 60 + c[1]; m += L.slot_minutes) { var hh = Math.floor(m / 60), t = String(hh).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); groups[hh < 12 ? 0 : hh < 17 ? 1 : 2][1].push(t); }
+          // The same times the server accepts: on the slot steps of the day, inside opening hours, and not already past today
+          var step = L.slot_minutes || 60, start = Math.ceil((o[0] * 60 + o[1]) / step) * step, nowM = -1;
+          if (S.date === today()) { var np = new Intl.DateTimeFormat('en-GB', { timeZone: TZ, hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date()).split(':').map(Number); nowM = np[0] * 60 + np[1]; }
+          for (var m = start; m <= c[0] * 60 + c[1]; m += step) { if (m <= nowM) continue; var hh = Math.floor(m / 60), t = String(hh).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); groups[hh < 12 ? 0 : hh < 17 ? 1 : 2][1].push(t); }
           h += '<div class="cco-field' + enter('times') + '">';
           groups.forEach(function (g) { if (!g[1].length) return; h += '<span class="cco-period">' + g[0] + '</span><div class="cco-times" role="group" aria-label="' + g[0] + ' times">' + g[1].map(function (t) { return '<button type="button" class="cco-chip" data-act="time" data-v="' + t + '" aria-pressed="' + (S.time === t) + '">' + t12(t) + '</button>'; }).join('') + '</div>'; });
           h += err('time') + '</div>';
@@ -221,10 +224,10 @@
     { key: 'Your details', q: 'Where can we reach you?', sub: 'We only use these to confirm your order.',
       summary: function () { return S.detailsOk ? S.name.trim() + ' · ' + S.phone.trim() : ''; },
       body: function () {
-        var h = '<div class="cco-field">' + lbl('cco-name', 'Full name') + '<input type="text" class="cco-input' + (errors.name ? ' cco-bad' : '') + '" id="cco-name" data-in="name" autocomplete="name" value="' + esc(S.name) + '"' + described('name') + '>' + err('name') + '</div>' +
-          '<div class="cco-field">' + lbl('cco-phone', 'Mobile number') + '<input type="tel" class="cco-input' + (errors.phone ? ' cco-bad' : '') + '" id="cco-phone" data-in="phone" autocomplete="tel" inputmode="tel" placeholder="912 3456" value="' + esc(S.phone) + '"' + described('phone') + '>' + err('phone') + '</div>' +
+        var h = '<div class="cco-field">' + lbl('cco-name', 'Full name') + '<input type="text" class="cco-input' + (errors.name ? ' cco-bad' : '') + '" id="cco-name" maxlength="120" data-in="name" autocomplete="name" value="' + esc(S.name) + '"' + described('name') + '>' + err('name') + '</div>' +
+          '<div class="cco-field">' + lbl('cco-phone', 'Mobile number') + '<input type="tel" class="cco-input' + (errors.phone ? ' cco-bad' : '') + '" id="cco-phone" maxlength="20" data-in="phone" autocomplete="tel" inputmode="tel" placeholder="912 3456" value="' + esc(S.phone) + '"' + described('phone') + '>' + err('phone') + '</div>' +
           '<label class="cco-check"><input type="checkbox" data-chk="whatsapp"' + (S.whatsapp ? ' checked' : '') + '> <span>Message me on WhatsApp to confirm</span></label>';
-        h += S.emailOpen ? '<div class="cco-field' + enter('email') + '">' + lbl('cco-email', 'Email', true) + '<input type="email" class="cco-input' + (errors.email ? ' cco-bad' : '') + '" id="cco-email" data-in="email" autocomplete="email" inputmode="email" value="' + esc(S.email) + '"' + described('email') + '><span class="cco-hint">' + (SETUP.guest_emails ? 'We email your order details here.' : 'Only used if we can\'t reach you by phone.') + '</span>' + err('email') + '</div>' : '<button type="button" class="cco-link" data-act="emailOpen"><span class="cco-plus" aria-hidden="true">+</span>' + (SETUP.guest_emails ? 'Add an email for your confirmation' : 'Add an email') + '</button>';
+        h += S.emailOpen ? '<div class="cco-field' + enter('email') + '">' + lbl('cco-email', 'Email', true) + '<input type="email" class="cco-input' + (errors.email ? ' cco-bad' : '') + '" id="cco-email" maxlength="120" data-in="email" autocomplete="email" inputmode="email" value="' + esc(S.email) + '"' + described('email') + '><span class="cco-hint">' + (SETUP.guest_emails ? 'We email your order details here.' : 'Only used if we can\'t reach you by phone.') + '</span>' + err('email') + '</div>' : '<button type="button" class="cco-link" data-act="emailOpen"><span class="cco-plus" aria-hidden="true">+</span>' + (SETUP.guest_emails ? 'Add an email for your confirmation' : 'Add an email') + '</button>';
         h += '<label class="cco-check"><input type="checkbox" data-chk="updates"' + (S.updates ? ' checked' : '') + '> <span>Send me Corner Café cake specials and reminders, and offers from Jack&#39;s Restaurants</span></label>';
         return h + '<button type="button" class="cco-primary" data-act="toReview">Continue to review</button>';
       } },
@@ -384,7 +387,7 @@
     var list = Array.prototype.slice.call(files, 0, Math.max(0, room));
     if (files.length > list.length) errors.photos = 'You can add up to ' + MAX_PHOTOS + ' photos.';
     list.forEach(function (file) {
-      if (file.type && !/^image\//.test(file.type)) { errors.photos = file.name + ' is not a photo. Please choose an image file.'; return; }
+      if (file.type && !/^image\/(jpeg|png|webp|heic|heif)$/.test(file.type)) { errors.photos = file.name + ' is not a photo we can take. Please choose a JPG, PNG, WEBP or HEIC photo.'; return; }
       if (file.size > 5 * 1024 * 1024) { errors.photos = file.name + ' is over 5 MB. Please choose a smaller photo.'; return; }
       var safe = file.name.toLowerCase().replace(/[^a-z0-9.]+/g, '-').slice(-60) || 'photo.jpg', path = 'incoming/' + uid() + '/' + safe;
       var ph = { name: file.name, path: path, url: null, status: 'busy', isNew: true };
@@ -408,18 +411,19 @@
   }
 
   // ---------- send ----------
-  var FIELD_STEP = { product: 0, variant: 0, size: 1, size_note: 1, finish: 2, design: 2, message: 2, candles: 2, notes: 2, diet: 2, date: 3, time: 3, zone: 3, address: 3, fee: 3, method: 3, name: 4, phone: 4, email: 4 };
+  var FIELD_STEP = { product: 0, variant: 0, size: 1, size_note: 1, finish: 2, design: 2, message: 2, candles: 2, notes: 2, diet: 2, occasion: 2, date: 3, time: 3, zone: 3, address: 3, fee: 3, method: 3, name: 4, phone: 4, email: 4 };
   function checkDetails() {
     errors = {}; formError = null;
     if (S.name.trim().length < 2) errors.name = 'Enter your name.';
-    if (S.phone.replace(/\D/g, '').length < 7) errors.phone = 'Enter a mobile number, for example 912 3456.';
+    var pd = S.phone.replace(/\D/g, '').length;
+    if (pd < 7 || pd > 15) errors.phone = 'Enter a mobile number, for example 912 3456.';
     if (S.email.trim() && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(S.email.trim())) errors.email = 'Check the email address, for example name@example.com.';
     return !Object.keys(errors).length;
   }
   function send() {
     errors = {}; formError = null;
     S.sending = true; render();
-    var p = { idempotency_key: KEY, location: 'corner-cafe', product_code: S.req ? 'custom-cake' : S.flavour, variant: S.req ? S.reqFlav.trim() : S.variant, size_inch: S.req ? null : S.size, size_note: S.req ? S.size_note.trim() : null, finish: S.req ? 'custom' : S.finish, design: S.design, message: S.message, occasion: S.occasion === 'not_specified' ? 'Not specified' : occText(), candles: S.candles.trim(), notes: S.notes.trim(),
+    var p = { idempotency_key: KEY, location: 'corner-cafe', product_code: S.req ? 'custom-cake' : S.flavour, variant: S.req ? S.reqFlav.trim() : S.variant, size_inch: S.req ? null : S.size, size_note: S.req ? S.size_note.trim() : null, finish: S.req ? 'custom' : S.finish, design: S.design, message: S.req || (fl() && fl().supports_message) ? S.message : '', occasion: S.occasion === 'not_specified' ? 'Not specified' : occText(), candles: S.candles.trim(), notes: S.notes.trim(),
       has_dietary: S.diet, dietary: S.diet === 'yes' ? S.diets : [], dietary_note: S.dietNote, date: S.date, time: S.time, attachments: donePhotos().map(function (x) { return x.path; }),
       customer: { name: S.name.trim(), phone: S.phone.trim(), email: S.email.trim(), whatsapp: S.whatsapp, opt_in: S.updates },
       campaign: CAMPAIGN || null, referral: REFERRAL || null,
@@ -508,7 +512,7 @@
     if (a === 'diets') { var k = S.diets.indexOf(v); if (k > -1) S.diets.splice(k, 1); else S.diets.push(v); delete errors.diet; return render(); }
     if (a === 'next2') {
       errors = {};
-      if (S.finish === 'custom' && !S.design.trim()) errors.design = 'Describe your design so our team can price it.';
+      if (S.finish === 'custom' && S.design.trim().length < 3) errors.design = 'Describe your design so our team can price it.';
       if (!S.finish) errors.finish = 'Choose a finish.';
       if (!S.diet) errors.diet = 'Please answer No, Yes or Not sure.';
       if (!S.occasion) errors.occasion = 'Choose the occasion, or Prefer not to say.';
