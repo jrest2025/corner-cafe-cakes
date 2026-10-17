@@ -165,7 +165,7 @@
     var period = '<p class="dx-period">' + (r.all ? 'All recorded history' : esc(nice(r.from) + ' to ' + nice(r.to))) + ', by ' + basisWord + (ps ? '. Compared with ' + esc(r.cmp) + '.' : r.noCmp ? '. Not compared, because of missing orders.' : '.') + (f.prod !== 'all' ? ' Showing ' + esc(f.prod) + ' only.' : '') + '</p>';
     // Overview: the summary page (see ovView)
     d.cmpShort = ps ? 'vs ' + r.cmp : '';
-    var ov = ovView(r, cur, cs, ps, got, pgot, owing);
+    var ov = biOverview(r, cur, cs, ps, got, pgot, owing, up);
     // Details: one section at a time
     var flags = [], lo = data.left_out || {};
     if (lo.needs_review) flags.push(int(lo.needs_review) + ' records are waiting for a manager to review them (possible duplicates, missing or conflicting dates, possible tests). They are not counted until a decision is made.');
@@ -186,7 +186,7 @@
     d.secs = [];
     dxProducts(cur); dxOccasions(r); dxLead(r); dxUpcoming(up); dxCustomers(cur, r); dxPayments(r); dxOps(r); dxDiscounts(cur); dxDemand(cur); dxYear(); dxOrders(r);
     dxSec('df', 'About the data', flags.length + ' things to know', '<p class="dx-ch">' + flags.length + ' things to know about this data</p>' + flags.map(dxFlag).join('') + dxDefs());
-    d.secs = [['ov', 'Overview', '', ''], ['or', 'Occasion report', '', '']].concat(dxMerge(d.secs));
+    d.secs = biSections(d.secs, { r: r, cur: cur, cs: cs, ps: ps, got: got, owing: owing, up: up });
     var keys = d.secs.map(function (x) { return x[0]; }), cs2 = secCur('dash', keys, 'ov'), sec = d.secs.filter(function (x) { return x[0] === cs2; })[0];
     h += '<div class="dx-secs">' + secBar('dash', d.secs.map(function (x) { return [x[0], x[1]]; }), cs2, 'Dashboard sections') + '</div>';
     if (cs2 === 'or') return h + '<section class="dx-card dx-secbody or-wrap" aria-label="Occasion report"><div class="dx-card-h"><h2>Occasion report</h2><span>One occasion, the full story</span></div><div class="or-body">' + dxOccReport() + '</div></section>';
@@ -1046,6 +1046,7 @@
     else if (a === 'dx-unit') { DX.unit = v; view(); }
     else if (a === 'dx-filters') { DX.fopen = !DX.fopen; view(); }
     else if (a === 'dx-table') { DX.table = !DX.table; view(); }
+    else if (a.indexOf('dx-bi-') === 0) biAct(a, v);
     else if (a === 'dx-drill') { var dr = DX.drills[v]; if (!dr) return; S.sheet = { type: 'dash', drill: dr }; S.panel = null; S.dirty = {}; sheetOpen(); renderSheet(); }
   }
   function dxKeep() { root.querySelectorAll('[data-dxsec]').forEach(function (el) { DX['o' + el.dataset.dxsec] = el.open; }); }

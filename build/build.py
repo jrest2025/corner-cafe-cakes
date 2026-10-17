@@ -6,7 +6,7 @@ run('npx -y terser@5.31.0 guest.js -c -m -o dist/guest.min.js')
 slip = open('/home/claude/corner-cafe-cakes/supabase/functions/send-emails/slip_pdf.js').read().replace('export const ', 'const ').replace('export async function ', 'async function ').replace('export function ', 'function ')
 assert 'export ' not in slip and 'import ' not in slip
 slipjs = 'var SlipPdf = (function () {\n' + slip + '\nreturn { buildSlipPdf: buildSlipPdf, slipFileName: slipFileName };\n})();\n'
-open('dist/staff.full.js','w').write(open('staff.js').read().replace('/*@DASH@*/', slipjs + open('staff.dash.js').read() + open('staff.reg.js').read() + open('staff.crm.js').read()))
+open('dist/staff.full.js','w').write(open('staff.js').read().replace('/*@DASH@*/', slipjs + open('staff.dash.js').read() + open('staff.bi.js').read() + open('staff.reg.js').read() + open('staff.crm.js').read()))
 run('npx -y terser@5.31.0 dist/staff.full.js -c -m -o dist/staff.min.js')
 run('npx -y csso-cli@4.0.2 guest.css -o dist/guest.min.css')
 run('npx -y csso-cli@4.0.2 staff.css -o dist/staff.min.css')
