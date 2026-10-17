@@ -46,3 +46,11 @@ Approved by Roneel 18 October 2026, 11:31 Fiji. Pull request #6 merged (merge co
 Footer pinned to release commit e39986d0e67232ed93bd87d2542cc769f11dd417, artifact dist/app/staff-app.2c3db30481.js, SRI sha384-Hi9bI4jU40Va69eFXt483MdP78VGTxEUOAu7/AcDxR6MCdGlyaz+vTlKnCKJ7U92. Footer read-back matched exactly. Published to cornercafefiji.com and www.cornercafefiji.com (not the Webflow subdomain).
 
 Live check, signed in as an administrator: the page loaded exactly this file (integrity check passed, so the CDN bytes match). Islands showed 2 Overdue, 1 Due soon, 3 Kitchen not finished, 4 Balance to pay; old summary cards gone. Overdue opened as a pop-up below the islands with both orders; switching to Kitchen not finished showed 3 orders; Escape closed it and unlocked scrolling. The new order form showed the three date options with Today selected and no time box; it was closed without saving. No order was opened, changed or created. One console error came from the separate Sentry monitoring snippet at page load, not from the staff app.
+
+## Phone fix — 18 October 2026, 11:49 Fiji
+
+Live issue reported by Roneel: on phones the islands drew over the bottom-sheet panel. Cause: the rule lifting islands above the backdrop (so desktop users can switch categories) applied at every width. It now applies only above 640px. New checks confirm nothing covers the panel's orders, header or Close button; they fail on the previous bundle and pass on this one.
+
+Release commit 7a0bcd0e7104244c44fbcadd5a99b9027b35d4e0, artifact dist/app/staff-app.2a1e12fa07.js, SRI sha384-9ufXmHYP845e2kZyLrLdaYFq07zxqNEv06HACOT6SwX8/mEOIDrQJbOFYWHi2fpH. Footer read-back matched. Published to both production domains. Live check at 412px phone width, signed in: Balance still to pay opened with all 4 orders, header, Close button and orders not covered by anything.
+
+Rollback: docs/rollback/staff-footer-before-phone-fix-2026-10-18.html (returns to the first release, which has the overlap), or docs/rollback/staff-footer-before-attn-pop-2026-10-18.html (returns to before islands).
