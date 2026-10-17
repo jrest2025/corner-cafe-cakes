@@ -20,16 +20,16 @@
     var bk = ovBuckets(r, got.length), cg = biConfirmed(got), pcg = pgot ? biConfirmed(pgot) : null, owed = biOwed(owing);
     ltDatesLoad();
     var gp = '<button type="button" class="ov-kpi dx-tap bi-kpi-gp" data-act="dx-bi-go" data-v="pf"><span class="ov-kh">' + ovIcon('money') + '<span class="ov-kl">Gross profit</span></span>' +
-      '<b class="ov-kv bi-needs">Cost data required</b><span class="ov-kd is-none">&nbsp;</span><span class="ov-ks">No cake costs are recorded yet, so profit is not shown. See Profitability.</span></button>';
+      '<b class="ov-kv bi-needs">Cost data required</b><span class="ov-kd is-none">&nbsp;</span><span class="ov-ks">No cake costs recorded yet</span></button>';
     var h = '<div class="ov-kpis bi-kpis">' +
-      ovKpi('money', 'Net cake sales', m0(cs.v), ovDelta(cs.v, ps ? ps.v : null), 'Including VAT, after refunds. ' + m0(biExVat(cur)) + ' excluding VAT', bk.map(function (x) { return x.s.v; }), cur, 'Completed sales', ps ? m0(ps.v) : '') +
+      ovKpi('money', 'Net cake sales', m0(cs.v), ovDelta(cs.v, ps ? ps.v : null), 'Including VAT · ' + m0(biExVat(cur)) + ' without VAT', bk.map(function (x) { return x.s.v; }), cur, 'Completed sales', ps ? m0(ps.v) : '') +
       gp +
-      ovKpi('done', 'Confirmed orders', int(cg.length), ovDelta(cg.length, pcg ? pcg.length : null), 'Confirmed or completed, enquiries left out', bk.map(function (x) { return biConfirmed(x.got).length; }), cg, 'Confirmed orders', pcg ? int(pcg.length) : '') +
+      ovKpi('done', 'Confirmed orders', int(cg.length), ovDelta(cg.length, pcg ? pcg.length : null), 'Enquiries left out', bk.map(function (x) { return biConfirmed(x.got).length; }), cg, 'Confirmed orders', pcg ? int(pcg.length) : '') +
       ovKpi('avg', 'Outstanding payments', m0(owed), { t: '', c: '' }, owing.length ? int(owing.length) + (owing.length === 1 ? ' order still owes money' : ' orders still owe money') : 'Nothing owed', [], owing, 'Orders with money still owed', '') +
       '</div>';
     var T = function (x, k) { return x.replace('class="dx-card', 'class="dx-card ov-k-' + k); };
-    h += T(ovInsights(cur, cs, ps, r), 'ins');
     h += '<div class="bi-ov-trend">' + T(ovTrend(bk, r), 'trend') + '</div>';
+    h += anCharts(cur, got);
     h += '<div class="bi-ov-row">' + T(ovAttention(owing), 'att') + biOpps(r, cur, up) + '</div>';
     return h;
   }
@@ -248,6 +248,6 @@
     }).catch(function (e) { console.error(e); toast('The workbook could not be made. Check the connection and try again.', true); });
   }
   function biAct(a, v) {
-    if (a === 'dx-bi-go') { S.secs = S.secs || {}; S.secs.dash = v; view(); window.scrollTo(0, 0); }
+    if (a === 'dx-bi-go') { S.secs = S.secs || {}; S.secs.dash = v; S.secs.anm = anModOf(v); view(); window.scrollTo(0, 0); }
     else if (a === 'dx-bi-xlsx') biXlsx();
   }

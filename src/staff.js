@@ -227,7 +227,7 @@
     if (canP('kit.view')) tabs.push(['kitchen', 'Kitchen']);
     if (canP('ord.view') || canP('kit.view')) tabs.push(['handover', 'Handover']);
     if (canP('nav.customers') && canP('cust.view')) tabs.push(['customers', 'Customers']);
-    if (canP('mgmt.analytics') || canP('mgmt.reports')) tabs.push(['dash', 'Dashboard']);
+    if (canP('mgmt.analytics') || canP('mgmt.reports')) tabs.push(['dash', 'Analytics']);
     if (canP('mgmt.reports')) tabs.push(['register', 'Register']);
     if (canSettings()) tabs.push(['settings', 'Settings']);
     tabs.push(['more', 'More']);
@@ -888,7 +888,7 @@
     if (!kitchenOnly()) links += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-tab="calendar">Calendar</button>';
     if (canP('kit.view')) links += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-tab="kitchen">Kitchen</button>';
     if (canP('nav.customers') && canP('cust.view')) links += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-tab="customers">Customers</button>';
-    if (canP('mgmt.analytics') || canP('mgmt.reports')) links += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-tab="dash">Dashboard</button>';
+    if (canP('mgmt.analytics') || canP('mgmt.reports')) links += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-tab="dash">Analytics</button>';
     if (canP('mgmt.reports')) links += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-tab="register">Cake register</button>';
     if (canSettings()) links += '<button type="button" class="ccs-btn ccs-ghost ccs-wide" data-tab="settings">Settings</button>';
     if (links) h += '<div class="ccs-more-links">' + links + '</div>';

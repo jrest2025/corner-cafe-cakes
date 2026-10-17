@@ -134,14 +134,15 @@
   }
   function dashView() {
     var d = dxState(); d.drills = {};
-    var h = '<div class="ccs-head"><div><h1 class="ccs-title">Dashboard</h1><p class="ccs-sub"><span class="ccs-subtxt">' + (d.data ? 'Figures as of ' + esc(stamp(d.data.generated_at)) + '. ' : '') + 'View only.</span> <button type="button" class="ccs-link ccs-refresh" data-act="dx-refresh">Refresh</button>' + (d.data ? ' · <button type="button" class="ccs-link ccs-refresh" data-act="dx-export">Export summary</button>' : '') + '</p>' + '</div></div>';
+    var h = '<div class="ccs-head"><div><h1 class="ccs-title">Analytics</h1><p class="ccs-sub"><span class="ccs-subtxt">' + (d.data ? 'Figures as of ' + esc(stamp(d.data.generated_at)) + '. ' : '') + 'View only.</span> <button type="button" class="ccs-link ccs-refresh" data-act="dx-refresh">Refresh</button>' + (d.data ? ' · <button type="button" class="ccs-link ccs-refresh" data-act="dx-export">Export summary</button>' : '') + '</p>' + '</div></div>';
     if (d.err) return h + '<div class="ccs-empty"><b>' + esc(d.err) + '</b><button type="button" class="ccs-btn" data-act="dx-refresh">Try again</button></div>';
-    if (!d.data) return h + '<p class="ccs-loading">Loading the dashboard…</p>';
+    if (!d.data) return h + '<p class="ccs-loading">Loading analytics…</p>';
     var f = d.f, r = dxRange(), data = d.data, byOrder = f.b === 'o';
     var prods = []; data.orders.forEach(function (o) { (o.it || []).forEach(function (i) { if (prods.indexOf(i[0]) < 0) prods.push(i[0]); }); }); prods.sort();
     var chans = []; data.orders.forEach(function (o) { if (chans.indexOf(o.src) < 0) chans.push(o.src); });
     var sel = function (id, label, opts, cur) { return '<label class="ccs-field dx-f"><span class="ccs-label">' + label + '</span><select class="ccs-input" id="' + id + '" data-dx="' + id + '">' + opts.map(function (o) { return '<option value="' + esc(o[0]) + '"' + (o[0] === cur ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('') + '</select></label>'; };
     var fsum = [(DX_PERIODS.filter(function (x) { return x[0] === f.p; })[0] || ['', ''])[1], f.prod === 'all' ? 'All cakes' : f.prod, f.ch === 'all' ? 'All channels' : (SOURCE_LABEL[f.ch] || f.ch)].concat(f.occ && f.occ !== 'all' ? [dxOccName(f.occ)] : []).join(' · ');
+    var hh = h;
     h += '<button type="button" class="ccs-btn ccs-ghost dx-ftoggle" data-act="dx-filters" aria-expanded="' + !!d.fopen + '">Filters: ' + esc(fsum) + '</button>';
     h += '<div class="dx-filters' + (d.fopen ? '' : ' is-closed') + '">' + sel('dx-p', 'Period', DX_PERIODS, f.p) +
       (f.p === 'c' ? '<label class="ccs-field dx-f"><span class="ccs-label">From</span><input class="ccs-input" type="date" id="dx-from" data-dx="dx-from" value="' + esc(f.from) + '"></label><label class="ccs-field dx-f"><span class="ccs-label">To</span><input class="ccs-input" type="date" id="dx-to" data-dx="dx-to" value="' + esc(f.to) + '"></label>' : '') +
@@ -149,6 +150,7 @@
       sel('dx-prod', 'Cake', [['all', 'All cakes']].concat(prods.map(function (p) { return [p, p]; })), f.prod) +
       sel('dx-ch', 'Channel', [['all', 'All channels']].concat(chans.map(function (c) { return [c, SOURCE_LABEL[c] || c]; })), f.ch) +
       sel('dx-occ', 'Occasion', [['all', 'All occasions']].concat((data.occasions || []).map(function (o) { return [o.c, o.l]; })), f.occ || 'all') + '</div>';
+    var filt = h.slice(hh.length);
     var gap = dxGap(), hit = gap && !r.all && r.to >= gap.from, hitPrev = gap && r.pf && r.pt >= gap.from;
     if (hit || hitPrev) { r.noCmp = true; }
     d.gapHit = hit;
@@ -187,12 +189,21 @@
     dxProducts(cur); dxOccasions(r); dxLead(r); dxUpcoming(up); dxCustomers(cur, r); dxPayments(r); dxOps(r); dxDiscounts(cur); dxDemand(cur); dxYear(); dxOrders(r);
     dxSec('df', 'About the data', flags.length + ' things to know', '<p class="dx-ch">' + flags.length + ' things to know about this data</p>' + flags.map(dxFlag).join('') + dxDefs());
     d.secs = biSections(d.secs, { r: r, cur: cur, cs: cs, ps: ps, got: got, owing: owing, up: up });
-    var keys = d.secs.map(function (x) { return x[0]; }), cs2 = secCur('dash', keys, 'ov'), sec = d.secs.filter(function (x) { return x[0] === cs2; })[0];
-    h += '<div class="dx-secs">' + secBar('dash', d.secs.map(function (x) { return [x[0], x[1]]; }), cs2, 'Dashboard sections') + '</div>';
+    // Analytics: modules first (see staff.an.js), then the cake sections inside the module they belong to
+    d.secs.push(['dm', 'Modules and datasets', 'What each module needs', anRegisters()]);
+    d.secs.push(['oi', 'Occasion intelligence', '', 'x']);
+    var mod = anMod(), mm = AN_MODS.filter(function (x) { return x.id === mod; })[0];
+    h = hh + anModBar(mod);
+    if (mod === 'ov') return h + filt + period + gapNote + '<div class="dx-ov">' + ov + '</div>';
+    if (mod === 'ci') return h + anCross();
+    if (!AN_SUB[mod]) return h + (anState(mm) === 'missing' ? anEmpty(mm) : '<section class="dx-card"><p class="an-note">Data has arrived; charts are being built.</p></section>');
+    var keys = AN_SUB[mod].filter(function (k) { return d.secs.some(function (x) { return x[0] === k; }); }), cs2 = secCur('dash', keys, keys[0]), sec = d.secs.filter(function (x) { return x[0] === cs2; })[0];
+    if (mod !== 'da' && cs2 !== 'oi') h += filt;
+    h += '<div class="dx-secs">' + secBar('dash', keys.map(function (k) { var x = d.secs.filter(function (s) { return s[0] === k; })[0]; return [x[0], x[1]]; }), cs2, mm.name + ' sections') + '</div>';
+    if (cs2 === 'oi') return h + oiView();
     if (cs2 === 'or') return h + '<section class="dx-card dx-secbody or-wrap" aria-label="Occasion report"><div class="dx-card-h"><h2>Occasion report</h2><span>One occasion, the full story</span></div><div class="or-body">' + dxOccReport() + '</div></section>';
-    h += period;
-    if (cs2 === 'ov') return h + gapNote + '<div class="dx-ov">' + ov + '</div>';
-    return h + gapNote + '<section class="dx-card dx-secbody" aria-label="' + esc(sec[1]) + '"><div class="dx-card-h"><h2>' + esc(sec[1]) + '</h2>' + (sec[2] ? '<span>' + sec[2] + '</span>' : '') + '</div>' + sec[3] + '</section>';
+    if (mod !== 'da') h += period;
+    return h + gapNote + '<section class="dx-card dx-secbody" aria-label="' + esc(sec[1]) + '"><div class="dx-card-h"><h2>' + esc(sec[1]) + '</h2>' + (sec[2] ? '<span>' + sec[2] + '</span>' : '') + '</div>' + (mod === 'da' ? sec[3] : anTidy(sec[3])) + '</section>';
   }
   // ----- headline pieces -----
   function dxDelta(cur, prev) {
@@ -1046,12 +1057,15 @@
     else if (a === 'dx-unit') { DX.unit = v; view(); }
     else if (a === 'dx-filters') { DX.fopen = !DX.fopen; view(); }
     else if (a === 'dx-table') { DX.table = !DX.table; view(); }
+    else if (a === 'dx-an-tpl') anTpl(v);
+    else if (a.indexOf('dx-oi-') === 0) oiAct(a, v);
     else if (a.indexOf('dx-bi-') === 0) biAct(a, v);
     else if (a === 'dx-drill') { var dr = DX.drills[v]; if (!dr) return; S.sheet = { type: 'dash', drill: dr }; S.panel = null; S.dirty = {}; sheetOpen(); renderSheet(); }
   }
   function dxKeep() { root.querySelectorAll('[data-dxsec]').forEach(function (el) { DX['o' + el.dataset.dxsec] = el.open; }); }
   function dashChange(t) {
     var f = DX.f, k = t.dataset.dx; dxKeep();
+    if (k.indexOf('oi-') === 0) { oiChange(k, t.value); view(); return; }
     if (k === 'dx-p') { f.p = t.value; DX.unit = null; if (f.p === 'c' && !f.from) { f.to = today(); f.from = dxMonthStart(f.to); } }
     else if (k === 'dx-from') f.from = t.value; else if (k === 'dx-to') f.to = t.value;
     else if (k === 'dx-b') f.b = t.value; else if (k === 'dx-prod') f.prod = t.value; else if (k === 'dx-ch') f.ch = t.value; else if (k === 'dx-occ') f.occ = t.value; else if (k === 'dx-st') { f.st = t.value; }
