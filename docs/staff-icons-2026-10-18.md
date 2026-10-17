@@ -7,3 +7,5 @@ Accessible names remain available to screen readers. SVGs are decorative; labels
 Validation: 42 dedicated icon/accessibility/refresh checks at 1920, 1366, 820 and 390 pixels; 132 alignment, 40 desktop viewport-fit, and 47 existing payment/favourite checks. Tests use invented records with remote requests blocked. Production signed-in visual inspection unavailable; publication verification uses exact footer readback, CDN byte comparison and domain publication metadata.
 
 Rollback: restore docs/staff-icons-rollback.footer.html to the staff footer and republish both production domains.
+
+Published artifact commit: f589b4ba7535f49577aeadb42caa6beacb61f123. Immutable CDN bytes matched the tested 1,118,406-byte artifact and footer readback matched exactly. Both production domains confirmed published 18 October 2026, 09:32 Fiji (2026-10-17T21:32:37.158Z). Festive page remains draft.
