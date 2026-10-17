@@ -106,11 +106,13 @@
     var lim = (sy.stale_minutes || 20) * 6e4, now = Date.now(), bad = [], parts = [];
     [['online', 'Online sheet'], ['walkin', 'Walk-in sheet']].forEach(function (k) {
       var x = sy[k[0]] || {}, ok = x.ok_at ? Date.parse(x.ok_at) : 0, fl = x.fail_at ? Date.parse(x.fail_at) : 0;
+      // An uploaded sheet is history: it is not read any more, so it is never out of date
+      if (x.uploaded) { parts.push(k[1] + ' uploaded as history' + (x.last_order ? ', last order placed ' + nice(x.last_order, true).replace(/^\w+ /, '') : '')); return; }
       parts.push(k[1] + ' ' + (ok ? when(x.ok_at) : 'never read'));
       if (fl > ok) bad.push(k[1] + ' could not be read at ' + when(x.fail_at) + (x.fail_msg ? ': ' + x.fail_msg : '') + '.');
       else if (!ok || now - ok > lim) bad.push(k[1] + ' has not been read since ' + (ok ? when(x.ok_at) : 'setup') + '. New entries and changes in it are not shown yet.');
     });
-    return '<p class="ccs-sub dx-read">Last read: ' + esc(parts.join(' · ')) + '.</p>' + (bad.length ? '<p class="ccs-note" role="alert"><b>Not up to date.</b> ' + esc(bad.join(' ')) + (long ? ' The sheets are read every 5 minutes by the Google script. If this stays, check the script is still switched on.' : '') + '</p>' : '');
+    return '<p class="ccs-sub dx-read">Sources: ' + esc(parts.join(' · ')) + '.</p>' + (bad.length ? '<p class="ccs-note" role="alert"><b>Not up to date.</b> ' + esc(bad.join(' ')) + (long ? ' The sheets are read every 5 minutes by the Google script. If this stays, check the script is still switched on.' : '') + '</p>' : '');
   }
   // Where the figures are known to be incomplete: a sheet not read lately, or a sheet that stopped getting orders while it was busy.
   // From that date on, figures are marked incomplete and no comparisons are shown, so nothing misleading appears.
@@ -118,6 +120,7 @@
     var d = DX.data, t = today(), out = [], fiji = function (ts) { return new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date(ts)); };
     var sy = d.sync, lim = ((sy && sy.stale_minutes) || 20) * 6e4;
     [['online', 'Online sheet', 'online order sheet'], ['walkin', 'Walk-in sheet', 'walk-in sheet']].forEach(function (k) {
+      if (sy && sy[k[0]] && sy[k[0]].uploaded) return;  // uploaded history: complete as it stands
       var list = d.orders.filter(function (o) { return o.sys === k[1]; }); if (!list.length) return;
       var last = list.reduce(function (m, o) { return o.pd > m ? o.pd : m; }, '');
       var busy = list.filter(function (o) { return o.pd > addDays(last, -60) && o.pd <= last; }).length;
@@ -183,9 +186,11 @@
     d.secs = [];
     dxProducts(cur); dxOccasions(r); dxLead(r); dxUpcoming(up); dxCustomers(cur, r); dxPayments(r); dxOps(r); dxDiscounts(cur); dxDemand(cur); dxYear(); dxOrders(r);
     dxSec('df', 'About the data', flags.length + ' things to know', '<p class="dx-ch">' + flags.length + ' things to know about this data</p>' + flags.map(dxFlag).join('') + dxDefs());
-    d.secs = [['ov', 'Overview', '', '']].concat(dxMerge(d.secs));
+    d.secs = [['ov', 'Overview', '', ''], ['or', 'Occasion report', '', '']].concat(dxMerge(d.secs));
     var keys = d.secs.map(function (x) { return x[0]; }), cs2 = secCur('dash', keys, 'ov'), sec = d.secs.filter(function (x) { return x[0] === cs2; })[0];
-    h += '<div class="dx-secs">' + secBar('dash', d.secs.map(function (x) { return [x[0], x[1]]; }), cs2, 'Dashboard sections') + '</div>' + period;
+    h += '<div class="dx-secs">' + secBar('dash', d.secs.map(function (x) { return [x[0], x[1]]; }), cs2, 'Dashboard sections') + '</div>';
+    if (cs2 === 'or') return h + '<section class="dx-card dx-secbody or-wrap" aria-label="Occasion report"><div class="dx-card-h"><h2>Occasion report</h2><span>One occasion, the full story</span></div><div class="or-body">' + dxOccReport() + '</div></section>';
+    h += period;
     if (cs2 === 'ov') return h + gapNote + '<div class="dx-ov">' + ov + '</div>';
     return h + gapNote + '<section class="dx-card dx-secbody" aria-label="' + esc(sec[1]) + '"><div class="dx-card-h"><h2>' + esc(sec[1]) + '</h2>' + (sec[2] ? '<span>' + sec[2] + '</span>' : '') + '</div>' + sec[3] + '</section>';
   }
@@ -777,6 +782,220 @@
     var top = rows.filter(function (x) { return x.c !== 'not_specified' && !few(x.lead.length); })[0];
     return dxSec('lt', 'Lead time and pickup', top ? esc(top.l) + ': usually ' + esc(ltDaysTxt(ltMed(top.lead))) : '', '<div class="lt-wrap">' + h + '</div>');
   }
+  // ----- Occasion report: one occasion, one occurrence, one commercial story -----
+  // Membership is the customer's stated occasion only, never the pickup date. A dated occasion's occurrence is every
+  // order for it collected from 45 days before the date to 7 days after; an undated one (Birthday...) is a calendar year.
+  // Own picker: the filters at the top of the dashboard do not change this report.
+  var OR_MIN = 5, OR_HI = 20, OR_PRE = 45, OR_POST = 7, OR_MARKS = [30, 21, 14, 7, 3, 1, 0];
+  function orDates(c) { return (DX.odates || []).filter(function (d) { return d.occasion_code === c; }).sort(function (a, b) { return a.starts_on < b.starts_on ? -1 : 1; }); }
+  function orDated() { var s = {}; (DX.odates || []).forEach(function (d) { s[d.occasion_code] = 1; }); return Object.keys(s); }
+  function orVal(o) { return o.tot ? o.net : 0; }
+  function orSum(list) { var ok = list.filter(function (o) { return !o.off; }), sales = ok.filter(function (o) { return o.sale; }), up = ok.filter(function (o) { return o.open; });
+    var priced = sales.filter(function (o) { return o.tot; }), v = priced.reduce(function (s, o) { return s + orVal(o); }, 0);
+    return { all: list, ok: ok, n: ok.length, c: ok.reduce(function (s, o) { return s + (o.cakes || 1); }, 0), sales: sales, v: v, priced: priced, aov: priced.length ? v / priced.length : 0,
+      up: up, upv: up.reduce(function (s, o) { return s + orVal(o); }, 0), off: list.filter(function (o) { return o.off; }), unpriced: ok.filter(function (o) { return !o.tot; }) }; }
+  // The orders of one occurrence: { day: event date or null, from, to, list }
+  function orOcc(c, y) {
+    var all = DX.data.orders.filter(function (o) { return (o.oc || 'not_specified') === c && o.pd; });
+    var d = orDates(c).filter(function (x) { return +x.year === +y; })[0];
+    if (d) { var from = addDays(d.starts_on, -OR_PRE), to = addDays(d.ends_on || d.starts_on, OR_POST); return { y: +y, day: d.starts_on, from: from, to: to, list: all.filter(function (o) { return o.pd >= from && o.pd <= to; }) }; }
+    if (orDated().indexOf(c) > -1) return null;
+    return { y: +y, day: null, from: y + '-01-01', to: y + '-12-31', list: all.filter(function (o) { return o.pd.slice(0, 4) === String(y); }) };
+  }
+  function orYears(c) {
+    var t = today(), ys = [];
+    if (orDated().indexOf(c) > -1) {
+      orDates(c).forEach(function (d) { if (orOcc(c, d.year).list.length) ys.push(+d.year); });
+      var nx = orDates(c).filter(function (d) { return addDays(d.ends_on || d.starts_on, OR_POST) >= t; })[0];
+      if (nx && ys.indexOf(+nx.year) < 0) ys.push(+nx.year);
+    } else {
+      DX.data.orders.forEach(function (o) { if ((o.oc || 'not_specified') === c && o.pd) { var y = +o.pd.slice(0, 4); if (ys.indexOf(y) < 0) ys.push(y); } });
+      if (ys.indexOf(+t.slice(0, 4)) < 0) ys.push(+t.slice(0, 4));
+    }
+    return ys.sort();
+  }
+  function orBefore(o, day) { return o.odok && o.od ? daysBetween(o.od, day) : null; }
+  function orHour(m) { var h = Math.floor(m / 60), a = function (x) { return (x % 12 || 12) + (x < 12 || x === 24 ? ' AM' : ' PM'); }; return a(h) + ' to ' + a(h + 1); }
+  function orConf(n) { return n >= OR_HI ? ['High', 'hi'] : n >= OR_MIN ? ['Medium', 'mid'] : ['Low', 'lo']; }
+  function orState() { if (!DX.or) { var t = today(), nx = (DX.odates || []).filter(function (d) { return d.starts_on >= t; }).sort(function (a, b) { return a.starts_on < b.starts_on ? -1 : 1; })[0]; DX.or = nx ? { c: nx.occasion_code, y: +nx.year } : { c: 'birthday', y: +t.slice(0, 4) }; } return DX.or; }
+  // Booking curve: orders booked by N days before the date (cumulative)
+  function orCurve(x) { var b = x.list.filter(function (o) { return !o.off; }).map(function (o) { return orBefore(o, x.day); }).filter(function (v) { return v != null; }); return OR_MARKS.map(function (m) { return b.filter(function (v) { return v >= m; }).length; }); }
+  function orChart(cur, prev, cy, py) {
+    var W = 420, H = 200, L = 30, R = 10, T = 14, B = 34, max = Math.max.apply(null, cur.concat(prev || [0], [1]));
+    var X = function (i) { return L + i * (W - L - R) / (OR_MARKS.length - 1); }, Y = function (v) { return T + (H - T - B) * (1 - v / max); };
+    var line = function (a, cls) { return '<polyline class="' + cls + '" points="' + a.map(function (v, i) { return X(i).toFixed(1) + ',' + Y(v).toFixed(1); }).join(' ') + '"/>' + a.map(function (v, i) { return '<circle class="' + cls + '" cx="' + X(i).toFixed(1) + '" cy="' + Y(v).toFixed(1) + '" r="3.5"/>'; }).join(''); };
+    var ticks = [0, Math.round(max / 2), max].filter(function (v, i, a) { return a.indexOf(v) === i; });
+    var s = '<svg class="or-chart" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Bookings by days before the date: ' + cy + ' ' + cur.join(', ') + (prev ? '; ' + py + ' ' + prev.join(', ') : '') + '">' +
+      ticks.map(function (v) { return '<line class="or-grid" x1="' + L + '" x2="' + (W - R) + '" y1="' + Y(v) + '" y2="' + Y(v) + '"/><text class="or-ax" x="' + (L - 6) + '" y="' + (Y(v) + 4) + '" text-anchor="end">' + v + '</text>'; }).join('') +
+      OR_MARKS.map(function (m, i) { return '<text class="or-ax" x="' + X(i) + '" y="' + (H - 12) + '" text-anchor="middle">' + (m ? m + 'd' : 'Day') + '</text>'; }).join('') +
+      (prev ? line(prev, 'or-prev') : '') + line(cur, 'or-cur') + '</svg>';
+    return s + '<p class="or-legend"><span class="or-k or-k-cur"></span>' + cy + (prev ? ' <span class="or-k or-k-prev"></span>' + py : '') + '<span class="or-legnote">Orders booked by each point before the date</span></p>';
+  }
+  function orTable(rows, money) {
+    return '<table class="or-tab"><tbody>' + rows.map(function (r, i) { return '<tr' + (r.top ? ' class="is-top"' : '') + '><th scope="row">' + esc(r.l) + '</th><td>' + dxTap(r.list, r.t || r.l, int(r.q) + (r.q === 1 ? ' cake' : ' cakes'), 'or-cell') + '</td>' + (money ? '<td>' + (r.v ? m0(r.v) : '–') + '</td>' : '') + '</tr>'; }).join('') + '</tbody></table>';
+  }
+  function dxOccReport() {
+    ltDatesLoad();
+    if (!DX.odates) return '<p class="ccs-loading">Loading occasion dates…</p>';
+    var st = orState(), t = today(), dated = orDated();
+    var codes = dated.slice().sort(function (a, b) { var ia = ['mothers_day', 'fathers_day', 'valentines_day', 'christmas'].indexOf(a), ib = ['mothers_day', 'fathers_day', 'valentines_day', 'christmas'].indexOf(b); return (ia < 0 ? 9 : ia) - (ib < 0 ? 9 : ib); });
+    var cnt = {}; DX.data.orders.forEach(function (o) { var c = o.oc || 'not_specified'; cnt[c] = (cnt[c] || 0) + 1; });
+    Object.keys(cnt).sort(function (a, b) { return cnt[b] - cnt[a]; }).forEach(function (c) { if (codes.indexOf(c) < 0 && c !== 'not_specified' && c !== 'other') codes.push(c); });
+    if (codes.indexOf(st.c) < 0) st.c = codes[0];
+    var years = orYears(st.c); if (years.indexOf(st.y) < 0) st.y = years[years.length - 1];
+    var h = '<div class="or-pick"><div class="or-row" role="group" aria-label="Occasion">' + codes.map(function (c) { return '<button type="button" class="ccs-chip or-chip" data-act="dx-or-occ" data-v="' + esc(c) + '" aria-pressed="' + (c === st.c) + '">' + esc(dxOccName(c)) + '</button>'; }).join('') + '</div>' +
+      '<div class="or-row" role="group" aria-label="Year">' + years.map(function (y) { var x = orOcc(st.c, y); return '<button type="button" class="ccs-chip or-chip or-ychip" data-act="dx-or-year" data-v="' + y + '" aria-pressed="' + (y === st.y) + '">' + y + (x && x.day && x.day >= t ? ' <small>upcoming</small>' : '') + '</button>'; }).join('') + '</div>' +
+      '<p class="or-scope">Orders where the customer said the cake is for this occasion. The filters at the top do not change this report.</p></div>';
+    var cur = orOcc(st.c, st.y); if (!cur) return h + '<p class="ccs-quiet">No date is set for this occasion in that year.</p>';
+    var pi = years.indexOf(st.y), prev = null;
+    if (cur.day) { var pd_ = orDates(st.c).filter(function (d) { return +d.year < st.y; }).pop(); prev = pd_ ? orOcc(st.c, pd_.year) : null; } else if (pi > 0) prev = orOcc(st.c, years[pi - 1]);
+    var name = dxOccName(st.c), cs = orSum(cur.list), ps = prev ? orSum(prev.list) : null, upcoming = cur.day ? t < cur.day : st.y > +t.slice(0, 4), live = cur.day ? t <= cur.to : st.y >= +t.slice(0, 4);
+    var label = name + ' ' + st.y, plabel = prev ? name + ' ' + prev.y : '';
+    var cov = {}; DX.data.orders.forEach(function (o) { if (o.pd && (!cov[o.src] || o.pd < cov[o.src])) cov[o.src] = o.pd; });
+    var gapSrc = prev ? cs.ok.map(function (o) { return o.src; }).filter(function (c, i, a) { return a.indexOf(c) === i && cov[c] > prev.from; }) : [];
+    var cmpOk = ps && !gapSrc.length && cs.n >= OR_MIN && ps.n >= OR_MIN;
+    var ch = function (a, b) { var d = dxDelta(a, b); return d.t ? '<span class="or-d or-d-' + d.c + '">' + d.t + ' vs ' + prev.y + '</span>' : ''; };
+    // 1. The story in one sentence
+    var top = dxGroup(cs.ok, function (o) { return (o.it || []).map(function (i) { return [i[1] || i[0] || 'Cake', dnum(i[3]) || 1, o.tot ? dnum(i[4]) * (dnum(i[3]) || 1) : 0]; }); }).sort(function (a, b) { return b.q - a.q || b.v - a.v; });
+    var menu = top.filter(function (r) { return r.l !== 'Custom cake'; }), menuTop = menu[0] && (!menu[1] || menu[1].q < menu[0].q) ? menu[0] : null;
+    var story = !cs.n ? (upcoming ? 'No ' + name + ' orders yet for ' + st.y + (cur.day ? ' (' + nice(cur.day, true) + ')' : '') + '.' : 'No orders were recorded for ' + label + '.') :
+      int(cs.n) + (cs.n === 1 ? ' order' : ' orders') + ' for ' + label + (upcoming ? ' so far' : '') + (cs.v ? ', ' + m0(cs.v) + ' in completed sales' : '') + (cs.upv ? (cs.v ? ' and ' : ', ') + m0(cs.upv) + ' still to come' : '') + '.' +
+      (cs.n >= OR_MIN && menuTop ? ' ' + menuTop.l + ' led the menu cakes with ' + int(menuTop.q) + ' of ' + int(cs.c) + '.' : '') +
+      (cmpOk ? ' ' + (cs.n >= ps.n ? 'Up' : 'Down') + ' from ' + int(ps.n) + ' orders in ' + prev.y + '.' : '');
+    h += '<p class="or-story">' + esc(story) + '</p>';
+    h += '<div class="ccs-kpis dx-kpis or-kpis">' +
+      dxKpi('Orders', int(cs.n), cmpOk ? ch(cs.n, ps.n) : (cs.off.length ? int(cs.off.length) + ' cancelled, not counted' : 'Not cancelled'), cs.ok, label + ': orders') +
+      dxKpi('Cakes', int(cs.c), cmpOk ? ch(cs.c, ps.c) : 'In those orders', cs.ok, label + ': orders') +
+      dxKpi('Sales value', m0(cs.v), cmpOk ? ch(cs.v, ps.v) : (cs.upv ? m0(cs.upv) + ' still to come' : 'Completed sales'), cs.sales, label + ': completed sales') +
+      dxKpi('Average order', cs.priced.length ? m0(cs.aov) : '–', cmpOk ? ch(cs.aov, ps.aov) : 'Priced completed sales', cs.priced, label + ': priced sales') + '</div>';
+    var notes = [];
+    if (ps && gapSrc.length) notes.push('Not compared with ' + prev.y + ': ' + gapSrc.map(function (c) { return (SOURCE_LABEL[c] || c).toLowerCase() + ' orders were only recorded from ' + (+cov[c].slice(8, 10)) + ' ' + MONF[+cov[c].slice(5, 7) - 1] + ' ' + cov[c].slice(0, 4); }).join(' and ') + ', so ' + prev.y + ' looks lower than it was.');
+    else if (ps && !ps.n) notes.push('No ' + name + ' orders were recorded for ' + prev.y + ', so there is nothing to compare with.');
+    else if (!cmpOk && ps) notes.push('Too few orders to compare (' + int(cs.n) + ' and ' + int(ps.n) + ' in ' + prev.y + ').');
+    else if (!prev) notes.push('No earlier ' + name + ' to compare with.');
+    if (cs.unpriced.length) notes.push(int(cs.unpriced.length) + (cs.unpriced.length === 1 ? ' custom cake has' : ' custom cakes have') + ' no price recorded, so ' + (cs.unpriced.length === 1 ? 'it adds' : 'they add') + ' nothing to sales value.');
+    if (cur.day) { var stray = DX.data.orders.filter(function (o) { return (o.oc || 'not_specified') === st.c && o.pd && cur.list.indexOf(o) < 0 && orDates(st.c).every(function (d) { return o.pd < addDays(d.starts_on, -OR_PRE) || o.pd > addDays(d.ends_on || d.starts_on, OR_POST); }); });
+      if (stray.length) notes.push(dxTap(stray, name + ': pickup far from the date', int(stray.length) + (stray.length === 1 ? ' order says ' : ' orders say ') + name + ' but ' + (stray.length === 1 ? 'is' : 'are') + ' collected far from any ' + name + ' date', 'ccs-link or-inl') + ', so ' + (stray.length === 1 ? 'it is' : 'they are') + ' not in any year.'); }
+    if (notes.length) h += '<p class="or-note">' + notes.join(' ') + '</p>';
+    // 2. Booking countdown (dated) or month by month (undated)
+    var leads = cs.ok.map(function (o) { return cur.day ? orBefore(o, cur.day) : ltDays(o); }).filter(function (v) { return v != null && v >= 0; });
+    var noDate = cs.ok.filter(function (o) { return !o.odok; });
+    var sec = function (title, sub, body) { return '<section class="or-sec"><div class="dx-card-h"><h2>' + title + '</h2>' + (sub ? '<span>' + sub + '</span>' : '') + '</div>' + body + '</section>'; };
+    var parts = [];
+    if (cur.day) {
+      var cc = orCurve(cur), pc = prev ? orCurve(prev) : null, b = '';
+      if (upcoming) {
+        var away = daysBetween(t, cur.day), now = cs.ok.filter(function (o) { return o.odok && o.od <= t; }).length;
+        var then = prev ? prev.list.filter(function (o) { return !o.off && o.odok && orBefore(o, prev.day) >= away; }).length : null;
+        b += '<p class="or-pace"><b>Booked so far: ' + int(now) + '</b>' + (prev ? '. At this point before ' + plabel + ' (' + away + ' days out): ' + int(then) + '.' : '.') + ' The date is ' + nice(cur.day, true) + ', in ' + away + (away === 1 ? ' day.' : ' days.') + '</p>';
+      }
+      if (cs.n || (ps && ps.n)) b += orChart(cc, pc && ps.n ? pc : null, cur.y, prev ? prev.y : '');
+      var facts = [];
+      if (leads.length) {
+        var first = cs.ok.filter(function (o) { return o.odok; }).reduce(function (m, o) { return !m || o.od < m ? o.od : m; }, null);
+        var late = leads.filter(function (v) { return v <= 3; }).length;
+        facts.push('First booking ' + nice(first) + ' (' + daysBetween(first, cur.day) + ' days before).');
+        facts.push(Math.round(late / leads.length * 100) + '% booked in the last 3 days.');
+        if (leads.length >= OR_MIN) facts.push('Eight in ten booked within ' + ltPct(leads, 0.8) + ' days of the date.');
+      }
+      if (noDate.length) facts.push(int(noDate.length) + (noDate.length === 1 ? ' order has' : ' orders have') + ' no reliable order date and ' + (noDate.length === 1 ? 'is' : 'are') + ' left out of the timing.');
+      if (facts.length) b += '<p class="or-facts">' + esc(facts.join(' ')) + '</p>';
+      if (!b) b = '<p class="ccs-quiet">No bookings to show yet.</p>';
+      parts.push(sec('When people booked', 'Days before ' + nice(cur.day), b));
+    } else {
+      var mo = MON.map(function (m, i) { var l = cs.ok.filter(function (o) { return +o.pd.slice(5, 7) === i + 1; }); return { l: m, v: l.length, list: l, t: name + ', ' + MONF[i] + ' ' + st.y }; });
+      var lb = leads.length >= OR_MIN ? 'Usually ordered ' + ltDaysTxt(ltMed(leads)) + ' (' + leads.length + ' orders with an order date).' : leads.length ? 'Too few orders with an order date to judge how far ahead (' + leads.length + ').' : '';
+      parts.push(sec('Orders by pickup month', st.y, (cs.n ? dxCols(mo, false, 'Busiest month') : '<p class="ccs-quiet">No orders.</p>') + (lb ? '<p class="or-facts">' + esc(lb) + '</p>' : '')));
+    }
+    // 3. What they bought
+    var sizes = dxGroup(cs.ok, function (o) { return (o.it || []).map(function (i) { return [i[2] ? i[2] + ' inch' : (i[0] === 'Custom cake' ? 'Custom size' : 'Size not given'), dnum(i[3]) || 1, 0]; }); }).sort(function (a, b) { return b.q - a.q; });
+    var cust = cs.ok.filter(function (o) { return (o.it || []).some(function (i) { return i[0] === 'Custom cake'; }); });
+    if (cs.n) {
+      top.forEach(function (r) { r.top = r === menuTop && cs.n >= OR_MIN; r.t = label + ': ' + r.l; });
+      sizes.forEach(function (r, i) { r.top = i === 0 && cs.n >= OR_MIN && (!sizes[1] || sizes[1].q < r.q); r.t = label + ': ' + r.l; });
+      parts.push(sec('What they bought', int(cs.c) + ' cakes', '<div class="or-two"><div><h3 class="or-h3">Cakes</h3>' + orTable(top.slice(0, 8), true) + '</div><div><h3 class="or-h3">Sizes</h3>' + orTable(sizes.slice(0, 6), false) + '</div></div>' +
+        '<p class="or-facts">' + esc((cs.n >= OR_MIN && menu[0] ? (menuTop ? 'Best seller on the menu: ' + menuTop.l + ', ' + Math.round(menuTop.q / cs.c * 100) + '% of cakes. ' : 'No single best seller on the menu: ' + menu.filter(function (r) { return r.q === menu[0].q; }).map(function (r) { return r.l; }).join(' and ') + ' tie. ') : 'Too few orders to name a best seller. ') +
+        (cust.length ? int(cust.length) + ' of ' + int(cs.n) + ' orders (' + Math.round(cust.length / cs.n * 100) + '%) were custom cakes not on the menu.' : 'No custom cakes from outside the menu.')) + '</p>'));
+    }
+    // 4. Who ordered
+    if (cs.n) {
+      var keyed = cs.ok.filter(function (o) { return o.c; }), back = keyed.filter(function (o) { return DX.data.first[o.c] && DX.data.first[o.c] < o.pd; }), fresh = keyed.filter(function (o) { return back.indexOf(o) < 0; });
+      var online = cs.ok.filter(function (o) { return o.src === 'Online'; }), counter = cs.ok.filter(function (o) { return o.src !== 'Online'; });
+      var w = '<div class="or-two"><div class="or-split">' + dxTap(fresh, label + ': new customers', '<b>' + int(fresh.length) + '</b><span>New customers</span>', 'or-stat') + dxTap(back, label + ': returning customers', '<b>' + int(back.length) + '</b><span>Returning</span>', 'or-stat') +
+        (cs.ok.length - keyed.length ? '<p class="or-mini">' + int(cs.ok.length - keyed.length) + ' with no mobile number to match</p>' : '') + '</div>' +
+        '<div class="or-split">' + dxTap(online, label + ': online orders', '<b>' + int(online.length) + '</b><span>Online</span>', 'or-stat') + dxTap(counter, label + ': counter orders', '<b>' + int(counter.length) + '</b><span>Walk-in and phone</span>', 'or-stat') + '</div></div>';
+      if (prev && ps.n) {
+        var pk = {}; ps.ok.forEach(function (o) { if (o.c) pk[o.c] = 1; }); var pn = Object.keys(pk).length, again = {}; keyed.forEach(function (o) { if (pk[o.c]) again[o.c] = 1; }); var an = Object.keys(again).length;
+        w += '<p class="or-facts">' + esc(int(pn) + (pn === 1 ? ' customer' : ' customers') + ' ordered for ' + plabel + '; ' + int(an) + ' of them ' + (an === 1 ? 'has' : 'have') + ' ordered for ' + label + (upcoming ? ' so far' : '') + '.') + ' <span class="or-mini">Only customers who agreed to offers may be contacted about it.</span></p>';
+      }
+      parts.push(sec('Who ordered', '', w));
+    }
+    // 5. Pickup pressure
+    var src = cs.n >= 3 ? cur : prev && ps && ps.n >= 3 ? prev : null, srs = src === cur ? cs : ps;
+    if (src) {
+      var wdOf = function (o) { return WDF[(new Date(o.pd + 'T12:00:00Z').getUTCDay() + 6) % 7]; };
+      var byDay = dxGroup(srs.ok, function (o) { return [[cur.day ? o.pd : wdOf(o), o.cakes || 1, 0]]; }).sort(function (a, b) { return b.q - a.q || (a.l < b.l ? -1 : 1); });
+      var hrs = {}; srs.ok.forEach(function (o) { var m = ltMins(o); if (m == null) return; var k = Math.floor(m / 60) * 60; (hrs[k] = hrs[k] || []).push(o); });
+      var hk = Object.keys(hrs).sort(function (a, b) { return hrs[b].length - hrs[a].length || a - b; })[0];
+      var pk_ = byDay[0], days = cur.day ? byDay.slice(0, 5).map(function (r) { return { l: nice(r.l), v: r.q, list: r.list, t: (src === cur ? label : plabel) + ': collected ' + nice(r.l) }; }).sort(function (a, b) { return a.list[0].pd < b.list[0].pd ? -1 : 1; })
+        : WDF.map(function (w, i) { var r = byDay.filter(function (x) { return x.l === w; })[0]; return { l: WD[i], full: w, v: r ? r.q : 0, list: r ? r.list : [], t: label + ': collected on ' + w + 's' }; });
+      var line = !cur.day ? 'Busiest pickup day of the week: ' + pk_.l + ', ' + int(pk_.q) + ' of ' + int(srs.c) + ' cakes (' + Math.round(pk_.q / srs.c * 100) + '%).' + (hk != null ? ' Busiest hour: ' + orHour(+hk) + ', ' + hrs[hk].length + (hrs[hk].length === 1 ? ' order' : ' orders') + '.' : '') : 'Busiest pickup day' + (src === cur ? '' : ' last time (' + plabel + ')') + ': ' + nice(pk_.l, true) + ', ' + int(pk_.q) + ' of ' + int(srs.c) + ' cakes' + (cur.day ? ' (' + (daysBetween(pk_.l, src.day) === 0 ? 'on the day' : daysBetween(pk_.l, src.day) > 0 ? daysBetween(pk_.l, src.day) + (daysBetween(pk_.l, src.day) === 1 ? ' day before' : ' days before') : -daysBetween(pk_.l, src.day) + ' days after') + ')' : '') + '.' +
+        (hk != null ? ' Busiest hour: ' + orHour(+hk) + ', ' + hrs[hk].length + (hrs[hk].length === 1 ? ' order' : ' orders') + '.' : '');
+      parts.push(sec('Pickup pressure', src === cur ? '' : 'From ' + plabel, dxCols(days, false, 'Most cakes') + '<p class="or-facts">' + esc(line) + '</p>'));
+    }
+    // 6. Money
+    if (cs.n || cs.off.length) {
+      var owe = cs.ok.filter(function (o) { return o.live && dnum(o.bal) > 0.005; }), oweV = owe.reduce(function (s, o) { return s + dnum(o.bal); }, 0), offV = cs.off.reduce(function (s, o) { return s + o.tot; }, 0);
+      parts.push(sec('Money', '', '<div class="or-split">' + dxTap(owe, label + ': balance to collect', '<b>' + m0(oweV) + '</b><span>To collect, ' + int(owe.length) + (owe.length === 1 ? ' order' : ' orders') + '</span>', 'or-stat') +
+        dxTap(cs.off, label + ': cancelled', '<b>' + int(cs.off.length) + '</b><span>Cancelled' + (offV ? ', ' + m0(offV) : '') + '</span>', 'or-stat') + '</div>' +
+        (cs.ok.some(function (o) { return !o.live; }) ? '<p class="or-mini">Orders from the uploaded sheets have no payment records, so only app orders can show a balance.</p>' : '')));
+    }
+    // 7. Recommended actions: observation, evidence, action, confidence
+    var acts = [], nxt = cur.day ? (cur.day >= t ? cur : (function () { var d = orDates(st.c).filter(function (x) { return x.starts_on >= t; })[0]; return d ? orOcc(st.c, d.year) : null; })()) : null;
+    var occLeads = []; orDates(st.c).forEach(function (d) { var x = orOcc(st.c, d.year); if (x) x.list.forEach(function (o) { if (!o.off) { var v = orBefore(o, x.day); if (v != null && v >= 0) occLeads.push(v); } }); });
+    if (!cur.day) occLeads = DX.data.orders.filter(function (o) { return (o.oc || 'not_specified') === st.c && !o.off; }).map(ltDays).filter(function (v) { return v != null; });
+    var allLeads = DX.data.orders.filter(function (o) { return !o.off; }).map(ltDays).filter(function (v) { return v != null; });
+    var act = function (title, obs, ev, todo, n, fall) { var cf = orConf(n); acts.push('<li class="or-act"><div class="or-act-h"><b>' + esc(title) + '</b><span class="or-conf or-conf-' + cf[1] + '">Confidence: ' + cf[0] + '</span></div><dl><dt>Observation</dt><dd>' + esc(obs) + '</dd><dt>Evidence</dt><dd>' + esc(ev) + (fall ? ' <i>Not enough history for ' + esc(name) + '; based on all occasions.</i>' : '') + '</dd><dt>Action</dt><dd>' + esc(todo) + '</dd></dl></li>'); };
+    if (nxt && nxt.day) {
+      var useOcc = occLeads.length >= OR_MIN, L = useOcc ? occLeads : allLeads;
+      var pd0 = orDates(st.c).filter(function (d) { return d.starts_on === nxt.day; })[0];
+      if (!useOcc && pd0 && pd0.promo_days) { var st0 = addDays(nxt.day, -pd0.promo_days);
+        act('Start promoting ' + name + ' ' + nxt.y, 'Not enough ' + name + ' orders yet to learn when people book.', 'The promotion window set in Settings is ' + pd0.promo_days + ' days. Across all occasions, eight in ten orders are booked within ' + (allLeads.length ? ltPct(allLeads, 0.8) : '?') + ' days of pickup (' + allLeads.length + ' orders).',
+          (st0 < t ? 'The window opened on ' + nice(st0, true) + ': promote now.' : 'Start on ' + nice(st0, true) + ', ' + pd0.promo_days + ' days before ' + nice(nxt.day, true) + '.'), Math.min(occLeads.length, OR_MIN - 1), true); L = []; }
+      if (L.length) { var p80 = ltPct(L, 0.8), start = addDays(nxt.day, -(p80 + 7)), past = start < t;
+        act('Start promoting ' + name + ' ' + nxt.y, 'Eight in ten ' + (useOcc ? name : '') + ' orders are booked within ' + p80 + ' days of ' + (useOcc ? 'the date' : 'pickup') + '.',
+          L.length + (useOcc ? ' ' + name + ' orders with an order date, all years.' : ' orders with an order date, all occasions.'), (past ? 'The suggested start, ' + nice(start, true) + ', has passed: promote now.' : 'Start on ' + nice(start, true) + ' (' + p80 + ' days plus a week before ' + nice(nxt.day, true) + ').'), useOcc ? occLeads.length : Math.min(L.length, OR_MIN - 1), !useOcc); }
+    } else if (!cur.day && occLeads.length) {
+      act('Time ' + name + ' messages', 'Half of ' + name + ' orders are placed ' + ltDaysTxt(ltMed(occLeads)) + '.', occLeads.length + ' ' + name + ' orders with an order date.', 'Remind customers about ' + Math.max(7, ltPct(occLeads, 0.8) + 3) + ' days before their date, where they agreed to offers.', occLeads.length);
+    }
+    var hist = cs.n >= OR_MIN ? cs : ps && ps.n >= OR_MIN ? ps : null, hl = hist === cs ? label : plabel;
+    if (hist) { var hg = dxGroup(hist.ok, function (o) { return (o.it || []).map(function (i) { return [i[1] || i[0] || 'Cake', dnum(i[3]) || 1, 0]; }); }).sort(function (a, b) { return b.q - a.q; }), tp = hg.filter(function (r) { return r.l !== 'Custom cake'; })[0], hc = hg.filter(function (r) { return r.l === 'Custom cake'; })[0];
+      if (hc && hc.q / hist.c >= 0.25) act('Plan for custom cakes', int(hc.q) + ' of ' + int(hist.c) + ' cakes for ' + hl + ' were custom cakes not on the menu.', Math.round(hc.q / hist.c * 100) + '% of cakes, from ' + int(hist.n) + ' orders.', 'Set aside decorating time and ask for designs early.', hist.n);
+      if (tp) act('Feature ' + tp.l, tp.l + ' was the most ordered cake for ' + hl + '.', int(tp.q) + ' of ' + int(hist.c) + ' cakes (' + Math.round(tp.q / hist.c * 100) + '%) from ' + int(hist.n) + ' orders.', 'Lead the ' + name + ' promotion with ' + tp.l + ' and make sure enough is planned.', hist.n);
+    } else {
+      var gt = dxGroup(DX.data.orders.filter(function (o) { return o.sale; }), function (o) { return (o.it || []).map(function (i) { return [i[1] || i[0] || 'Cake', dnum(i[3]) || 1, 0]; }); }).filter(function (r) { return r.l !== 'Custom cake'; }).sort(function (a, b) { return b.q - a.q; })[0];
+      if (gt) act('Feature ' + gt.l, 'Not enough ' + name + ' orders to name its own best seller.', gt.l + ' is the most ordered cake overall, ' + int(gt.q) + ' cakes.', 'Use it in the ' + name + ' promotion until there is ' + name + ' history.', Math.min(cs.n + (ps ? ps.n : 0), OR_MIN - 1), true);
+    }
+    if (src && !cur.day) act('Staff for ' + pk_.l + 's', 'More ' + name + ' cakes are collected on ' + pk_.l + 's than any other day.', int(pk_.q) + ' of ' + int(srs.c) + ' cakes (' + Math.round(pk_.q / srs.c * 100) + '%)' + (hk != null ? '; busiest hour ' + orHour(+hk) : '') + '.', 'Plan baking and counter staff for ' + pk_.l + 's.', srs.n);
+    if (src && cur.day) act('Plan production for ' + (src === cur ? '' : 'the ') + 'peak day', 'Pickups bunch on one day around the date.', int(pk_.q) + ' of ' + int(srs.c) + ' cakes on ' + nice(pk_.l, true) + (src === cur ? '' : ' (' + plabel + ')') + '.',
+      (nxt && nxt.day && src !== cur ? 'Plan staff and baking for ' + nice(addDays(nxt.day, daysBetween(src.day, pk_.l)), true) + ', the same day relative to the date.' : 'Plan staff and baking for that day' + (hk != null ? ', with the busiest hour ' + orHour(+hk) : '') + '.'), srs.n);
+    var oweL = cs.ok.filter(function (o) { return o.live && dnum(o.bal) > 0.005; });
+    if (oweL.length) act('Collect unpaid balances', int(oweL.length) + (oweL.length === 1 ? ' order still has' : ' orders still have') + ' money to collect.', m0(oweL.reduce(function (s, o) { return s + dnum(o.bal); }, 0)) + ' outstanding on ' + label + ' orders.', 'Follow up before pickup.', OR_HI);
+    parts.push(sec('Recommended actions', 'Each with the figures behind it', acts.length ? '<ol class="or-acts">' + acts.join('') + '</ol>' : '<p class="ccs-quiet">Not enough data for a recommendation yet.</p>'));
+    h += '<div class="or-grid">' + parts.join('') + '</div>';
+    h += '<div class="dx-octools"><button type="button" class="ccs-btn ccs-ghost" data-act="dx-or-csv">Download these orders (CSV)</button></div>';
+    h += '<ul class="dx-rules"><li><b>Which orders</b>: the customer chose ' + esc(name) + ' as the occasion' + (cur.day ? ', and the cake is collected from ' + OR_PRE + ' days before the date to ' + OR_POST + ' days after' : ', with pickup in ' + st.y) + '. The pickup date alone never makes an order a ' + esc(name) + ' order.</li><li><b>Sales value</b>: completed sales at the agreed price, or the list price when none was agreed, less refunds. Cancelled orders and custom cakes with no price add nothing. Confidence: High from ' + OR_HI + ' orders, Medium from ' + OR_MIN + ', Low below that.</li></ul>';
+    DX.orList = { label: label, list: cur.list };
+    return h;
+  }
+  function dxOccReportExport() {
+    var x = DX.orList; if (!x) return;
+    var lines = [['Corner Café cakes: occasion report'], ['Occasion', x.label], [], ['Order', 'Order date', 'Pickup date', 'Pickup time', 'Channel', 'Status', 'Cakes', 'Value', 'Balance', 'Cake details']];
+    x.list.forEach(function (o) { lines.push([o.r, o.odok ? o.od : '', o.pd, o.pt ? String(o.pt).slice(0, 5) : '', SOURCE_LABEL[o.src] || o.src, regLabel(o), o.cakes || 1, o.tot ? o.net.toFixed(2) : '', o.live ? dnum(o.bal).toFixed(2) : '', (o.it || []).map(function (i) { return (i[1] || i[0]) + (i[2] ? ' ' + i[2] + ' inch' : '') + ' x' + (i[3] || 1); }).join('; ')]); });
+    var csv = lines.map(function (l) { return l.map(dxCsv).join(','); }).join('\n');
+    var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv' })); a.download = 'corner-cafe-' + x.label.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + today() + '.csv'; document.body.appendChild(a); a.click(); a.remove();
+    toast('Occasion report downloaded');
+  }
   function dxLeadExport() {
     var r = dxRange(), rows = dxLeadData(r);
     var lines = [['Corner Café cakes: lead time and pickup'], ['Period', r.all ? 'All time' : r.from + ' to ' + r.to], [], ['Order', 'Occasion', 'Order date', 'Pickup date', 'Pickup time', 'Days ahead', 'Pickup weekday', 'Channel', 'Cakes']];
@@ -813,6 +1032,9 @@
     else if (a === 'dx-export') dxExport();
     else if (a === 'dx-occ-csv') dxOccExport();
     else if (a === 'dx-lead-csv') dxLeadExport();
+    else if (a === 'dx-or-csv') dxOccReportExport();
+    else if (a === 'dx-or-occ') { orState().c = v; DX.or.y = null; var ys = orYears(v), t0 = today(), nx = ys.filter(function (y) { var x = orOcc(v, y); return x && x.to >= t0; })[0]; DX.or.y = nx != null ? nx : ys[ys.length - 1]; view(); }
+    else if (a === 'dx-or-year') { orState().y = +v; view(); }
     else if (a === 'dx-cxo') { DX.cxo = v; view(); }
     else if (a === 'dx-psort') { DX.psort = v; dxKeep(); view(); }
     else if (a === 'dx-year') { DX.year = v; dxKeep(); view(); }
