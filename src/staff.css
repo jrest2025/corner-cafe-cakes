@@ -1167,3 +1167,13 @@ html.ccs-tablet-mode #ccs-sheet .sl-restart { min-height: 56px; font-size: calc(
 /* The pop-up window never scrolls itself (only its columns); clip keeps the rounded edge without making it scrollable */
 #ccs-sheet { overflow: clip !important; }
 @media (min-width: 1280px) { #ccs-sheet.is-review .ccs-sheet-body.os-grid { overflow: clip !important; } }
+/* No mobile: another number, or no phone at all (staff form only) */
+#cc-staff .sl-nomob-link { display: inline-flex; align-items: center; min-height: 44px; padding: 0; margin: 2px 0 6px; font-size: 16px; color: var(--ccs-muted); text-decoration: underline; text-underline-offset: 3px; }
+#cc-staff .sl-nomob-pick { margin: 6px 0 10px; padding: 12px 14px; border: 1px solid var(--ccs-line); border-radius: 12px; background: #fff; }
+#cc-staff .sl-nomob-pick .ccs-chip { min-height: 52px; }
+#cc-staff .sl-nomob-none { padding: 12px 14px; border: 1px solid var(--ccs-line); border-radius: 12px; background: #fff; margin: 0 0 8px; }
+#cc-staff .sl-nomob-none .ccs-note { margin: 6px 0 4px; }
+#cc-staff .os-nophone { display: block; font-style: normal; font-size: 14px; color: var(--ccs-muted); margin-top: 2px; }
+#cc-staff .tb-saved.tb-nophone .tb-ref, #ccs-sheet .tb-saved.tb-nophone .tb-ref { display: block; font-size: 44px; font-weight: 800; letter-spacing: 1px; color: var(--ccs-ink); line-height: 1.1; }
+html.ccs-tablet-mode #ccs-sheet .sl-nomob-pick .ccs-chip { min-height: 64px !important; }
+html.ccs-tablet-mode #ccs-sheet .sl-nomob-link { font-size: calc(19 * var(--u, 1px)) !important; min-height: 52px; }

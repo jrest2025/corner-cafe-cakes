@@ -21,6 +21,7 @@
   function stamp(ts) { var d = new Date(ts); return d.toLocaleString('en-GB', { timeZone: TZ, day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true }).replace(/\s?([ap])\.?m\.?$/i, function (m, x) { return ' ' + x.toUpperCase() + 'M'; }); }
   function uuid() { return (crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) { var r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 3 | 8)).toString(16); })); }
   function digits(s) { return String(s || '').replace(/\D/g, ''); }
+  var NO_CONTACT = 'No contact (walk-in orders)';
   function waLink(phone) { var d = digits(phone); if (d.length === 7) d = '679' + d; return 'https://wa.me/' + d; }
   // A custom cake that is not on the menu has no product and no tin size: it shows its flavour and the size or servings
   function isReq(i) { return !!i && !i.product_id && !i.size_inch && i.product_name === 'Custom cake'; }
@@ -956,7 +957,7 @@
     var dlv = o.fulfilment_method === 'delivery', gName = (c && c.full_name) || o.contact_name || '', gPhone = (c && c.phone) || o.contact_phone || '';
     h += warnStrip(o);
     h += '<div class="ccs-ostrip"><div class="os-when"><span>' + (dlv ? 'Delivery' : 'Collection') + '</span><b>' + esc(nice(o.required_date)) + ', ' + esc(t12(o.required_time)) + '</b></div>' +
-      '<div class="os-cust"><span>Customer</span><b>' + esc(gName) + '</b>' + (gPhone ? '<a href="tel:' + esc(digits(gPhone)) + '">' + esc(gPhone) + '</a>' : '') +
+      '<div class="os-cust"><span>Customer</span><b>' + esc(gName) + '</b>' + (gPhone ? '<a href="tel:' + esc(digits(gPhone)) + '">' + esc(gPhone) + '</a>' : '<em class="os-nophone">' + (o.contact_email ? 'No phone. Email ' + esc(o.contact_email) : 'No phone. They quote ' + esc(o.reference)) + '</em>') +
       (gPhone ? '<div class="os-callrow"><a class="ccs-btn ccs-ghost" href="tel:' + esc(digits(gPhone)) + '">Call ' + esc(gPhone) + '</a><a class="ccs-btn ccs-ghost" href="' + esc(waLink(gPhone)) + '" target="_blank" rel="noopener">WhatsApp</a></div>' : '') + '</div>' +
       (canP('ord.payments') && bal === 0 && paid > 0 && total > 0 ? '<div class="os-paidfull"><span>Payment</span><b>Paid in full · ' + money(total) + '</b></div>' :
        canP('ord.payments') ? '<div><span>Price</span><b>' + (o.order_type === 'custom' && o.final_total == null && !total ? 'To price' : money(total)) + '</b></div><div><span>Paid</span><b>' + money(paid) + '</b></div><div><span>To pay</span><b>' + money(bal) + '</b></div>' : '') + '</div>';
@@ -998,11 +999,11 @@
     cut.push(['customer', h.length]);
     if (c) {
       h += '<section class="ccs-box"><h3>Customer</h3><p class="ccs-big">' + esc(c.full_name) + '</p><dl class="ccs-kv">' +
-        kv('Mobile', c.phone + ((o.contact_pref || c.preferred_contact) === 'whatsapp' ? ' (WhatsApp)' : '')) + (o.contact_pref ? kv('Asked to be contacted by', { whatsapp: 'WhatsApp', phone: 'Phone call', email: 'Email' }[o.contact_pref]) : '') + kv('Email', c.email) + kv('Ordered via', SOURCE_LABEL[o.source]) +
+        kv('Mobile', c.phone ? c.phone + ((o.contact_pref || c.preferred_contact) === 'whatsapp' ? ' (WhatsApp)' : '') : 'No phone') + (o.contact_pref ? kv('Asked to be contacted by', { whatsapp: 'WhatsApp', phone: 'Phone call', email: 'Email' }[o.contact_pref]) : '') + kv('Email', c.email) + kv('Ordered via', SOURCE_LABEL[o.source]) +
         (o.campaign || o.referral ? kv('Came from', [o.campaign ? 'Campaign: ' + o.campaign.replace(/[-_]+/g, ' ') : '', o.referral ? 'Link on ' + o.referral : ''].filter(Boolean).join(' · ')) : '') +
         (o.profile && o.profile.full_name && o.profile.full_name !== c.full_name ? kv('Profile name', o.profile.full_name + ' (the name on this order is kept as it was)') : '') +
         (S.sheet.custOrders != null ? kv('History', S.sheet.custOrders > 1 ? 'Returning customer, ' + S.sheet.custOrders + ' orders' : 'First order') : '') + '</dl>' +
-        '<div class="ccs-actions-row"><a class="ccs-btn ccs-ghost" href="' + esc(waLink(c.phone)) + '" target="_blank" rel="noopener">WhatsApp</a><a class="ccs-btn ccs-ghost" href="tel:' + esc(digits(c.phone)) + '">Call</a>' +
+        '<div class="ccs-actions-row">' + (c.phone ? '<a class="ccs-btn ccs-ghost" href="' + esc(waLink(c.phone)) + '" target="_blank" rel="noopener">WhatsApp</a><a class="ccs-btn ccs-ghost" href="tel:' + esc(digits(c.phone)) + '">Call</a>' : '') +
         (canP('nav.customers') && canP('cust.view') ? '<button type="button" class="ccs-btn ccs-ghost" data-act="open-customer" data-id="' + c.id + '">Customer profile</button>' : '') + '</div>' + orderFuBox(o) + '</section>';
     }
     h += mailBox(o);
@@ -1559,7 +1560,7 @@
       (b.version > 1 && changed.length ? '<div class="sl-changed">Changed since v' + (b.version - 1) + ': ' + esc(changed.join(', ')) + '. Throw away the old slip.</div>' : '') +
       keys +
       '<div class="sl-lines">' +
-        line('Guest Name', x.name || s.customer) + line('Contact', x.phone) +
+        line('Guest Name', x.name || s.customer) + line('Contact', x.phone || ('No phone. They quote ' + s.reference)) +
         (deliv ? line('Deliver to', [s.area, x.address].filter(Boolean).join(', ') + (x.receiver ? ' (for ' + x.receiver + ')' : ''), 'sl-wrap') : '') +
         line('Payment', priceTxt) + line('Occasion', s.occasion) + line('Candles', s.candles) +
         line('Inscription', s.message ? '“' + s.message + '”' : '', 'sl-big') + line('Remarks', remarks + (!s.has_dietary ? (remarks ? ' · ' : '') + 'No dietary needs or allergies given.' : ''), 'sl-wrap') +
@@ -2355,7 +2356,7 @@
     }).join('') + '</div>';
   }
   function phPicker(id, label, link) { return '<label class="' + (link ? 'ccs-link ccs-phlink' : 'ccs-btn ccs-ghost ccs-phadd') + '"><input type="file" id="' + id + '" accept="image/jpeg,image/png,image/webp" multiple class="ccs-sr">' + label + '</label>'; }
-  function freshDraft() { return { key: uuid(), source: 'walk_in', step: 0, reached: 0, phone: '', matches: null, customer: null, isNew: false, name: '', email: '', whatsapp: true, optIn: null,
+  function freshDraft() { return { key: uuid(), source: 'walk_in', step: 0, reached: 0, phone: '', noMob: null, matches: null, customer: null, isNew: false, name: '', email: '', whatsapp: true, optIn: null,
     product: null, req: false, sizeNote: '', reqPrice: '', variant: null, size: null, finish: 'standard', design: '', photos: [], phErr: null, message: '', candles: '', occasion: null, occOther: '', diet: null, diets: [], dietNote: '', notes: '', qty: 1,
     date: '', time: '', rush: '', rushBy: '', fromCal: false, method: 'collection', zone: null, address: '', fee: '', contact: '', confirmNow: false, askDeposit: false, deposit: '', payNow: false, payAmount: '', payMethod: 'cash', result: null, err: null, errField: null }; }
   var D = freshDraft();
@@ -2730,8 +2731,8 @@
     var p = prod(), closedL = (S.setup && S.setup.closed_dates) || [];
     if (s === 0 && D.req) return D.design.trim().length < 3 ? ['Describe how the cake should look'] : (D.sizeNote || '').trim().length < 2 ? ['Write the size or how many people it serves'] : D.reqPrice && !(num(D.reqPrice) > 0) ? ['Check the price, or leave it empty'] : [];
     if (s === 0) return !p || !D.size ? ['Tap a price to choose the cake and size'] : p.variants.length && !D.variant ? ['Choose the flavour'] : D.finish === 'custom' && D.design.trim().length < 3 ? ['Describe the custom design'] : [];
-    if (s === 1) { var n1 = slNeeds(2); if (!D.customer && D.name.trim().length < 2) n1.splice(digits(D.phone).length < 7 ? 1 : 0, 0, 'Write the guest name'); return n1; }
-    if (s === 2) { if (D.customer) { if (D.custConsent === undefined) return ['Checking their permission']; return D.custConsent && D.custConsent.ok ? [] : (D.optIn === true || D.optIn === false) ? [] : ['Ask if they want cake offers and reminders']; } var n = []; if (digits(D.phone).length < 7) n.push('Write the full mobile number'); if (D.optIn !== true && D.optIn !== false) n.push('Ask if they want cake offers and reminders'); return n; }
+    if (s === 1) { var n1 = slNeeds(2); if (!D.customer && D.name.trim().length < 2) n1.splice(D.noMob !== 'none' && digits(D.phone).length < 7 ? 1 : 0, 0, 'Write the guest name'); return n1; }
+    if (s === 2) { if (D.customer) { if (D.custConsent === undefined) return ['Checking their permission']; return D.custConsent && D.custConsent.ok ? [] : (D.optIn === true || D.optIn === false) ? [] : ['Ask if they want cake offers and reminders']; } if (D.noMob === 'none') return []; var n = []; if (digits(D.phone).length < 7) n.push(D.noMob === 'other' ? 'Write the full phone number' : 'Write the full mobile number'); if (D.optIn !== true && D.optIn !== false) n.push('Ask if they want cake offers and reminders'); return n; }
     if (s === 3) { if (!D.date) return ['Choose the date']; if (closedL.indexOf(D.date) > -1) return ['Choose a day the café is open']; if (!D.time) return ['Choose the time']; var w = []; if (tooSoon() && !rushOk()) w.push('Give the short-notice reason and who approved it'); if (D.method === 'delivery' && !delivOk()) w.push('Finish the delivery details'); return w; }
     if (s === 4) { var n4 = slNeeds(5); if (!D.occasion) n4.push('Choose the occasion, or Customer didn\'t say'); return n4; }
     if (s === 6 && !D.occasion) return ['Choose the occasion, or Customer didn\'t say'];
@@ -2827,8 +2828,8 @@
     if (D.customer) nmEd = '<p class="sl-fixed">' + nm + '</p><button type="button" class="ccs-link" data-act="n-unpick">A different guest</button>' + slActions(1);
     h += slLine('Guest Name', 1, nm, nmEd, { req: true, id: 'sl-st-1' });
     // Stage 3: contact and permission
-    var ct = D.customer ? esc(D.customer.phone || '') + (D.optIn === true || D.optIn === false ? '<small>' + (D.optIn ? 'Agreed to offers and reminders' : 'No offers or reminders') + '</small>' : D.custConsent && D.custConsent.ok ? '<small>Agreed to cake offers and reminders</small>' : '') : esc(D.phone.trim());
-    if (ct && !D.customer && (D.optIn === true || D.optIn === false)) ct += '<small>' + (D.optIn ? 'Agreed to offers and reminders' : 'No offers or reminders') + '</small>';
+    var ct = D.customer ? esc(D.customer.phone || '') + (D.optIn === true || D.optIn === false ? '<small>' + (D.optIn ? 'Agreed to offers and reminders' : 'No offers or reminders') + '</small>' : D.custConsent && D.custConsent.ok ? '<small>Agreed to cake offers and reminders</small>' : '') : D.noMob === 'none' ? 'No phone<small>' + (D.email.trim() ? 'Email ' + esc(D.email.trim()) : 'They quote the order number at collection') + '</small>' : esc(D.phone.trim()) + (D.noMob === 'other' && D.phone.trim() ? '<small>Not a mobile</small>' : '');
+    if (ct && !D.customer && D.noMob !== 'none' && (D.optIn === true || D.optIn === false)) ct += '<small>' + (D.optIn ? 'Agreed to offers and reminders' : 'No offers or reminders') + '</small>';
     var ctEd;
     if (D.customer) ctEd = '<p class="sl-fixed">' + esc(D.customer.phone || '') + '</p><span class="ccs-hint">' + (D.customer.orders_count ? D.customer.orders_count + ' earlier orders' + (D.customer.favourite_cake ? ', usually ' + esc(D.customer.favourite_cake) : '') : 'Existing customer') + '.</span>' +
       (D.custConsent === undefined ? '<p class="ccs-hint">Checking their permission…</p>' : D.custConsent && D.custConsent.ok ? '<p class="ccs-hint">Already agreed to cake offers and reminders.</p>' :
@@ -2899,12 +2900,20 @@
       var q = 'Can we send them cake offers and reminders, and offers from Jack&#39;s Restaurants?';
       if (D.customer) ed = '<div class="sl-found"><p class="sl-fixed">' + esc(D.customer.full_name) + '</p><p class="sl-fixed sl-fixed2">' + esc(D.customer.phone || '') + '</p><span class="ccs-hint">' + (D.customer.orders_count ? 'Returning customer, ' + D.customer.orders_count + ' earlier order' + (D.customer.orders_count === 1 ? '' : 's') + (D.customer.favourite_cake ? ', usually ' + esc(D.customer.favourite_cake) : '') : 'Existing customer') + '.</span><button type="button" class="ccs-link" data-act="n-unpick">A different guest</button></div>' +
         (D.custConsent === undefined ? '<p class="ccs-hint">Checking their permission…</p>' : D.custConsent && D.custConsent.ok ? '<p class="ccs-hint">Already agreed to cake offers and reminders.</p>' : consentQ(D.custConsent && D.custConsent.reconfirm ? 'Their permission needs confirming. ' + q : q));
-      else ed = '<label class="sl-k" for="n-phone">Mobile number <em class="sl-req">Required</em></label><input class="ccs-input" id="n-phone" type="tel" inputmode="tel" placeholder="Mobile number" value="' + esc(D.phone) + '" data-n="phone" autocomplete="off">' + ferr('phone') + slMatches(D.matches) +
-        '<span class="ccs-hint">Type the number first: a returning customer comes up with their details.</span>' +
-        '<label class="sl-k" for="n-name">Guest name <em class="sl-req">Required</em></label><input class="ccs-input" id="n-name" data-n="name" value="' + esc(D.name) + '" autocomplete="off" placeholder="Full name">' + ferr('name') + slMatches(D.nameMatches) +
-        '<label class="ccs-check"><input type="checkbox" data-nc="whatsapp"' + (D.whatsapp ? ' checked' : '') + '> This number is on WhatsApp</label>' +
-        '<label class="sl-k" for="n-email">Email <em class="sl-opt">Optional</em></label><input class="ccs-input" id="n-email" type="email" data-n="email" value="' + esc(D.email) + '" placeholder="For order emails">' +
-        consentQ(q);
+      else {
+        // No mobile? Another number (landline or family) is an ordinary phone order; No phone saves the order with no number at all
+        var noPh = D.noMob === 'none', other = D.noMob === 'other';
+        var backBtn = '<button type="button" class="ccs-link sl-nomob-link" data-act="sl-nomob" data-v="">They have a mobile after all</button>';
+        ed = noPh ? '<div class="sl-nomob-none"><p class="sl-k">No phone</p><p class="ccs-note" role="status">We can&#39;t reach them if anything changes. Give them the order number to quote when they collect.</p>' + backBtn + '</div>'
+          : '<label class="sl-k" for="n-phone">' + (other ? 'Phone number' : 'Mobile number') + ' <em class="sl-req">Required</em></label><input class="ccs-input" id="n-phone" type="tel" inputmode="tel" placeholder="' + (other ? 'Phone number' : 'Mobile number') + '" value="' + esc(D.phone) + '" data-n="phone" autocomplete="off">' + ferr('phone') + slMatches(D.matches) +
+            '<span class="ccs-hint">' + (other ? 'A landline, or a family member&#39;s number.' : 'Type the number first: a returning customer comes up with their details.') + '</span>' +
+            (other ? backBtn : D.noMob === 'menu' ? '<div class="sl-sub sl-nomob-pick"><span class="sl-k">No mobile?</span><div class="ccs-chips"><button type="button" class="ccs-chip" data-act="sl-nomob" data-v="other">Use another number</button><button type="button" class="ccs-chip" data-act="sl-nomob" data-v="none">No phone</button><button type="button" class="ccs-chip" data-act="sl-nomob" data-v="">Cancel</button></div></div>'
+              : '<button type="button" class="ccs-link sl-nomob-link" data-act="sl-nomob" data-v="menu">No mobile?</button>');
+        ed += '<label class="sl-k" for="n-name">Guest name <em class="sl-req">Required</em></label><input class="ccs-input" id="n-name" data-n="name" value="' + esc(D.name) + '" autocomplete="off" placeholder="Full name">' + ferr('name') + (noPh ? '' : slMatches(D.nameMatches)) +
+          (noPh ? '' : '<label class="ccs-check"><input type="checkbox" data-nc="whatsapp"' + (D.whatsapp ? ' checked' : '') + '> This number is on WhatsApp</label>') +
+          '<label class="sl-k" for="n-email">Email <em class="sl-opt">Optional</em></label><input class="ccs-input" id="n-email" type="email" data-n="email" value="' + esc(D.email) + '" placeholder="For order emails">' + ferr('email') +
+          (noPh ? '' : consentQ(q));
+      }
       ed += '<p class="sl-k" style="margin:14px 0 8px">How did they order? <em class="sl-req">Required</em></p><div class="ccs-chips" role="group" aria-label="How they ordered">' + SOURCES.map(function (s) { return '<button type="button" class="ccs-chip" data-act="n-source" data-v="' + s[0] + '" aria-pressed="' + (D.source === s[0]) + '">' + s[1] + '</button>'; }).join('') + '</div>' + takenHtml() +
         (D.customer ? '' : (!D.heard && !D.heardOpen ? '<button type="button" class="ccs-link sl-heardopen" data-act="sl-heardopen">How did they hear about us? (optional)</button>' : '<div class="sl-sub"><span class="sl-k">How did they hear about us? <em class="sl-opt">Optional</em></span><div class="ccs-chips">' + HEARD.map(function (x) { return '<button type="button" class="ccs-chip" data-act="sl-heard" data-v="' + x[0] + '" aria-pressed="' + (D.heard === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div></div>')) + slActions(1);
     } else if (cur === 3) {
@@ -2933,8 +2942,8 @@
         (s !== 99 && s !== cur && (seen[s] || (s === 0 && D.size)) ? '<button type="button" class="ccs-link sl-chg" data-act="sl-goto" data-v="' + s + '" aria-label="Change ' + label + '">Change</button>' : '') + '</div>';
     };
     var nm = D.customer ? esc(D.customer.full_name) : esc(D.name.trim());
-    var ct = D.customer ? esc(D.customer.phone || '') + (D.optIn === true || D.optIn === false ? '<small>' + (D.optIn ? 'Agreed to offers and reminders' : 'No offers or reminders') + '</small>' : D.custConsent && D.custConsent.ok ? '<small>Agreed to cake offers and reminders</small>' : '') : esc(D.phone.trim());
-    if (ct && !D.customer && (D.optIn === true || D.optIn === false)) ct += '<small>' + (D.optIn ? 'Agreed to offers and reminders' : 'No offers or reminders') + '</small>';
+    var ct = D.customer ? esc(D.customer.phone || '') + (D.optIn === true || D.optIn === false ? '<small>' + (D.optIn ? 'Agreed to offers and reminders' : 'No offers or reminders') + '</small>' : D.custConsent && D.custConsent.ok ? '<small>Agreed to cake offers and reminders</small>' : '') : D.noMob === 'none' ? 'No phone<small>' + (D.email.trim() ? 'Email ' + esc(D.email.trim()) : 'They quote the order number at collection') + '</small>' : esc(D.phone.trim()) + (D.noMob === 'other' && D.phone.trim() ? '<small>Not a mobile</small>' : '');
+    if (ct && !D.customer && D.noMob !== 'none' && (D.optIn === true || D.optIn === false)) ct += '<small>' + (D.optIn ? 'Agreed to offers and reminders' : 'No offers or reminders') + '</small>';
     var wv = D.date && D.time ? esc(nice(D.date, true)) + ', ' + esc(t12(D.time)) + '<small>' + (dl ? 'Delivery to ' + esc(D.zone || '') + (D.address ? ', ' + esc(D.address) : '') : 'Collect from café') + (tooSoon() ? ' · Short notice, approved by ' + esc(D.rushBy) : '') + '</small>' : '';
     var dv = D.diet === 'no' ? 'No dietary needs' : D.diet === 'unsure' ? 'Not sure yet: check with the customer' : D.diet === 'yes' ? esc([].concat(D.diets, D.dietNote ? [D.dietNote] : []).join(', ') || 'Yes') : '';
     var rv = [D.occasion ? esc(occSend()) + (D.occFor ? ' for ' + esc(D.occFor) : '') : '', esc(D.notes)].filter(Boolean).join(' · ');
@@ -3040,7 +3049,8 @@
       payment: payAmt ? { amount: payAmt, method: D.payMethod, kind: dep ? 'deposit' : (payAmt >= price ? 'full' : 'deposit') } : null,
       delivery: D.method === 'delivery' ? { method: 'delivery', zone: D.zone, address: D.address, fee: zoneObj() && zoneObj().fee == null ? num(D.fee) : null, contact: D.contact } : { method: 'collection' } };
     if (D.req) { p.size_note = (D.sizeNote || '').trim(); p.price = num(D.reqPrice) > 0 ? num(D.reqPrice) : null; }
-    if (D.customer) { p.customer_id = D.customer.id; if (D.optIn === true || D.optIn === false) p.consent = D.optIn ? 'yes' : 'no'; } else p.customer = { name: D.name, phone: D.phone, email: D.email, whatsapp: D.whatsapp, opt_in: D.optIn === true };
+    if (D.customer) { p.customer_id = D.customer.id; if (D.optIn === true || D.optIn === false) p.consent = D.optIn ? 'yes' : 'no'; } else if (D.noMob === 'none') p.customer = { name: D.name, phone: '', email: D.email, whatsapp: false, opt_in: false, no_contact: true };
+    else p.customer = { name: D.name, phone: D.phone, email: D.email, whatsapp: D.whatsapp, opt_in: D.optIn === true };
     if (D.heard && !D.customer) p.heard_from = D.heard;
     if (RECUR.indexOf(D.occasion) > -1) { if ((D.occFor || '').trim()) p.occasion_for = D.occFor.trim(); p.occasion_date = D.occDate || D.date; }
     var tkAt = takenAt();
@@ -3381,7 +3391,7 @@
   function tabletHome() {
     var r = S.tbSaved, draft = draftHasContent();
     var h = '<div class="ccs-sheet-head tb-head"><h2 class="ccs-title">Corner Café · Counter tablet</h2>' + tabletTools() + '<button type="button" class="ccs-btn ccs-ghost tb-exit" data-act="tb-exit">Exit tablet mode</button></div><div class="ccs-sheet-body tb-home">';
-    if (r) h += '<div class="tb-saved" role="status"><b>' + esc(r.reference) + ' saved</b><span>' + esc(r.msg || '') + '</span>' + (r.slip ? '<button type="button" class="ccs-btn ccs-ghost" data-act="open-slip" data-id="' + r.order_id + '">Make the kitchen slip</button>' : '') + '</div>';
+    if (r) h += '<div class="tb-saved' + (r.noPhone ? ' tb-nophone' : '') + '" role="status">' + (r.noPhone ? '<span class="tb-ref">' + esc(r.reference) + '</span><b>Write this number on their receipt</b>' : '<b>' + esc(r.reference) + ' saved</b>') + '<span>' + esc(r.msg || '') + '</span>' + (r.slip ? '<button type="button" class="ccs-btn ccs-ghost" data-act="open-slip" data-id="' + r.order_id + '">Make the kitchen slip</button>' : '') + '</div>';
     h += '<button type="button" class="tb-start" data-act="tb-new">' + NAV_ICON['new'] + '<b>' + (draft ? 'Carry on with the unfinished order' : 'Start a new cake order') + '</b><span>' + (draft ? 'Everything entered so far is kept.' : 'One step at a time. Tap Next when each step is done.') + '</span></button>';
     if (draft) h += '<button type="button" class="ccs-btn ccs-ghost tb-fresh" data-act="tb-fresh">Start again with a blank order</button>';
     return h + '</div>';
@@ -3397,11 +3407,12 @@
   }
   // Saved from the New order panel: back to Today, with the new order at the top of Needs attention
   function homeSaved(r, hadEmail) {
-    var savedWhen = D.date && D.time ? nice(D.date) + ', ' + t12(D.time) : '';
+    var savedWhen = D.date && D.time ? nice(D.date) + ', ' + t12(D.time) : '', noPh = D.noMob === 'none';
+    var noPhTxt = noPh ? 'No phone: write ' + r.reference + ' on their receipt. They quote it when they collect. ' : '';
     if (S.tablet) {
       D = freshDraft(); clearDraft(); S.justAdded = r.order_id;
       var st = r.status === 'confirmed' ? 'Confirmed' : r.status === 'awaiting_deposit' ? 'Waiting for the deposit' : r.status === 'awaiting_quote' ? 'Needs a price' : r.status === 'awaiting_review' ? 'Waiting for a check' : 'Saved';
-      sheetClose('replace'); tabletHomeOpen({ reference: r.reference, order_id: r.order_id, slip: r.status === 'confirmed' && validRef(r.reference), msg: st + (savedWhen ? ' for ' + savedWhen : '') + '.' + (hadEmail ? '' : ' No email address was given, so no email was sent.') });
+      sheetClose('replace'); tabletHomeOpen({ reference: r.reference, order_id: r.order_id, slip: r.status === 'confirmed' && validRef(r.reference), msg: (noPh ? 'They quote it when they collect. ' : '') + st + (savedWhen ? ' for ' + savedWhen : '') + '.' + (hadEmail || noPh ? '' : ' No email address was given, so no email was sent.'), noPhone: noPh });
       return;
     }
     D = freshDraft(); clearDraft();
@@ -3412,6 +3423,7 @@
     var where = r.status === 'confirmed' ? 'Confirmed' + when + '.' : r.status === 'awaiting_deposit' ? 'Waiting for the deposit' + when + '.' : r.status === 'awaiting_quote' ? 'Needs a price' + when + '.' : r.status === 'awaiting_approval' ? 'Waiting for the customer to agree the price' + when + '.' : 'Saved' + when + ', waiting in Needs attention.';
     // A confirmed order goes to the kitchen: the message offers Make kitchen slip (the board also shows No slip yet until one is made)
     var slipNow = r.status === 'confirmed' && validRef(r.reference);
+    if (noPh) { toast(noPhTxt + where, false, { label: 'Open order', id: r.order_id }); openOrder(r.order_id); return; }
     toast(r.reference + ' saved. ' + where + (slipNow ? ' Make the kitchen slip now.' : '') + (hadEmail ? '' : ' No email address was given, so no email was sent.'), false, slipNow ? { label: 'Make kitchen slip', id: r.order_id, act: 'open-slip' } : { label: 'Open order', id: r.order_id });
   }
   // Saved from the calendar panel: close it, stay on the day and mark the new order
@@ -3593,10 +3605,11 @@
     var segs = [['seg_repeat', 'Repeat'], ['seg_first_time', 'First-time'], ['seg_high_value', 'High value'], ['seg_inactive', 'Inactive'], ['seg_birthday_buyer', 'Birthday buyer'], ['seg_corporate', 'Corporate']].filter(function (x) { return s[x[0]]; });
     var h = sheetHead(esc(c.full_name)) + '<div class="ccs-sheet-body">';
     h += '<p class="ccs-hint">Customer ' + esc(custNo(c.customer_no)) + (c.archived_at ? ' · Archived' : '') + '</p>';
+    if (c.full_name === NO_CONTACT) h += '<p class="ccs-note" role="note"><b>Shared record for orders with no contact. Never message.</b> The number here is the café&#39;s own. Each order keeps the customer&#39;s real name.</p>';
     if (c.review_flag === 'possible_duplicate') h += '<p class="ccs-warn"><b>Check for a duplicate.</b> ' + esc(c.review_note || 'Another profile has the same mobile number.') + (canP('cust.merge') ? ' <button type="button" class="ccs-link" data-act="ws-cm-dups-open">Review duplicates</button>' : '') + '</p>';
     if ((d.mergedFrom || []).length) h += '<p class="ccs-hint">Merged into this profile: ' + esc(d.mergedFrom.map(function (x) { return custNo(x.customer_no) + ' ' + x.full_name; }).join(', ')) + '.</p>';
-    var ctc = c.phone ? '<a class="ccs-btn ccs-ghost" href="' + esc(waLink(c.phone)) + '" target="_blank" rel="noopener">WhatsApp</a><a class="ccs-btn ccs-ghost" href="tel:' + esc(digits(c.phone)) + '">Call</a>' : '';
-    if ((editor && !c.archived_at) || ctc) h += '<div class="ccs-actions-row ccs-cust-acts">' + (editor && !c.archived_at ? '<button type="button" class="ccs-btn ccs-new" data-act="cust-neworder">' + NAV_ICON['new'] + 'New order for this customer</button>' : '') + ctc + '</div>';
+    var ctc = c.phone && c.full_name !== NO_CONTACT ? '<a class="ccs-btn ccs-ghost" href="' + esc(waLink(c.phone)) + '" target="_blank" rel="noopener">WhatsApp</a><a class="ccs-btn ccs-ghost" href="tel:' + esc(digits(c.phone)) + '">Call</a>' : '';
+    if ((editor && !c.archived_at && c.full_name !== NO_CONTACT) || ctc) h += '<div class="ccs-actions-row ccs-cust-acts">' + (editor && !c.archived_at && c.full_name !== NO_CONTACT ? '<button type="button" class="ccs-btn ccs-new" data-act="cust-neworder">' + NAV_ICON['new'] + 'New order for this customer</button>' : '') + ctc + '</div>';
     // One page, plain tables: details, orders, notes, permission
     var cpDate = function (iso) { return iso ? new Date(iso + 'T12:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }) : ''; };
     var row = function (k, v, raw) { return v || v === 0 ? '<tr><th scope="row">' + esc(k) + '</th><td>' + (raw ? v : esc(v)) + '</td></tr>' : ''; };
@@ -4870,6 +4883,13 @@
         case 'mf-save': mfSave(); break;
         case 'sl-skip': slNext(true); break;
         case 'sl-goto': slGo(Number(v)); break;
+        case 'sl-nomob':
+          if (v === 'none') { D.noMob = 'none'; D.phone = ''; D.matches = null; D.nameMatches = null; D.whatsapp = false; D.optIn = false; D.isNew = true; }
+          else if (v === 'other') { D.noMob = 'other'; D.whatsapp = false; }
+          else if (v === 'menu') D.noMob = 'menu';
+          else { if (D.noMob === 'none') { D.optIn = null; D.whatsapp = true; } else if (D.noMob === 'other') D.whatsapp = true; D.noMob = null; }
+          if (D.errField === 'phone' || D.errField === 'stage') { D.err = null; D.errField = null; }
+          refreshStep(); if (v !== 'none' && v !== 'menu') setTimeout(function () { var f = document.getElementById('n-phone'); if (f) f.focus(); }, 30); break;
         case 'sl-opt': D.optIn = v === 'yes'; if (D.errField === 'stage') { D.err = null; D.errField = null; } refreshStep(); break;
         case 'n-newcust': D.isNew = true; D.customer = null; refreshStep(); var nn = document.getElementById('n-name'); if (nn) nn.focus(); break;
         case 'n-cust-next':

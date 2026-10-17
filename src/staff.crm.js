@@ -1044,7 +1044,7 @@
       (last ? '<p class="crm-last">' + esc(last) + '</p>' : '') +
       (sales ? '<p class="crm-perm">' + (perm.length ? 'Agreed to hear from us by ' + esc(perm.join(', ')) + '.' : '') + '</p>' : '') +
       (x.kind === 'quote' ? '<p class="crm-last">Quote ' + esc(x.order_ref) + (x.quote_value != null ? ', ' + money(x.quote_value) : '') + ' · <button type="button" class="ccs-link" data-act="open-order" data-id="' + esc(x.order_id) + '">Open the order</button></p>' : '');
-    var tel = x.phone ? '<a class="ccs-btn ccs-ghost crm-btn" href="tel:' + esc(digits(x.phone)) + '">Call</a><a class="ccs-btn ccs-ghost crm-btn" href="' + esc(waLink(x.phone) + '?text=' + encodeURIComponent(crmWaText(x))) + '" target="_blank" rel="noopener">WhatsApp</a>' : '';
+    var tel = x.phone && (x.name || x.full_name) !== NO_CONTACT ? '<a class="ccs-btn ccs-ghost crm-btn" href="tel:' + esc(digits(x.phone)) + '">Call</a><a class="ccs-btn ccs-ghost crm-btn" href="' + esc(waLink(x.phone) + '?text=' + encodeURIComponent(crmWaText(x))) + '" target="_blank" rel="noopener">WhatsApp</a>' : '';
     var em = x.email ? '<a class="ccs-btn ccs-ghost crm-btn" href="mailto:' + esc(x.email) + '">Email</a>' : '';
     if (!open) return h + '<div class="crm-acts">' + tel + em + '<button type="button" class="ccs-btn crm-btn" data-act="ws-crm-open" data-v="' + esc(x._k) + '">What happened?</button><button type="button" class="ccs-btn ccs-ghost crm-btn" data-act="ws-crm-later" data-v="' + esc(x._k) + '">Remind me later</button></div></article>';
     return h + crmRecord(x) + '</article>';
