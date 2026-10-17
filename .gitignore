@@ -10,3 +10,4 @@ tests/catalogue/out/
 dist/*.min.js
 dist/*.min.css
 dist/staff.full.js
+tests/shots*/

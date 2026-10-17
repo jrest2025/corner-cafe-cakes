@@ -25,6 +25,10 @@ Contains no customer records and no secret values.
 
 Jack's Restaurants Hospitality UI: `src/staff.hospitality.css`, loaded last by `build/build.py`. Grift font, side menu in Corner Café's deep green (#4B6339) with the white Corner Café logo, white working area, hairline panels with a coloured edge for urgency, Kazumi's neutral and status colours. Live file: `dist/app/staff-app.43b6a553dc.js` at commit e542c05. Rollback: paste `docs/rollback/staff-footer-before-2026-10-17.html` into the staff page footer and publish.
 
+## Order completed (live 17 October 2026, approved by Roneel)
+
+Confirmed orders show one Order completed button. It stays locked only until the balance is paid; the kitchen marking the cake Ready is now a warning, not a lock (database change `supabase/sql/order_completed_without_kitchen_ready.sql`, applied live). Completed orders read Completed. Live file: `dist/app/staff-app.c07d484b47.js` at commit 1346812. Rollback: paste `docs/rollback/staff-footer-before-order-completed-2026-10-17.html` into the staff page footer and publish (the database change can stay; the old screen still works with it).
+
 ## Folders
 
 - `src/`: readable source (staff app, guest page, styles). Edit these files, never the files in `dist`.
