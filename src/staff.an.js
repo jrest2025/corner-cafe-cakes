@@ -39,7 +39,7 @@
     { id: 'da', name: 'Data', need: [], opt: [], purpose: 'What each module needs, what has arrived and the templates.' }
   ];
   // Which cake sections sit in which module (the sections themselves are built in the dashboard code above)
-  var AN_SUB = { ck: ['sa', 'pf', 'pr', 'cu', 'cv', 'fi', 'op', 'fc'], sd: ['oi', 'oc', 'or'], da: ['dm', 'dr'] };
+  var AN_SUB = { ck: ['sa', 'pf', 'pr', 'cu', 'cv', 'fi', 'op', 'fc'], sd: ['oi', 'oc', 'or'], da: ['up', 'dm', 'dr'] };
   var AN_LINKS = [
     { a: 'cake_orders', b: 'occasions', key: 'Occasion and pickup date', q: 'When are cakes for each occasion ordered, and when collected?' },
     { a: 'cake_orders', b: 'campaigns', key: 'Date (campaign days) and promo code where used', q: 'Do cake orders rise while a campaign runs, against a normal period?' },
