@@ -5,6 +5,11 @@
   // Data readiness); Level 3 the order lists every figure opens. No figure is invented: where the data cannot support a
   // number (cake costs, tax), the dashboard says what is missing and who can supply it.
   var BI_TEMPLATE = 'CC-DATA-REQ-1';
+  // Cake prices include VAT (Roneel, 17 Oct 2026). Fiji's standard rate by date: 12.5% from 1 Aug 2025, 15% from 1 Aug 2023,
+  // 9% before. Each sale uses the rate on its own date, so past sales are not restated at today's rate.
+  var BI_VAT = [['2025-08-01', 0.125], ['2023-08-01', 0.15], ['0000-01-01', 0.09]];
+  function biVat(iso) { for (var i = 0; i < BI_VAT.length; i++) if ((iso || '') >= BI_VAT[i][0]) return BI_VAT[i][1]; return BI_VAT[BI_VAT.length - 1][1]; }
+  function biExVat(list) { return list.reduce(function (s, o) { return s + dxValue(o) / (1 + biVat(o.pd)); }, 0); }
   function biOwed(list) { return list.reduce(function (s, o) { return s + dnum(o.bal); }, 0); }
   function biConfirmed(list) { return list.filter(function (o) { return !o.off && (o.sale || o.st === 'confirmed' || o.st === 'completed'); }); }
   function biGo(sec, label) { return '<button type="button" class="ccs-link bi-go" data-act="dx-bi-go" data-v="' + sec + '">' + esc(label) + '</button>'; }
@@ -17,7 +22,7 @@
     var gp = '<button type="button" class="ov-kpi dx-tap bi-kpi-gp" data-act="dx-bi-go" data-v="pf"><span class="ov-kh">' + ovIcon('money') + '<span class="ov-kl">Gross profit</span></span>' +
       '<b class="ov-kv bi-needs">Cost data required</b><span class="ov-kd is-none">&nbsp;</span><span class="ov-ks">No cake costs are recorded yet, so profit is not shown. See Profitability.</span></button>';
     var h = '<div class="ov-kpis bi-kpis">' +
-      ovKpi('money', 'Net cake sales', m0(cs.v), ovDelta(cs.v, ps ? ps.v : null), 'From ' + int(cs.n) + ' completed ' + (cs.n === 1 ? 'sale' : 'sales') + ', after refunds', bk.map(function (x) { return x.s.v; }), cur, 'Completed sales', ps ? m0(ps.v) : '') +
+      ovKpi('money', 'Net cake sales', m0(cs.v), ovDelta(cs.v, ps ? ps.v : null), 'Including VAT, after refunds. ' + m0(biExVat(cur)) + ' excluding VAT', bk.map(function (x) { return x.s.v; }), cur, 'Completed sales', ps ? m0(ps.v) : '') +
       gp +
       ovKpi('done', 'Confirmed orders', int(cg.length), ovDelta(cg.length, pcg ? pcg.length : null), 'Confirmed or completed, enquiries left out', bk.map(function (x) { return biConfirmed(x.got).length; }), cg, 'Confirmed orders', pcg ? int(pcg.length) : '') +
       ovKpi('avg', 'Outstanding payments', m0(owed), { t: '', c: '' }, owing.length ? int(owing.length) + (owing.length === 1 ? ' order still owes money' : ' orders still owe money') : 'Nothing owed', [], owing, 'Orders with money still owed', '') +
@@ -82,8 +87,10 @@
     var nd = Object.keys(days).length, ly = null;
     if (!r.all && !r.noCmp) { var lf = (+r.from.slice(0, 4) - 1) + r.from.slice(4), lt = (+r.to.slice(0, 4) - 1) + r.to.slice(4), l = dxSales(lf, lt); if (l.length) ly = dxSum(l); }
     var k = function (lbl, val, sub) { return '<div class="ccs-kpi dx-kpi"><span class="ccs-kpi-l">' + lbl + '</span><b class="ccs-kpi-n">' + val + '</b><span class="ccs-kpi-s">' + sub + '</span></div>'; };
-    return '<p class="dx-ch">Sales are completed sales: collected or delivered, after refunds. Future bookings are not sales until they are collected.</p><div class="ccs-kpis dx-kpis">' +
-      k('Net cake sales', m0(cs.v), ps ? change(cs.v, ps.v) + ' on the ' + esc(r.cmp) : 'No comparison for this period') +
+    var vx = biExVat(x.cur);
+    return '<p class="dx-ch">Sales are completed sales: collected or delivered, after refunds. Future bookings are not sales until they are collected. Prices include VAT; the figure excluding VAT uses the rate on each sale\'s date (12.5% from 1 August 2025, 15% before).</p><div class="ccs-kpis dx-kpis">' +
+      k('Net cake sales', m0(cs.v), (ps ? change(cs.v, ps.v) + ' on the ' + esc(r.cmp) + '. ' : '') + 'Including VAT') +
+      k('Excluding VAT', m0(vx), 'VAT ' + m0(cs.v - vx)) +
       k('Completed sales', int(cs.n), int(cs.c) + ' cakes') +
       k('Average order value', cs.n ? m0(cs.aov) : 'None yet', ps && ps.n ? 'Was ' + m0(ps.aov) : '&nbsp;') +
       k('Average per trading day', nd ? m0(cs.v / nd) : 'None yet', nd ? 'Over ' + int(nd) + (nd === 1 ? ' day' : ' days') + ' with pickups' : '&nbsp;') +
@@ -91,7 +98,7 @@
   }
   function biProfit(x) {
     var g = dxGroup(x.cur, function (o) { return dxItems(o).map(function (i) { var q = dnum(i[3]) || 1; return [i[0] + (i[2] ? ', ' + i[2] + ' inch' : ''), q, dnum(i[4]) * q]; }); }).sort(function (a, b) { return b.v - a.v; });
-    return '<div class="bi-need" role="note"><b>Cost data required.</b><p>Gross profit is sales less the cost of making each cake. No cake costs are recorded yet, so gross profit and margin are not shown, rather than guessed. Past profit will use the costs that applied at the time, not today\'s.</p>' +
+    return '<div class="bi-need" role="note"><b>Cost data required.</b><p>Gross profit is sales excluding VAT, less the cost of making each cake. No cake costs are recorded yet, so gross profit and margin are not shown, rather than guessed. Past profit will use the costs that applied at the time, not today\'s.</p>' +
       '<p>F&amp;B Costing can supply ingredient, packaging and direct labour costs per cake and size, with the date each cost starts. ' + biGo('dr', 'Get the data requirements file') + '</p></div>' +
       '<div class="dx-card-h"><h2>Sales by cake and size</h2><span>Gross profit appears here once costs are in</span></div><div class="dx-octwrap"><table class="dx-octab"><thead><tr><th>Cake and size</th><th>Cakes</th><th>Sales</th><th>Gross profit</th></tr></thead><tbody>' +
       (g.length ? g.slice(0, 15).map(function (e) { return '<tr><th scope="row">' + esc(e.l) + '</th><td>' + int(e.q) + '</td><td>' + m0(e.v) + '</td><td class="bi-muted">Needs cost</td></tr>'; }).join('') : '<tr><td colspan="4">No completed sales in this period.</td></tr>') + '</tbody></table></div>';
@@ -154,7 +161,7 @@
       ['Gross profit and margin', biNoCost() ? 'missing' : 'ready', biNoCost() ? 'Cake costs per cake and size, with the date each cost starts' : '', g.costRows.length, 'F&B Costing', 'Not recorded anywhere yet'],
       ['Confirmed orders', 'ready', '', 0, 'Operations', 'App and sheets'],
       ['Outstanding payments', DX.data.anyPay ? 'partial' : 'missing', 'Payments are recorded only for orders taken in the app. Sheet orders have no payment records', g.sheetSales.length, 'Finance', 'App payments'],
-      ['Tax and refunds', 'review', 'Whether prices include VAT is not confirmed', 0, 'Finance', 'Not recorded'],
+      ['VAT', 'ready', '', 0, 'Finance', 'Prices include VAT; the rate on each sale\'s date is used'],
       ['Occasions and seasons', st(g.noOcc.length, all), g.noOcc.length ? 'Orders in the last 12 months with no occasion' : '', g.noOcc.length, 'Marketing', 'Order form and sheets'],
       ['Campaigns', g.noCmp.length / all > 0.9 ? 'missing' : 'partial', 'Which campaign brought each order in', g.noCmp.length, 'Marketing', 'Not asked on most orders'],
       ['Order lead time', st(g.noOd.length, all), g.noOd.length ? 'Orders with no reliable order date (the walk-in sheet only has typing time)' : '', g.noOd.length, 'Operations', 'Sheets and app'],
