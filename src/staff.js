@@ -421,6 +421,7 @@
         if (silent && after > before) toast('New order waiting for review');
         refreshNav();
         if (S.tab === 'orders' || S.tab === 'today' || S.tab === 'attn' || S.tab === 'handover') view();
+        fbLoad();
       }).catch(function (e) {
         console.error(e);
         if (errKind(e) === 'expired') return sessionExpired();
@@ -601,6 +602,8 @@
       if (first > -1 && !seen[o.id]) { seen[o.id] = 1; out[first].rows.push({ o: o, why: why }); }
     });
     out.forEach(function (g) { g.rows.sort(function (a, b) { return (a.o.required_date + a.o.required_time) < (b.o.required_date + b.o.required_time) ? -1 : 1; }); });
+    // Customer complaints still open: one row each, oldest first, until someone marks them resolved
+    if (fbCanSee() && fbS().list.length) out.unshift({ key: 'complaint', title: 'Customer complaints to resolve', tone: 'is-red', rows: fbAttnRows() });
     return out.filter(function (g) { return g.rows.length; });
   }
   function attnCount() { return attnGroups().reduce(function (n, g) { return n + g.rows.length; }, 0); }
@@ -612,6 +615,7 @@
     h += '<div class="at-sum" role="group" aria-label="Jump to">' + gs.map(function (g) { return '<button type="button" class="at-jump ' + g.tone + '" data-act="at-jump" data-v="' + g.key + '"><b>' + g.rows.length + '</b><span>' + esc(g.title) + '</span></button>'; }).join('') + '</div>';
     h += gs.map(function (g) {
       return '<section class="at-group ' + g.tone + '" id="at-' + g.key + '"><h2>' + esc(g.title) + ' <span>' + g.rows.length + '</span></h2><div class="at-rows">' + g.rows.map(function (r, k) {
+        if (r.fb) return '<div class="at-row">' + fbAttnRow(r) + '</div>';
         var w = r.why.map(esc).join(' <span aria-hidden="true">·</span> '), rep = k > 0 && r.why.join('|') === g.rows[k - 1].why.join('|');
         return '<div class="at-row' + (rep ? ' is-rep' : '') + '"><p class="at-why">' + w + '</p>' + miniRow(r.o, false, true) + '</div>';
       }).join('') + '</div></section>';
@@ -732,13 +736,15 @@
     var todays0 = live.filter(function (o) { return o.required_date === t; }), done0 = todays0.filter(function (o) { return o.order_status === 'completed'; }).length;
     // Warning panel: only what needs someone, each line names the order and opens it. Red first, then amber, soonest first.
     var warn = [], seen = {}, nm = function (o) { return (o.customers && o.customers.full_name) || o.contact_name || 'Customer'; };
-    attnGroups().forEach(function (g) { g.rows.forEach(function (r) { seen[r.o.id] = 1; warn.push({ o: r.o, tone: g.tone === 'is-red' ? 'red' : 'amber', txt: r.why.join(' ') }); }); });
-    warn.sort(function (a, b) { if (a.tone !== b.tone) return a.tone === 'red' ? -1 : 1; return (a.o.required_date + a.o.required_time) < (b.o.required_date + b.o.required_time) ? -1 : 1; });
+    attnGroups().forEach(function (g) { g.rows.forEach(function (r) { seen[r.o.id] = 1; warn.push({ o: r.o, fb: r.fb, tone: g.tone === 'is-red' ? 'red' : 'amber', txt: r.why.join(' ') }); }); });
+    warn.sort(function (a, b) { if (a.tone !== b.tone) return a.tone === 'red' ? -1 : 1; if (!!a.fb !== !!b.fb) return a.fb ? -1 : 1; if (a.fb) return a.fb.at < b.fb.at ? -1 : 1; return (a.o.required_date + a.o.required_time) < (b.o.required_date + b.o.required_time) ? -1 : 1; });
     var WMAX = 3, nRed = warn.filter(function (x) { return x.tone === 'red'; }).length, nAmb = warn.length - nRed;
     h += '<section class="tq-warn' + (warn.length ? '' : ' is-clear') + '" aria-label="Needs attention">' + (warn.length ?
       '<div class="tq-wh"><h2>Needs attention</h2><span>' + [nRed ? '<em class="is-red">' + nRed + ' urgent</em>' : '', nAmb ? '<em class="is-amber">' + nAmb + ' to do</em>' : ''].filter(Boolean).join(' · ') + '</span>' +
       (warn.length > WMAX ? '<button type="button" class="ccs-link tq-more" data-tab="attn">See all ' + warn.length + ' →</button>' : '') + '</div>' +
-      warn.slice(0, WMAX).map(function (x) { return '<button type="button" class="tq-w is-' + x.tone + '" data-act="open-order" data-id="' + x.o.id + '" title="' + esc(x.txt) + '"><i aria-hidden="true"></i><b>' + esc(x.o.reference) + ' ' + esc(nm(x.o)) + '</b><span>' + esc(x.txt) + '</span></button>'; }).join('') :
+      warn.slice(0, WMAX).map(function (x) {
+        if (x.fb) return '<button type="button" class="tq-w is-red fb-tqw" data-act="fb-open" data-id="' + x.fb.id + '" title="' + esc(x.txt) + '"><i aria-hidden="true"></i><b>' + esc((x.fb.order_ref ? x.fb.order_ref + ' ' : '') + (x.fb.customer_name || 'Customer')) + '</b><span>' + esc(x.txt) + '</span></button>';
+        return '<button type="button" class="tq-w is-' + x.tone + '" data-act="open-order" data-id="' + x.o.id + '" title="' + esc(x.txt) + '"><i aria-hidden="true"></i><b>' + esc(x.o.reference) + ' ' + esc(nm(x.o)) + '</b><span>' + esc(x.txt) + '</span></button>'; }).join('') :
       '<p class="tq-clear">All clear. Nothing needs attention right now.</p>') + '</section>';
     // One row of numbers; each matches the list it opens and the badge in the menu
     var owing0 = live.filter(function (o) { return o.order_status === 'awaiting_deposit' || (o.order_status === 'confirmed' && o.payment_status !== 'paid'); });
@@ -787,6 +793,7 @@
       if (!S.sheet || S.sheet.id !== id) return;
       S.sheet.data = r.data;
       if (canP('ord.comms')) mailLoad(id);
+      fbOrderLoad(id);
       if (r.data.customer_id) orderFuLoad(id);
       if (r.data.brief_version) slipLoad([id]);
       var att = r.data.order_attachments || [];
@@ -924,7 +931,8 @@
   // Warnings shown only when something needs attention: red for urgent, amber for caution
   function warnStrip(o) {
     var w = [], t = today(), st = o.order_status, open = OPEN.indexOf(st) > -1;
-    if (!open) return '';
+    var fbw = fbOpenFor(o.id).map(function (c) { return '<p class="os-w is-red fb-w">' + esc('Open complaint: “' + fbShort(c.body, 90) + '” ' + (c.owner ? 'Owner: ' + c.owner + '.' : 'Nobody owns it yet.')) + ' <button type="button" class="ccs-link fb-wlink" data-act="fb-goto">See complaint</button></p>'; }).join('');
+    if (!open) return fbw ? '<div class="os-warn" role="status">' + fbw + '</div>' : '';
     var nowM = (function () { var p = new Intl.DateTimeFormat('en-GB', { timeZone: TZ, hour: 'numeric', minute: 'numeric', hour12: false }).format(new Date()).split(':'); return Number(p[0]) * 60 + Number(p[1]); })();
     var dueM = (function () { var p = String(o.required_time || '23:59').split(':'); return Number(p[0]) * 60 + Number(p[1] || 0); })();
     var kitWord = !o.production_status || o.production_status === 'not_started' ? 'Kitchen hasn\'t started.' : 'Kitchen: ' + (STAGE_LABEL[o.production_status] || o.production_status).toLowerCase() + '.';
@@ -936,7 +944,7 @@
     if (NEEDS.indexOf(st) > -1 && o.required_date >= t && o.required_date <= addDays(t, 2)) w.push(['amber', 'Due ' + (o.required_date === t ? 'today' : o.required_date === addDays(t, 1) ? 'tomorrow' : nice(o.required_date)) + ' ' + t12(o.required_time) + ' and not confirmed yet.']);
     var it = (o.order_items || [])[0] || {}, att = (o.order_attachments || []).filter(function (a) { return !a.removed_at; }).length;
     if (it.finish === 'custom' && !att && o.production_status !== 'ready') w.push(['amber', 'Custom design with no photo. Confirm the design with the customer.']);
-    return w.length ? '<div class="os-warn" role="status">' + w.map(function (x) { return '<p class="os-w is-' + x[0] + '">' + esc(x[1]) + '</p>'; }).join('') + '</div>' : '';
+    return w.length || fbw ? '<div class="os-warn" role="status">' + fbw + w.map(function (x) { return '<p class="os-w is-' + x[0] + '">' + esc(x[1]) + '</p>'; }).join('') + '</div>' : '';
   }
   function orderSheet() {
     var o = S.sheet.data;
@@ -960,6 +968,7 @@
     if (S.panel !== 'amend' && amendAllowed(o)) h += wipBanner('am:' + o.id, 'changes to this order');
     h += actionsBox(o, total, paid, bal);
     h += askUpdateBox(o);
+    h += fbHeadBtn(o);
     if (!S.panel && (S.sheet.danger || []).some(function (d) { return d[0] === 'delete'; }) && secStore('order').order !== 'history') h += '<div class="os-dkdanger"><button type="button" class="ccs-link ccs-red" data-act="go-other">Delete order</button></div>';
     var cut = [['cake', h.length]];
     h += '<section class="ccs-box"><h3>Cake</h3><p class="ccs-big">' + esc(cakeLine(i)) + '</p><dl class="ccs-kv">' +
@@ -997,6 +1006,8 @@
         (canP('nav.customers') && canP('cust.view') ? '<button type="button" class="ccs-btn ccs-ghost" data-act="open-customer" data-id="' + c.id + '">Customer profile</button>' : '') + '</div>' + orderFuBox(o) + '</section>';
     }
     h += mailBox(o);
+    cut.push(['feedback', h.length]);
+    h += fbOrderSection(o);
     cut.push(['payment', h.length]);
     if (canP('ord.payments')) {
       h += '<section class="ccs-box"><h3>Payment ' + payPill(o.payment_status) + '</h3><div class="ccs-money"><div><span>Price</span><b>' + money(total) + '</b></div><div><span>Deposit</span><b>' + (o.deposit_required ? money(o.deposit_required) : '—') + '</b></div><div><span>Paid</span><b>' + money(paid) + '</b></div><div><span>To pay</span><b>' + money(bal) + '</b></div></div>' +
@@ -1009,7 +1020,7 @@
     h += '<section class="ccs-box"><h3>Activity</h3>' + (S.sheet.showHistory ? '<div class="ccs-history">' + (o.order_events || []).slice().sort(function (a, b) { return a.at < b.at ? -1 : 1; }).map(function (e) { return '<div><span>' + esc(stamp(e.at)) + '</span><span style="color:var(--ccs-ink)">' + esc(eventText(e)) + '</span></div>'; }).join('') + '</div>' : '<button type="button" class="ccs-link" data-act="history">Show history (' + (o.order_events || []).length + ')</button>') + '</section>' + dz;
     // One section at a time below the key facts and actions, so the panel fits the screen
     var phDel = !S.panel && (S.sheet.danger || []).some(function (d) { return d[0] === 'delete'; }) && secStore('order').order !== 'history' ? '<div class="os-phdanger"><button type="button" class="ccs-link ccs-red" data-act="go-other">Delete order</button></div>' : '';
-    return secSplit(h, cut, 'order', { cake: 'Cake', when: deliv ? 'Delivery' : 'Collection', kitchen: 'Kitchen', customer: 'Customer', payment: 'Payment', history: 'History' }, !!S.panel) + phDel + '</div>';
+    return secSplit(h, cut, 'order', { cake: 'Cake', when: deliv ? 'Delivery' : 'Collection', kitchen: 'Kitchen', customer: 'Customer', feedback: 'Feedback', payment: 'Payment', history: 'History' }, !!S.panel) + phDel + '</div>';
   }
   // Section buttons: one section on screen at a time (fits the screen height without scrolling)
   function secStore(group) { if (S.sheet && /^(order|cust)/.test(group)) { S.sheet.sec = S.sheet.sec || {}; return S.sheet.sec; } S.secs = S.secs || {}; return S.secs; }
@@ -1148,6 +1159,9 @@
     map.quoted = 'Price set to ' + money(d.price) + (d.total != null && Number(d.total) !== Number(d.price) ? ' (total ' + money(d.total) + ' with delivery)' : '') + (d.size ? ', size: ' + d.size : '') + (d.flavour ? ', flavour: ' + d.flavour : '');
     map.photo_removed = 'Photo removed from the order' + (d.file ? ' (' + d.file + ')' : '');
     map.quote_sent = 'Price emailed to ' + (d.to || 'the customer');
+    map.complaint_logged = 'Customer complaint recorded';
+    map.complaint_resolved = 'Complaint resolved' + (d.actions && d.actions.length ? ': ' + d.actions.map(function (x) { return fbLabel(FB_ACT, x).toLowerCase(); }).join(', ') : '') + (d.amount != null ? ', ' + money(d.amount) : '');
+    map.complaint_reopened = 'Complaint reopened' + (d.reason ? ': ' + d.reason : '');
     map.email_resent = 'Customer email sent again (' + (MAIL_KIND[d.kind] || d.kind || 'latest') + ') to ' + (d.to || '');
     if (e.kind === 'collected') map.collected = (d.method === 'delivery' ? 'Delivered' : 'Collected') + (d.to ? ', received by ' + d.to : '');
     return (map[e.kind] || e.kind) + (d.note ? ': ' + d.note : '') + ' · ' + who;
@@ -4645,6 +4659,7 @@
     }
     var a = b.dataset.act, v = b.dataset.v;
     if (a.indexOf('dx-') === 0) { try { dashAct(a, b, v); } catch (err) { fail(err); } return; }
+    if (a.indexOf('fb-') === 0) { try { fbAct(a, b, v); } catch (err) { fail(err); } return; }
     if (a.indexOf('rg-') === 0) { try { regAct(a, b, v); } catch (err) { fail(err); } return; }
     if (a.indexOf('pm-') === 0) { try { permAct(a, b, v); } catch (err) { fail(err); } return; }
     if (a === 'tb-new') { S.tbSaved = null; sheetClose('replace'); newStart(); return; }

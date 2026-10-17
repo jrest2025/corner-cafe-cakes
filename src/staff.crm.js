@@ -69,7 +69,8 @@
     var closed = ws.tasks.filter(function (x) { return x.status === 'done' || x.status === 'cancelled'; });
     h += '<section class="ccs-box"><h3>Follow-ups</h3>' + (open.length ? '<div class="ws-tasks">' + open.map(wsTaskRow).join('') + '</div>' : '<p class="ccs-quiet">No open follow-ups.</p>') +
       (closed.length ? '<details class="ccs-more"' + (s.wsShowDone ? ' open' : '') + ' data-wsdone><summary>Done and closed (' + closed.length + ')</summary><div class="ws-tasks">' + closed.map(wsTaskRow).join('') + '</div></details>' : '') + '</section>';
-    var notes = ws.notes;
+    var openC = ws.notes.filter(function (n) { return n.status === 'open' && !n.hidden; }), notes = ws.notes.filter(function (n) { return openC.indexOf(n) < 0; });
+    if (openC.length) h = '<section class="ccs-box fb-opensec"><h3>Open complaints <span class="ccs-n">' + openC.length + '</span></h3><div class="ws-notes">' + openC.map(wsNoteRow).join('') + '</div></section>' + h;
     h += '<section class="ccs-box"><h3>Notes, enquiries and feedback</h3>' + (notes.length ? '<div class="ws-notes">' + notes.map(wsNoteRow).join('') + '</div>' : '<p class="ccs-quiet">Nothing recorded yet.</p>') + '</section>';
     return h;
   }
@@ -79,10 +80,11 @@
       [['note', 'Note'], ['enquiry', 'Enquiry'], ['feedback', 'Feedback']].map(function (k) { return '<button type="button" class="ccs-chip" data-act="ws-kind" data-v="' + k[0] + '" aria-pressed="' + (f.kind === k[0]) + '">' + k[1] + '</button>'; }).join('') + '</div>');
     if (f.noteDone) return h + wsFollowFields(f) + wsAddTail(f);
     if (f.kind === 'feedback') h += '<div class="ccs-field"><span class="ccs-label">How was it?</span><div class="ccs-chips" role="group" aria-label="Feedback">' +
-      [['positive', 'Happy'], ['neutral', 'Mixed'], ['negative', 'Complaint']].map(function (k) { return '<button type="button" class="ccs-chip" data-act="ws-tone" data-v="' + k[0] + '" aria-pressed="' + (f.tone === k[0]) + '">' + k[1] + '</button>'; }).join('') + '</div>' + wsErr('tone') + '</div>';
+      [['positive', 'Happy'], ['neutral', 'Mixed'], ['negative', 'Complaint']].map(function (k) { return '<button type="button" class="ccs-chip" data-act="ws-tone" data-v="' + k[0] + '" aria-pressed="' + (f.tone === k[0]) + '">' + k[1] + '</button>'; }).join('') + '</div>' + wsErr('tone') +
+      (f.tone === 'negative' ? '<p class="ccs-note fb-note">A complaint stays in Needs attention until it is marked resolved. You will own it; you can hand it on. Choose the order it is about below.</p>' : '') + '</div>';
     h += '<div class="ccs-field"><label class="ccs-label" for="ws-body">' + (f.kind === 'enquiry' ? 'What did they ask about?' : f.kind === 'feedback' ? 'What did they say?' : 'Note') + '</label><textarea class="ccs-input" id="ws-body" maxlength="2000" placeholder="' + (f.kind === 'enquiry' ? 'For example: asked about a three-tier wedding cake for 120 people in March' : f.kind === 'feedback' ? 'For example: loved the mocha cake, icing a little sweet' : 'For example: prefers collecting after 5 PM') + '"></textarea>' + wsErr('body') + '<span class="ccs-hint">' + WS_HINT + '</span></div>';
     h += '<div class="ccs-row"><div class="ccs-field"><label class="ccs-label" for="ws-channel">How did it come in?</label><select class="ccs-input" id="ws-channel">' + WS_CHANNEL.map(function (c) { return '<option value="' + c[0] + '">' + c[1] + '</option>'; }).join('') + '</select></div>' +
-      '<div class="ccs-field"><label class="ccs-label" for="ws-order">About an order (optional)</label><select class="ccs-input" id="ws-order"><option value="">Not about one order</option>' +
+      '<div class="ccs-field"><label class="ccs-label" for="ws-order">' + (f.kind === 'feedback' ? 'Which order is it about? (optional)' : 'About an order (optional)') + '</label><select class="ccs-input" id="ws-order"><option value="">Not about one order</option>' +
       d.orders.slice(0, 30).map(function (o) { return '<option value="' + o.id + '">' + esc(o.reference + ' · ' + nice(o.required_date) + ' · ' + cakeLine((o.order_items || [])[0])) + '</option>'; }).join('') + '</select>' + wsErr('order') + '</div></div>';
     h += '<label class="ccs-check"><input type="checkbox" id="ws-follow" data-wsc="follow"' + (f.follow ? ' checked' : '') + '> Someone needs to follow this up</label>';
     if (f.follow) h += wsFollowFields(f);
@@ -134,7 +136,8 @@
     var meta = esc(n.by + ', ' + stamp(n.at)) + (n.channel ? ' · ' + esc((WS_CHANNEL.filter(function (c) { return c[0] === n.channel; })[0] || [0, ''])[1]) : '') +
       (n.order_ref ? ' · <button type="button" class="ccs-link" data-act="open-order" data-id="' + n.order_id + '">' + esc(n.order_ref) + '</button>' : '') +
       (n.edited_at ? ' · Changed by ' + esc(n.edited_by) + ', ' + esc(stamp(n.edited_at)) : '');
-    var h = '<article class="ws-note' + (n.hidden ? ' is-hidden' : '') + '"><div class="ccs-tags"><span class="ccs-tag">' + WS_KIND[n.kind] + '</span>' + (n.tone ? '<span class="ccs-pill ' + (n.tone === 'negative' ? 's-alert' : n.tone === 'positive' ? 's-good' : 's-off') + '">' + WS_TONE[n.tone] + '</span>' : '') + '</div>';
+    var h = '<article class="ws-note' + (n.hidden ? ' is-hidden' : '') + (n.status === 'open' && !n.hidden ? ' fb-card is-open' : n.status === 'resolved' ? ' is-resolved' : '') + '" id="fb-' + n.id + '"><div class="ccs-tags"><span class="ccs-tag">' + WS_KIND[n.kind] + '</span>' + (n.tone ? '<span class="ccs-pill ' + (n.tone === 'negative' ? 's-alert' : n.tone === 'positive' ? 's-good' : 's-off') + '">' + WS_TONE[n.tone] + '</span>' : '') +
+      (n.status && !n.hidden ? '<span class="fb-pill ' + (n.status === 'open' ? 'is-open' : 'is-resolved') + '">' + (n.status === 'open' ? 'Open' : 'Resolved') + '</span>' : '') + '</div>';
     if (n.hidden) return h + '<p class="ccs-hint">Removed from view by ' + esc(n.hidden_by) + ', ' + esc(stamp(n.hidden_at)) + ': ' + esc(n.hidden_reason) + '. Only managers see this line.</p>' +
       '<p class="ccs-hint">' + meta + ' <button type="button" class="ccs-link" data-act="ws-hist" data-id="' + n.id + '">' + (s.wsHist && s.wsHist.id === n.id ? 'Hide wording' : 'See wording') + '</button></p>' + wsHistBox(n) + '</article>';
     if (s.wsEdit === n.id) {
@@ -151,6 +154,7 @@
       return h + '</article>';
     }
     h += '<p class="ws-body">' + esc(n.body) + '</p><p class="ccs-hint">' + meta + '</p>';
+    h += fbFollow(n, { canResolve: ws.can_resolve, staff: ws.fb_staff || [], where: 'profile' });
     var acts = '';
     if (ws.is_manager || (n.mine && ws.can_write)) acts += '<button type="button" class="ccs-link" data-act="ws-edit" data-id="' + n.id + '">Change</button>';
     if (n.edited_at && (ws.is_manager || n.mine)) acts += '<button type="button" class="ccs-link" data-act="ws-hist" data-id="' + n.id + '">' + (s.wsHist && s.wsHist.id === n.id ? 'Hide earlier wording' : 'Earlier wording') + '</button>';
@@ -193,9 +197,9 @@
       if (res === false || s !== S.sheet) return;
       if (s.wsAddErr) return;
       clearBusy();
-      toast(WS_KIND[f.kind] + ' saved' + (f.follow ? ' with a follow-up' : ''));
+      toast(f.kind === 'feedback' && f.tone === 'negative' ? 'Complaint saved. It stays in Needs attention until it is resolved.' : WS_KIND[f.kind] + ' saved' + (f.follow ? ' with a follow-up' : ''));
       ['ws-body', 'ws-title', 'ws-due', 'ws-order', 'ws-channel', 'ws-assignee'].forEach(function (k) { delete S.dirty[k]; });
-      s.wsForm = null; wsLoad(cid); fuStale();
+      s.wsForm = null; wsLoad(cid); fuStale(); if (f.kind === 'feedback') fbLoad();
     }).catch(function (e) { clearBusy(); fail(e); });
   }
   // A note was saved but its follow-up failed: retry only the follow-up
@@ -1239,3 +1243,206 @@
     }
   }
   document.addEventListener('toggle', function (e) { var d = e.target; if (d && d.dataset && d.dataset.pmopen !== undefined) S.perm.open = d.open; }, true);
+
+  // ---------- customer feedback and complaint follow-up: always saved with the order and its customer ----------
+  // A complaint stays open, with an owner, until someone who can change orders records what was done and marks it resolved.
+  // Open complaints are part of the one attention rule (Needs attention, Today, the menu badge all count them).
+  var FB_TONE = [['positive', 'Happy'], ['neutral', 'Mixed'], ['negative', 'Complaint']];
+  var FB_CH = [['in_person', 'In person'], ['phone', 'Phone'], ['whatsapp', 'WhatsApp'], ['email', 'Email'], ['social', 'Social media'], ['other', 'Other']];
+  var FB_ACT = [['apologised', 'Apologised'], ['remade', 'Remade the cake'], ['refund', 'Refund'], ['voucher', 'Voucher or discount'], ['other', 'Other']];
+  function fbLabel(list, k) { var x = list.filter(function (y) { return y[0] === k; })[0]; return x ? x[1] : ''; }
+  function fbS() { if (!S.fb) S.fb = { list: [], loaded: false, canResolve: false }; return S.fb; }
+  function fbCanSee() { return canP('ord.view') || canP('cust.view'); }
+  function fbShort(t, n) { t = String(t || '').replace(/\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n - 1).trim() + '…' : t; }
+  function fbAgo(ts) {
+    var d = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date(ts)), t = today();
+    if (d === t) return 'today, ' + clockAt(ts);
+    if (d === addDays(t, -1)) return 'yesterday';
+    var n = Math.round((Date.parse(t + 'T12:00:00Z') - Date.parse(d + 'T12:00:00Z')) / 864e5);
+    return n + ' days ago';
+  }
+  // Every open complaint, for the attention rule. Refreshed with the order list.
+  function fbLoad() {
+    if (!fbCanSee() || !S.me) return;
+    sb.rpc('feedback_open').then(function (r) {
+      if (r.error || !r.data || !r.data.ok) return;
+      var F = fbS(), sig = function (l) { return l.map(function (c) { return c.id + ':' + c.version; }).join('|'); }, before = sig(F.list);
+      F.list = r.data.complaints || []; F.loaded = true; F.canResolve = !!r.data.can_resolve;
+      if (sig(F.list) === before) return;
+      refreshNav();
+      if (['today', 'attn', 'handover'].indexOf(S.tab) > -1) view();
+      if (S.sheet && S.sheet.type === 'order' && S.sheet.data) renderSheet();
+    }).catch(function (e) { console.error(e); });
+  }
+  function fbOpenFor(orderId) { return fbS().list.filter(function (c) { return c.order_id && c.order_id === orderId; }); }
+  function fbAttnRows() {
+    return fbS().list.map(function (c) {
+      var o = { id: c.order_id || 'fb-' + c.id, reference: c.order_ref || '', required_date: c.required_date || '', required_time: c.required_time || '' };
+      return { o: o, fb: c, why: ['Complaint' + (c.customer_name ? ' from ' + c.customer_name : '') + ': “' + fbShort(c.body, 90) + '” Logged ' + fbAgo(c.at) + (c.owner ? '. Owner: ' + c.owner + '.' : '. Nobody owns it yet.')] };
+    });
+  }
+  function fbAttnRow(r) {
+    var c = r.fb;
+    return '<button type="button" class="fb-arow" data-act="fb-open" data-id="' + c.id + '"><span class="fb-ar-top"><b>' + esc((c.order_ref ? c.order_ref + ' · ' : '') + (c.customer_name || 'Customer')) + '</b><span class="fb-pill is-open">Open complaint</span></span>' +
+      '<span class="fb-ar-body">“' + esc(fbShort(c.body, 180)) + '”</span><span class="fb-ar-meta">Logged ' + esc(fbAgo(c.at)) + ' by ' + esc(c.by || 'staff') + ' · ' + esc(c.owner ? 'Owner: ' + c.owner : 'No owner yet') + '</span></button>';
+  }
+  // Open a complaint where it lives: on its order, or on the customer profile when it is not about one order
+  function fbOpen(id) {
+    var c = fbS().list.filter(function (x) { return x.id === id; })[0]; if (!c) return;
+    var focus = function () { var t0 = Date.now(); (function go() { var el = document.getElementById('fb-' + id); if (el) { el.scrollIntoView({ block: 'center' }); el.classList.add('is-focus'); return; } if (Date.now() - t0 < 4000) setTimeout(go, 120); })(); };
+    if (c.order_id) { openOrder(c.order_id); secStore('order').order = 'feedback'; focus(); return; }
+    openCustomer(c.customer_id); setTimeout(function () { cpJump('notes'); focus(); }, 60);
+  }
+  // ----- on the order -----
+  function fbOrderLoad(id) {
+    var sh = S.sheet; if (!sh || !fbCanSee()) return;
+    sh.fbData = sh.fbData && sh.fbData.ok ? sh.fbData : null;
+    sb.rpc('feedback_list', { p_order: id }).then(function (r) {
+      if (S.sheet !== sh) return;
+      if (r.error) throw r.error;
+      sh.fbData = r.data && r.data.ok ? r.data : { err: (r.data && r.data.message) || 'Feedback could not load.' };
+      renderSheet();
+    }).catch(function (e) { console.error(e); if (S.sheet === sh) { sh.fbData = { err: 'Feedback could not load. Check the connection and try again.' }; renderSheet(); } });
+  }
+  function fbHeadBtn(o) {
+    if (!fbCanSee()) return '';
+    var n = fbOpenFor(o.id).length;
+    return '<div class="fb-cta"><button type="button" class="ccs-btn ccs-ghost fb-cta-btn" data-act="fb-new"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v12H8l-4 4z"/></svg>Customer feedback' + (n ? ' <span class="fb-n">' + n + ' open complaint' + (n > 1 ? 's' : '') + '</span>' : '') + '</button></div>';
+  }
+  function fbOrderSection(o) {
+    if (!fbCanSee()) return '';
+    var sh = S.sheet, d = sh.fbData, h = '<section class="ccs-box fb-sec" id="fb-sec"><h3>Feedback</h3>';
+    h += sh.fbForm ? fbFormHtml(sh.fbForm, 'order') : '<button type="button" class="ccs-btn ccs-ghost fb-add" data-act="fb-new">Record customer feedback</button>';
+    if (!d) h += '<p class="ccs-loading">Loading feedback…</p>';
+    else if (d.err) h += '<p class="ccs-err" role="alert">' + esc(d.err) + ' <button type="button" class="ccs-link" data-act="fb-reload">Try again</button></p>';
+    else if (!d.notes.length) h += sh.fbForm ? '' : '<p class="ccs-quiet">No feedback recorded for this order.</p>';
+    else h += '<div class="fb-list">' + d.notes.map(function (n) { return fbCard(n, { canResolve: d.can_resolve, staff: d.staff || [], where: 'order' }); }).join('') + '</div>';
+    return h + '</section>';
+  }
+  function fbFormHtml(f, where) {
+    var s = S.sheet, err = function (k) { return s.fbErr && s.fbErrField === k ? '<p class="ccs-err" role="alert">' + esc(s.fbErr) + '</p>' : ''; };
+    var h = '<div class="ccs-panel fb-form"><div class="ccs-field"><span class="ccs-label">How was it?</span><div class="ccs-chips fb-tones" role="group" aria-label="How was it">' +
+      FB_TONE.map(function (t) { return '<button type="button" class="ccs-chip fb-tone t-' + t[0] + '" data-act="fb-tone" data-v="' + t[0] + '" aria-pressed="' + (f.tone === t[0]) + '">' + t[1] + '</button>'; }).join('') + '</div>' + err('tone') + '</div>';
+    h += '<div class="ccs-field"><label class="ccs-label" for="fb-body">What did they say?</label><textarea class="ccs-input" id="fb-body" maxlength="2000" rows="3" placeholder="' + (f.tone === 'negative' ? 'For example: the cake was dry and the writing was spelt wrong. She was very upset.' : 'In their words, as close as you can') + '"></textarea>' + err('body') + '</div>';
+    h += '<div class="ccs-field"><span class="ccs-label">How did they tell us? <span class="ccs-optional">Optional</span></span><div class="ccs-chips" role="group" aria-label="How they told us">' +
+      FB_CH.map(function (c) { return '<button type="button" class="ccs-chip" data-act="fb-ch" data-v="' + c[0] + '" aria-pressed="' + (f.ch === c[0]) + '">' + c[1] + '</button>'; }).join('') + '</div></div>';
+    if (f.tone === 'negative') h += '<p class="ccs-note fb-note">A complaint stays in Needs attention until it is marked resolved. You will own it; you can hand it on.</p>';
+    h += '<p class="ccs-hint">Internal only. Never shown to the customer, in emails or on kitchen slips. No card numbers or health details.</p>';
+    if (s.fbErr && !s.fbErrField) h += '<p class="ccs-err" role="alert">' + esc(s.fbErr) + '</p>';
+    return h + '<div class="ccs-actions-row"><button type="button" class="ccs-btn" data-act="fb-save">' + (f.tone === 'negative' ? 'Save complaint' : 'Save feedback') + '</button><button type="button" class="ccs-btn ccs-ghost" data-act="fb-cancel">Cancel</button></div></div>';
+  }
+  // One piece of feedback, with the complaint follow-up when it is a complaint
+  function fbCard(n, ctx) {
+    var open = n.status === 'open', cmp = n.tone === 'negative';
+    var h = '<article class="fb-card' + (open ? ' is-open' : cmp && n.status === 'resolved' ? ' is-resolved' : '') + '" id="fb-' + n.id + '"><div class="fb-top"><span class="fb-pill t-' + n.tone + '">' + esc(fbLabel(FB_TONE, n.tone)) + '</span>' +
+      (cmp && n.status ? '<span class="fb-pill ' + (open ? 'is-open' : 'is-resolved') + '">' + (open ? 'Open' : 'Resolved') + '</span>' : '') + '</div>' +
+      '<p class="fb-body">' + esc(n.body) + '</p><p class="ccs-hint">' + esc(n.by + ', ' + stamp(n.at)) + (n.channel ? ' · ' + esc(fbLabel(FB_CH, n.channel) || n.channel) : '') +
+      (ctx.where === 'profile' && n.order_ref ? ' · <button type="button" class="ccs-link" data-act="open-order" data-id="' + n.order_id + '">' + esc(n.order_ref) + '</button>' : '') + '</p>';
+    return h + fbFollow(n, ctx) + '</article>';
+  }
+  function fbFollow(n, ctx) {
+    if (n.tone !== 'negative' || !n.status) return '';
+    var s = S.sheet, err = function (k) { return s.fbErr && s.fbErrNote === n.id && (s.fbErrField === k || (!s.fbErrField && k === '')) ? '<p class="ccs-err" role="alert">' + esc(s.fbErr) + '</p>' : ''; };
+    var h = '';
+    if (n.status === 'open') {
+      var canOwn = ctx.canResolve || n.owner_mine;
+      if (s.fbOwn === n.id) {
+        h += '<div class="ccs-panel fb-ownform"><div class="ccs-field"><label class="ccs-label" for="fb-owner">Who looks after it?</label><select class="ccs-input" id="fb-owner">' +
+          (ctx.staff || []).map(function (p) { return '<option value="' + esc(p.id) + '"' + (p.id === n.owner_id ? ' selected' : '') + '>' + esc(p.name) + '</option>'; }).join('') + '</select>' + err('owner') + err('') + '</div>' +
+          '<div class="ccs-actions-row"><button type="button" class="ccs-btn" data-act="fb-own-save" data-id="' + n.id + '">Save</button><button type="button" class="ccs-btn ccs-ghost" data-act="fb-own" data-id="">Cancel</button></div></div>';
+      } else h += '<p class="fb-owner"><span>Owner</span><b>' + esc(n.owner || 'Nobody yet') + '</b>' + (canOwn && (ctx.staff || []).length ? '<button type="button" class="ccs-link" data-act="fb-own" data-id="' + n.id + '">Hand on</button>' : '') + '</p>';
+      var R = s.fbRes && s.fbRes.id === n.id ? s.fbRes : null;
+      if (R) {
+        h += '<div class="ccs-panel fb-resform"><div class="ccs-field"><span class="ccs-label">What did we do?</span><div class="ccs-chips" role="group" aria-label="What we did">' +
+          FB_ACT.map(function (a) { return '<button type="button" class="ccs-chip" data-act="fb-act" data-v="' + a[0] + '" aria-pressed="' + (R.acts.indexOf(a[0]) > -1) + '">' + a[1] + '</button>'; }).join('') + '</div>' + err('actions') + '</div>' +
+          ((R.acts.indexOf('refund') > -1 || R.acts.indexOf('voucher') > -1) ? '<div class="ccs-field"><label class="ccs-label" for="fb-amt">Amount, FJD <span class="ccs-optional">Optional</span></label><input class="ccs-input fb-amt" id="fb-amt" type="number" inputmode="decimal" min="0" max="10000" step="0.01" placeholder="0.00">' + err('amount') +
+            '<p class="ccs-hint">This only records it here. Record the refund in Payments too.</p></div>' : '') +
+          '<div class="ccs-field"><label class="ccs-label" for="fb-res">How was it resolved?</label><textarea class="ccs-input" id="fb-res" maxlength="1000" rows="2" placeholder="For example: called her, apologised, remade the cake for Saturday at no charge"></textarea>' + err('resolution') + err('') + '</div>' +
+          '<div class="ccs-actions-row"><button type="button" class="ccs-btn" data-act="fb-res-save" data-id="' + n.id + '">Mark resolved</button><button type="button" class="ccs-btn ccs-ghost" data-act="fb-res" data-id="">Cancel</button></div></div>';
+      } else if (ctx.canResolve) h += '<div class="ccs-actions-row fb-acts"><button type="button" class="ccs-btn fb-resolve" data-act="fb-res" data-id="' + n.id + '">Mark resolved</button></div>';
+      else h += '<p class="ccs-hint">A team member who can change orders marks it resolved.</p>';
+      return h;
+    }
+    h += '<div class="fb-done"><p><span>What we did</span><b>' + esc((n.actions || []).map(function (a) { return fbLabel(FB_ACT, a); }).join(', ') + (n.amount != null ? ' · ' + money(n.amount) : '')) + '</b></p>' +
+      (n.resolution ? '<p class="fb-res-txt">' + esc(n.resolution) + '</p>' : '') + '<p class="ccs-hint">Resolved by ' + esc(n.resolved_by || 'staff') + (n.resolved_at ? ', ' + esc(stamp(n.resolved_at)) : '') + '</p>';
+    if (ctx.canResolve) {
+      if (s.fbRo === n.id) h += '<div class="ccs-panel"><div class="ccs-field"><label class="ccs-label" for="fb-ro">Why reopen it?</label><input class="ccs-input" id="fb-ro" maxlength="200" autocomplete="off" placeholder="For example: customer called back, still not happy">' + err('reason') + err('') + '</div>' +
+        '<div class="ccs-actions-row"><button type="button" class="ccs-btn" data-act="fb-ro-save" data-id="' + n.id + '">Reopen</button><button type="button" class="ccs-btn ccs-ghost" data-act="fb-ro" data-id="">Cancel</button></div></div>';
+      else h += '<button type="button" class="ccs-link" data-act="fb-ro" data-id="' + n.id + '">Reopen</button>';
+    }
+    return h + '</div>';
+  }
+  function fbFind(id) {
+    var sh = S.sheet, pool = [].concat(sh && sh.fbData && sh.fbData.notes || [], sh && sh.ws && sh.ws.notes || []);
+    return pool.filter(function (n) { return n.id === id; })[0];
+  }
+  function fbAfter() { var sh = S.sheet; if (!sh) return; if (sh.type === 'order') fbOrderLoad(sh.id); else if (sh.type === 'customer') wsLoad(sh.id); fbLoad(); }
+  function fbBad(field, msg, note) { var s = S.sheet; s.fbErr = msg; s.fbErrField = field || null; s.fbErrNote = note || null; clearBusy(); renderSheet(); }
+  function fbRpcErr(e) { clearBusy(); var s = S.sheet; if (!s) return; s.fbErr = errKind(e) === 'offline' ? 'No internet connection. Nothing is saved yet. Your typing is kept; try again.' : 'That did not save. Your typing is kept; try again.'; s.fbErrField = null; renderSheet(); console.error(e); }
+  function fbAct(a, b, v) {
+    var id = b.dataset.id;
+    if (a === 'fb-open') { fbOpen(id); return; }
+    var s = S.sheet; if (!s) return;
+    if (a === 'fb-reload') { s.fbData = null; renderSheet(); fbOrderLoad(s.id); return; }
+    if (a === 'fb-goto' || a === 'fb-new') {
+      if (S.panel) { if (hasTyping() && !confirmDiscard(b)) return; S.panel = null; S.panelErr = null; }
+      secStore('order').order = 'feedback';
+      if (a === 'fb-new' && !s.fbForm) { s.fbForm = { tone: null, ch: null, idem: uuid() }; s.fbErr = null; }
+      renderSheet();
+      setTimeout(function () { var el = document.getElementById(a === 'fb-new' ? 'fb-sec' : 'fb-sec'); if (el) el.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 30);
+      return;
+    }
+    if (a === 'fb-tone') { s.fbForm.tone = v; if (s.fbErrField === 'tone') s.fbErr = null; renderSheet(); return; }
+    if (a === 'fb-ch') { s.fbForm.ch = s.fbForm.ch === v ? null : v; renderSheet(); return; }
+    if (a === 'fb-cancel') { if (String(S.dirty['fb-body'] || '').trim() && !confirmDiscard(b)) return; s.fbForm = null; s.fbErr = null; delete S.dirty['fb-body']; renderSheet(); return; }
+    if (a === 'fb-save') {
+      var f = s.fbForm, body = val('fb-body').trim(); s.fbErrNote = null;
+      if (!f.tone) return fbBad('tone', 'Choose Happy, Mixed or Complaint.');
+      if (body.length < 2) return fbBad('body', 'Write what the customer said.');
+      markBusy(b, 'Saving…');
+      sb.rpc('feedback_add', { p_order: s.id, p_tone: f.tone, p_body: body, p_channel: f.ch, p_idem: f.idem }).then(function (r) {
+        if (r.error) throw r.error;
+        if (!r.data.ok) return fbBad(r.data.field, r.data.message);
+        clearBusy(); toast(f.tone === 'negative' ? 'Complaint saved. It stays in Needs attention until it is resolved.' : 'Feedback saved');
+        s.fbForm = null; s.fbErr = null; delete S.dirty['fb-body']; fbAfter();
+      }).catch(fbRpcErr);
+      return;
+    }
+    if (a === 'fb-res') { s.fbRes = id ? { id: id, acts: [] } : null; s.fbOwn = null; s.fbRo = null; s.fbErr = null; ['fb-res', 'fb-amt'].forEach(function (k) { delete S.dirty[k]; }); renderSheet(); if (id) setTimeout(function () { var fm = document.querySelector('#ccs-sheet .fb-resform'); if (fm && fm.scrollIntoView) fm.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }, 30); return; }
+    if (a === 'fb-act') { var R = s.fbRes; if (!R) return; var k = R.acts.indexOf(v); if (k > -1) R.acts.splice(k, 1); else R.acts.push(v); if (s.fbErrField === 'actions') s.fbErr = null; renderSheet(); return; }
+    if (a === 'fb-res-save') {
+      var n = fbFind(id), R2 = s.fbRes, txt = val('fb-res').trim(), amtS = val('fb-amt').trim(), amt = amtS === '' ? null : Number(amtS);
+      if (!n || !R2) return;
+      if (!R2.acts.length) return fbBad('actions', 'Choose what we did for the customer.', id);
+      if (amt != null && (!(amt >= 0) || amt > 10000)) return fbBad('amount', 'Enter an amount between 0 and 10,000, or leave it empty.', id);
+      if (txt.length < 3) return fbBad('resolution', 'Write a short note on how it was resolved.', id);
+      markBusy(b, 'Saving…');
+      sb.rpc('feedback_resolve', { p_note: id, p_version: n.version, p_actions: R2.acts, p_amount: amt, p_resolution: txt }).then(function (r) {
+        if (r.error) throw r.error;
+        if (!r.data.ok) { if (r.data.error === 'changed' || r.data.error === 'closed') { s.fbRes = null; toast(r.data.message, true); clearBusy(); fbAfter(); return; } return fbBad(r.data.field, r.data.message, id); }
+        clearBusy(); toast('Complaint resolved'); s.fbRes = null; s.fbErr = null; ['fb-res', 'fb-amt'].forEach(function (k) { delete S.dirty[k]; }); fbAfter();
+      }).catch(fbRpcErr);
+      return;
+    }
+    if (a === 'fb-own') { s.fbOwn = id || null; s.fbRes = null; s.fbRo = null; s.fbErr = null; renderSheet(); return; }
+    if (a === 'fb-own-save') {
+      var who = val('fb-owner'); markBusy(b, 'Saving…');
+      sb.rpc('feedback_set_owner', { p_note: id, p_owner: who }).then(function (r) {
+        if (r.error) throw r.error;
+        if (!r.data.ok) return fbBad(r.data.field, r.data.message, id);
+        clearBusy(); toast('Handed on to ' + (r.data.note.owner || 'them')); s.fbOwn = null; s.fbErr = null; fbAfter();
+      }).catch(fbRpcErr);
+      return;
+    }
+    if (a === 'fb-ro') { s.fbRo = id || null; s.fbRes = null; s.fbOwn = null; s.fbErr = null; delete S.dirty['fb-ro']; renderSheet(); return; }
+    if (a === 'fb-ro-save') {
+      var why = val('fb-ro').trim();
+      if (why.length < 3) return fbBad('reason', 'Say briefly why it is being reopened.', id);
+      markBusy(b, 'Saving…');
+      sb.rpc('feedback_reopen', { p_note: id, p_reason: why }).then(function (r) {
+        if (r.error) throw r.error;
+        if (!r.data.ok) return fbBad(r.data.field, r.data.message, id);
+        clearBusy(); toast('Complaint reopened'); s.fbRo = null; s.fbErr = null; delete S.dirty['fb-ro']; fbAfter();
+      }).catch(fbRpcErr);
+    }
+  }
