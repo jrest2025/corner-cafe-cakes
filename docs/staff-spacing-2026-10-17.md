@@ -22,3 +22,9 @@ The live staff page requires access authorization (HTTP 401 from unauthenticated
 Build with python3 build/staff_spacing.py. Test with test/run_spacing.cjs and test/run_cleanup.cjs (set STAFF_MANIFEST=dist/app/staff-spacing-manifest.json).
 
 Rollback: restore docs/rollback/staff-footer-before-spacing-2026-10-17.html to the staff page footer and publish. This removes the spacing layer while retaining the earlier control fixes. No database rollback.
+
+## Publication
+
+Published to both Corner Café domains on 17 October 2026 under publish task ea3cb72f-3c8a-4645-baee-cdd1ba681b0f. Footer read-back matched the tested release loader exactly. The pinned CDN bundle matched the local tested artifact byte for byte before publication. The festive page remains Draft. The earlier authorisation for full-site publication applies to this refinement.
+
+Release bundle: dist/app/staff-app.8476a58d2c.js, pinned to c12862ab0c19397edb17a6c4ccaafa0db277b1e5. Both 115 layout and 59 workflow checks passed. Signed-in production inspection was not possible from this unauthenticated session.
