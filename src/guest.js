@@ -352,7 +352,7 @@
     if (i !== open && !fromPop) { restoredAt = null; try { history.pushState({ cco: i }, ''); } catch (e) {} }
     var from = open, changed = i !== open, aOld = document.getElementById('cco-step-' + from), aNew = document.getElementById('cco-step-' + i);
     var oldTop = aOld ? aOld.getBoundingClientRect().top : null, newTop = aNew ? aNew.getBoundingClientRect().top : null;
-    lockHeight(); sumsOpen = false; open = i; reached = Math.max(reached, i); errors = errs || {}; formError = null; if (changed) animStep = i; render();
+    lockHeight(); sumsOpen = false; open = i; reached = Math.max(reached, i); errors = errs || {}; formError = null; if (changed) animStep = i; if (i === 3) trackCheckout(); render();
     var el = document.getElementById('cco-step-' + i); if (!el) return;
     if (changed) keepAnchor(from, oldTop, i, newTop);
     if (errs && Object.keys(errs).length) return toFirstError();
@@ -484,9 +484,17 @@
   }
 
   // Meta Pixel events (only when the pixel is on the page). The order reference is the event id, so a later server-side copy is not counted twice.
-  var startedTracked = false;
+  var startedTracked = false, checkoutTracked = false;
   function track(ev, data, id) { try { if (typeof window.fbq === 'function') window.fbq('track', ev, data || {}, id ? { eventID: id } : {}); } catch (e) { /* tracking must never break ordering */ } }
-  function trackStart() { if (startedTracked) return; startedTracked = true; track('InitiateCheckout', { content_category: 'Cakes', currency: 'FJD' }); }
+  // Selecting a cake is interest, not yet checkout: a price may be unavailable.
+  function trackStart() { if (startedTracked) return; startedTracked = true; track('ViewContent', { content_category: 'Cakes' }); }
+  // Step 3 collects customer details, after cake and collection/delivery choices.
+  function trackCheckout() {
+    if (checkoutTracked) return;
+    var p = total(), data = { content_category: 'Cakes', currency: 'FJD' };
+    if (typeof p === 'number' && isFinite(p) && p > 0) data.value = Math.round(p * 100) / 100;
+    checkoutTracked = true; track('InitiateCheckout', data);
+  }
   // ---------- send ----------
   var FIELD_STEP = { product: 0, variant: 0, size: 0, size_note: 0, finish: 1, design: 1, message: 1, candles: 1, notes: 1, diet: 1, requirements: 1, occasion: 3, date: 2, time: 2, zone: 2, address: 2, fee: 2, method: 2, name: 3, phone: 3, email: 3 };
   function checkDetails() {
@@ -530,7 +538,10 @@
   }
   function fallbackCopy(v) { var t = document.createElement('textarea'); t.value = v; t.setAttribute('readonly', ''); t.style.position = 'fixed'; t.style.opacity = '0'; document.body.appendChild(t); t.select(); var r = false; try { r = document.execCommand('copy'); } catch (e) {} t.remove(); return r; }
   function done(d) {
-    track('Lead', { content_name: S.req ? 'Custom cake' : ((fl() || {}).name || 'Cake'), content_category: 'Cakes', value: total() || 0, currency: 'FJD' }, d.reference);
+    var leadData = { content_name: S.req ? 'Custom cake' : ((fl() || {}).name || 'Cake'), content_category: 'Cakes', currency: 'FJD' };
+    var orderTotal = total();
+    if (d.status !== 'awaiting_quote' && typeof orderTotal === 'number' && isFinite(orderTotal) && orderTotal > 0) leadData.value = Math.round(orderTotal * 100) / 100;
+    track('Lead', leadData, d.reference);
     finished = true; gClear();
     var bar = document.getElementById('cco-bar'); if (bar) bar.classList.remove('cco-show');
     root.classList.remove('cco-has-bar');
