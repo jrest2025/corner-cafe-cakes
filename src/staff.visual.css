@@ -1,0 +1,50 @@
+/* Reference-inspired service cards, with Corner Cafe colours and readable labels. */
+#cc-staff { --vr-green:#236343; --vr-green-soft:#e8f4ed; --vr-amber:#855400; --vr-amber-soft:#fff4d9; --vr-blue:#245f99; --vr-blue-soft:#eaf3fc; --vr-rose:#a63e6d; }
+#cc-staff .vr-icon { width:22px;height:22px;flex:0 0 auto;stroke:currentColor;stroke-width:1.8;fill:none;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle; }
+#cc-staff .vr-sr { position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0; }
+#cc-staff .ccs-pay { display:inline-flex;align-items:center;gap:7px;padding:5px 9px;border-radius:10px;line-height:1.25;font-weight:700;white-space:normal; }
+#cc-staff .ccs-pay .vr-pay-icon { display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:9px;flex:0 0 30px;position:relative; }
+#cc-staff .ccs-pay .vr-pay-icon .vr-icon { width:22px;height:22px; }
+#cc-staff .p-paid { color:var(--vr-green);background:var(--vr-green-soft); }
+#cc-staff .p-paid .vr-pay-icon { color:white;background:var(--vr-green); }
+#cc-staff .vr-paid-tick { position:absolute;right:-3px;bottom:-2px;background:white;color:var(--vr-green);border-radius:50%;width:14px;height:14px;display:grid;place-items:center; }
+#cc-staff .vr-paid-tick .vr-icon { width:12px!important;height:12px!important;stroke-width:3; }
+#cc-staff .p-part,#cc-staff .p-unpaid { color:var(--vr-amber);background:var(--vr-amber-soft); }
+#cc-staff .p-part .vr-pay-icon,#cc-staff .p-unpaid .vr-pay-icon { background:#ffdf92;color:#674000; }
+#cc-staff .p-refunded { color:var(--vr-blue);background:var(--vr-blue-soft); }
+#cc-staff .ccs-card { border-radius:16px;border-color:#dce4df;box-shadow:0 2px 6px #243c2b08;transition:border-color .15s,box-shadow .15s; }
+#cc-staff .ccs-card:hover { border-color:#8baa94;box-shadow:0 3px 10px #243c2b12; }
+#cc-staff .ccs-card .ccs-when { border-radius:11px;background:var(--vr-blue-soft);color:var(--vr-blue);padding:9px;align-self:start; }
+#cc-staff .vr-customer { display:block;font-weight:700;color:var(--ccs-ink);font-size:16px;line-height:1.4;margin:4px 0; }
+#cc-staff .vr-order-meta { display:block;line-height:1.4; }
+#cc-staff .vr-fav-badge { display:inline-flex;align-items:center;margin-left:6px;color:var(--vr-rose);vertical-align:middle; }
+#cc-staff .vr-fav-badge .vr-icon { width:19px;height:19px;fill:currentColor;stroke-width:1.4; }
+#cc-staff .ccs-btn.vr-fav-toggle { margin:0 0 12px;gap:8px;min-height:44px;color:var(--vr-rose);border-color:#d8a4ba; }
+#cc-staff .vr-fav-toggle[aria-pressed="true"] { background:#fbeef4; }
+#cc-staff .vr-fav-toggle[aria-pressed="true"] .vr-icon { fill:currentColor; }
+#cc-staff .vr-fav-label { display:flex;gap:6px;align-items:center;color:var(--vr-rose);font-weight:700; }
+#cc-staff #ccs-main .tq-stat { position:relative;padding-right:14px;background:#fff;overflow:hidden; }
+#cc-staff #ccs-main .tq-stat > .vr-stat-icon { position:absolute;right:12px;top:14px;display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:var(--vr-blue-soft);color:var(--vr-blue); }
+#cc-staff #ccs-main .tq-stat[data-v="deposit"] > .vr-stat-icon { background:var(--vr-amber-soft);color:var(--vr-amber); }
+#cc-staff #ccs-main .tq-stat[data-v="upcoming"] > .vr-stat-icon { background:var(--vr-green-soft);color:var(--vr-green); }
+#cc-staff .vr-cake-title { display:inline-flex;gap:6px;align-items:center; }
+#cc-staff .vr-cake-title > .vr-icon { width:19px;height:19px;color:var(--ccs-muted); }
+#cc-staff .vr-allergy { color:#a12622;background:#fceceb;border:1px solid #efc2c0; }
+#cc-staff .vr-allergy:before { content:'!';display:inline-grid;place-items:center;font-weight:800;border:1.5px solid currentColor;border-radius:50%;width:17px;height:17px;margin-right:5px; }
+@media(max-width:759px){
+ #cc-staff .ccs-pay { gap:5px;padding:4px 6px;font-size:13px; }
+ #cc-staff .ccs-pay .vr-pay-icon { width:25px;height:25px;flex-basis:25px; }
+ #cc-staff #ccs-main .tq-stat { padding-right:10px; }
+ #cc-staff #ccs-main .tq-stat > .vr-stat-icon { position:static;width:30px;height:30px;margin-bottom:4px; }
+}
+@media(prefers-reduced-motion:reduce){#cc-staff .ccs-card { transition:none; }}
+@media print {#cc-staff .vr-fav-toggle,#cc-staff .vr-fav-badge { display:none!important; }}
+
+#cc-staff .ccs-pay:before { content:none; }
+
+#cc-staff #ccs-main .tq-stat > b { padding-right:34px; }
+#cc-staff #ccs-main .ccs-mini-m > .vr-cake-title { display:flex;align-items:center;gap:6px; }
+#cc-staff .ccs-prow-f.is-paid { color:var(--vr-green);background:var(--vr-green-soft); }
+#cc-staff .ccs-prow-f.is-paid:before { content:'$';font-size:18px;line-height:1;font-weight:800;background:none;width:auto;height:auto; }
+#cc-staff .pf-paid:before { background:var(--vr-green); }
+@media(max-width:759px){#cc-staff #ccs-main .tq-stat > b { padding-right:0; }}
