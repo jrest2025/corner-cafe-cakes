@@ -1,0 +1,143 @@
+<script>
+/* Festive menu from the Webflow CMS (Festive Hampers, Festive Goodies). Updated 17 October 2026.
+   Edit names, prices, wording, photos and order in the Webflow CMS. This script only:
+   sorts cards by "Order on page", hides an empty note or photo, builds the order form's
+   product list from the cards on the page (name, size and price as shown), and makes
+   "Add to my order" tick the matching product. */
+document.addEventListener('DOMContentLoaded',function(){
+  var menu=document.getElementById('festive-menu'); if(!menu)return;
+  [].slice.call(menu.querySelectorAll('.w-dyn-items')).forEach(function(list){
+    var items=[].slice.call(list.children), n=function(el){var s=el.querySelector('[data-festive-sort]');var v=parseFloat(s&&s.textContent);return isNaN(v)?9999:v;};
+    items.sort(function(a,b){return n(a)-n(b);}).forEach(function(i){list.appendChild(i);});
+  });
+  var txt=function(c,sel){var e=c.querySelector(sel);return e?e.textContent.replace(/\s+/g,' ').trim():'';};
+  var cards=[].slice.call(menu.querySelectorAll('.ccfest-card')).filter(function(c){return txt(c,'.ccfest-card-title');});
+  cards.forEach(function(c){
+    var img=c.querySelector('img'), src=img&&img.getAttribute('src')||'';
+    if(!src||/placeholder/i.test(src))c.classList.add('is-nophoto');
+    var note=c.querySelector('.ccfest-card-note'); if(note&&!note.textContent.trim())note.style.display='none';
+  });
+  var picker=document.getElementById('festive-product-picker'), list=picker&&picker.querySelector('.ccfest-product-list');
+  if(list&&cards.length){
+    var tpl=list.querySelector('.ccfest-product-row');
+    if(tpl){
+      tpl=tpl.cloneNode(true); list.innerHTML='';
+      cards.forEach(function(c,ix){
+        var name=txt(c,'.ccfest-card-title'), pack=txt(c,'.ccfest-card-pack'), price=txt(c,'.ccfest-card-price');
+        if(/^each$/i.test(pack))pack='';
+        var label=name+(pack?', '+pack:'')+(price?' ('+price+')':'');
+        var r=tpl.cloneNode(true), box=r.querySelector('input[type="checkbox"]'), qty=r.querySelector('input[type="number"]');
+        var id='festive-item-'+(ix+1);
+        if(box){box.id=id;box.name=label;box.setAttribute('data-name',label);box.checked=false;}
+        if(qty){qty.id=id+'-quantity';qty.name=label+' - Quantity';qty.setAttribute('data-name',label+' - Quantity');qty.value='';}
+        var nm=r.querySelector('.ccfest-product-check > span:last-child'); if(nm)nm.textContent=label;
+        [].slice.call(r.querySelectorAll('.w--redirected-checked')).forEach(function(e){e.classList.remove('w--redirected-checked');});
+        c.setAttribute('data-festive-row',label);
+        list.appendChild(r);
+      });
+    }
+  }
+  [].slice.call(menu.querySelectorAll('.ccfest-card-add')).forEach(function(a){
+    a.addEventListener('click',function(){
+      var c=a.closest('.ccfest-card'), label=c&&c.getAttribute('data-festive-row'); if(!label)return;
+      [].slice.call(document.querySelectorAll('#festive-product-picker input[type="checkbox"]')).forEach(function(b){
+        if(b.name===label&&!b.checked){b.checked=true;b.dispatchEvent(new Event('change',{bubbles:true}));}
+      });
+    });
+  });
+  /* Collection time: a list of 12-hour times (8:00 AM to 8:30 PM) instead of the phone's own clock picker. */
+  var t=document.getElementById('festive-collection-time');
+  if(t&&t.tagName==='INPUT'){
+    var s=document.createElement('select'); s.id=t.id; s.name=t.name; s.className=t.className;
+    s.setAttribute('data-name',t.getAttribute('data-name')||t.name);
+    var o=document.createElement('option'); o.value=''; o.textContent='Choose a time'; s.appendChild(o);
+    for(var m=8*60;m<=20*60+30;m+=30){var h=Math.floor(m/60),mm=m%60,lab=((h%12)||12)+':'+(mm<10?'0':'')+mm+(h<12?' AM':' PM');o=document.createElement('option');o.value=lab;o.textContent=lab;s.appendChild(o);}
+    t.parentNode.replaceChild(s,t);
+  }
+  /* Collection date: no dates in the past. */
+  var d=document.getElementById('festive-collection-date');
+  if(d){var now=new Date(),p=function(x){return(x<10?'0':'')+x;};d.min=now.getFullYear()+'-'+p(now.getMonth()+1)+'-'+p(now.getDate());}
+});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+  var picker=document.getElementById('festive-product-picker');
+  var form=picker&&picker.closest('form');
+  if(!picker||!form)return;
+  // Read the product rows from the page itself, so the list never goes out of step with the form.
+  var rows=[].slice.call(picker.querySelectorAll('.ccfest-product-row')).map(function(row){
+    var box=row.querySelector('input[type="checkbox"]'), qty=row.querySelector('input[type="number"]');
+    var name=(row.querySelector('.ccfest-product-check > span:last-child')||{}).textContent||(box&&box.getAttribute('data-name'))||'';
+    return {row:row,box:box,qty:qty,name:name.trim()};
+  }).filter(function(r){return r.box;});
+  // Full words: "Qty" becomes "Quantity", and each quantity box says which product it is for.
+  rows.forEach(function(r){
+    var l=r.row.querySelector('.ccfest-qty-label'); if(l)l.textContent='Quantity';
+    if(r.qty)r.qty.setAttribute('aria-label','Quantity of '+r.name);
+  });
+  var business=document.getElementById('festive-business-order');
+  var companyWrap=document.getElementById('festive-company-field');
+  var company=document.getElementById('festive-company');
+  var custom=document.getElementById('festive-custom-request');
+  var summary=document.getElementById('festive-order-summary');
+  var error=document.getElementById('festive-selection-error');
+  function sync(){
+    var lines=[];
+    rows.forEach(function(r){
+      var wrap=r.qty&&r.qty.closest('.ccfest-qty-wrap');
+      if(r.qty){r.qty.disabled=!r.box.checked;}
+      if(wrap)wrap.classList.toggle('is-active',r.box.checked);
+      if(r.box.checked){
+        if(r.qty&&(!r.qty.value||Number(r.qty.value)<1))r.qty.value='1';
+        lines.push(r.name+': quantity '+(r.qty?r.qty.value:'1'));
+      }else if(r.qty){r.qty.value='';}
+    });
+    if(business&&business.checked){
+      if(companyWrap)companyWrap.classList.add('is-visible');
+      var org=((company&&company.value)||'').trim();
+      lines.push('Corporate or bulk order'+(org?': '+org:''));
+    }else{
+      if(companyWrap)companyWrap.classList.remove('is-visible');
+      if(company)company.value='';
+    }
+    if(custom&&custom.checked)lines.push('Other or custom festive request');
+    if(summary)summary.value=lines.join('\n');
+    if(error&&lines.length)error.classList.remove('is-visible');
+    return lines.length;
+  }
+  rows.forEach(function(r){
+    r.box.addEventListener('change',sync);
+    if(r.qty)r.qty.addEventListener('input',sync);
+  });
+  [business,custom].forEach(function(b){if(b)b.addEventListener('change',sync);});
+  if(company)company.addEventListener('input',sync);
+  // Product links elsewhere on the page tick the matching product.
+  document.querySelectorAll('.ccfest-product-link').forEach(function(link){
+    link.addEventListener('click',function(){
+      var card=link.closest('article'), name=card&&card.querySelector('h3')&&card.querySelector('h3').textContent.trim();
+      rows.forEach(function(r){if(r.name===name){r.box.checked=true;}}); sync();
+    });
+  });
+  form.addEventListener('submit',function(e){
+    if(!sync()){
+      e.preventDefault(); e.stopImmediatePropagation();
+      if(error){error.textContent='Choose at least one product, or tick corporate or custom request.';error.classList.add('is-visible');}
+      picker.scrollIntoView({behavior:'smooth',block:'center'});
+    }
+  },true);
+  sync();
+  window.__festiveForm={rows:rows.length,sync:sync};
+});
+</script>
+<script>
+/* Order form wording: button, thank-you and error messages (Webflow defaults replaced). */
+document.addEventListener('DOMContentLoaded',function(){
+  var sec=document.getElementById('festive-order'); if(!sec)return;
+  var b=sec.querySelector('input[type="submit"],button[type="submit"]');
+  if(b){if(b.tagName==='INPUT'){b.value='Send my festive order';}else{b.textContent='Send my festive order';}b.setAttribute('data-wait','Sending...');}
+  var ok=sec.querySelector('.w-form-done'), bad=sec.querySelector('.w-form-fail');
+  if(ok){ok.innerHTML='';var o=document.createElement('div');o.textContent='Thank you, your festive order request has been sent. The Corner Café team will call or message you to confirm your items, price and collection time. Your order is confirmed once we have been in touch.';ok.appendChild(o);ok.setAttribute('tabindex','-1');}
+  if(bad){bad.innerHTML='';var e=document.createElement('div');e.textContent='Sorry, your order request did not send. Please try again, or call Corner Café and we will take it over the phone.';bad.appendChild(e);}
+});
+</script>
