@@ -1,0 +1,32 @@
+/* Shared visual hierarchy, scoped to the staff app. */
+#cc-staff .ccs-side .ccs-brand,
+#cc-staff .ccs-side .ccs-brand small { text-align:center; }
+#cc-staff .ccs-side .ccs-brand { background-position:top center; }
+#cc-staff #ccs-main .dx-card-h,
+#cc-staff #ccs-main .ccs-card-head { text-align:left; align-items:baseline; gap:6px 12px; }
+#cc-staff #ccs-main .dx-ov .dx-card-h h2,
+#cc-staff #ccs-main .dx-card-h h2,
+#cc-staff #ccs-main .ccs-card-head h2,
+#cc-staff #ccs-main .an-ct {
+  font-family:inherit; font-size:18px; font-weight:700; line-height:1.3;
+  letter-spacing:0; color:var(--ccs-ink); text-align:left; margin:0;
+}
+#cc-staff #ccs-main .dx-card-h > span {
+  flex-basis:100%; margin:0; font-size:13px; line-height:1.4; text-align:left;
+}
+#cc-staff #ccs-main .dx-card-h > .dx-card-acts { margin-left:auto; align-self:center; }
+#cc-staff #ccs-main .ccs-card-head > .ccs-hint { margin-left:auto; line-height:1.4; }
+#cc-staff #ccs-main .ccs-sub,
+#cc-staff #ccs-main .tp-sub { text-align:left; }
+#cc-staff #ccs-main .dx-ov .an-pie { align-items:flex-start; }
+#cc-staff #ccs-main .dx-ov .an-leg { margin-top:0; }
+#cc-staff #ccs-main .an-lrow b,
+#cc-staff #ccs-main .an-lrow em { text-align:right; font-variant-numeric:tabular-nums; }
+@media (min-width:1280px) {
+  #cc-staff .ccs-app:not(.is-single):not(.is-mini) .ccs-brandrow {
+    position:relative; justify-content:center; padding-left:0; padding-right:0;
+  }
+  #cc-staff .ccs-app:not(.is-single):not(.is-mini) .ccs-brandrow .ccs-collapse {
+    position:absolute; right:0; top:50%; transform:translateY(-50%);
+  }
+}
