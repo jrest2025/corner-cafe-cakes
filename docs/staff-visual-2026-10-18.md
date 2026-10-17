@@ -19,3 +19,9 @@ Build: TERSER_BIN=<terser-5.31.0> python3 build/staff_visual.py. Reproduces and 
 ## Rollback and limits
 
 Restore docs/rollback/staff-footer-before-visual-2026-10-18.html and publish to revert the frontend. Keep the additive favourites table and its data, so a future release can retain staff choices. No order, price, payment, production or consent data migration is included. The existing modal order review remains; this release does not add a floor plan or replace it with a new split-screen workflow. Signed-in live visual inspection, physical printing and independent staff acceptance remain to be completed.
+
+## Publication
+
+Published to both live domains at 2026-10-17T21:03:12.102Z (18 October, 09:03 Fiji). Domain timestamps verified; exact Webflow footer read-back and pinned CDN byte comparison passed. Festive page remains draft. The protected staff route was not inspected in a signed-in production session.
+
+Release commit d5713c14d4b894cc7a30ccc4196d0a66011bec50; artifact dist/app/staff-app.bf7ec46675.js; SRI sha384-RsyZjz7uCg7Dwwdw6c5E1HTGdGmhXd4DBR977VDySfavhkpUw42MFbCwBsv66HOM.
