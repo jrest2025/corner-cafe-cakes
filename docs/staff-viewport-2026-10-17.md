@@ -19,3 +19,9 @@ The live staff URL requires access authorization, so signed-in production verifi
 python3 build/staff_viewport.py preserves the released spacing bundle byte for byte and appends src/staff.viewport.css. The resulting artifact is recorded in dist/app/staff-viewport-manifest.json.
 
 Rollback: restore docs/rollback/staff-footer-before-viewport-2026-10-17.html to the staff page footer and publish. The earlier printing-control fixes and spacing remain.
+
+## Publication
+
+Published to both production domains on 2026-10-17 at 10:55:29.977 UTC (22:55 Fiji). Webflow domain publication timestamps verified. Footer read-back matched exactly before publishing; the pinned CDN response matched the release artifact byte for byte. Festive page remains draft.
+
+Release commit: 542fcf55f66d2646e4fe932fdc19c62e7ec20f01. Artifact: dist/app/staff-app.14ffbb6b9e.js. SRI: sha384-02BLwytAGm2TJXjaUwaqp7dzOzgVBvqAmg8x588D56gCt5BcOXixzOX2HU6cKH0p.
