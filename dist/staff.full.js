@@ -3971,7 +3971,8 @@ return { buildSlipPdf: buildSlipPdf, slipFileName: slipFileName };
   var DX_STATUS = [['all', 'All statuses'], ['completed', 'Completed sales'], ['open', 'Still to come'], ['off', 'Cancelled']];
   var DX_BASIS = [['p', 'Pickup date'], ['o', 'Order date']];
   var REG_ST = { received: 'Received', confirmed: 'Confirmed', not_confirmed: 'Quote or enquiry', cancelled: 'Cancelled', completed: 'Completed' };
-  function dxState() { if (!DX) DX = { data: null, loading: false, err: null, f: { p: 'd30', b: 'p', from: '', to: '', prod: 'all', ch: 'all', st: 'all' }, year: null, psort: 'q', drills: {} }; return DX; }
+  function dxPeriods() { return DX_PERIODS.map(function (x) { return x[0] === 'all' && !DX.showOld ? ['all', 'Since the launch'] : x; }); }
+  function dxState() { if (!DX) DX = { data: null, loading: false, err: null, f: { p: 'all', b: 'p', from: '', to: '', prod: 'all', ch: 'all', st: 'all' }, year: null, psort: 'q', drills: {} }; return DX; }
   function dashLoad(force) {
     var d = dxState(); if (d.loading) return; if (d.data && !force) { view(); return; }
     d.loading = true; d.err = null; view();
@@ -3986,6 +3987,11 @@ return { buildSlipPdf: buildSlipPdf, slipFileName: slipFileName };
   function dnum(v) { v = Number(v); return isFinite(v) ? v : 0; }
   function dxPrep() {
     var d = DX.data, first = {};
+    // Fresh start (Roneel, 17 Oct 2026): Analytics counts orders from the launch; older sheet orders are kept but left out
+    // unless someone chooses to show them
+    if (!d.allOrders) d.allOrders = d.orders;
+    d.orders = DX.showOld ? d.allOrders : d.allOrders.filter(function (o) { return !o.pd || o.pd >= AN_LAUNCH; });
+    d.oldN = d.allOrders.length - d.orders.length;
     d.orders.forEach(function (o) {
       o.live = o.paid != null;
       o.fin = o.cv; o.est = o.lv; o.tot = dnum(o.cv != null ? o.cv : o.lv);
@@ -4102,17 +4108,18 @@ return { buildSlipPdf: buildSlipPdf, slipFileName: slipFileName };
     var prods = []; data.orders.forEach(function (o) { (o.it || []).forEach(function (i) { if (prods.indexOf(i[0]) < 0) prods.push(i[0]); }); }); prods.sort();
     var chans = []; data.orders.forEach(function (o) { if (chans.indexOf(o.src) < 0) chans.push(o.src); });
     var sel = function (id, label, opts, cur) { return '<label class="ccs-field dx-f"><span class="ccs-label">' + label + '</span><select class="ccs-input" id="' + id + '" data-dx="' + id + '">' + opts.map(function (o) { return '<option value="' + esc(o[0]) + '"' + (o[0] === cur ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('') + '</select></label>'; };
-    var fsum = [(DX_PERIODS.filter(function (x) { return x[0] === f.p; })[0] || ['', ''])[1], f.prod === 'all' ? 'All cakes' : f.prod, f.ch === 'all' ? 'All channels' : (SOURCE_LABEL[f.ch] || f.ch)].concat(f.occ && f.occ !== 'all' ? [dxOccName(f.occ)] : []).join(' · ');
+    var fsum = [(dxPeriods().filter(function (x) { return x[0] === f.p; })[0] || ['', ''])[1], f.prod === 'all' ? 'All cakes' : f.prod, f.ch === 'all' ? 'All channels' : (SOURCE_LABEL[f.ch] || f.ch)].concat(f.occ && f.occ !== 'all' ? [dxOccName(f.occ)] : []).join(' · ');
     var hh = h;
     h += '<button type="button" class="ccs-btn ccs-ghost dx-ftoggle" data-act="dx-filters" aria-expanded="' + !!d.fopen + '">Filters: ' + esc(fsum) + '</button>';
-    h += '<div class="dx-filters' + (d.fopen ? '' : ' is-closed') + '">' + sel('dx-p', 'Period', DX_PERIODS, f.p) +
+    h += '<div class="dx-filters' + (d.fopen ? '' : ' is-closed') + '">' + sel('dx-p', 'Period', dxPeriods(), f.p) +
       (f.p === 'c' ? '<label class="ccs-field dx-f"><span class="ccs-label">From</span><input class="ccs-input" type="date" id="dx-from" data-dx="dx-from" value="' + esc(f.from) + '"></label><label class="ccs-field dx-f"><span class="ccs-label">To</span><input class="ccs-input" type="date" id="dx-to" data-dx="dx-to" value="' + esc(f.to) + '"></label>' : '') +
       sel('dx-b', 'Count by', DX_BASIS, f.b) +
       sel('dx-prod', 'Cake', [['all', 'All cakes']].concat(prods.map(function (p) { return [p, p]; })), f.prod) +
       sel('dx-ch', 'Channel', [['all', 'All channels']].concat(chans.map(function (c) { return [c, SOURCE_LABEL[c] || c]; })), f.ch) +
       sel('dx-occ', 'Occasion', [['all', 'All occasions']].concat((data.occasions || []).map(function (o) { return [o.c, o.l]; })), f.occ || 'all') + '</div>';
     var filt = h.slice(hh.length);
-    var gap = dxGap(), hit = gap && !r.all && r.to >= gap.from, hitPrev = gap && r.pf && r.pt >= gap.from;
+    var gap = DX.showOld ? dxGap() : null, hit = gap && !r.all && r.to >= gap.from, hitPrev = gap && r.pf && r.pt >= gap.from;
+    var preLaunch = !DX.showOld && r.pf && r.pf < AN_LAUNCH; if (preLaunch) r.noCmp = true;
     if (hit || hitPrev) { r.noCmp = true; }
     d.gapHit = hit;
     var cur = dxSales(r.from, r.to), cs = dxSum(cur), ps = r.pf && !r.noCmp ? dxSum(dxSales(r.pf, r.pt)) : null;
@@ -4125,7 +4132,7 @@ return { buildSlipPdf: buildSlipPdf, slipFileName: slipFileName };
     var basisWord = byOrder ? 'order date' : 'pickup date';
     var gapNote = gap ? '<div class="dx-gap" role="note"><p><b>' + (hit ? 'Figures from ' + esc(nice(gap.from, true).replace(/^\w+ /, '')) + ' are incomplete.' : 'Comparisons are hidden.') + '</b> ' + esc(dxAnd(gap.why).replace(/^./, function (c) { return c.toUpperCase(); })) + '. ' + (hit ? 'Changes and comparisons are hidden until this is fixed.' : 'The period before includes dates with missing orders.') +
       ' <button type="button" class="ccs-link" data-act="dx-gapmore" aria-expanded="' + !!d.gapOpen + '">' + (d.gapOpen ? 'Hide details' : 'Details') + '</button></p>' + (d.gapOpen ? dxSync(data.sync, true) : '') + '</div>' : '';
-    var period = '<p class="dx-period">' + (r.all ? 'All recorded history' : esc(nice(r.from) + ' to ' + nice(r.to))) + ', by ' + basisWord + (ps ? '. Compared with ' + esc(r.cmp) + '.' : r.noCmp ? '. Not compared, because of missing orders.' : '.') + (f.prod !== 'all' ? ' Showing ' + esc(f.prod) + ' only.' : '') + '</p>';
+    var period = '<p class="dx-period">' + (r.all ? (DX.showOld ? 'All recorded history' : 'Since the launch') : esc(nice(r.from) + ' to ' + nice(r.to))) + ', by ' + basisWord + (ps ? '. Compared with ' + esc(r.cmp) + '.' : preLaunch ? '. Not compared: the period before is before the launch.' : r.noCmp ? '. Not compared, because of missing orders.' : '.') + (f.prod !== 'all' ? ' Showing ' + esc(f.prod) + ' only.' : '') + ' ' + anLaunchNote() + '</p>';
     // Overview: the summary page (see ovView)
     d.cmpShort = ps ? 'vs ' + r.cmp : '';
     var ov = biOverview(r, cur, cs, ps, got, pgot, owing, up);
@@ -5021,6 +5028,7 @@ return { buildSlipPdf: buildSlipPdf, slipFileName: slipFileName };
     else if (a === 'dx-filters') { DX.fopen = !DX.fopen; view(); }
     else if (a === 'dx-table') { DX.table = !DX.table; view(); }
     else if (a === 'dx-an-tpl') anTpl(v);
+    else if (a === 'dx-old') { DX.showOld = !DX.showOld; dxPrep(); view(); }
     else if (a.indexOf('dx-oi-') === 0) oiAct(a, v);
     else if (a.indexOf('dx-up-') === 0) upAct(a, v);
     else if (a.indexOf('dx-bi-') === 0) biAct(a, v);
@@ -5295,6 +5303,12 @@ return { buildSlipPdf: buildSlipPdf, slipFileName: slipFileName };
   // approved template feeds the modules that list it: no screen has to be redesigned to take new data.
   // Uploading needs the reporting storage (a database change awaiting approval); until then Excel datasets show as
   // "Missing data" with their template ready to download. Nothing is invented: a module without its data says so.
+  var AN_LAUNCH = '2026-10-13';  // the cake app went live; Analytics counts from here (older orders on request)
+  function anLaunchNote() {
+    var d = DX.data || {}; if (!d.allOrders || (!d.oldN && !DX.showOld)) return '';
+    return DX.showOld ? '<b>Including orders from before the launch.</b> <button type="button" class="ccs-link" data-act="dx-old">Count from the launch only</button>'
+      : 'Counting from the launch, 13 October 2026. <button type="button" class="ccs-link" data-act="dx-old">Show ' + int(d.oldN) + ' older orders</button>';
+  }
   var AN_DS = [
     { id: 'cake_orders', name: 'Cake orders', src: 'app', owner: 'Cake app', grain: 'One row per cake order',
       fields: [['Order reference', 1], ['Order date', 1], ['Pickup date', 1], ['Cake and size', 1], ['Quantity', 1], ['Order value', 1], ['Occasion', 0], ['Channel', 1], ['Order status', 1], ['Payment status', 1]] },
