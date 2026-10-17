@@ -2,12 +2,12 @@
 const fs=require('fs'),path=require('path'),assert=require('assert/strict');const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
 const root=path.resolve(__dirname,'..'),m=JSON.parse(fs.readFileSync(path.join(root,'dist/app/staff-attn-pop-manifest.json')));let n=0,fails=0;
 function check(s,v){if(v){n++;console.log('PASS '+s)}else{fails++;console.log('FAIL '+s)}}
-const SIZES=[[1920,1080,'desktop'],[1366,1024,'ipad-landscape'],[1024,1366,'ipad-portrait'],[390,844,'phone']];
+const SIZES=[[1920,1080,'desktop'],[1366,1024,'ipad-landscape'],[1024,1366,'ipad-portrait'],[390,844,'phone'],[412,915,'android']];
 async function open(b,w,h,role){const p=await b.newPage({viewport:{width:w,height:h}}),errors=[];p.on('pageerror',e=>{/* Known mock gap, same on the live bundle: feedback form has no photos list. */if(e.message!=="Cannot read properties of undefined (reading 'length')")errors.push(e.message)});await p.route('https://**',r=>r.abort());
  await p.setContent('<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><body style="margin:0"><div id="cc-staff"></div>');await p.evaluate(r=>window.__role=r,role||'admin');
  await p.addScriptTag({path:path.join(root,'test/mock.js')});
  // Extra invented attention: one overdue cake and one due today with the kitchen not started.
- await p.evaluate(()=>{const mk=window.__ccsMock;window.__setCalls=[];const rpc=mk.rpc.bind(mk);mk.rpc=(nm,a)=>{if(nm==='order_set_taken')window.__setCalls.push(a);return rpc(nm,a)}});
+ await p.evaluate(()=>{const mk=window.__ccsMock;window.__setCalls=[];const T=new Intl.DateTimeFormat('en-CA',{timeZone:'Pacific/Fiji'}).format(new Date());['23:00','23:15','23:30','23:45'].forEach((t,i)=>window.__orders.push({id:'x'+i,reference:'CC-19'+i,order_status:'confirmed',production_status:'not_started',payment_status:'paid',fulfilment_method:'collection',order_type:'standard',source:'phone',created_at:new Date().toISOString(),required_date:T,required_time:t+':00',estimate_total:50,final_total:50,has_dietary:false,version:1,customer_id:'c1',customers:{full_name:'Invented Guest '+i,phone:'912 000'+i},order_items:[{product_name:'Cheesecake',size_inch:6,quantity:1,finish:'standard'}],order_events:[],order_attachments:[],payments:[{amount:50,kind:'full',method:'cash',recorded_at:new Date().toISOString()}]}));const rpc=mk.rpc.bind(mk);mk.rpc=(nm,a)=>{if(nm==='order_set_taken')window.__setCalls.push(a);return rpc(nm,a)}});
  await p.addScriptTag({path:path.join(root,m.file)});await p.waitForTimeout(400);return {p,errors}}
 (async()=>{const b=await chromium.launch({executablePath:process.env.CHROMIUM_PATH,args:['--no-sandbox','--disable-dev-shm-usage']});try{
  for(const [w,h,label] of SIZES){const {p,errors}=await open(b,w,h);
@@ -32,6 +32,8 @@ async function open(b,w,h,role){const p=await b.newPage({viewport:{width:w,heigh
   const want=Number(await isl.first().locator('b').innerText()),rows=await p.locator('#ap-pop .at-row').count();check(label+' pop-up lists the same number of orders ('+rows+')',rows===want);
   check(label+' first order fully visible inside the panel',await p.evaluate(()=>{const pop=document.getElementById('ap-pop').getBoundingClientRect(),r=document.querySelector('#ap-pop .at-row');if(!r)return false;const x=r.getBoundingClientRect();return x.top>=pop.top&&x.bottom<=pop.bottom+1&&x.height>20}));
   check(label+' dimmed backdrop covers the working area',await p.evaluate(()=>{const s=document.querySelector('.ap-scrim').getBoundingClientRect();return s.height>=innerHeight*0.8||innerWidth<=640}));
+  check(label+' nothing covers the orders in the panel',await p.evaluate(()=>[...document.querySelectorAll('#ap-pop .at-row')].every(r=>{const x=r.getBoundingClientRect();if(x.bottom<0||x.top>innerHeight)return true;const pts=[[x.left+20,x.top+10],[x.left+x.width/2,x.top+x.height/2],[x.right-20,x.top+10]];return pts.every(([px,py])=>{if(py<0||py>innerHeight)return true;const e=document.elementFromPoint(px,py);return e&&!!e.closest('#ap-pop')})})));
+  check(label+' panel header not covered',await p.evaluate(()=>{const h=document.querySelector('#ap-pop .ap-pop-head').getBoundingClientRect();const e=document.elementFromPoint(h.left+h.width/2,h.top+h.height/2);return e&&!!e.closest('#ap-pop')}));
   check(label+' focus moved to Close',await p.evaluate(()=>document.activeElement&&document.activeElement.classList.contains('ap-close')));
   await p.screenshot({path:'/tmp/claude-attn-'+label+'-open.png'});
   await p.locator('#ap-pop .ap-close').click();await p.waitForTimeout(200);check(label+' Close button closes',await p.locator('#ap-pop').count()===0);
@@ -39,7 +41,7 @@ async function open(b,w,h,role){const p=await b.newPage({viewport:{width:w,heigh
   await isl.first().click();await p.waitForTimeout(200);await p.keyboard.press('Escape');await p.waitForTimeout(200);check(label+' Escape closes',await p.locator('#ap-pop').count()===0);
   await isl.first().click();await p.waitForTimeout(200);await isl.first().evaluate(e=>e.click());await p.waitForTimeout(200);check(label+' tapping the same island again closes',await p.locator('#ap-pop').count()===0);
   await isl.first().click();await p.waitForTimeout(200);await p.mouse.click(w-5,h/2>100?60:5);await p.waitForTimeout(200);check(label+' tapping outside closes',await p.locator('#ap-pop').count()===0);
-  if(k>1){await isl.nth(0).click();await p.waitForTimeout(200);await isl.nth(1).click();await p.waitForTimeout(250);const t=await p.locator('#ap-pop .ap-pop-title h2').innerText(),t2=await isl.nth(1).getAttribute('title');check(label+' choosing another island swaps the panel',t===t2&&await p.locator('#ap-pop').count()===1)}
+  if(k>1){await isl.nth(0).click();await p.waitForTimeout(200);if(w<=640){await p.locator('#ap-pop .ap-close').click();await p.waitForTimeout(200)}await isl.nth(1).click();await p.waitForTimeout(250);const t=await p.locator('#ap-pop .ap-pop-title h2').innerText(),t2=await isl.nth(1).getAttribute('title');check(label+' choosing another island swaps the panel',t===t2&&await p.locator('#ap-pop').count()===1)}
   // Opening an order from the panel puts the order on top; closing it returns to the panel.
   const row=p.locator('#ap-pop .at-row button,#ap-pop .at-row [data-act]').first();
   if(await row.count()){await row.evaluate(e=>e.click());await p.waitForTimeout(450);const sheetOn=await p.evaluate(()=>{const s=document.getElementById('ccs-sheet');return !!s&&s.classList.contains('ccs-open')});check(label+' order opens directly from the panel',sheetOn);
