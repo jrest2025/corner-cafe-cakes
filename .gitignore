@@ -5,3 +5,9 @@ __pycache__/
 import/
 .env
 tests/catalogue/out/
+
+# build intermediates made by build/build.py (only dist/app, the head, embed and footer files are kept)
+dist/*.min.js
+dist/*.min.css
+dist/staff.full.js
+tests/shots*/
