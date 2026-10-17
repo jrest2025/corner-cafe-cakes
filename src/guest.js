@@ -485,7 +485,7 @@
 
   // Meta Pixel events (only when the pixel is on the page). The order reference is the event id, so a later server-side copy is not counted twice.
   var startedTracked = false, checkoutTracked = false;
-  function track(ev, data, id) { try { if (typeof window.fbq === 'function') window.fbq('track', ev, data || {}, id ? { eventID: id } : {}); } catch (e) { /* tracking must never break ordering */ } }
+  function track(ev, data, id) { try { if (localStorage.getItem('cc_marketing_consent_v1') !== 'accepted') return; if (typeof window.fbq === 'function') window.fbq('track', ev, data || {}, id ? { eventID: id } : {}); } catch (e) { /* tracking must never break ordering */ } }
   // Selecting a cake is interest, not yet checkout: a price may be unavailable.
   function trackStart() { if (startedTracked) return; startedTracked = true; track('ViewContent', { content_category: 'Cakes' }); }
   // Step 3 collects customer details, after cake and collection/delivery choices.
