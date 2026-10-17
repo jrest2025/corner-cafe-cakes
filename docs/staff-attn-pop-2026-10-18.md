@@ -42,4 +42,7 @@ Paste `docs/rollback/staff-footer-before-attn-pop-2026-10-18.html` into the staf
 
 ## Publication
 
-Not published. Waiting for Roneel's approval.
+Approved by Roneel 18 October 2026, 11:31 Fiji. Pull request #6 merged (merge commit 9a2c0d4).
+Footer pinned to release commit e39986d0e67232ed93bd87d2542cc769f11dd417, artifact dist/app/staff-app.2c3db30481.js, SRI sha384-Hi9bI4jU40Va69eFXt483MdP78VGTxEUOAu7/AcDxR6MCdGlyaz+vTlKnCKJ7U92. Footer read-back matched exactly. Published to cornercafefiji.com and www.cornercafefiji.com (not the Webflow subdomain).
+
+Live check, signed in as an administrator: the page loaded exactly this file (integrity check passed, so the CDN bytes match). Islands showed 2 Overdue, 1 Due soon, 3 Kitchen not finished, 4 Balance to pay; old summary cards gone. Overdue opened as a pop-up below the islands with both orders; switching to Kitchen not finished showed 3 orders; Escape closed it and unlocked scrolling. The new order form showed the three date options with Today selected and no time box; it was closed without saving. No order was opened, changed or created. One console error came from the separate Sentry monitoring snippet at page load, not from the staff app.
