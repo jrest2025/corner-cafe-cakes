@@ -34,6 +34,9 @@ import hashlib, base64, glob
 css = open('dist/staff.min.css').read().strip()
 run('npx -y csso-cli@4.0.2 staff.cal.css -o dist/staff.cal.min.css')
 calcss = open('dist/staff.cal.min.css').read().strip()
+# Jack's Restaurants Hospitality UI (17 Oct 2026): loaded last, over every earlier rule
+run('npx -y csso-cli@4.0.2 staff.hospitality.css -o dist/staff.hospitality.min.css')
+calcss += open('dist/staff.hospitality.min.css').read().strip()
 app = "(function(){var s=document.createElement('style');s.id='ccs-style';s.textContent=" + json.dumps(re.sub(r'font-size:(\d+(?:\.\d+)?)px', r'font-size:calc(\1*var(--u,1px))', css + calcss)) + ";document.head.appendChild(s)})();\n" + s + "\n"
 raw = app.encode('utf-8')
 name = 'staff-app.' + hashlib.sha256(raw).hexdigest()[:10] + '.js'
