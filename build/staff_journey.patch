@@ -1,0 +1,46 @@
+--- staff-cleanup.js
++++ staff-journey.js
+@@ -849,8 +849,8 @@
+     shell();
+     if (S.tab === 'customers' && !S.cust.loaded) loadCustomers();
+     if (S.tab === 'settings') loadSettings();
+-    if (S.tab === 'dash') dashLoad();
+-    if (S.tab === 'register') regLoad();
++    if (S.tab === 'dash') dashLoad(true);
++    if (S.tab === 'register') regLoad(true);
+     if (S.tab === 'kitchen') loadKitchen();
+     if (S.tab === 'orders' || S.tab === 'today' || S.tab === 'attn' || S.tab === 'handover') loadOrders(true);
+     if (S.tab === 'handover') { hoLoad(); if (canP('kit.view')) loadKitchen(true); }
+@@ -1404,7 +1404,7 @@
+     }).catch(fail);
+   }
+   function pay() {
+-    var o = S.sheet.data, amt = num(val('ccs-amt'));
++    var o = S.sheet.data, amt = num(val('ccs-amt')), wasWaitingDeposit = o.order_status === 'awaiting_deposit';
+     if (!amt || amt <= 0) { S.panelErr = 'Enter the amount paid.'; return renderSheet(); }
+     if (S.busy) return; S.busy = true;
+     sb.rpc('staff_record_payment', { p_order: o.id, p_kind: o.order_status === 'awaiting_deposit' ? 'deposit' : (amt >= Number(o.final_total != null ? o.final_total : o.estimate_total) - paidTotal(o) ? (paidTotal(o) > 0 ? 'balance' : 'full') : 'deposit'), p_method: S.payMethod || 'cash', p_amount: amt, p_reference: val('ccs-ref') || null, p_note: null, p_idem: S.payKey })
+@@ -1412,7 +1412,13 @@
+         S.busy = false; if (r.error) throw r.error;
+         if (!r.data.ok) { S.panelErr = r.data.message; return renderSheet(); }
+         toast(money(amt) + ' recorded' + (r.data.balance > 0 ? '. ' + money(r.data.balance) + ' still to pay.' : '. All paid.'));
+-        S.panel = null; S.payKey = null; S.payMethod = null; openOrder(o.id); loadOrders(true);
++        S.panel = null; S.payKey = null; S.payMethod = null;
++        openOrder(o.id).then(function () {
++          if (wasWaitingDeposit && S.sheet && S.sheet.id === o.id && S.sheet.data && S.sheet.data.order_status === 'confirmed' && validRef(S.sheet.data.reference) && !S.panel) {
++            S.panel = 'brief'; S.panelErr = null; S.dirty = {}; renderSheet();
++            toast('Deposit received. Order confirmed. Now make the kitchen slip.');
++          }
++        }); loadOrders(true);
+       }).catch(function (e) { S.busy = false; fail(e); });
+   }
+ 
+@@ -8497,7 +8503,7 @@
+     }).catch(function () { loginView('Could not connect. Check the internet connection.'); });
+   });
+   var BUSY_ACTS = { 'ho-save': 'Saving…', 'ho-take': 'Saving…', 'do-delete': 'Deleting…', 'do-confirm': 'Saving…', 'do-decline': 'Saving…', 'do-cancel': 'Saving…', 'do-note': 'Saving…', 'do-waive': 'Saving…', 'do-collected': 'Saving…', 'do-fulfil': 'Saving…',
+-    'do-brief': 'Sending…', 'do-pay': 'Saving…', 'k-stage': 'Saving…', 'k-next': 'Saving…', 'k-ready': 'Saving…', 'k-assign': 'Saving…', 'save-zones': 'Saving…', 'add-zone': 'Saving…', 'cust-save': 'Saving…', 'cn-save': 'Saving…', 'consent-ch': 'Saving…',
++    'do-quote': 'Saving…', 'do-brief': 'Sending…', 'do-pay': 'Saving…', 'k-stage': 'Saving…', 'k-next': 'Saving…', 'k-ready': 'Saving…', 'k-assign': 'Saving…', 'save-zones': 'Saving…', 'add-zone': 'Saving…', 'cust-save': 'Saving…', 'cn-save': 'Saving…', 'consent-ch': 'Saving…',
+     'consent': 'Saving…', 'save-loc': 'Saving…', 'confirm-loc': 'Saving…', 'add-closed': 'Saving…', 'save-staff': 'Saving…', 'tm-add': 'Adding…', 'tm-reset-save': 'Saving…', 'bk-link': 'Linking…', 'bk-copy': 'Copying…', 'pr-save': 'Saving…', 'pr-test': 'Sending…', 'pr-ok': 'Saving…', 'k-printed': 'Saving…' };
+   // Tablets and laptops: the menu is hidden and slides in from the Menu button, so the page has the full width
+   function menuOpen() { var a = root.querySelector('.ccs-app'); return !!(a && a.classList.contains('menu-open')); }
