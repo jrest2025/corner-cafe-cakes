@@ -25,3 +25,9 @@ Rollback: restore docs/rollback/staff-footer-before-journey-2026-10-18.html to t
 Physical printer output and destination verification, recovery from an actual backup, independent staff acceptance, and live permission/security verification remain unproven by these UI checks. Earlier technical findings remain open: payment overage handling, more than 400 active/recent records, and atomic multi-row delivery/price saves. These need separate backend work and acceptance tests; this refinement does not certify the whole system production-ready.
 
 New-order entry and cancellation/refund branches were not re-exercised by the connected journey test. Analytics freshness is verified by a new request and filter preservation; backend aggregation accuracy is outside this change.
+
+## Publication
+
+Published to both production domains at 2026-10-17T18:49:20.744Z (18 October, 06:49 Fiji). Domain publication timestamps verified. Exact footer read-back and CDN byte comparison passed. Festive page remains draft. Signed-in production inspection was unavailable in this session.
+
+Release commit: fe3b10dd1c9f3b8563556af3e714276f1c05cd20. Artifact: dist/app/staff-app.58869aff6c.js. SRI: sha384-fgZ3VZR535a9f0xnEhI0jM5CsN5QF22ew0FKBmAOgLJV+XLo6tRfDa9nMowyDa+V.
