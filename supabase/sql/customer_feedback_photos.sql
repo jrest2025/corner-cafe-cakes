@@ -1,4 +1,4 @@
--- Customer concerns: photos, and "What will we do better next time?" (approved by Roneel, 17 Oct 2026). STATUS: prepared and dry-run tested, NOT applied yet.
+-- Customer concerns: photos, and "What will we do better next time?" (approved by Roneel, 17 Oct 2026). STATUS: applied 17 Oct 2026 at publish (migration customer_feedback_photos_learning).
 -- Builds on customer_feedback.sql (applied). Additive only: a private bucket, two storage policies, one table, one column,
 -- new functions, and create-or-replace of _note_json. feedback_resolve gets a new six-argument version (with the learning);
 -- the five-argument one stays for any old screen still open and keeps working.
