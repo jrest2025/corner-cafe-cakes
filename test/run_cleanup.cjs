@@ -4,7 +4,7 @@ const path = require('node:path');
 const assert = require('node:assert/strict');
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const root = path.resolve(__dirname, '..');
-const manifest = JSON.parse(fs.readFileSync(path.join(root, 'dist/app/staff-cleanup-manifest.json')));
+const manifest = JSON.parse(fs.readFileSync(path.join(root, process.env.STAFF_MANIFEST || 'dist/app/staff-cleanup-manifest.json')));
 const baseline = 'dist/app/staff-app.57886bb6e3.js';
 let checks = 0;
 function check(name, condition) { assert.ok(condition, name); checks++; console.log('PASS ' + name); }
