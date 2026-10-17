@@ -2,7 +2,7 @@
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
 const root=path.resolve(__dirname,'..');
-const m=JSON.parse(fs.readFileSync(path.join(root,'dist/app/staff-spacing-manifest.json')));
+const m=JSON.parse(fs.readFileSync(path.join(root,process.env.STAFF_MANIFEST || 'dist/app/staff-spacing-manifest.json')));
 let count=0;function check(name,ok){assert.ok(ok,name);count++;console.log('PASS '+name)}
 (async()=>{const b=await chromium.launch({headless:true,...(process.env.CHROMIUM_PATH?{executablePath:process.env.CHROMIUM_PATH}:{}),args:['--no-sandbox','--disable-dev-shm-usage']});
 try{for(const [w,h] of [[1920,1080],[1366,768],[1180,820],[820,1180],[390,844]]){
