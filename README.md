@@ -21,6 +21,10 @@ Contains no customer records and no secret values.
   - Test mode sends everything to the test address.
 - **Google Sheet sync**: Edge Function `sheet-sync` plus a Google Apps Script (`sheet-sync/Corner-Cafe-cake-sheet-sync.gs`). It brings upcoming orders from the two existing Google Sheets into the app. It stays inactive until the owner sets the shared key.
 
+## Live from 17 October 2026 (approved by Roneel)
+
+Jack's Restaurants Hospitality UI: `src/staff.hospitality.css`, loaded last by `build/build.py`. Grift font, side menu in Corner Café's deep green (#4B6339) with the white Corner Café logo, white working area, hairline panels with a coloured edge for urgency, Kazumi's neutral and status colours. Live file: `dist/app/staff-app.43b6a553dc.js` at commit e542c05. Rollback: paste `docs/rollback/staff-footer-before-2026-10-17.html` into the staff page footer and publish.
+
 ## Folders
 
 - `src/`: readable source (staff app, guest page, styles). Edit these files, never the files in `dist`.
