@@ -9,7 +9,7 @@
   var DX_PERIODS = [['d30', 'Last 30 days'], ['m', 'This month to date'], ['lm', 'Last month'], ['3m', 'Last 3 months'], ['y', 'This year to date'], ['12', 'Last 12 months'], ['all', 'All time'], ['c', 'Choose dates']];
   var DX_STATUS = [['all', 'All statuses'], ['completed', 'Completed sales'], ['open', 'Still to come'], ['off', 'Cancelled']];
   var DX_BASIS = [['p', 'Pickup date'], ['o', 'Order date']];
-  var REG_ST = { received: 'Received', confirmed: 'Confirmed', not_confirmed: 'Quote or enquiry', cancelled: 'Cancelled', completed: 'Collected' };
+  var REG_ST = { received: 'Received', confirmed: 'Confirmed', not_confirmed: 'Quote or enquiry', cancelled: 'Cancelled', completed: 'Completed' };
   function dxState() { if (!DX) DX = { data: null, loading: false, err: null, f: { p: 'd30', b: 'p', from: '', to: '', prod: 'all', ch: 'all', st: 'all' }, year: null, psort: 'q', drills: {} }; return DX; }
   function dashLoad(force) {
     var d = dxState(); if (d.loading) return; if (d.data && !force) { view(); return; }

@@ -31,7 +31,7 @@
 
   var STATUS = {
     awaiting_review: ['Check order', 'review'], awaiting_quote: ['Needs a price', 'review'], awaiting_approval: ['Waiting for customer', 'wait'],
-    awaiting_deposit: ['Waiting for deposit', 'wait'], confirmed: ['Confirmed', 'confirmed'], completed: ['Collected', 'done'],
+    awaiting_deposit: ['Waiting for deposit', 'wait'], confirmed: ['Confirmed', 'confirmed'], completed: ['Completed', 'done'],
     declined: ['Declined', 'off'], cancelled: ['Cancelled', 'off']
   };
   // How customers pay at the counter. M-PAiSA is the Vodafone Fiji mobile wallet.
@@ -77,7 +77,7 @@
   }
   var NEEDS = ['awaiting_review', 'awaiting_quote', 'awaiting_deposit'];
   var OPEN = ['awaiting_review', 'awaiting_quote', 'awaiting_approval', 'awaiting_deposit', 'confirmed'];
-  function statusLabel(status, method) { if (status === 'completed' && method === 'delivery') return 'Delivered'; return (STATUS[status] || [status])[0]; }
+  function statusLabel(status, method) { return (STATUS[status] || [status])[0]; }
   function pill(status, method) { var s = STATUS[status] || [status, 'off']; return '<span class="ccs-pill st s-' + s[1] + '">' + esc(statusLabel(status, method)) + '</span>'; }
   // Payment is a separate fact from order status: white, outlined, with a $ sign
   function payPill(ps) { var c = { unpaid: 'p-unpaid', deposit_paid: 'p-part', paid: 'p-paid', refunded: 'p-refunded' }[ps]; return c ? '<span class="ccs-pay ' + c + '">' + esc(PAY[ps]) + '</span>' : ''; }
@@ -503,7 +503,7 @@
     var pay = owing && canP('ord.payments');
     if (o.production_status !== 'ready') return ['Kitchen: ' + (!o.production_status || o.production_status === 'not_started' ? 'start the cake' : 'finish the cake (now: ' + (STAGE_LABEL[o.production_status] || o.production_status).toLowerCase() + ')') + (pay ? '. Counter: take the balance before handover' : ''), 'wait'];
     if (pay) return ['Counter: take the balance, then hand it over', 'you'];
-    return [dl ? 'Counter: deliver it, then mark it delivered' : 'Counter: hand it over, then mark it collected', 'you'];
+    return [dl ? 'Counter: deliver it, then tap Order completed' : 'Counter: hand it over, then tap Order completed', 'you'];
   }
   function nextHtml(o) { var n = nextStep(o); return n ? '<span class="ccs-next' + (n[1] === 'wait' ? ' is-wait' : '') + '"><em>Next:</em> ' + esc(n[0]) + '</span>' : ''; }
   // Phones: each order is one compact row (when, customer and order number, one marker for anything critical); a tap opens the full order
@@ -1150,7 +1150,7 @@
   function eventText(e) {
     var d = e.detail || {}, who = e.actor_label || 'System';
     var map = { created: 'Order placed (' + (SOURCE_LABEL[d.source] || d.source) + ')', confirmed: 'Confirmed' + (d.final_total != null ? ' at ' + money(d.final_total) : '') + (d.reason ? ' (' + d.reason + ')' : ''),
-      awaiting_deposit: 'Accepted, waiting for ' + money(d.deposit_required) + ' deposit', declined: 'Declined', cancelled: 'Cancelled', collected: 'Collected',
+      awaiting_deposit: 'Accepted, waiting for ' + money(d.deposit_required) + ' deposit', declined: 'Declined', cancelled: 'Cancelled', collected: 'Order completed',
       payment_recorded: money(d.amount) + ' ' + d.kind + ' recorded (' + payMethodLabel(d.method) + ')', note: 'Note added', taken_earlier: 'Order taken ' + (d.text || '') + ', entered later',
       stage: 'Kitchen: ' + (STAGE_LABEL[d.to] || d.to) + (d.qc_by ? ', checked by ' + d.qc_by : ''),
       brief_printed: 'Kitchen slip v' + d.version + (d.new_version ? ' printed' : ' reprinted') + (d.changes && d.changes.length ? ' (changed: ' + d.changes.join(', ') + ')' : ''),
@@ -1163,7 +1163,7 @@
     map.complaint_resolved = 'We put the customer concern right' + (d.actions && d.actions.length ? ': ' + d.actions.map(function (x) { return fbLabel(FB_ACT, x).toLowerCase(); }).join(', ') : '') + (d.amount != null ? ', ' + money(d.amount) : '');
     map.complaint_reopened = 'Customer concern opened again' + (d.reason ? ': ' + d.reason : '');
     map.email_resent = 'Customer email sent again (' + (MAIL_KIND[d.kind] || d.kind || 'latest') + ') to ' + (d.to || '');
-    if (e.kind === 'collected') map.collected = (d.method === 'delivery' ? 'Delivered' : 'Collected') + (d.to ? ', received by ' + d.to : '');
+    if (e.kind === 'collected') map.collected = 'Order completed' + (d.method === 'delivery' ? ', delivered' : ', collected') + (d.to ? ', received by ' + d.to : '');
     return (map[e.kind] || e.kind) + (d.note ? ': ' + d.note : '') + ' · ' + who;
   }
   function actionsBox(o, total, paid, bal) {
@@ -1235,9 +1235,9 @@
     }
     if (p === 'collected') {
       var dl = o.fulfilment_method === 'delivery';
-      return '<div class="ccs-panel"><b>' + (dl ? 'Mark as delivered' : 'Mark as collected') + '</b><div class="ccs-field"><label class="ccs-label" for="ccs-note">' + (dl ? 'Who received the cake' : 'Who collected the cake') + '</label><input class="ccs-input" id="ccs-note" data-autofocus placeholder="' + (dl ? 'Name, or reception at the resort' : 'Name of the person collecting') + '">' + receiverChips(o, dl) + '</div>' +
+      return '<div class="ccs-panel"><b>Order completed</b>' + (o.production_status !== 'ready' ? '<p class="ccs-hint">The kitchen has not marked this cake Ready (now: ' + esc(STAGE_LABEL[o.production_status] || 'Not started') + '). Check the cake before handing over. Completing marks it Ready.</p>' : '') + '<div class="ccs-field"><label class="ccs-label" for="ccs-note">' + (dl ? 'Who received the cake' : 'Who collected the cake') + '</label><input class="ccs-input" id="ccs-note" data-autofocus placeholder="' + (dl ? 'Name, or reception at the resort' : 'Name of the person collecting') + '">' + receiverChips(o, dl) + '</div>' +
         '<p class="ccs-hint">Check the order number and name before handing over.</p>' + err +
-        '<div class="ccs-actions-row"><button type="button" class="ccs-btn ccs-good" data-act="do-collected">' + (dl ? 'Delivered' : 'Collected') + '</button><button type="button" class="ccs-btn ccs-ghost" data-act="panel" data-v="">Back</button></div></div>';
+        '<div class="ccs-actions-row"><button type="button" class="ccs-btn ccs-good" data-act="do-collected">Order completed</button><button type="button" class="ccs-btn ccs-ghost" data-act="panel" data-v="">Back</button></div></div>';
     }
     if (p === 'brief') {
       var ppr = S.slip.paper, pk = slipPick(), any = pk.email || pk.dl || pk.print;
@@ -1291,12 +1291,12 @@
     } else if (st === 'confirmed') {
       if (bal > 0 && payer) main = '<button type="button" class="ccs-btn" data-act="panel" data-v="pay">Take ' + money(bal) + '</button>';
       if (orderer) {
-        var notReady = o.production_status !== 'ready', label = o.fulfilment_method === 'delivery' ? 'Mark as delivered' : 'Mark as collected';
-        var locked = bal > 0 ? ' after payment' : notReady ? ' when Ready' : '';
+        var notReady = o.production_status !== 'ready', label = 'Order completed';
+        var locked = bal > 0 ? ' after payment' : '';
         main += '<button type="button" class="ccs-btn ccs-good" data-act="panel" data-v="collected"' + (locked ? ' disabled aria-disabled="true"' : '') + '>' + label + locked + '</button>';
         main += '<button type="button" class="ccs-btn ccs-ghost" data-act="panel" data-v="brief">Print kitchen slip</button>';
         if (bal > 0) hint = 'Record the balance before handing over.';
-        else if (notReady) hint = 'Handover opens once the kitchen marks the cake Ready (now: ' + (STAGE_LABEL[o.production_status] || o.production_status) + ').';
+        else if (notReady) hint = 'Kitchen has not marked it Ready (now: ' + (STAGE_LABEL[o.production_status] || 'Not started') + '). Tap Order completed once the cake has gone out.';
       }
     } else if (st === 'completed' && orderer) {
       main = '<button type="button" class="ccs-btn ccs-ghost" data-act="panel" data-v="brief">Print kitchen slip</button>';
@@ -1329,9 +1329,9 @@
     if (st === 'confirmed') {
       var rdy = o.production_status === 'ready', owe = bal > 0 && payer, how = o.fulfilment_method === 'delivery' ? 'delivered' : 'collected';
       var kit = rdy ? '' : 'Kitchen: ' + (o.production_status === 'not_started' || !o.production_status ? 'start the cake.' : 'finish the cake (now: ' + (STAGE_LABEL[o.production_status] || o.production_status).toLowerCase() + ').');
-      var ctr = rdy ? (owe ? 'Counter: take ' + money(bal) + ', then hand it over.' : 'Counter: hand it over, then mark it ' + how + '.') : (owe ? 'Counter: take ' + money(bal) + ' any time before handover.' : 'Counter: nothing to do until it is ready.');
+      var ctr = rdy ? (owe ? 'Counter: take ' + money(bal) + ', then hand it over.' : 'Counter: hand it over, then tap Order completed.') : (owe ? 'Counter: take ' + money(bal) + ' any time before handover.' : 'Counter: tap Order completed once the cake has gone out.');
       phNext = [kit, ctr].filter(Boolean).join(' ');
-      if (hint === 'Record the balance before handing over.' || /^Handover opens/.test(hint)) hint = '';
+      if (hint === 'Record the balance before handing over.' || /^Kitchen has not marked/.test(hint)) hint = '';
     }
     var nxl = phNext ? '<p class="ccs-nextline os-who"><em>Next:</em> ' + esc(phNext) + '</p>' : nx ? '<p class="ccs-nextline' + (nx[1] === 'wait' ? ' is-wait' : '') + '"><em>Next:</em> ' + esc(nx[0]) + '</p>' : '';
     var told = S.sheet.readyAsk ? '<p class="ccs-note ccs-readyask">Sent the WhatsApp? <button type="button" class="ccs-link" data-act="ready-told">Yes, note it in the history</button></p>' : '';
