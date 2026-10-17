@@ -23,7 +23,7 @@ Contains no customer records and no secret values.
 
 ## Waiting for approval (17 October 2026)
 
-Branch `design/hospitality-ui` (not live): Jack's Restaurants Hospitality UI, with the Kazumi Service Hub as the design reference. `src/staff.hospitality.css` is loaded last: Grift font, dark side menu on tablets and laptops, white working area, hairline panels with a coloured edge for urgency, Kazumi's neutral and status colours. Corner Café green stays for buttons and where you are. Looks only. Built file: `dist/app/staff-app.51b60c13b1.js`. To go live: commit, run `build/footer.py <commit>`, paste the footer into the Webflow staff page (draft), publish after approval.
+Branch `design/hospitality-ui` (not live): Jack's Restaurants Hospitality UI, with the Kazumi Service Hub as the design reference. `src/staff.hospitality.css` is loaded last: Grift font, side menu in Corner Café's deep green on tablets and laptops, white working area, hairline panels with a coloured edge for urgency, Kazumi's neutral and status colours. Corner Café green stays for buttons and where you are. Looks only. Built file: `dist/app/staff-app.804b460a20.js`. To go live: commit, run `build/footer.py <commit>`, paste the footer into the Webflow staff page (draft), publish after approval.
 
 ## Folders
 

@@ -1,6 +1,6 @@
 /* ======================================================================================================================
    Jack's Restaurants Hospitality UI (17 Oct 2026). The Kazumi Service Hub is the design reference (Roneel): the same type
-   (Grift), the same dark side menu on tablets and laptops, white working area, hairline panels with a coloured edge for
+   (Grift), the same side menu on tablets and laptops in Corner Café's deep green, white working area, hairline panels with a coloured edge for
    urgency, Kazumi's neutral and status colours. Corner Café keeps its own green for buttons, the counts and where you are.
    Looks only: no screen, wording, order, payment, permission or data change. Loaded last, so it sits over every earlier rule.
    ====================================================================================================================== */
@@ -15,7 +15,7 @@
   --ccs-leaf:#167a4a;--ccs-leaf-wash:#e6f4ec;--ccs-amber:#a85b00;--ccs-amber-wash:#fff4e3;--ccs-red:#c52f25;--ccs-red-wash:#fdeeec;--ccs-blue:#2c4a86;--ccs-blue-wash:#ebf0f8;
   --ds-text:#15171c;--ds-text-2:#343942;--ds-muted:#596069;--ds-divider:#e7e9ed;--ds-border:#c9d2d8;--ds-surface-2:#f4f5f7;--ds-danger:#c52f25;--ds-danger-bg:#fdeeec;--ds-attn:#a85b00;
   --u-crit:#c52f25;--u-attn:#a85b00;--u-crit-line:#e7e9ed;--u-attn-line:#e7e9ed;
-  --hs-side:#15171c;--hs-side-ink:rgba(243,232,220,.86);--hs-side-mute:rgba(243,232,220,.6);--hs-side-line:rgba(243,232,220,.12);--hs-green-light:#b9d2a2;
+  --hs-side:#4B6339;--hs-side-ink:rgba(255,255,255,.92);--hs-side-mute:rgba(255,255,255,.72);--hs-side-line:rgba(255,255,255,.18);
   --hs-r1:10px;--hs-r2:12px;--hs-sh1:0 1px 2px rgba(16,24,40,.05),0 0 0 1px rgba(16,24,40,.06);
   font-family:'Grift',-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;font-feature-settings:'tnum' 1,'lnum' 1;letter-spacing:-.003em;color:var(--ccs-text)}
 #cc-staff h1,#cc-staff h2,#cc-staff h3,#cc-staff .ccs-title{font-family:inherit}
@@ -26,29 +26,30 @@
 
 /* ---------- side menu: the Kazumi side panel on tablets and laptops (dark, 44-pixel rows, a light bar for where you are) ---------- */
 @media (min-width:760px){
-  #cc-staff .ccs-app:not(.is-single) .ccs-side{background:var(--hs-side);border-right:0;color:var(--hs-side-ink);scrollbar-color:rgba(243,232,220,.25) transparent}
-  #cc-staff .ccs-app:not(.is-single) .ccs-side .ccs-brand{color:#f3e8dc;font-weight:600}
+  #cc-staff .ccs-app:not(.is-single) .ccs-side{background:var(--hs-side);border-right:0;color:var(--hs-side-ink);scrollbar-color:rgba(255,255,255,.25) transparent}
+  #cc-staff .ccs-app:not(.is-single) .ccs-side .ccs-brand{color:#fff;font-weight:600}
   #cc-staff .ccs-app:not(.is-single) .ccs-side .ccs-brand small{color:var(--hs-side-mute);font-size:12px;letter-spacing:.08em;font-weight:600}
   #cc-staff .ccs-app:not(.is-single) .ccs-navh{color:var(--hs-side-mute);font-size:12px;font-weight:600;letter-spacing:.08em}
   #cc-staff .ccs-app:not(.is-single) .ccs-nav-item:not(.ccs-nav-new){position:relative;color:var(--hs-side-ink);border-radius:8px;font-weight:500}
   #cc-staff .ccs-app:not(.is-single) .ccs-nav-item svg{width:20px;height:20px;opacity:1}
-  #cc-staff .ccs-app:not(.is-single) .ccs-nav-item:not(.ccs-nav-new):active{background:rgba(243,232,220,.2)}
-  #cc-staff .ccs-app:not(.is-single) .ccs-nav-item:not(.ccs-nav-new)[aria-current=page]{background:rgba(243,232,220,.14);color:#fff;font-weight:700}
-  #cc-staff .ccs-app:not(.is-single) .ccs-nav-item:not(.ccs-nav-new)[aria-current=page]::before{content:'';position:absolute;left:-14px;top:8px;bottom:8px;width:4px;border-radius:0 4px 4px 0;background:var(--hs-green-light)}
+  #cc-staff .ccs-app:not(.is-single) .ccs-nav-item:not(.ccs-nav-new):active{background:rgba(255,255,255,.2)}
+  #cc-staff .ccs-app:not(.is-single) .ccs-nav-item:not(.ccs-nav-new)[aria-current=page]{background:rgba(255,255,255,.14);color:#fff;font-weight:700}
+  #cc-staff .ccs-app:not(.is-single) .ccs-nav-item:not(.ccs-nav-new)[aria-current=page]::before{content:'';position:absolute;left:-14px;top:8px;bottom:8px;width:4px;border-radius:0 4px 4px 0;background:#fff}
   #cc-staff .ccs-app.is-mini .ccs-nav-item:not(.ccs-nav-new)[aria-current=page]::before{left:-10px}
-  #cc-staff .ccs-app:not(.is-single) .ccs-nav-item:focus-visible{outline:2px solid #f3e8dc;outline-offset:-2px}
+  #cc-staff .ccs-app:not(.is-single) .ccs-side .ccs-nav-item .ccs-count:not(.at-count){background:#fff;color:#3F5530}
+  #cc-staff .ccs-app:not(.is-single) .ccs-nav-item:focus-visible{outline:2px solid #fff;outline-offset:-2px}
   #cc-staff .ccs-app:not(.is-single) .ccs-side .ccs-who{border-top-color:var(--hs-side-line);color:var(--hs-side-mute)}
-  #cc-staff .ccs-app:not(.is-single) .ccs-side .ccs-who b,#cc-staff .ccs-app:not(.is-single) .ccs-side .ccs-who-name{color:#f3e8dc}
-  #cc-staff .ccs-app:not(.is-single) .ccs-side .ccs-btn,#cc-staff .ccs-app:not(.is-single) .ccs-side .ccs-signout{background:transparent;border-color:rgba(243,232,220,.24);color:var(--hs-side-ink)}
-  #cc-staff .ccs-app:not(.is-single) .ccs-side .ccs-btn:focus-visible{outline:2px solid #f3e8dc;outline-offset:2px}
+  #cc-staff .ccs-app:not(.is-single) .ccs-side .ccs-who b,#cc-staff .ccs-app:not(.is-single) .ccs-side .ccs-who-name{color:#fff}
+  #cc-staff .ccs-app:not(.is-single) .ccs-side .ccs-btn,#cc-staff .ccs-app:not(.is-single) .ccs-side .ccs-signout{background:transparent;border-color:rgba(255,255,255,.24);color:var(--hs-side-ink)}
+  #cc-staff .ccs-app:not(.is-single) .ccs-side .ccs-btn:focus-visible{outline:2px solid #fff;outline-offset:2px}
   #cc-staff .ccs-app:not(.is-single) .ccs-side .ccs-collapse{background:transparent;border-color:transparent;color:var(--hs-side-ink);box-shadow:none}
-  #cc-staff .ccs-app:not(.is-single) .ccs-side .ccs-collapse:focus-visible{outline:2px solid #f3e8dc;outline-offset:-2px}
-  #cc-staff .ccs-app:not(.is-single) .ccs-side .ccs-avatar{background:rgba(243,232,220,.14);color:#f3e8dc;border-color:transparent}
+  #cc-staff .ccs-app:not(.is-single) .ccs-side .ccs-collapse:focus-visible{outline:2px solid #fff;outline-offset:-2px}
+  #cc-staff .ccs-app:not(.is-single) .ccs-side .ccs-avatar{background:rgba(255,255,255,.14);color:#fff;border-color:transparent}
 }
 @media (min-width:760px) and (hover:hover){
-  #cc-staff .ccs-app:not(.is-single) .ccs-nav-item:not(.ccs-nav-new):not([aria-current=page]):hover{background:rgba(243,232,220,.08);color:#fff}
-  #cc-staff .ccs-app:not(.is-single) .ccs-side .ccs-collapse:hover{background:rgba(243,232,220,.08);color:#fff}
-  #cc-staff .ccs-app:not(.is-single) .ccs-side .ccs-btn:hover,#cc-staff .ccs-app:not(.is-single) .ccs-side .ccs-signout:hover{background:rgba(243,232,220,.08);color:#fff;border-color:rgba(243,232,220,.4)}
+  #cc-staff .ccs-app:not(.is-single) .ccs-nav-item:not(.ccs-nav-new):not([aria-current=page]):hover{background:rgba(255,255,255,.08);color:#fff}
+  #cc-staff .ccs-app:not(.is-single) .ccs-side .ccs-collapse:hover{background:rgba(255,255,255,.08);color:#fff}
+  #cc-staff .ccs-app:not(.is-single) .ccs-side .ccs-btn:hover,#cc-staff .ccs-app:not(.is-single) .ccs-side .ccs-signout:hover{background:rgba(255,255,255,.08);color:#fff;border-color:rgba(255,255,255,.4)}
 }
 
 /* ---------- working area: white, hairline panels; urgency is a 4-pixel coloured edge and coloured words, never a coloured box ---------- */
