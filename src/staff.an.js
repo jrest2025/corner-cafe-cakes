@@ -4,6 +4,12 @@
   // approved template feeds the modules that list it: no screen has to be redesigned to take new data.
   // Uploading needs the reporting storage (a database change awaiting approval); until then Excel datasets show as
   // "Missing data" with their template ready to download. Nothing is invented: a module without its data says so.
+  var AN_LAUNCH = '2026-10-13';  // the cake app went live; Analytics counts from here (older orders on request)
+  function anLaunchNote() {
+    var d = DX.data || {}; if (!d.allOrders || (!d.oldN && !DX.showOld)) return '';
+    return DX.showOld ? '<b>Including orders from before the launch.</b> <button type="button" class="ccs-link" data-act="dx-old">Count from the launch only</button>'
+      : 'Counting from the launch, 13 October 2026. <button type="button" class="ccs-link" data-act="dx-old">Show ' + int(d.oldN) + ' older orders</button>';
+  }
   var AN_DS = [
     { id: 'cake_orders', name: 'Cake orders', src: 'app', owner: 'Cake app', grain: 'One row per cake order',
       fields: [['Order reference', 1], ['Order date', 1], ['Pickup date', 1], ['Cake and size', 1], ['Quantity', 1], ['Order value', 1], ['Occasion', 0], ['Channel', 1], ['Order status', 1], ['Payment status', 1]] },
