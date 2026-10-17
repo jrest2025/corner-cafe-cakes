@@ -46,10 +46,10 @@
         st: st, cp: cp, od: o.od, odb: sheet ? 'Date taken by staff' : 'Entered in the system', odok: !(sheet && n % 5 === 0), pd: o.pd, pt: o.pt, fm: o.fm, c: o.c, cn: o.cn, it: o.it,
         lv: o.est, cv: o.fin, paid: sheet ? null : paid, ref: sheet ? null : ref, bal: sheet || st === 'cancelled' ? null : Math.max(tot - paid, 0), wn: [], pay: o.pay, ho: o.ho, ra: o.ra, rev: o.rev, cx: o.cx, ca: o.ca };
     });
-    if (window.__mockOcc) out.forEach(function (o, n) { o.oc = ['birthday', 'anniversary', 'not_specified'][n % 3]; });
+    if (window.__mockOcc) out.forEach(function (o, n) { o.oc = ['birthday', 'anniversary', 'not_specified', 'birthday', 'mothers_day', 'christmas'][n % 6]; });
     window.__regLast = out;
     var ago = function (m) { return new Date(Date.now() - m * 6e4).toISOString(); };
-    return { ok: true, generated_at: new Date().toISOString(), tests_excluded: 2, products: f.products, orders: out, left_out: { needs_review: 3, excluded: 2 }, occasions: window.__mockOcc ? [{ c: 'birthday', l: 'Birthday' }, { c: 'anniversary', l: 'Anniversary' }] : undefined,
+    return { ok: true, generated_at: new Date().toISOString(), tests_excluded: 2, products: f.products, orders: out, left_out: { needs_review: 3, excluded: 2 }, occasions: window.__mockOcc ? [{ c: 'birthday', l: 'Birthday' }, { c: 'anniversary', l: 'Anniversary' }, { c: 'mothers_day', l: 'Mother\'s Day' }, { c: 'christmas', l: 'Christmas' }] : undefined,
       sync: { online: { ok_at: ago(window.__syncStale ? 300 : 3), fail_at: null, fail_msg: null }, walkin: { ok_at: ago(4), fail_at: window.__syncFail ? ago(1) : null, fail_msg: window.__syncFail ? 'The sheet could not be opened' : null }, stale_minutes: 20, records: 580, needs_review: 3, excluded: 2 } };
   }
   var cmDone = {};
@@ -152,6 +152,7 @@
       single: function () { return b; }, maybeSingle: function () { return b; },
       then: function (ok, bad) {
         if (window.__failT && window.__failT[table]) return Promise.resolve({ error: { message: window.__failT[table] === 'denied' ? 'permission denied' : 'Failed to fetch' } }).then(ok, bad);
+        if (table === 'occasion_dates' && window.__mockOcc) return Promise.resolve({ data: [['mothers_day', 2024, '2024-05-12'], ['mothers_day', 2025, '2025-05-11'], ['mothers_day', 2026, '2026-05-10'], ['christmas', 2024, '2024-12-25'], ['christmas', 2025, '2025-12-25'], ['christmas', 2026, '2026-12-25']].map(function (x) { return { occasion_code: x[0], year: x[1], starts_on: x[2], ends_on: x[2], promo_days: 21 }; }) }).then(ok, bad);
         var r = result(table, st); if (st.upd && table === 'locations' && r.data) r = { data: Object.assign({}, r.data, st.upd) };
         return Promise.resolve(r).then(ok, bad); }
     };
