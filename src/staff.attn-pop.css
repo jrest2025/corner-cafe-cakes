@@ -19,8 +19,9 @@
 #cc-staff .ap-scrim{position:fixed;top:0;bottom:var(--ap-bottom,0);left:var(--ap-left,0);width:var(--ap-width,100%);z-index:24;background:rgba(23,27,33,.32);animation:ap-fade .18s ease both}
 #cc-staff .ap-pop{position:fixed;z-index:25;top:var(--ap-top,32px);max-height:calc(100vh - var(--ap-top,32px) - var(--ap-bottom,0px) - 24px);left:calc(var(--ap-left,0px) + max(24px,(var(--ap-width,100vw) - 880px)/2));width:min(880px,calc(var(--ap-width,100vw) - 48px));display:flex;flex-direction:column;background:#fff;border-radius:24px;box-shadow:0 24px 60px rgba(17,24,39,.28),0 2px 6px rgba(17,24,39,.08);overflow:hidden;animation:ap-rise .22s cubic-bezier(.2,.8,.2,1) both}
 @supports (height:1dvh){#cc-staff .ap-pop{max-height:calc(100dvh - var(--ap-top,32px) - var(--ap-bottom,0px) - 24px)}}
-/* While the panel is open the islands sit above the dimmed backdrop, so another category is one tap away. */
-html.ap-is-open #cc-staff .ap-islands{position:relative;z-index:26}
+/* While the panel is open the islands sit above the dimmed backdrop, so another category is one tap away.
+   Not on phones: there the panel is a bottom sheet that rises over the islands, so they must stay underneath it. */
+@media (min-width:641px){html.ap-is-open #cc-staff .ap-islands{position:relative;z-index:26}}
 #cc-staff .ap-pop-head{flex:none;display:flex;align-items:center;gap:14px;padding:18px 18px 16px 22px;border-bottom:1px solid #eceef1}
 #cc-staff .ap-pop-title{flex:1;min-width:0}
 #cc-staff .ap-pop-title h2{margin:0;font-size:21px;line-height:1.25;font-weight:700;color:#15191f}
