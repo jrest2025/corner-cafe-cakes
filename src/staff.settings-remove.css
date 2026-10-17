@@ -1,0 +1,6 @@
+#cc-staff .sr-controls{display:flex;gap:14px;align-items:end;flex-wrap:wrap}
+#cc-staff .sr-controls .ccs-field{flex:1 1 320px;min-width:0}
+#cc-staff .sr-controls .ccs-btn{flex:none}
+#cc-staff .sr-bin{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+#cc-staff #sr-message:not(:empty){margin-top:12px;padding:12px;border-radius:8px}
+@media(max-width:759px){#cc-staff .sr-controls .ccs-btn{width:100%}}
