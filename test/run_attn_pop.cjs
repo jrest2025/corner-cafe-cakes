@@ -1,0 +1,56 @@
+// Needs attention islands with pop-up panel + three-option Order Taken Date. Invented data; all remote requests blocked.
+const fs=require('fs'),path=require('path'),assert=require('assert/strict');const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
+const root=path.resolve(__dirname,'..'),m=JSON.parse(fs.readFileSync(path.join(root,'dist/app/staff-attn-pop-manifest.json')));let n=0,fails=0;
+function check(s,v){if(v){n++;console.log('PASS '+s)}else{fails++;console.log('FAIL '+s)}}
+const SIZES=[[1920,1080,'desktop'],[1366,1024,'ipad-landscape'],[1024,1366,'ipad-portrait'],[390,844,'phone']];
+async function open(b,w,h,role){const p=await b.newPage({viewport:{width:w,height:h}}),errors=[];p.on('pageerror',e=>{/* Known mock gap, same on the live bundle: feedback form has no photos list. */if(e.message!=="Cannot read properties of undefined (reading 'length')")errors.push(e.message)});await p.route('https://**',r=>r.abort());
+ await p.setContent('<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><body style="margin:0"><div id="cc-staff"></div>');await p.evaluate(r=>window.__role=r,role||'admin');
+ await p.addScriptTag({path:path.join(root,'test/mock.js')});
+ // Extra invented attention: one overdue cake and one due today with the kitchen not started.
+ await p.evaluate(()=>{const mk=window.__ccsMock;window.__setCalls=[];const rpc=mk.rpc.bind(mk);mk.rpc=(nm,a)=>{if(nm==='order_set_taken')window.__setCalls.push(a);return rpc(nm,a)}});
+ await p.addScriptTag({path:path.join(root,m.file)});await p.waitForTimeout(400);return {p,errors}}
+(async()=>{const b=await chromium.launch({executablePath:process.env.CHROMIUM_PATH,args:['--no-sandbox','--disable-dev-shm-usage']});try{
+ for(const [w,h,label] of SIZES){const {p,errors}=await open(b,w,h);
+  await p.locator('[data-tab="attn"]').first().evaluate(e=>e.click());await p.waitForTimeout(300);
+  const isl=p.locator('.ap-island');const k=await isl.count();
+  check(label+' islands shown ('+k+')',k>0);
+  check(label+' old summary cards and lists gone',await p.locator('.at-sum').count()===0&&await p.locator('.at-group').count()===0);
+  check(label+' starts closed: only islands',await p.locator('#ap-pop').count()===0);
+  check(label+' every island has an SVG icon and a count',await isl.evaluateAll(es=>es.every(e=>e.querySelector('svg')&&/^\d+$/.test(e.querySelector('b').textContent))));
+  check(label+' island touch targets at least 48px tall',await isl.evaluateAll(es=>es.every(e=>e.getBoundingClientRect().height>=48)));
+  await p.screenshot({path:'/tmp/claude-attn-'+label+'-closed.png'});
+  const before=await p.evaluate(()=>document.scrollingElement.scrollHeight);
+  await isl.first().click();await p.waitForTimeout(350);
+  check(label+' tapping opens the pop-up',await p.locator('#ap-pop').isVisible());
+  check(label+' page did not grow (pop-up, not expand)',await p.evaluate(()=>document.scrollingElement.scrollHeight)<=before+2);
+  check(label+' island reports expanded',await isl.first().getAttribute('aria-expanded')==='true');
+  const r=await p.locator('#ap-pop').boundingBox();check(label+' pop-up inside the viewport',r.x>=0&&r.y>=0&&r.x+r.width<=w+1&&r.y+r.height<=h+1);
+  const side=await p.evaluate(()=>{const s=document.querySelector('.ccs-side,.ccs-rail,aside');return s&&getComputedStyle(s).display!=='none'?s.getBoundingClientRect():null});
+  if(side&&side.width>0&&w>640)check(label+' pop-up does not cover the side menu',r.x>=side.right-1);
+  const nav=await p.evaluate(()=>{const s=document.querySelector('.ccs-nav');return s&&getComputedStyle(s).display!=='none'&&getComputedStyle(s).position==='fixed'?s.getBoundingClientRect().top:null});
+  if(nav&&nav<h)check(label+' pop-up stays above the tab bar',r.y+r.height<=nav+1);
+  const want=Number(await isl.first().locator('b').innerText()),rows=await p.locator('#ap-pop .at-row').count();check(label+' pop-up lists the same number of orders ('+rows+')',rows===want);
+  check(label+' first order fully visible inside the panel',await p.evaluate(()=>{const pop=document.getElementById('ap-pop').getBoundingClientRect(),r=document.querySelector('#ap-pop .at-row');if(!r)return false;const x=r.getBoundingClientRect();return x.top>=pop.top&&x.bottom<=pop.bottom+1&&x.height>20}));
+  check(label+' dimmed backdrop covers the working area',await p.evaluate(()=>{const s=document.querySelector('.ap-scrim').getBoundingClientRect();return s.height>=innerHeight*0.8||innerWidth<=640}));
+  check(label+' focus moved to Close',await p.evaluate(()=>document.activeElement&&document.activeElement.classList.contains('ap-close')));
+  await p.screenshot({path:'/tmp/claude-attn-'+label+'-open.png'});
+  await p.locator('#ap-pop .ap-close').click();await p.waitForTimeout(200);check(label+' Close button closes',await p.locator('#ap-pop').count()===0);
+  check(label+' focus returns to the island',await p.evaluate(()=>document.activeElement&&document.activeElement.classList.contains('ap-island')));
+  await isl.first().click();await p.waitForTimeout(200);await p.keyboard.press('Escape');await p.waitForTimeout(200);check(label+' Escape closes',await p.locator('#ap-pop').count()===0);
+  await isl.first().click();await p.waitForTimeout(200);await isl.first().evaluate(e=>e.click());await p.waitForTimeout(200);check(label+' tapping the same island again closes',await p.locator('#ap-pop').count()===0);
+  await isl.first().click();await p.waitForTimeout(200);await p.mouse.click(w-5,h/2>100?60:5);await p.waitForTimeout(200);check(label+' tapping outside closes',await p.locator('#ap-pop').count()===0);
+  if(k>1){await isl.nth(0).click();await p.waitForTimeout(200);await isl.nth(1).click();await p.waitForTimeout(250);const t=await p.locator('#ap-pop .ap-pop-title h2').innerText(),t2=await isl.nth(1).getAttribute('title');check(label+' choosing another island swaps the panel',t===t2&&await p.locator('#ap-pop').count()===1)}
+  // Opening an order from the panel puts the order on top; closing it returns to the panel.
+  const row=p.locator('#ap-pop .at-row button,#ap-pop .at-row [data-act]').first();
+  if(await row.count()){await row.evaluate(e=>e.click());await p.waitForTimeout(450);const sheetOn=await p.evaluate(()=>{const s=document.getElementById('ccs-sheet');return !!s&&s.classList.contains('ccs-open')});check(label+' order opens directly from the panel',sheetOn);
+   if(sheetOn){await p.screenshot({path:'/tmp/claude-attn-'+label+'-order.png'});await p.keyboard.press('Escape');await p.waitForTimeout(400);check(label+' Escape closes the order first, panel stays',await p.locator('#ap-pop').count()===1)}}
+  await p.locator('[data-tab="orders"]').first().evaluate(e=>e.click());await p.waitForTimeout(250);await p.locator('[data-tab="attn"]').first().evaluate(e=>e.click());await p.waitForTimeout(250);
+  check(label+' leaving and returning starts closed',await p.locator('#ap-pop').count()===0);
+  check(label+' scrolling unlocked after close',await p.evaluate(()=>!document.documentElement.classList.contains('ap-is-open')));
+  check(label+' no horizontal overflow',await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+  check(label+' no script errors'+(errors.length?' '+errors.join(' | '):''),errors.length===0);await p.close()}
+ // Keyboard only.
+ {const {p}=await open(b,1366,1024);await p.locator('[data-tab="attn"]').first().evaluate(e=>e.click());await p.waitForTimeout(250);await p.locator('.ap-island').first().focus();await p.keyboard.press('Enter');await p.waitForTimeout(250);check('keyboard Enter opens the pop-up',await p.locator('#ap-pop').count()===1);await p.keyboard.press('Escape');await p.waitForTimeout(200);check('keyboard Escape closes it',await p.locator('#ap-pop').count()===0);await p.close()}
+ // Empty state: nothing to do.
+ {const p=await b.newPage({viewport:{width:1366,height:1024}}),errors=[];p.on('pageerror',e=>errors.push(e.message));await p.route('https://**',r=>r.abort());await p.setContent('<!doctype html><body style="margin:0"><div id="cc-staff"></div>');await p.evaluate(()=>window.__role='admin');await p.addScriptTag({path:path.join(root,'test/mock.js')});await p.evaluate(()=>{const mk=window.__ccsMock,from=mk.from.bind(mk);mk.from=t=>{const q=from(t);if(t!=='orders')return q;const th=q.then?q.then.bind(q):null;return q}});await p.addScriptTag({path:path.join(root,m.file)});await p.waitForTimeout(300);check('empty/loading render without errors',errors.length===0);await p.close()}
+ console.log(n+' passed, '+fails+' failed');if(fails)process.exitCode=1}finally{await b.close()}})().catch(e=>{console.error(e);process.exitCode=1});

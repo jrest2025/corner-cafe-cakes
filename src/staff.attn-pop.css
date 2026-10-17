@@ -1,0 +1,54 @@
+/* Needs attention islands and pop-up panel. Charcoal enterprise look; colour only on the icons that carry meaning. */
+#cc-staff .ap-islands{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,232px),1fr));gap:14px;margin:20px 0 8px}
+#cc-staff .ap-island{appearance:none;display:flex;align-items:center;gap:14px;min-height:88px;padding:14px 18px;text-align:left;font:inherit;color:#1f242c;background:#fff;border:1px solid #dfe3e8;border-radius:22px;box-shadow:0 1px 2px rgba(17,24,39,.04),0 6px 18px rgba(17,24,39,.06);cursor:pointer;transition:transform .18s cubic-bezier(.2,.8,.2,1),box-shadow .18s ease,border-color .18s ease;-webkit-tap-highlight-color:transparent}
+#cc-staff .ap-island:hover{transform:translateY(-2px);box-shadow:0 2px 4px rgba(17,24,39,.05),0 12px 26px rgba(17,24,39,.10)}
+#cc-staff .ap-island:active{transform:scale(.98)}
+#cc-staff .ap-island:focus-visible,#cc-staff .ap-close:focus-visible{outline:3px solid #4b5563;outline-offset:3px}
+#cc-staff .ap-island.is-open{border-color:#2f343c;box-shadow:0 0 0 2px #2f343c,0 12px 26px rgba(17,24,39,.12)}
+#cc-staff .ap-icon{flex:none;display:grid;place-items:center;width:46px;height:46px;border-radius:15px;background:var(--ap-soft);color:var(--ap-ink)}
+#cc-staff .ap-text{display:flex;flex-direction:column;min-width:0}
+#cc-staff .ap-text b{font-size:28px;line-height:1.1;font-weight:700;letter-spacing:-.01em;color:#15191f}
+#cc-staff .ap-text span{font-size:15px;line-height:1.3;font-weight:600;color:#4a525e;overflow-wrap:anywhere}
+#cc-staff .ap-red{--ap-soft:#fdeceb;--ap-ink:#b42318}
+#cc-staff .ap-amber{--ap-soft:#fff3dc;--ap-ink:#a15c00}
+#cc-staff .ap-orange{--ap-soft:#ffeadb;--ap-ink:#c2410c}
+#cc-staff .ap-blue{--ap-soft:#e7f0fd;--ap-ink:#1d5fbf}
+#cc-staff .ap-purple{--ap-soft:#f1eafd;--ap-ink:#6d3fc0}
+#cc-staff .ap-slate{--ap-soft:#eceff3;--ap-ink:#3e4653}
+/* Pop-up: floats over the working area only, never over the side menu or the phone tab bar. */
+#cc-staff .ap-scrim{position:fixed;top:0;bottom:var(--ap-bottom,0);left:var(--ap-left,0);width:var(--ap-width,100%);z-index:24;background:rgba(23,27,33,.32);animation:ap-fade .18s ease both}
+#cc-staff .ap-pop{position:fixed;z-index:25;top:var(--ap-top,32px);max-height:calc(100vh - var(--ap-top,32px) - var(--ap-bottom,0px) - 24px);left:calc(var(--ap-left,0px) + max(24px,(var(--ap-width,100vw) - 880px)/2));width:min(880px,calc(var(--ap-width,100vw) - 48px));display:flex;flex-direction:column;background:#fff;border-radius:24px;box-shadow:0 24px 60px rgba(17,24,39,.28),0 2px 6px rgba(17,24,39,.08);overflow:hidden;animation:ap-rise .22s cubic-bezier(.2,.8,.2,1) both}
+@supports (height:1dvh){#cc-staff .ap-pop{max-height:calc(100dvh - var(--ap-top,32px) - var(--ap-bottom,0px) - 24px)}}
+/* While the panel is open the islands sit above the dimmed backdrop, so another category is one tap away. */
+html.ap-is-open #cc-staff .ap-islands{position:relative;z-index:26}
+#cc-staff .ap-pop-head{flex:none;display:flex;align-items:center;gap:14px;padding:18px 18px 16px 22px;border-bottom:1px solid #eceef1}
+#cc-staff .ap-pop-title{flex:1;min-width:0}
+#cc-staff .ap-pop-title h2{margin:0;font-size:21px;line-height:1.25;font-weight:700;color:#15191f}
+#cc-staff .ap-pop-title span{display:block;margin-top:2px;font-size:14px;color:#5b6370}
+#cc-staff .ap-close{appearance:none;flex:none;display:inline-flex;align-items:center;gap:8px;min-height:48px;padding:0 18px;font:inherit;font-size:15px;font-weight:600;color:#1f242c;background:#f3f4f6;border:1px solid #dfe3e8;border-radius:14px;cursor:pointer}
+#cc-staff .ap-close:hover{background:#e9ebee}
+#cc-staff .ap-pop-body{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:6px 18px 22px}
+/* The existing group section sits inside the panel; its own heading and coloured edge are replaced by the panel header. */
+#cc-staff .ap-pop-body .at-group{margin:0;padding:0;border:0;box-shadow:none;background:none}
+#cc-staff .ap-pop-body .at-group>h2{display:none}
+#cc-staff .ap-pop-body .at-row{margin-top:14px}
+/* The panel has room for the whole next step; the list view clamps it to two lines and clipped a third. */
+#cc-staff .ap-pop-body .ccs-next{display:block;-webkit-line-clamp:unset;line-clamp:unset;overflow:visible;max-height:none}
+html.ap-is-open,html.ap-is-open body{overflow:hidden}
+@keyframes ap-fade{from{opacity:0}}
+@keyframes ap-rise{from{opacity:0;transform:translateY(12px) scale(.985)}}
+/* Phone: a bottom sheet above the tab bar. */
+@media (max-width:640px){
+  #cc-staff .ap-islands{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:16px}
+  #cc-staff .ap-island{flex-direction:column;align-items:flex-start;gap:10px;min-height:118px;padding:14px;border-radius:18px}
+  #cc-staff .ap-icon{width:40px;height:40px;border-radius:13px}
+  #cc-staff .ap-text b{font-size:25px}
+  #cc-staff .ap-text span{font-size:14px}
+  #cc-staff .ap-pop{top:auto;left:0;width:100%;bottom:var(--ap-bottom,0px);max-height:calc(100% - 56px - var(--ap-bottom,0px));border-radius:22px 22px 0 0}
+  #cc-staff .ap-pop-head{padding:14px 14px 12px 16px}
+  #cc-staff .ap-close span{display:none}
+  #cc-staff .ap-close{width:48px;padding:0;justify-content:center}
+  #cc-staff .ap-pop-body{padding:4px 12px 18px}
+}
+@media (prefers-reduced-motion:reduce){#cc-staff .ap-island,#cc-staff .ap-scrim,#cc-staff .ap-pop{transition:none;animation:none}#cc-staff .ap-island:hover{transform:none}}
+@media print{#cc-staff .ap-scrim,#cc-staff .ap-pop{display:none}}
