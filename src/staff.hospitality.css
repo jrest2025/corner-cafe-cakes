@@ -149,3 +149,43 @@
 #cc-staff .bi-ready td,#cc-staff .bi-ready th{white-space:normal}
 #cc-staff .bi-ready td:nth-child(3){min-width:220px}
 #cc-staff .bi-ready td:nth-child(2),#cc-staff .bi-ready td:nth-child(4){white-space:nowrap}
+/* ---------- Analytics modules (17 Oct 2026): modules as an underlined top row; cake sections stay as the buttons below.
+   Comfortable type: tabs 16, headings 20, text 16, notes 15, status words 14. ---------- */
+#cc-staff .an-mods{display:flex;flex-wrap:wrap;gap:0 4px;border-bottom:1px solid var(--ccs-line);margin:8px 0 16px}
+#cc-staff .an-mod{appearance:none;background:none;border:0;border-bottom:3px solid transparent;margin-bottom:-1px;padding:12px 10px 10px;min-height:48px;font:inherit;font-size:16px;font-weight:600;color:var(--ccs-text);cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+#cc-staff .an-mod[aria-current=page]{color:var(--ccs-ink);border-bottom-color:#4B6339}
+#cc-staff .an-mod:focus-visible{outline:3px solid #4B6339;outline-offset:-3px;border-radius:6px}
+@media (hover:hover){#cc-staff .an-mod:hover{color:var(--ccs-ink);border-bottom-color:var(--ccs-line)}#cc-staff .an-mod[aria-current=page]:hover{border-bottom-color:#4B6339}}
+#cc-staff .an-need{font-size:14px;font-weight:600;color:var(--ccs-muted);background:var(--ccs-grey-wash);border-radius:999px;padding:1px 6px}
+@media (max-width:1279px){#cc-staff .an-mods{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}#cc-staff .an-mod{flex:none}}
+#cc-staff .an-strip{margin-top:16px}
+#cc-staff .an-strip{margin-bottom:16px}
+#cc-staff .an-strip-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+#cc-staff .an-tile{display:flex;flex-direction:column;align-items:flex-start;gap:8px;text-align:left;font:inherit;background:#fff;border:1px solid var(--ccs-line-soft);border-radius:12px;padding:16px;cursor:pointer;min-height:44px}
+#cc-staff .an-tile b{font-size:17px;color:var(--ccs-ink)}
+#cc-staff .an-tile>span:last-child{font-size:15px;line-height:1.45;color:var(--ccs-text)}
+#cc-staff .an-tile.is-missing{background:var(--ccs-cream)}
+@media (hover:hover){#cc-staff .an-tile:hover{border-color:#4B6339}}
+#cc-staff .an-empty-h{border-bottom:1px solid var(--ccs-line-soft);padding-bottom:16px;margin-bottom:16px}
+#cc-staff .an-empty-h h2{font-size:22px;margin:8px 0 4px;color:var(--ccs-ink)}
+#cc-staff .an-empty-h p{margin:0;font-size:16px;color:var(--ccs-text)}
+#cc-staff .an-empty-b{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:24px}
+@media (max-width:1100px){#cc-staff .an-empty-b{grid-template-columns:1fr}}
+#cc-staff .an-empty h3{font-size:18px;margin:0 0 8px;color:var(--ccs-ink)}
+#cc-staff .an-list{margin:0 0 16px;padding-left:20px;font-size:16px;line-height:1.6;color:var(--ccs-text)}
+#cc-staff .an-note{font-size:15px;line-height:1.5;color:var(--ccs-muted);margin:8px 0}
+#cc-staff .an-ds{border:1px solid var(--ccs-line-soft);border-radius:12px;padding:16px;margin-bottom:12px}
+#cc-staff .an-ds-h{display:flex;justify-content:space-between;align-items:center;gap:12px}
+#cc-staff .an-ds-h b{font-size:17px;color:var(--ccs-ink)}
+#cc-staff .an-ds p{font-size:15px;line-height:1.5;color:var(--ccs-text);margin:8px 0 0}
+#cc-staff .an-fields span{font-weight:600;color:var(--ccs-ink)}
+#cc-staff .an-ds-a{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;margin-top:12px}
+#cc-staff .an-ds-a span{font-size:15px;color:var(--ccs-muted)}
+#cc-staff .an-link{border-top:1px solid var(--ccs-line-soft);padding:16px 0}
+#cc-staff .an-link-h{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+#cc-staff .an-link-h b{font-size:17px;color:var(--ccs-ink)}
+#cc-staff .an-q{font-size:16px;color:var(--ccs-text);margin:6px 0 0}
+#cc-staff .an-find{display:grid;grid-template-columns:150px minmax(0,1fr);gap:8px 16px;margin:12px 0;font-size:16px;line-height:1.5}
+#cc-staff .an-find dt{font-weight:650;color:var(--ccs-ink)}
+#cc-staff .an-find dd{margin:0;color:var(--ccs-text)}
+@media (max-width:600px){#cc-staff .an-find{grid-template-columns:1fr;gap:2px}#cc-staff .an-find dd{margin-bottom:8px}}

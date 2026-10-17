@@ -248,6 +248,6 @@
     }).catch(function (e) { console.error(e); toast('The workbook could not be made. Check the connection and try again.', true); });
   }
   function biAct(a, v) {
-    if (a === 'dx-bi-go') { S.secs = S.secs || {}; S.secs.dash = v; view(); window.scrollTo(0, 0); }
+    if (a === 'dx-bi-go') { S.secs = S.secs || {}; S.secs.dash = v; S.secs.anm = anModOf(v); view(); window.scrollTo(0, 0); }
     else if (a === 'dx-bi-xlsx') biXlsx();
   }
