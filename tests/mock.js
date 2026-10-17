@@ -188,6 +188,11 @@
       return Promise.resolve({ data: { ok: false, message: 'Unknown request.' } }); } },
     rpc: function (fn, args) {
       if (window.__failR && window.__failR[fn]) { calls.push(['rpc-failed', fn, args]); return Promise.resolve({ error: { message: 'Failed to fetch' } }); }
+      if (fn === 'analytics_imports') { window.__upList = window.__upList || []; return Promise.resolve({ data: Object.assign({ ok: true }, { can_upload: true, list: window.__upList }) }); }
+      if (fn === 'analytics_import_cleaning') { calls.push(['rpc-up', args.p.rows.length]); var bad = args.p.rows.filter(function (r) { return r.occasion && ['birthday', 'anniversary', "mother's day", 'christmas'].indexOf(r.occasion.toLowerCase()) < 0; });
+          window.__upList = window.__upList || []; var id = 'b' + (window.__upList.length + 1); window.__upList.unshift({ id: id, file: args.p.file_name, at: new Date().toISOString(), by: 'Test Manager', sent: args.p.rows.length, ok: args.p.rows.length - bad.length, refused: bad.length, changes: 42, status: 'loaded' });
+          return Promise.resolve({ data: Object.assign({ ok: true }, { batch: id, accepted: args.p.rows.length - bad.length, refused: bad.length, changes: 42, problems: bad.map(function (r) { return { row: r.row, message: 'Occasion "' + r.occasion + '" is not on the list.' }; }) }) }); }
+      if (fn === 'analytics_import_undo') { (window.__upList || []).forEach(function (b) { if (b.id === args.p_batch) { b.status = 'undone'; b.undone_at = new Date().toISOString(); } }); return Promise.resolve({ data: Object.assign({ ok: true }, {}) }); }
       if (fn === 'dashboard_data') { calls.push(['rpc', fn, args]); return Promise.resolve({ data: dashFeed() }); }
       if (fn === 'dashboard_register') { calls.push(['rpc', fn, args]); return Promise.resolve({ data: regFeed() }); }
       if (fn === 'register_review_list') { calls.push(['rpc', fn, args]); var rl = window.__role || 'manager'; if (rl !== 'manager' && rl !== 'admin') return Promise.resolve({ data: { ok: false, message: 'Only managers can review register records.' } }); var rf = regFeed(); return Promise.resolve({ data: { ok: true, sync: Object.assign({}, rf.sync, { needs_review: regCards.length }), records: regCards.slice(), recent: regDecisions.slice() } }); }

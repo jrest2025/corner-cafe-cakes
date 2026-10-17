@@ -192,6 +192,7 @@
     // Analytics: modules first (see staff.an.js), then the cake sections inside the module they belong to
     d.secs.push(['dm', 'Modules and datasets', 'What each module needs', anRegisters()]);
     d.secs.push(['oi', 'Occasion intelligence', '', 'x']);
+    d.secs.push(['up', 'Uploads', '', 'x']);
     var mod = anMod(), mm = AN_MODS.filter(function (x) { return x.id === mod; })[0];
     h = hh + anModBar(mod);
     if (mod === 'ov') return h + filt + period + gapNote + '<div class="dx-ov">' + ov + '</div>';
@@ -201,6 +202,7 @@
     if (mod !== 'da' && cs2 !== 'oi') h += filt;
     h += '<div class="dx-secs">' + secBar('dash', keys.map(function (k) { var x = d.secs.filter(function (s) { return s[0] === k; })[0]; return [x[0], x[1]]; }), cs2, mm.name + ' sections') + '</div>';
     if (cs2 === 'oi') return h + oiView();
+    if (cs2 === 'up') return h + upView();
     if (cs2 === 'or') return h + '<section class="dx-card dx-secbody or-wrap" aria-label="Occasion report"><div class="dx-card-h"><h2>Occasion report</h2><span>One occasion, the full story</span></div><div class="or-body">' + dxOccReport() + '</div></section>';
     if (mod !== 'da') h += period;
     return h + gapNote + '<section class="dx-card dx-secbody" aria-label="' + esc(sec[1]) + '"><div class="dx-card-h"><h2>' + esc(sec[1]) + '</h2>' + (sec[2] ? '<span>' + sec[2] + '</span>' : '') + '</div>' + (mod === 'da' ? sec[3] : anTidy(sec[3])) + '</section>';
@@ -1059,6 +1061,7 @@
     else if (a === 'dx-table') { DX.table = !DX.table; view(); }
     else if (a === 'dx-an-tpl') anTpl(v);
     else if (a.indexOf('dx-oi-') === 0) oiAct(a, v);
+    else if (a.indexOf('dx-up-') === 0) upAct(a, v);
     else if (a.indexOf('dx-bi-') === 0) biAct(a, v);
     else if (a === 'dx-drill') { var dr = DX.drills[v]; if (!dr) return; S.sheet = { type: 'dash', drill: dr }; S.panel = null; S.dirty = {}; sheetOpen(); renderSheet(); }
   }
@@ -1066,6 +1069,7 @@
   function dashChange(t) {
     var f = DX.f, k = t.dataset.dx; dxKeep();
     if (k.indexOf('oi-') === 0) { oiChange(k, t.value); view(); return; }
+    if (k === 'up-file') { if (t.files && t.files[0]) upFile(t.files[0]); return; }
     if (k === 'dx-p') { f.p = t.value; DX.unit = null; if (f.p === 'c' && !f.from) { f.to = today(); f.from = dxMonthStart(f.to); } }
     else if (k === 'dx-from') f.from = t.value; else if (k === 'dx-to') f.to = t.value;
     else if (k === 'dx-b') f.b = t.value; else if (k === 'dx-prod') f.prod = t.value; else if (k === 'dx-ch') f.ch = t.value; else if (k === 'dx-occ') f.occ = t.value; else if (k === 'dx-st') { f.st = t.value; }
