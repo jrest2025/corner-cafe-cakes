@@ -1,4 +1,11 @@
 <script>
+/* ===== FESTIVE SETTINGS: change these two lines to set the collection time window =====
+   Use 12-hour times on the half hour, for example '9:00 AM' or '5:30 PM'. */
+window.FESTIVE_FIRST_COLLECTION='8:00 AM';
+window.FESTIVE_LAST_COLLECTION='8:30 PM';
+/* ===== End of settings ===== */
+</script>
+<script>
 /* Festive menu from the Webflow CMS (Festive Hampers, Festive Goodies). Updated 17 October 2026.
    Edit names, prices, wording, photos and order in the Webflow CMS. This script only:
    sorts cards by "Order on page", hides an empty note or photo, builds the order form's
@@ -45,13 +52,15 @@ document.addEventListener('DOMContentLoaded',function(){
       });
     });
   });
-  /* Collection time: a list of 12-hour times (8:00 AM to 8:30 PM) instead of the phone's own clock picker. */
+  /* Collection time: a list of 12-hour times between the two settings at the top, instead of the phone's own clock picker. */
+  var toMin=function(v,d){var m=/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i.exec((v||'').trim());if(!m)return d;var h=parseInt(m[1],10)%12+(/pm/i.test(m[3])?12:0);return h*60+parseInt(m[2],10);};
+  var first=toMin(window.FESTIVE_FIRST_COLLECTION,8*60), last=toMin(window.FESTIVE_LAST_COLLECTION,20*60+30);
   var t=document.getElementById('festive-collection-time');
   if(t&&t.tagName==='INPUT'){
     var s=document.createElement('select'); s.id=t.id; s.name=t.name; s.className=t.className;
     s.setAttribute('data-name',t.getAttribute('data-name')||t.name);
     var o=document.createElement('option'); o.value=''; o.textContent='Choose a time'; s.appendChild(o);
-    for(var m=8*60;m<=20*60+30;m+=30){var h=Math.floor(m/60),mm=m%60,lab=((h%12)||12)+':'+(mm<10?'0':'')+mm+(h<12?' AM':' PM');o=document.createElement('option');o.value=lab;o.textContent=lab;s.appendChild(o);}
+    for(var m=first;m<=last;m+=30){var h=Math.floor(m/60),mm=m%60,lab=((h%12)||12)+':'+(mm<10?'0':'')+mm+(h<12?' AM':' PM');o=document.createElement('option');o.value=lab;o.textContent=lab;s.appendChild(o);}
     t.parentNode.replaceChild(s,t);
   }
   /* Collection date: no dates in the past. */
