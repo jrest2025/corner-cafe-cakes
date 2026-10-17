@@ -1,5 +1,5 @@
--- STATUS: prepared and dry-run tested 17 Oct 2026; applied at publish time.
--- Customer feedback and complaint follow-up (approved by Roneel, 17 Oct 2026). STATUS: prepared and dry-run tested, NOT applied yet.
+-- STATUS: applied 17 Oct 2026 at publish (migration customer_feedback_complaints).
+-- Customer feedback and complaint follow-up (approved by Roneel, 17 Oct 2026).
 -- Feedback is a customer note of kind 'feedback' (Happy / Mixed / Complaint), saved against the order and its customer.
 -- A complaint (tone 'negative') is Open until someone with the Change order permission (ord.edit) marks it Resolved,
 -- recording what was done (apology, remake, refund, voucher, other), any amount, and a note. Refunds here are a record only:
