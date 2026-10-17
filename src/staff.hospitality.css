@@ -108,3 +108,44 @@
 @media (min-width:1680px){#cc-staff .ccs-app:not(.is-single){max-width:none;margin-left:0;margin-right:0;border-left:0;border-right:0}}
 /* Role under the staff name on the green menu: readable white, not dark green on green. */
 @media (min-width:760px){#cc-staff .ccs-side .ccs-who-name small{color:rgba(255,255,255,.85);font-size:14px;opacity:1}}
+/* ---------- Business dashboard (17 Oct 2026): the Overview (four figures, one chart, attention, opportunities) and the
+   new sections. Comfortable type: figures 32, headings 20, text 16, nothing under 14. Status always in words. ---------- */
+#cc-staff .bi-kpis{grid-template-columns:repeat(4,minmax(0,1fr))}
+#cc-staff .bi-kpis .ov-kv{font-size:32px;line-height:1.1}
+#cc-staff .bi-kpis .ov-kl{font-size:16px;font-weight:600}
+#cc-staff .bi-kpis .ov-ks,#cc-staff .bi-kpis .ov-kd{font-size:14px}
+#cc-staff .bi-kpis .ov-kv.bi-needs{font-size:20px;color:var(--ccs-muted);font-weight:650;padding-top:6px}
+#cc-staff .bi-kpi-gp{text-align:left;font:inherit;color:inherit;cursor:pointer}
+#cc-staff .bi-ov-trend{margin-top:16px}
+#cc-staff .bi-ov-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;margin-top:16px;align-items:start}
+#cc-staff .bi-opps .bi-op{display:flex;flex-direction:column;gap:4px;width:100%;text-align:left;padding:14px 4px;border:0;border-top:1px solid var(--ccs-line-soft);background:none;font:inherit;color:inherit}
+#cc-staff .bi-opps .bi-op:first-of-type{border-top:0}
+#cc-staff .bi-op-k{font-size:17px;font-weight:650;color:var(--ccs-ink)}
+#cc-staff .bi-op-t{font-size:15px;color:var(--ccs-text);line-height:1.45}
+#cc-staff button.bi-op:hover .bi-op-k{text-decoration:underline}
+#cc-staff .bi-need{border:1px solid var(--ccs-line-soft);border-left:4px solid var(--ccs-amber);border-radius:12px;padding:16px 20px;margin:4px 0 20px;background:#fff}
+#cc-staff .bi-need b{font-size:18px;color:var(--ccs-ink)}
+#cc-staff .bi-need p{margin:8px 0 0;font-size:16px;line-height:1.5;color:var(--ccs-text)}
+#cc-staff .bi-muted{color:var(--ccs-muted)}
+#cc-staff .bi-dl{display:flex;flex-wrap:wrap;align-items:center;gap:12px 16px;margin:8px 0 20px}
+#cc-staff .bi-dl span{font-size:15px;color:var(--ccs-muted);flex:1 1 280px}
+#cc-staff .bi-st{display:inline-flex;align-items:center;min-height:28px;padding:2px 10px;border-radius:999px;font-size:14px;font-weight:600;white-space:nowrap}
+#cc-staff .bi-st-ready{background:var(--ccs-leaf-wash);color:var(--ccs-leaf)}
+#cc-staff .bi-st-partial{background:var(--ccs-amber-wash);color:var(--ccs-amber)}
+#cc-staff .bi-st-missing{background:var(--ccs-red-wash);color:var(--ccs-red)}
+#cc-staff .bi-st-review{background:var(--ccs-blue-wash);color:var(--ccs-blue)}
+#cc-staff .bi-st-na{background:var(--ccs-grey-wash);color:var(--ccs-muted)}
+#cc-staff .bi-ready td,#cc-staff .bi-ready th{font-size:15px;vertical-align:top}
+#cc-staff .bi-cell{font:inherit;font-weight:650;color:var(--ccs-blue);background:none;border:0;padding:0;min-height:32px;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+#cc-staff tr.bi-late th{color:var(--ccs-red)}
+#cc-staff tr.bi-tot th,#cc-staff tr.bi-tot td{font-weight:700;border-top:2px solid var(--ccs-line)}
+#cc-staff .bi-go{font-size:16px}
+@media (max-width:1100px){#cc-staff .bi-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}#cc-staff .bi-ov-row{grid-template-columns:1fr}}
+@media (max-width:600px){#cc-staff .bi-kpis{grid-template-columns:1fr}#cc-staff .bi-kpis .ov-kv{font-size:28px}}
+/* section cards scroll as a whole: rows keep their own height, so a table is never squeezed to nothing */
+#cc-staff .dx-secbody{grid-auto-rows:max-content;align-content:start}
+#cc-staff .bi-kpis .ov-ks{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.4}
+#cc-staff .bi-ready{width:100%}
+#cc-staff .bi-ready td,#cc-staff .bi-ready th{white-space:normal}
+#cc-staff .bi-ready td:nth-child(3){min-width:220px}
+#cc-staff .bi-ready td:nth-child(2),#cc-staff .bi-ready td:nth-child(4){white-space:nowrap}
