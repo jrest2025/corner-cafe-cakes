@@ -21,6 +21,10 @@ Contains no customer records and no secret values.
   - Test mode sends everything to the test address.
 - **Google Sheet sync**: Edge Function `sheet-sync` plus a Google Apps Script (`sheet-sync/Corner-Cafe-cake-sheet-sync.gs`). It brings upcoming orders from the two existing Google Sheets into the app. It stays inactive until the owner sets the shared key.
 
+## Order completed (live 17 October 2026, approved by Roneel)
+
+Confirmed orders show one Order completed button. It stays locked only until the balance is paid; the kitchen marking the cake Ready is now a warning, not a lock (database change `supabase/sql/order_completed_without_kitchen_ready.sql`, applied live). Completed orders read Completed. Live file: `dist/app/staff-app.c07d484b47.js` at commit 1346812. Rollback: paste `docs/rollback/staff-footer-before-order-completed-2026-10-17.html` into the staff page footer and publish (the database change can stay; the old screen still works with it).
+
 ## Folders
 
 - `src/`: readable source (staff app, guest page, styles). Edit these files, never the files in `dist`.
