@@ -1153,3 +1153,14 @@ html.ccs-tablet-mode #ccs-sheet .sl-restart { min-height: 56px; font-size: calc(
 #cc-staff .fb-phs { margin: 8px 0; }
 #cc-staff .fb-phcap { margin: 10px 0 0; font-size: 13px; font-weight: 700; color: var(--ccs-muted); text-transform: uppercase; letter-spacing: .04em; }
 @media (max-width: 560px) { #cc-staff .fb-form .ccs-chip, #cc-staff .fb-resform .ccs-chip { flex: 1 1 auto; } #cc-staff .fb-cta-btn { width: 100%; justify-content: center; } }
+
+/* Dashboard on touch screens: every control is at least 44 px (menu shrink button, Details link, pickup time squares) */
+@media (pointer: coarse) {
+  #cc-staff .ccs-app:not(.is-single) .ccs-collapse { width: 44px; height: 44px; }
+  #cc-staff .ccs-link[data-act="dx-gapmore"] { min-width: 44px; min-height: 44px; }
+}
+/* Phones: the pickup times grid keeps 44 px squares and scrolls sideways inside its card, with a fade at the edge */
+@media (pointer: coarse) and (max-width: 759px) {
+  #cc-staff .ov-hwrap { overflow-x: auto; -webkit-overflow-scrolling: touch; -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent); }
+  #cc-staff .ov-hwrap .ov-heat { min-width: calc(40px + var(--n, 12) * 50px); padding-right: 24px; }
+}

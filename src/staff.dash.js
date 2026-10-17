@@ -347,14 +347,15 @@
     lo = Math.max(Math.min(lo, 9), 6); hi = Math.min(Math.max(hi, 17), 21);
     var max = 0, best = null; Object.keys(cell).forEach(function (k) { if (cell[k].length > max) { max = cell[k].length; best = k; } });
     var hrs = []; for (var h = lo; h <= hi; h++) hrs.push(h);
-    var grid = '<div class="ov-heat" style="grid-template-columns:40px repeat(' + hrs.length + ',minmax(0,1fr))"><span></span>' + hrs.map(function (h) { return '<span class="ov-hx">' + ((h - lo) % 2 ? '' : (h % 12 || 12) + (h < 12 ? ' AM' : ' PM')) + '</span>'; }).join('') +
+    // Wrapped so that on a phone the grid can keep finger-sized squares and scroll sideways inside the card
+    var grid = '<div class="ov-hwrap"><div class="ov-heat" style="--n:' + hrs.length + ';grid-template-columns:40px repeat(' + hrs.length + ',minmax(0,1fr))"><span></span>' + hrs.map(function (h) { return '<span class="ov-hx">' + ((h - lo) % 2 ? '' : (h % 12 || 12) + (h < 12 ? ' AM' : ' PM')) + '</span>'; }).join('') +
       WD.map(function (d, di) {
         return '<span class="ov-hy">' + d + '</span>' + hrs.map(function (h) {
           var l = cell[di + '|' + h] || [], c = l.length, step = c ? Math.min(OV_HEAT.length - 1, Math.floor((c / max) * OV_HEAT.length - 0.0001)) : -1;
           var tip = WDF[di] + ', ' + ovHour(h) + ' to ' + ovHour(h + 1) + ': ' + c + (c === 1 ? ' pickup' : ' pickups');
           return c ? '<button type="button" class="ov-hc' + (h - lo > hrs.length / 2 ? ' tip-l' : '') + '" style="background:' + OV_HEAT[step] + '" data-act="dx-drill" data-v="' + dxKey({ t: tip, l: l }) + '" data-tip="' + esc(tip) + '" aria-label="' + esc(tip) + '"></button>' : '<span class="ov-hc is-0" data-tip="' + esc(tip) + '"></span>';
         }).join('');
-      }).join('') + '</div>';
+      }).join('') + '</div></div>';
     var bd = best.split('|');
     return '<section class="dx-card ov-peak" aria-label="Peak pickup times"><div class="dx-card-h"><h2>Peak pickup times</h2><span>' + (wide ? 'Last 12 months' : 'This period') + '</span></div>' + grid +
       '<p class="dx-legend ov-hleg">Fewer' + OV_HEAT.map(function (c) { return '<span style="background:' + c + '"></span>'; }).join('') + 'More</p>' +
@@ -694,7 +695,8 @@
   // ----- Lead time and pickup: how far ahead each occasion is ordered, when it is collected, which cakes, and the run-up to dated occasions -----
   var LT_B = [['Same day', 0, 0], ['1–2 days', 1, 2], ['3–6 days', 3, 6], ['1–2 weeks', 7, 13], ['2+ weeks', 14, 9999]];
   var PU_B = [['Morning', 0, 719, 'before 12 PM'], ['Midday', 720, 839, '12 to 2 PM'], ['Afternoon', 840, 1019, '2 to 5 PM'], ['Evening', 1020, 1439, 'after 5 PM']];
-  var WD = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  // Sunday-first full day names for Lead time and pickup (indexed by getUTCDay). Kept apart from WD (Monday-first, short), which the other charts use.
+  var WDS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   var LT_MIN = 5;
   function ltDays(o) { if (!o.odok || !o.od || !o.pd) return null; var a = Date.parse(o.od + 'T00:00:00Z'), b = Date.parse(o.pd + 'T00:00:00Z'); var n = Math.round((b - a) / 86400000); return n >= 0 ? n : null; }
   function ltMins(o) { if (!o.pt) return null; var p = String(o.pt).split(':'); var m = Number(p[0]) * 60 + Number(p[1] || 0); return isFinite(m) ? m : null; }
@@ -732,7 +734,7 @@
       var bi = x.lb.indexOf(Math.max.apply(null, x.lb)), pi = x.pb.indexOf(Math.max.apply(null, x.pb)), wi = x.wd.indexOf(Math.max.apply(null, x.wd));
       fnd.push('<li><b>' + esc(x.l) + '</b>: usually ordered ' + esc(ltDaysTxt(ltMed(x.lead))) + '. ' + Math.round(x.lb[bi] / x.lead.length * 100) + '% order ' + esc(LT_B[bi][0].toLowerCase()) + (bi ? ' ahead' : '') +
         (x.lb[0] ? '; ' + Math.round(x.lb[0] / x.lead.length * 100) + '% on the day' : '') + '. ' +
-        (x.mins.length >= LT_MIN ? 'Most collected in the ' + PU_B[pi][0].toLowerCase() + ' (' + PU_B[pi][3] + ')' + (x.wd[wi] ? ', busiest on ' + WD[wi] + 's' : '') + '. ' : '') +
+        (x.mins.length >= LT_MIN ? 'Most collected in the ' + PU_B[pi][0].toLowerCase() + ' (' + PU_B[pi][3] + ')' + (x.wd[wi] ? ', busiest on ' + WDS[wi] + 's' : '') + '. ' : '') +
         '<span class="lt-n">Based on ' + x.lead.length + ' orders.</span></li>');
     });
     var h = '<p class="dx-ch">How far ahead each occasion is ordered and when the cakes are collected. Lead time is the days from the order date to the pickup date. Occasions with fewer than ' + LT_MIN + ' orders are marked too few to judge.</p>';
@@ -742,7 +744,7 @@
       rows.map(function (x) { var mx = Math.max.apply(null, x.lb); return '<tr' + (few(x.lead.length) ? ' class="is-few"' : '') + '><th scope="row">' + esc(x.l) + '</th><td>' + x.lead.length + (x.lead.length < x.n ? '<small> of ' + x.n + '</small>' : '') + '</td><td>' + (few(x.lead.length) ? 'Too few' : esc(ltDaysTxt(ltMed(x.lead)).replace(' ahead', ''))) + '</td>' + x.lb.map(function (k) { return ltBar(k, x.lead.length, k && k === mx && !few(x.lead.length)); }).join('') + '</tr>'; }).join('') + '</tbody></table></div>';
     // 3. Pickup time of day
     h += '<div class="dx-card-h"><h2>When cakes are collected</h2></div><div class="dx-octwrap"><table class="dx-octab lt-tab"><thead><tr><th>Occasion</th><th>Orders</th>' + PU_B.map(function (b) { return '<th>' + b[0] + '<small>' + b[3] + '</small></th>'; }).join('') + '<th>Busiest day</th></tr></thead><tbody>' +
-      rows.map(function (x) { var mx = Math.max.apply(null, x.pb), wi = x.wd.indexOf(Math.max.apply(null, x.wd)); return '<tr' + (few(x.mins.length) ? ' class="is-few"' : '') + '><th scope="row">' + esc(x.l) + '</th><td>' + x.mins.length + '</td>' + x.pb.map(function (k) { return ltBar(k, x.mins.length, k && k === mx && !few(x.mins.length)); }).join('') + '<td>' + (few(x.n) ? 'Too few' : WD[wi] + ' <small>' + x.wd[wi] + '</small>') + '</td></tr>'; }).join('') + '</tbody></table></div>';
+      rows.map(function (x) { var mx = Math.max.apply(null, x.pb), wi = x.wd.indexOf(Math.max.apply(null, x.wd)); return '<tr' + (few(x.mins.length) ? ' class="is-few"' : '') + '><th scope="row">' + esc(x.l) + '</th><td>' + x.mins.length + '</td>' + x.pb.map(function (k) { return ltBar(k, x.mins.length, k && k === mx && !few(x.mins.length)); }).join('') + '<td>' + (few(x.n) ? 'Too few' : WDS[wi] + ' <small>' + x.wd[wi] + '</small>') + '</td></tr>'; }).join('') + '</tbody></table></div>';
     // 4. Run-up to dated occasions, year beside year (all history, so years can be compared)
     var od = DX.odates;
     if (!od) h += '<p class="ccs-loading">Loading occasion dates…</p>';
@@ -999,7 +1001,7 @@
   function dxLeadExport() {
     var r = dxRange(), rows = dxLeadData(r);
     var lines = [['Corner Café cakes: lead time and pickup'], ['Period', r.all ? 'All time' : r.from + ' to ' + r.to], [], ['Order', 'Occasion', 'Order date', 'Pickup date', 'Pickup time', 'Days ahead', 'Pickup weekday', 'Channel', 'Cakes']];
-    rows.forEach(function (x) { x.list.forEach(function (o) { var d = ltDays(o); lines.push([o.r, x.l, o.odok ? o.od : '', o.pd, o.pt ? String(o.pt).slice(0, 5) : '', d == null ? '' : d, o.pd ? WD[new Date(o.pd + 'T12:00:00Z').getUTCDay()] : '', SOURCE_LABEL[o.src] || o.src, dxItems(o).map(function (i) { return (i[1] || i[0]) + (i[2] ? ' ' + i[2] + ' inch' : ''); }).join('; ')]); }); });
+    rows.forEach(function (x) { x.list.forEach(function (o) { var d = ltDays(o); lines.push([o.r, x.l, o.odok ? o.od : '', o.pd, o.pt ? String(o.pt).slice(0, 5) : '', d == null ? '' : d, o.pd ? WDS[new Date(o.pd + 'T12:00:00Z').getUTCDay()] : '', SOURCE_LABEL[o.src] || o.src, dxItems(o).map(function (i) { return (i[1] || i[0]) + (i[2] ? ' ' + i[2] + ' inch' : ''); }).join('; ')]); }); });
     var csv = lines.map(function (l) { return l.map(dxCsv).join(','); }).join('\n');
     var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv' })); a.download = 'corner-cafe-lead-time-' + today() + '.csv'; document.body.appendChild(a); a.click(); a.remove();
     toast('Lead time downloaded');
