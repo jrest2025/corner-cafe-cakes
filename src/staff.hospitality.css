@@ -98,3 +98,13 @@
   #cc-staff .ccs-app:not(.is-single) .ccs-navh{font-size:12px;text-align:center;margin-left:0;margin-right:0;letter-spacing:.04em}
   #cc-staff .ccs-app:not(.is-single) .ccs-nav-item:not(.ccs-nav-new)[aria-current=page]::before{left:-8px}
 }
+
+/* Full width, like the Hub: the app fills the screen edge to edge on laptops and desktops instead of sitting inside the website's centred column. */
+@media (min-width:760px){
+  html:has(#cc-staff){overflow-x:clip}
+  #cc-staff{width:100vw;max-width:none;margin-left:calc(50% - 50vw);margin-right:calc(50% - 50vw)}
+}
+/* Menu flush to the left edge on wide screens (was a 1640px centred box with white bands either side). */
+@media (min-width:1680px){#cc-staff .ccs-app:not(.is-single){max-width:none;margin-left:0;margin-right:0;border-left:0;border-right:0}}
+/* Role under the staff name on the green menu: readable white, not dark green on green. */
+@media (min-width:760px){#cc-staff .ccs-side .ccs-who-name small{color:rgba(255,255,255,.85);font-size:14px;opacity:1}}
