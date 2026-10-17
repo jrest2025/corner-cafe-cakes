@@ -602,8 +602,8 @@
       if (first > -1 && !seen[o.id]) { seen[o.id] = 1; out[first].rows.push({ o: o, why: why }); }
     });
     out.forEach(function (g) { g.rows.sort(function (a, b) { return (a.o.required_date + a.o.required_time) < (b.o.required_date + b.o.required_time) ? -1 : 1; }); });
-    // Customer complaints still open: one row each, oldest first, until someone marks them resolved
-    if (fbCanSee() && fbS().list.length) out.unshift({ key: 'complaint', title: 'Customer complaints to resolve', tone: 'is-red', rows: fbAttnRows() });
+    // Customer concerns still to put right: one row each, oldest first. Calm amber, after the real alarms (allergies and the like).
+    if (fbCanSee() && fbS().list.length) { var at = 0; out.forEach(function (g, k) { if (g.tone === 'is-red') at = k + 1; }); out.splice(at, 0, { key: 'complaint', title: 'Customer concerns: let\'s put them right', tone: 'is-amber', intro: 'Every concern is a chance to get better.', rows: fbAttnRows() }); }
     return out.filter(function (g) { return g.rows.length; });
   }
   function attnCount() { return attnGroups().reduce(function (n, g) { return n + g.rows.length; }, 0); }
@@ -614,7 +614,7 @@
     if (!n) return h + '<div class="ccs-empty"><b>Nothing needs attention right now.</b><span>Late cakes, unconfirmed orders, payments and allergies to check will show here as they come up.</span></div>';
     h += '<div class="at-sum" role="group" aria-label="Jump to">' + gs.map(function (g) { return '<button type="button" class="at-jump ' + g.tone + '" data-act="at-jump" data-v="' + g.key + '"><b>' + g.rows.length + '</b><span>' + esc(g.title) + '</span></button>'; }).join('') + '</div>';
     h += gs.map(function (g) {
-      return '<section class="at-group ' + g.tone + '" id="at-' + g.key + '"><h2>' + esc(g.title) + ' <span>' + g.rows.length + '</span></h2><div class="at-rows">' + g.rows.map(function (r, k) {
+      return '<section class="at-group ' + g.tone + '" id="at-' + g.key + '"><h2>' + esc(g.title) + ' <span>' + g.rows.length + '</span></h2>' + (g.intro ? '<p class="at-intro">' + esc(g.intro) + '</p>' : '') + '<div class="at-rows">' + g.rows.map(function (r, k) {
         if (r.fb) return '<div class="at-row">' + fbAttnRow(r) + '</div>';
         var w = r.why.map(esc).join(' <span aria-hidden="true">·</span> '), rep = k > 0 && r.why.join('|') === g.rows[k - 1].why.join('|');
         return '<div class="at-row' + (rep ? ' is-rep' : '') + '"><p class="at-why">' + w + '</p>' + miniRow(r.o, false, true) + '</div>';
@@ -743,7 +743,7 @@
       '<div class="tq-wh"><h2>Needs attention</h2><span>' + [nRed ? '<em class="is-red">' + nRed + ' urgent</em>' : '', nAmb ? '<em class="is-amber">' + nAmb + ' to do</em>' : ''].filter(Boolean).join(' · ') + '</span>' +
       (warn.length > WMAX ? '<button type="button" class="ccs-link tq-more" data-tab="attn">See all ' + warn.length + ' →</button>' : '') + '</div>' +
       warn.slice(0, WMAX).map(function (x) {
-        if (x.fb) return '<button type="button" class="tq-w is-red fb-tqw" data-act="fb-open" data-id="' + x.fb.id + '" title="' + esc(x.txt) + '"><i aria-hidden="true"></i><b>' + esc((x.fb.order_ref ? x.fb.order_ref + ' ' : '') + (x.fb.customer_name || 'Customer')) + '</b><span>' + esc(x.txt) + '</span></button>';
+        if (x.fb) return '<button type="button" class="tq-w is-amber fb-tqw" data-act="fb-open" data-id="' + x.fb.id + '" title="' + esc(x.txt) + '"><i aria-hidden="true"></i><b>' + esc((x.fb.order_ref ? x.fb.order_ref + ' ' : '') + (x.fb.customer_name || 'Customer')) + '</b><span>' + esc(x.txt) + '</span></button>';
         return '<button type="button" class="tq-w is-' + x.tone + '" data-act="open-order" data-id="' + x.o.id + '" title="' + esc(x.txt) + '"><i aria-hidden="true"></i><b>' + esc(x.o.reference) + ' ' + esc(nm(x.o)) + '</b><span>' + esc(x.txt) + '</span></button>'; }).join('') :
       '<p class="tq-clear">All clear. Nothing needs attention right now.</p>') + '</section>';
     // One row of numbers; each matches the list it opens and the badge in the menu
@@ -931,7 +931,7 @@
   // Warnings shown only when something needs attention: red for urgent, amber for caution
   function warnStrip(o) {
     var w = [], t = today(), st = o.order_status, open = OPEN.indexOf(st) > -1;
-    var fbw = fbOpenFor(o.id).map(function (c) { return '<p class="os-w is-red fb-w">' + esc('Open complaint: “' + fbShort(c.body, 90) + '” ' + (c.owner ? 'Owner: ' + c.owner + '.' : 'Nobody owns it yet.')) + ' <button type="button" class="ccs-link fb-wlink" data-act="fb-goto">See complaint</button></p>'; }).join('');
+    var fbw = fbOpenFor(o.id).map(function (c) { return '<p class="os-w is-amber fb-w">' + esc('Customer concern: let\'s put it right. “' + fbShort(c.body, 90) + '” ' + fbWho(c)) + ' <button type="button" class="ccs-link fb-wlink" data-act="fb-goto">See the concern</button></p>'; }).join('');
     if (!open) return fbw ? '<div class="os-warn" role="status">' + fbw + '</div>' : '';
     var nowM = (function () { var p = new Intl.DateTimeFormat('en-GB', { timeZone: TZ, hour: 'numeric', minute: 'numeric', hour12: false }).format(new Date()).split(':'); return Number(p[0]) * 60 + Number(p[1]); })();
     var dueM = (function () { var p = String(o.required_time || '23:59').split(':'); return Number(p[0]) * 60 + Number(p[1] || 0); })();
@@ -1084,7 +1084,7 @@
       if (M.emails.length) h += '<button type="button" class="ccs-btn ccs-ghost ccs-small" data-act="mail-resend">Send the latest email again</button>';
       if (conf && S.askUpdate !== o.id) h += '<button type="button" class="ccs-btn ccs-ghost ccs-small" data-act="mail-update">Send updated confirmation</button>';
       if (['declined', 'cancelled'].indexOf(o.order_status) < 0 && !M.emails.some(function (m) { return m.kind === 'guest_thanks'; }))
-        h += '<button type="button" class="ccs-btn ccs-ghost ccs-small" data-act="mail-hold" data-v="' + (o.hold_thanks ? '0' : '1') + '">' + (o.hold_thanks ? 'Send the thank-you after all' : 'Hold the thank-you (complaint or problem)') + '</button>';
+        h += '<button type="button" class="ccs-btn ccs-ghost ccs-small" data-act="mail-hold" data-v="' + (o.hold_thanks ? '0' : '1') + '">' + (o.hold_thanks ? 'Send the thank-you after all' : 'Hold the thank-you (customer concern or problem)') + '</button>';
       h += '</div>';
     }
     return h + '</section>';
@@ -1159,9 +1159,9 @@
     map.quoted = 'Price set to ' + money(d.price) + (d.total != null && Number(d.total) !== Number(d.price) ? ' (total ' + money(d.total) + ' with delivery)' : '') + (d.size ? ', size: ' + d.size : '') + (d.flavour ? ', flavour: ' + d.flavour : '');
     map.photo_removed = 'Photo removed from the order' + (d.file ? ' (' + d.file + ')' : '');
     map.quote_sent = 'Price emailed to ' + (d.to || 'the customer');
-    map.complaint_logged = 'Customer complaint recorded';
-    map.complaint_resolved = 'Complaint resolved' + (d.actions && d.actions.length ? ': ' + d.actions.map(function (x) { return fbLabel(FB_ACT, x).toLowerCase(); }).join(', ') : '') + (d.amount != null ? ', ' + money(d.amount) : '');
-    map.complaint_reopened = 'Complaint reopened' + (d.reason ? ': ' + d.reason : '');
+    map.complaint_logged = 'Customer concern recorded';
+    map.complaint_resolved = 'We put the customer concern right' + (d.actions && d.actions.length ? ': ' + d.actions.map(function (x) { return fbLabel(FB_ACT, x).toLowerCase(); }).join(', ') : '') + (d.amount != null ? ', ' + money(d.amount) : '');
+    map.complaint_reopened = 'Customer concern opened again' + (d.reason ? ': ' + d.reason : '');
     map.email_resent = 'Customer email sent again (' + (MAIL_KIND[d.kind] || d.kind || 'latest') + ') to ' + (d.to || '');
     if (e.kind === 'collected') map.collected = (d.method === 'delivery' ? 'Delivered' : 'Collected') + (d.to ? ', received by ' + d.to : '');
     return (map[e.kind] || e.kind) + (d.note ? ': ' + d.note : '') + ' · ' + who;
