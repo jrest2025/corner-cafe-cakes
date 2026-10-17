@@ -4911,7 +4911,7 @@ return { buildSlipPdf: buildSlipPdf, slipFileName: slipFileName };
       var owe = cs.ok.filter(function (o) { return o.live && dnum(o.bal) > 0.005; }), oweV = owe.reduce(function (s, o) { return s + dnum(o.bal); }, 0), offV = cs.off.reduce(function (s, o) { return s + o.tot; }, 0);
       parts.push(sec('Money', '', '<div class="or-split">' + dxTap(owe, label + ': balance to collect', '<b>' + m0(oweV) + '</b><span>To collect, ' + int(owe.length) + (owe.length === 1 ? ' order' : ' orders') + '</span>', 'or-stat') +
         dxTap(cs.off, label + ': cancelled', '<b>' + int(cs.off.length) + '</b><span>Cancelled' + (offV ? ', ' + m0(offV) : '') + '</span>', 'or-stat') + '</div>' +
-        (cs.ok.some(function (o) { return !o.live; }) ? '<p class="or-mini">Orders from the uploaded sheets have no payment records, so only app orders can show a balance.</p>' : '')));
+        (cs.ok.some(function (o) { return !o.live; }) ? '<p class="or-mini">Orders from the old sheets count as paid in full, so only app orders can show a balance.</p>' : '')));
     }
     // 7. Recommended actions: observation, evidence, action, confidence
     var acts = [], nxt = cur.day ? (cur.day >= t ? cur : (function () { var d = orDates(st.c).filter(function (x) { return x.starts_on >= t; })[0]; return d ? orOcc(st.c, d.year) : null; })()) : null;
@@ -5138,7 +5138,7 @@ return { buildSlipPdf: buildSlipPdf, slipFileName: slipFileName };
   function biAgeing(x) {
     var t = today(), B = [['Not yet due', -99999, 0], ['1 to 7 days overdue', 1, 7], ['8 to 14 days overdue', 8, 14], ['15 to 30 days overdue', 15, 30], ['More than 30 days overdue', 31, 99999]];
     var rows = B.map(function (b) { var l = x.owing.filter(function (o) { var d = daysBetween(o.pd, t); return d >= b[1] && d <= b[2]; }); return { l: b[0], list: l, n: l.length, v: biOwed(l) }; });
-    return '<p class="dx-ch">Money still owed on confirmed and completed orders, by how long past the pickup date. Only payments recorded in the app count as received: a balance marked paid in a sheet is not counted as money in.</p>' +
+    return '<p class="dx-ch">Money still owed on confirmed and completed orders, by how long past the pickup date. Orders from the old sheets count as paid in full: Finance confirmed a balance marked paid in a sheet is money received. Only app orders can show money still owed.</p>' +
       '<div class="dx-octwrap"><table class="dx-octab"><thead><tr><th>Age</th><th>Orders</th><th>Owed</th></tr></thead><tbody>' + rows.map(function (rw) {
         return '<tr' + (rw.l !== 'Not yet due' && rw.n ? ' class="bi-late"' : '') + '><th scope="row">' + esc(rw.l) + '</th><td>' + (rw.n ? dxTap(rw.list, rw.l, int(rw.n), 'bi-cell') : '0') + '</td><td>' + m0(rw.v) + '</td></tr>';
       }).join('') + '<tr class="bi-tot"><th scope="row">Total</th><td>' + int(x.owing.length) + '</td><td>' + m0(biOwed(x.owing)) + '</td></tr></tbody></table></div>';
@@ -5180,7 +5180,7 @@ return { buildSlipPdf: buildSlipPdf, slipFileName: slipFileName };
       ['Net cake sales', st(g.noPrice.length, sales), g.noPrice.length ? 'Completed sales with no price (mostly custom cakes from the sheets)' : '', g.noPrice.length, 'Finance', 'Sheets and app'],
       ['Gross profit and margin', biNoCost() ? 'missing' : 'ready', biNoCost() ? 'Cake costs per cake and size, with the date each cost starts' : '', g.costRows.length, 'F&B Costing', 'Not recorded anywhere yet'],
       ['Confirmed orders', 'ready', '', 0, 'Operations', 'App and sheets'],
-      ['Outstanding payments', DX.data.anyPay ? 'partial' : 'missing', 'Payments are recorded only for orders taken in the app. Sheet orders have no payment records', g.sheetSales.length, 'Finance', 'App payments'],
+      ['Outstanding payments', DX.data.anyPay ? 'ready' : 'missing', DX.data.anyPay ? '' : 'No payments recorded in the app yet', 0, 'Finance', 'App payments; sheet orders count as paid'],
       ['VAT', 'ready', '', 0, 'Finance', 'Prices include VAT; the rate on each sale\'s date is used'],
       ['Occasions and seasons', st(g.noOcc.length, all), g.noOcc.length ? 'Orders in the last 12 months with no occasion' : '', g.noOcc.length, 'Marketing', 'Order form and sheets'],
       ['Campaigns', g.noCmp.length / all > 0.9 ? 'missing' : 'partial', 'Which campaign brought each order in', g.noCmp.length, 'Marketing', 'Not asked on most orders'],
