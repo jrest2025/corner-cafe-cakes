@@ -950,7 +950,7 @@
       var owe = cs.ok.filter(function (o) { return o.live && dnum(o.bal) > 0.005; }), oweV = owe.reduce(function (s, o) { return s + dnum(o.bal); }, 0), offV = cs.off.reduce(function (s, o) { return s + o.tot; }, 0);
       parts.push(sec('Money', '', '<div class="or-split">' + dxTap(owe, label + ': balance to collect', '<b>' + m0(oweV) + '</b><span>To collect, ' + int(owe.length) + (owe.length === 1 ? ' order' : ' orders') + '</span>', 'or-stat') +
         dxTap(cs.off, label + ': cancelled', '<b>' + int(cs.off.length) + '</b><span>Cancelled' + (offV ? ', ' + m0(offV) : '') + '</span>', 'or-stat') + '</div>' +
-        (cs.ok.some(function (o) { return !o.live; }) ? '<p class="or-mini">Orders from the uploaded sheets have no payment records, so only app orders can show a balance.</p>' : '')));
+        (cs.ok.some(function (o) { return !o.live; }) ? '<p class="or-mini">Orders from the old sheets count as paid in full, so only app orders can show a balance.</p>' : '')));
     }
     // 7. Recommended actions: observation, evidence, action, confidence
     var acts = [], nxt = cur.day ? (cur.day >= t ? cur : (function () { var d = orDates(st.c).filter(function (x) { return x.starts_on >= t; })[0]; return d ? orOcc(st.c, d.year) : null; })()) : null;
