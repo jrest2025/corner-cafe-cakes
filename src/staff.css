@@ -1164,3 +1164,6 @@ html.ccs-tablet-mode #ccs-sheet .sl-restart { min-height: 56px; font-size: calc(
   #cc-staff .ov-hwrap { overflow-x: auto; -webkit-overflow-scrolling: touch; -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent); }
   #cc-staff .ov-hwrap .ov-heat { min-width: calc(40px + var(--n, 12) * 50px); padding-right: 24px; }
 }
+/* The pop-up window never scrolls itself (only its columns); clip keeps the rounded edge without making it scrollable */
+#ccs-sheet { overflow: clip !important; }
+@media (min-width: 1280px) { #ccs-sheet.is-review .ccs-sheet-body.os-grid { overflow: clip !important; } }

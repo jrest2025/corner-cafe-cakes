@@ -5052,6 +5052,9 @@
     if (S.panel) { S.panel = null; S.panelErr = null; S.am = null; renderSheet(); } else sheetClose();
   });
   // Tab stays inside the open review
+  // The pop-up window itself never scrolls: only its columns do. A jump to a section (scrollIntoView) would otherwise
+  // scroll the whole window, hiding the header and leaving a blank band at the bottom.
+  document.addEventListener('scroll', function (e) { var t = e.target; if (t && t.nodeType === 1 && (t.id === 'ccs-sheet' || (t.classList.contains('os-grid') && getComputedStyle(t).overflowY !== 'auto')) && (t.scrollTop || t.scrollLeft)) { t.scrollTop = 0; t.scrollLeft = 0; } }, true);
   document.addEventListener('keydown', function (e) {
     if (e.key !== 'Tab' || !S.sheet || LB) return;
     var sh = document.getElementById('ccs-sheet'); if (!sh || !sh.classList.contains('ccs-open')) return;
