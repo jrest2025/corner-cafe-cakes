@@ -1,0 +1,118 @@
+diff --git a/src/staff.js b/src/staff.js
+index 4d5f76f..fbbf727 100644
+--- a/src/staff.js
++++ b/src/staff.js
+@@ -1190,7 +1190,7 @@
+           [['email', 'Accepted by email'], ['verbal', 'Confirmed verbally']].map(function (x) { return '<button type="button" class="ccs-chip" data-act="cfm-how" data-v="' + x[0] + '" aria-pressed="' + (how === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div>' +
+           '<span class="ccs-hint">Emailing the price is not agreement. Only confirm once the customer has said yes to these details and this price.</span></div>' +
+         '<div class="ccs-field"><label class="ccs-label" for="ccs-dep">Deposit needed (FJD)</label><input class="ccs-input" id="ccs-dep" inputmode="decimal" placeholder="0 for none" style="max-width:240px"></div>' +
+-        '<p class="ccs-hint">Without a deposit, Confirm sends the cake to the kitchen straight away: the kitchen slip is emailed to the admin and counter inboxes. With a deposit, it goes once the deposit is paid.</p>' + err +
++        '<p class="ccs-hint">If no deposit is needed, the order is confirmed straight away. If a deposit is needed, the order confirms once it is paid. Then make the kitchen slip and choose how to send or print it.</p>' + err +
+         '<div class="ccs-actions-row"><button type="button" class="ccs-btn ccs-good" data-act="do-confirm">Confirm order</button><button type="button" class="ccs-btn ccs-ghost" data-act="panel" data-v="quote">Change the price</button><button type="button" class="ccs-btn ccs-ghost" data-act="panel" data-v="">Back</button></div></div>';
+     }
+     if (p === 'confirm') {
+@@ -1253,7 +1253,7 @@
+     }
+     if (p === 'brief-done' && S.briefDone && S.briefDone.id === o.id) {
+       var bd = S.briefDone.b, em = bd.email || {}, who = [em.to, em.cc].filter(Boolean).join(' and '), sst2 = slipState(o.id);
+-      var emTxt = em.state === 'queued' ? 'Emailed to ' + who + ' for printing.' : em.state === 'recent' ? 'This slip was emailed to ' + who + ' less than a minute ago, so it was not sent again.' :
++      var emTxt = em.state === 'queued' ? 'Added to the email queue for ' + who + '. Check the status below to see when it has been sent.' : em.state === 'recent' ? 'An email for this order is already waiting, sending, or was requested in the last minute. Check the status below; another copy has not been queued.' :
+         em.state === 'skipped' ? 'Not emailed. You chose not to send it to the kitchen printer.' : em.state === 'off' ? 'Emailing slips is switched off in Settings, Kitchen printing. Download it or print it here.' : em.state === 'no_address' ? 'No email address is set for kitchen slips, so it was not emailed. Download it or print it here, and ask an admin to add the address in Settings, Kitchen printing.' : 'The slip was not emailed. Download it or print it here.';
+       var emOk = em.state === 'queued' || em.state === 'recent';
+       return '<div class="ccs-panel ccs-briefdone"><b>Kitchen slip ' + esc(bd.snapshot.reference) + ' v' + bd.version + '</b>' +
+@@ -1476,7 +1476,7 @@
+       if (!r.data.snapshot || !validRef(r.data.snapshot.reference) || r.data.snapshot.reference !== o.reference) { S.panelErr = NO_REF; return renderSheet(); }
+       var b = r.data, em = b.email || {};
+       S.briefDone = { id: o.id, b: b, size: size };
+-      toast(em.state === 'queued' ? b.snapshot.reference + ' slip v' + b.version + ' emailed for printing' : b.snapshot.reference + ' slip v' + b.version + ' ready');
++      toast(em.state === 'queued' ? b.snapshot.reference + ' slip v' + b.version + ' waiting to be emailed' : b.snapshot.reference + ' slip v' + b.version + ' ready');
+       openOrder(o.id).then(function () {
+         if (!S.sheet || S.sheet.id !== o.id) return;
+         S.panel = 'brief-done'; S.panelErr = null; renderSheet();
+@@ -4221,7 +4221,7 @@
+     var pr = st.pr, log = st.prLog, open = st.prOpen ? ' open' : '';
+     // Only the newest email for each order counts: once it is sent again, the old failure no longer needs attention
+     var seen = {}, failed = (log || []).filter(function (x) { if (x.kind !== 'kitchen_slip' || seen[x.order_id]) return false; seen[x.order_id] = 1; return x.status === 'failed' && x.attempts >= 5 && x.version === x.latest_version; });
+-    var tag = !log ? (st.prErr ? 'Could not load' : 'Checking…') : failed.length ? failed.length + ' not delivered' : pr && !pr.verified ? 'Check the printer' : 'Working';
++    var tag = !log ? (st.prErr ? 'Could not load' : 'Checking…') : failed.length ? failed.length + ' not delivered' : pr && pr.test_mode ? 'Test mode' : pr && !pr.on_new ? 'Emailing switched off' : pr && !pr.verified ? 'Check the printer' : pr ? 'Printer checked' : 'Recent email log';
+     var h = '<details' + open + '><summary>Kitchen printing <span>' + esc(tag) + '</span></summary><div class="ccs-set-body">';
+     if (!log) return h + (st.prErr ? '<p class="ccs-err" role="alert">' + esc(st.prErr) + '</p><button type="button" class="ccs-btn ccs-ghost" data-act="pr-reload">Try again</button>' : '<p class="ccs-loading">Checking…</p>') + '</div></details>';
+     if (failed.length) h += '<div class="ccs-alert" role="alert">' + failed.length + (failed.length > 1 ? ' kitchen slips' : ' kitchen slip') + ' could not be delivered: ' + esc(failed.map(function (x) { return x.reference + ' v' + x.version; }).join(', ')) + '. Check the printer email below, then press Send again, or print the slip from the order.</div>';
+@@ -4229,7 +4229,8 @@
+       if (pr.test_mode) h += '<p class="ccs-note">Test mode is on. Every slip goes only to ' + esc(pr.test_email) + ', not to the addresses below.</p>';
+       if (!pr.verified) h += '<p class="ccs-note">The printer email or paper size changed. Send a test slip, check it printed correctly, then press It printed correctly.</p>';
+       else if (pr.verified_note) h += '<p class="ccs-hint">Printer last checked: ' + esc(pr.verified_note) + '.</p>';
+-      h += '<div class="ccs-row">' + sf('pr-pri', 'Admin inbox (every slip is emailed here to print)', pr.primary, 'email') + sf('pr-bak', 'Counter inbox (gets the same email)', pr.backup, 'email') + '</div>' +
++      h += '<p class="ccs-hint">Change the email addresses here, then save. Use the printer email or the inbox used for printing. A printer IP address cannot be used here. A sent email does not confirm that paper has printed.</p>' +
++        '<div class="ccs-row">' + sf('pr-pri', 'Send kitchen slips to (email)', pr.primary, 'email') + sf('pr-bak', 'Send a copy to (optional email)', pr.backup, 'email') + '</div>' +
+         '<div class="ccs-row"><div class="ccs-field"><label class="ccs-label" for="pr-paper">Paper size</label><select class="ccs-input" id="pr-paper">' +
+         [['A5', 'A5 (148 x 210 mm)'], ['DL', 'DL (99 x 210 mm)']].map(function (o) { return '<option value="' + o[0] + '"' + (pr.paper === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></div></div>' +
+         '<label class="ccs-check"><input type="checkbox" id="pr-on"' + (pr.on_new ? ' checked' : '') + '> Email the slip each time Print kitchen slip is pressed</label>' +
+@@ -4252,16 +4253,26 @@
+   function prSave() {
+     var st = S.settings, on = document.getElementById('pr-on');
+     sb.rpc('admin_print_settings_save', { p: { primary: val('pr-pri'), backup: val('pr-bak'), paper: val('pr-paper'), on_new: !!(on && on.checked) } }).then(function (r) {
+-      clearBusy(); if (r.error) throw r.error;
++      clearBusy(); if (S.settings !== st) return; if (r.error) throw r.error;
+       st.prOpen = true;
+       if (!r.data.ok) { st.prFormErr = r.data.message; view(); return; }
+-      st.prFormErr = null; st.pr = r.data; setSavedOk(); toast(r.data.verified ? 'Printing settings saved' : 'Saved. Now send a test slip to check the printer.'); view();
++      st.prFormErr = null; st.pr = r.data; setSavedOk(); toast(r.data.verified ? 'Printing settings saved' : 'Saved. Now send a test slip to check the printer.'); view(); alLoad();
+     }).catch(fail);
+   }
++  function prHasChanges(st) {
++    if (!st || !st.pr || !document.getElementById('pr-pri')) return false;
++    var p = st.pr, on = document.getElementById('pr-on');
++    return val('pr-pri').trim().toLowerCase() !== String(p.primary || '').trim().toLowerCase() ||
++      val('pr-bak').trim().toLowerCase() !== String(p.backup || '').trim().toLowerCase() ||
++      val('pr-paper') !== p.paper || !!(on && on.checked) !== !!p.on_new;
++  }
+   function prCall(fn, args, ok) {
+     var st = S.settings;
++    if ((fn === 'admin_print_test' || fn === 'admin_print_test_confirm') && prHasChanges(st)) {
++      clearBusy(); st.prFormErr = 'Save printing settings first. The test uses the saved email addresses and paper size.'; st.prOpen = true; return view();
++    }
+     sb.rpc(fn, args || {}).then(function (r) {
+-      clearBusy(); if (r.error) throw r.error; st.prOpen = true;
++      clearBusy(); if (S.settings !== st) return; if (r.error) throw r.error; st.prOpen = true; st.prFormErr = null;
+       if (!r.data.ok) { toast(r.data.message, true); return; }
+       toast(ok(r.data)); prLoad();
+     }).catch(fail);
+@@ -4576,12 +4587,15 @@
+   function refreshSetup() { return sb.rpc('get_order_setup', { p_location: 'corner-cafe' }).then(function (s) { if (!s.error) S.setup = s.data; }); }
+   function saveLoc(confirmIt) {
+     var ints = { lead_days_standard: num(val('st-lead-s')), lead_days_custom: num(val('st-lead-c')), max_days_ahead: num(val('st-ahead')) };
+-    for (var k in ints) if (ints[k] == null || ints[k] < 0 || ints[k] % 1) return toast('Notice and days ahead must be whole numbers.', true);
++    function invalid(msg) { clearBusy(); toast(msg, true); }
++    for (var k in ints) if (ints[k] == null || ints[k] < 0 || ints[k] % 1) return invalid('Notice and days ahead must be whole numbers.');
++    if (ints.max_days_ahead < 1) return invalid('Furthest ahead must be at least 1 day.');
++    if (ints.lead_days_standard > ints.max_days_ahead || ints.lead_days_custom > ints.max_days_ahead) return invalid('Furthest ahead must cover the notice needed for standard and custom cakes.');
+     var cap = val('st-cap').trim(); cap = cap === '' ? null : num(cap);
+-    if (cap != null && (cap < 1 || cap % 1)) return toast('Most cakes per day must be a whole number, or blank.', true);
+-    if (val('st-close') <= val('st-open')) return toast('Last collection must be after the first.', true);
++    if (cap != null && (cap < 1 || cap % 1)) return invalid('Most cakes per day must be a whole number, or blank.');
++    if (!val('st-open') || !val('st-close') || val('st-close') <= val('st-open')) return invalid('Last collection must be after the first.');
+     var upd = Object.assign(ints, { collection_open: val('st-open'), collection_close: val('st-close'), slot_minutes: Number(val('st-slot')), daily_capacity: cap, defaults_confirmed: !!(S.settings.loc.defaults_confirmed || confirmIt) });
+-    sb.from('locations').update(upd).eq('id', S.settings.loc.id).then(function (r) { if (r.error) throw r.error; toast(confirmIt ? 'Confirmed and saved' : 'Notice and hours saved'); refreshSetup(); loadSettings(); }).catch(fail);
++    sb.from('locations').update(upd).eq('id', S.settings.loc.id).select('id').single().then(function (r) { if (r.error) throw r.error; if (!r.data || !r.data.id) throw userErr('Nothing was saved. Check your access and try again.'); setSavedOk(); toast(confirmIt ? 'Confirmed and saved' : 'Notice and hours saved'); refreshSetup(); loadSettings(); }).catch(fail);
+   }
+   function saveZones() {
+     var jobs = [];
+@@ -4592,7 +4606,7 @@
+       if (n !== z.name || f !== (z.fee == null ? null : Number(z.fee)) || a !== z.active) jobs.push(sb.from('delivery_zones').update({ name: n, fee: f, active: a }).eq('id', z.id));
+     });
+     if (!jobs.length) return toast('No changes to save');
+-    Promise.all(jobs).then(function (rs) { rs.forEach(function (r) { if (r.error) throw r.error; }); toast('Delivery areas saved'); refreshSetup(); loadSettings(); }).catch(fail);
++    Promise.all(jobs).then(function (rs) { rs.forEach(function (r) { if (r.error) throw r.error; }); setSavedOk(); toast('Delivery areas saved'); refreshSetup(); loadSettings(); }).catch(function (e) { clearBusy(); if (errKind(e) === 'expired') return sessionExpired(); toast('Some delivery areas may have saved. Your entries are kept. Check them and save again.', true); });
+   }
+   function addZone() {
+     var n = val('dz-new-n').trim(), fs = val('dz-new-f').trim(), f = fs === '' ? null : num(fs);
+@@ -4999,7 +5013,7 @@
+         case 'al-add': alGrab(); S.settings.alOpen = true; if (S.settings.alList.length < 5) S.settings.alList.push(''); view(); setTimeout(function () { var el = document.getElementById('al-e' + (S.settings.alList.length - 1)); if (el) el.focus(); }, 30); break;
+         case 'al-del': alGrab(); S.settings.alOpen = true; S.settings.alList.splice(+v, 1); view(); break;
+         case 'al-reload': S.settings.alErr = null; alLoad(); view(); break;
+-        case 'pr-test': prCall('admin_print_test', {}, function (d) { return 'Test slip sent' + (d.test_mode ? ' to ' + d.test_email + ' (test mode)' : ' to ' + d.to) + '. Check it printed, then confirm here.'; }); setTimeout(prLoad, 8000); break;
++        case 'pr-test': prCall('admin_print_test', {}, function (d) { return 'Test slip queued' + (d.test_mode ? ' for ' + d.test_email + ' (test mode)' : ' for ' + d.to) + '. Check the email status, then confirm only after it prints correctly.'; }); setTimeout(prLoad, 8000); break;
+         case 'pr-ok': prCall('admin_print_test_confirm', {}, function () { return 'Printer confirmed'; }); break;
+         case 'pr-resend':
+           if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = 'Tap again to send v' + v + ' again'; setTimeout(function () { if (b.isConnected) { b.dataset.armed = ''; b.textContent = 'Send again'; } }, 4000); break; }
