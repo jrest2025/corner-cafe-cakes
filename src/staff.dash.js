@@ -193,15 +193,15 @@
     d.secs.push(['dm', 'Modules and datasets', 'What each module needs', anRegisters()]);
     var mod = anMod(), mm = AN_MODS.filter(function (x) { return x.id === mod; })[0];
     h = hh + anModBar(mod);
-    if (mod === 'ov') return h + filt + period + gapNote + '<div class="dx-ov">' + ov + anStrip() + '</div>';
+    if (mod === 'ov') return h + filt + period + gapNote + '<div class="dx-ov">' + ov + '</div>';
     if (mod === 'ci') return h + anCross();
-    if (!AN_SUB[mod]) return h + (anState(mm) === 'missing' ? anEmpty(mm) : '<section class="dx-card"><p class="an-note">The data for this module has arrived. Its figures are being built.</p></section>');
+    if (!AN_SUB[mod]) return h + (anState(mm) === 'missing' ? anEmpty(mm) : '<section class="dx-card"><p class="an-note">Data has arrived; charts are being built.</p></section>');
     var keys = AN_SUB[mod].filter(function (k) { return d.secs.some(function (x) { return x[0] === k; }); }), cs2 = secCur('dash', keys, keys[0]), sec = d.secs.filter(function (x) { return x[0] === cs2; })[0];
     if (mod !== 'da') h += filt;
     h += '<div class="dx-secs">' + secBar('dash', keys.map(function (k) { var x = d.secs.filter(function (s) { return s[0] === k; })[0]; return [x[0], x[1]]; }), cs2, mm.name + ' sections') + '</div>';
     if (cs2 === 'or') return h + '<section class="dx-card dx-secbody or-wrap" aria-label="Occasion report"><div class="dx-card-h"><h2>Occasion report</h2><span>One occasion, the full story</span></div><div class="or-body">' + dxOccReport() + '</div></section>';
     if (mod !== 'da') h += period;
-    return h + gapNote + '<section class="dx-card dx-secbody" aria-label="' + esc(sec[1]) + '"><div class="dx-card-h"><h2>' + esc(sec[1]) + '</h2>' + (sec[2] ? '<span>' + sec[2] + '</span>' : '') + '</div>' + sec[3] + '</section>';
+    return h + gapNote + '<section class="dx-card dx-secbody" aria-label="' + esc(sec[1]) + '"><div class="dx-card-h"><h2>' + esc(sec[1]) + '</h2>' + (sec[2] ? '<span>' + sec[2] + '</span>' : '') + '</div>' + (mod === 'da' ? sec[3] : anTidy(sec[3])) + '</section>';
   }
   // ----- headline pieces -----
   function dxDelta(cur, prev) {

@@ -81,50 +81,87 @@
       return '<button type="button" class="an-mod' + (need ? ' is-need' : '') + '" data-act="secgo" data-g="anm" data-v="' + m.id + '" aria-current="' + (m.id === cur ? 'page' : 'false') + '">' + esc(m.name) + (need ? '<span class="an-need">No data</span>' : '') + '</button>';
     }).join('') + '</nav>';
   }
-  // Overview: which modules are working, above the cake figures
-  function anStrip() {
-    var mods = AN_MODS.filter(function (m) { return m.id !== 'ov' && m.id !== 'da'; });
-    return '<section class="dx-card an-strip" aria-label="Modules"><div class="dx-card-h"><h2>Modules</h2><span>Each one switches on when its data arrives</span></div><div class="an-strip-g">' +
-      mods.map(function (m) { var s = anState(m); return '<button type="button" class="an-tile is-' + s + '" data-act="secgo" data-g="anm" data-v="' + m.id + '"><b>' + esc(m.name) + '</b>' + anSt(s) + '<span>' + esc(m.purpose) + '</span></button>'; }).join('') + '</div></section>';
+  // ----- Charts (17 Oct 2026, Roneel: "analytics are pie charts, bar graphs and line graphs, not sentences") -----
+  // Categorical colours in fixed order (validated for colour-blind separation); the 6th slot and beyond fold into Other.
+  // Every slice is labelled with its name, value and share beside the chart, so colour is never the only key.
+  var AN_PAL = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4'], AN_OTHER = '#b5bac1';
+  function anFold(rows, n) {
+    rows = rows.filter(function (r) { return r.v > 0; }).sort(function (a, b) { return b.v - a.v; });
+    if (rows.length <= n) return rows;
+    var rest = rows.slice(n - 1), o = { l: 'Other', v: 0, list: [], other: true };
+    rest.forEach(function (r) { o.v += r.v; o.list = o.list.concat(r.list || []); });
+    return rows.slice(0, n - 1).concat([o]);
   }
-  // A module whose data has not arrived: what it is for, what it will show, and the data that unlocks it
+  function anDonut(title, rows, fmt, lbl) {
+    rows = anFold(rows, 6);
+    var tot = rows.reduce(function (s, r) { return s + r.v; }, 0);
+    if (!tot) return anCard(title, '<p class="an-none">Nothing in this period</p>');
+    var R = 42, C = 2 * Math.PI * R, at = 0, gap = rows.length > 1 ? 1.6 : 0, col = function (r, i) { return r.other ? AN_OTHER : AN_PAL[i % AN_PAL.length]; };
+    var arcs = rows.map(function (r, i) {
+      var len = r.v / tot * C, d = Math.max(len - gap, 0.5), seg = '<circle r="' + R + '" cx="60" cy="60" fill="none" stroke="' + col(r, i) + '" stroke-width="16" stroke-dasharray="' + d.toFixed(2) + ' ' + (C - d).toFixed(2) + '" stroke-dashoffset="' + (-at).toFixed(2) + '"><title>' + esc(r.l) + ': ' + fmt(r.v) + ' (' + Math.round(r.v / tot * 100) + '%)</title></circle>';
+      at += len; return seg;
+    }).join('');
+    var svg = '<svg class="an-donut" viewBox="0 0 120 120" role="img" aria-label="' + esc(title) + '"><g transform="rotate(-90 60 60)">' + arcs + '</g><text x="60" y="58" text-anchor="middle" class="an-dv">' + esc(fmt(tot)) + '</text><text x="60" y="74" text-anchor="middle" class="an-dl">' + esc(lbl || 'total') + '</text></svg>';
+    var leg = '<ul class="an-leg">' + rows.map(function (r, i) {
+      return '<li>' + dxTap(r.list, title + ': ' + r.l, '<i style="background:' + col(r, i) + '"></i><span>' + esc(r.l) + '</span><b>' + fmt(r.v) + '</b><em>' + Math.round(r.v / tot * 100) + '%</em>', 'an-lrow') + '</li>';
+    }).join('') + '</ul>';
+    return anCard(title, '<div class="an-pie">' + svg + leg + '</div>');
+  }
+  function anCard(title, body, cls) { return '<section class="dx-card an-chart' + (cls ? ' ' + cls : '') + '" aria-label="' + esc(title) + '"><h3 class="an-ct">' + esc(title) + '</h3>' + body + '</section>'; }
+  var AN_WD = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  // Overview charts: what sold, what for, where from, and which days are busiest
+  function anCharts(cur, got) {
+    var live = got.filter(function (o) { return !o.off; });
+    var cakes = dxGroup(cur, function (o) { return dxItems(o).map(function (i) { var q = dnum(i[3]) || 1; return [i[0], q, dnum(i[4]) * q]; }); }).map(function (x) { return { l: x.l, v: x.v, list: x.list }; });
+    var occ = dxGroup(live, function (o) { return [[dxOccName(o.oc || 'not_specified'), 1, 0]]; }).map(function (x) { return { l: x.l, v: x.q, list: x.list }; });
+    var ch = dxGroup(live, function (o) { return [[SOURCE_LABEL[o.src] || o.src || 'Not recorded', 1, 0]]; }).map(function (x) { return { l: x.l, v: x.q, list: x.list }; });
+    var wd = AN_WD.map(function (l, i) { var list = live.filter(function (o) { return o.pd && (new Date(o.pd + 'T12:00:00Z').getUTCDay() + 6) % 7 === i; }); return { l: l, full: l, v: list.length, list: list, t: l + ' pickups' }; });
+    return '<div class="an-grid">' + anDonut('Sales by cake', cakes, m0, 'before refunds') + anDonut('Orders by occasion', occ, int) + anDonut('Orders by channel', ch, int) +
+      anCard('Pickups by day', dxCols(wd, false, 'Busiest')) + '</div>';
+  }
+  // A module still waiting for data: the charts it will show, drawn as grey outlines, and the one file that unlocks them
+  var AN_GHOST = {
+    cs: [['line', 'Net sales by week'], ['donut', 'Cakes share of sales'], ['bar', 'Best sellers'], ['bar', 'Average spend by day']],
+    mk: [['bar', 'Spend by campaign'], ['line', 'Cake orders during campaigns'], ['donut', 'Spend by platform']],
+    wb: [['line', 'Visits by day'], ['donut', 'Visits by source'], ['bar', 'Order form to order']]
+  };
+  function anGhost(kind) {
+    if (kind === 'line') return '<svg viewBox="0 0 200 90" class="an-gh" aria-hidden="true"><path d="M8 82H192M8 8V82" /><polyline points="10,66 40,58 70,62 100,40 130,46 160,28 190,34" /></svg>';
+    if (kind === 'donut') return '<svg viewBox="0 0 200 90" class="an-gh" aria-hidden="true"><circle cx="100" cy="45" r="34" /></svg>';
+    return '<svg viewBox="0 0 200 90" class="an-gh" aria-hidden="true"><path d="M8 82H192" />' + [52, 34, 60, 22, 44, 30].map(function (h, i) { return '<rect x="' + (18 + i * 30) + '" y="' + (82 - h) + '" width="16" height="' + h + '" rx="3" />'; }).join('') + '</svg>';
+  }
   function anEmpty(m) {
-    var ds = m.need.concat(m.opt).map(anDs).filter(Boolean);
-    return '<section class="dx-card an-empty" aria-label="' + esc(m.name) + '"><div class="an-empty-h"><span class="bi-st bi-st-missing">Missing data</span><h2>' + esc(m.name) + '</h2><p>' + esc(m.purpose) + '</p></div>' +
-      '<div class="an-empty-b"><div><h3>What it will show</h3><ul class="an-list">' + (m.shows || []).map(function (s) { return '<li>' + esc(s) + '</li>'; }).join('') + '</ul>' +
-      '<p class="an-note">Insights appear here once the data has arrived and passed its checks. Nothing is estimated in the meantime.</p></div>' +
-      '<div><h3>Data that unlocks it</h3>' + ds.map(function (d) { return anDsCard(d, m.need.indexOf(d.id) > -1); }).join('') + '</div></div></section>';
+    var d = anDs(m.need[0]);
+    return '<div class="an-wait"><span class="bi-st bi-st-missing">No data yet</span><b>' + esc(d.name) + '</b><span class="an-wait-o">from ' + esc(d.owner) + '</span>' +
+      '<button type="button" class="ccs-btn ccs-ghost ccs-small" data-act="dx-an-tpl" data-v="' + d.id + '">Download template</button></div>' +
+      '<div class="an-grid">' + (AN_GHOST[m.id] || []).map(function (g) { return anCard(g[1], anGhost(g[0]), 'is-ghost'); }).join('') + '</div>';
   }
-  function anDsCard(d, req) {
-    var has = anHas(d.id);
-    return '<div class="an-ds"><div class="an-ds-h"><b>' + esc(d.name) + '</b>' + (has ? anSt('ready') : '<span class="bi-st bi-st-' + (req ? 'missing' : 'na') + '">' + (req ? 'Needed' : 'Optional') + '</span>') + '</div>' +
-      '<p>' + esc(d.why || '') + ' Supplied by ' + esc(d.owner) + '. ' + esc(d.grain) + '.</p>' +
-      (d.src === 'excel' ? '<p class="an-fields"><span>Columns:</span> ' + d.fields.map(function (f) { return esc(f[0]) + (f[1] ? '' : ' (optional)'); }).join(', ') + '</p>' +
-        '<div class="an-ds-a"><button type="button" class="ccs-btn ccs-ghost ccs-small" data-act="dx-an-tpl" data-v="' + d.id + '">Download template</button><span>Uploading opens once the reporting storage is approved.</span></div>' : '') + '</div>';
-  }
-  // Connected insights: each pair of datasets, whether it can be read yet, and the finding when it can
+  // Insights: each ready pair of datasets as a chart with a one-line headline; pairs still waiting as one short line each
   function anCross() {
-    return '<section class="dx-card" aria-label="Connected insights"><div class="dx-card-h"><h2>Connected insights</h2><span>Findings that need two datasets together</span></div>' +
-      '<p class="an-q">Each finding shows what the data says, the evidence, how sure it is and what is still unknown. A link in time is not proof that one thing caused the other.</p>' +
-      AN_LINKS.map(function (l) {
-        var a = anDs(l.a), b = anDs(l.b), ok = anHas(l.a) && anHas(l.b), body = ok ? anFind(l) : '';
-        return '<div class="an-link"><div class="an-link-h"><b>' + esc(a.name) + ' and ' + esc(b.name) + '</b>' + anSt(ok ? 'ready' : 'missing') + '</div><p class="an-q">' + esc(l.q) + '</p>' +
-          (ok ? body : '<p class="an-note">Waiting for ' + esc([a, b].filter(function (x) { return !anHas(x.id); }).map(function (x) { return x.name.toLowerCase(); }).join(' and ')) + '. Linked by ' + esc(l.key.toLowerCase()) + '.</p>') + '</div>';
-      }).join('') + '</section>';
+    var ready = AN_LINKS.filter(function (l) { return anHas(l.a) && anHas(l.b); }), wait = AN_LINKS.filter(function (l) { return !(anHas(l.a) && anHas(l.b)); });
+    return ready.map(anFind).join('') +
+      '<section class="dx-card" aria-label="Waiting for data"><h3 class="an-ct">Waiting for data</h3><ul class="an-waitlist">' + wait.map(function (l) {
+        var miss = [anDs(l.a), anDs(l.b)].filter(function (x) { return !anHas(x.id); });
+        return '<li><b>' + esc(anDs(l.a).name) + ' + ' + esc(anDs(l.b).name) + '</b><span>needs ' + esc(miss.map(function (x) { return x.name.toLowerCase(); }).join(' and ')) + '</span></li>';
+      }).join('') + '</ul></section>';
   }
   function anFind(l) {
     if (l.a === 'cake_orders' && l.b === 'occasions') {
-      var t = today(), rows = dxLeadData({ from: addDays(t, -365), to: t }).filter(function (x) { return x.c !== 'not_specified' && x.lead.length; });
-      if (!rows.length) return '<p class="an-note">No orders with an occasion and a reliable order date in the last 12 months yet.</p>';
-      var x = rows[0], s = x.lead.slice().sort(function (p, q) { return p - q; }), med = s[Math.floor(s.length / 2)], early = s.filter(function (d) { return d >= 14; }).length;
-      var conf = s.length >= 30 ? 'High' : s.length >= 10 ? 'Medium' : 'Low';
-      return '<dl class="an-find"><dt>Observation</dt><dd>' + esc(x.l) + ' cakes are usually ordered ' + esc(ltDaysTxt(med)) + ' (middle order). ' + int(early) + ' of ' + int(s.length) + ' were ordered 14 days or more before pickup.</dd>' +
-        '<dt>Evidence</dt><dd>' + int(s.length) + ' ' + esc(x.l.toLowerCase()) + ' orders in the last 12 months with a reliable order date, from the cake app and the old sheets.</dd>' +
-        '<dt>Why it matters</dt><dd>Promotion for this occasion has to start before most orders are placed, not in the week of pickup.</dd>' +
-        '<dt>How sure</dt><dd>' + conf + (conf === 'Low' ? ': too few orders to rely on' : '') + '.</dd>' +
-        '<dt>Unknown</dt><dd>Orders with no order date are left out. What prompted each order is not recorded.</dd></dl>' + biGo('cv', 'See lead times');
+      var t = today(), rows = dxLeadData({ from: addDays(t, -365), to: t }).filter(function (x) { return x.c !== 'not_specified' && x.lead.length; }).slice(0, 3);
+      if (!rows.length) return anCard('How far ahead cakes are ordered', '<p class="an-none">No occasion orders with an order date yet</p>');
+      var conf = function (n) { return n >= 30 ? 'High' : n >= 10 ? 'Medium' : 'Low'; };
+      return '<div class="an-grid">' + rows.map(function (x) {
+        var s = x.lead.slice().sort(function (p, q) { return p - q; }), med = s[Math.floor(s.length / 2)];
+        var bars = LT_B.map(function (b, i) { var list = x.list.filter(function (o) { var d = ltDays(o); return d != null && d >= b[1] && d <= b[2]; }); return { l: b[0], v: x.lb[i], list: list, t: x.l + ', ordered ' + b[0].toLowerCase() + ' ahead' }; });
+        return anCard(x.l + ': days ordered ahead', '<p class="an-head">Usually <b>' + esc(ltDaysTxt(med)) + '</b></p>' + dxBars(bars, function (r) { return int(r.v); }) +
+          '<p class="an-chips"><span>' + int(s.length) + ' orders, last 12 months</span><span>' + conf(s.length) + ' confidence</span></p>');
+      }).join('') + '</div>';
     }
-    return '<p class="an-note">Ready to analyse.</p>';
+    return '';
+  }
+  // Long explanations under a section heading fold away behind "How this is counted", so the charts come first
+  function anTidy(html) {
+    return html.replace(/<p class="dx-ch">((?:(?!<\/p>)[\s\S]){90,}?)<\/p>/g, function (m, t) { return '<details class="an-how"><summary>How this is counted</summary><p>' + t + '</p></details>'; });
   }
   // Data: the registers themselves
   function anRegisters() {
