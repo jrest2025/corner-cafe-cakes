@@ -613,9 +613,16 @@
     var h = '<div class="ccs-head"><div><h1 class="ccs-title">Needs attention</h1><p class="ccs-sub">' + esc(nice(t, true)) + '. Only what your login can act on.</p>' + (S.loaded ? freshLine(S.ordAt, S.ordFails, 'reload-orders') : '') + '</div></div>';
     if (!S.loaded) return h + (S.ordErr ? loadErr(S.ordErr, 'reload-orders') : '<p class="ccs-loading">Loading…</p>');
     if (!n) return h + '<div class="ccs-empty"><b>Nothing needs attention right now.</b><span>Late cakes, unconfirmed orders, payments and allergies to check will show here as they come up.</span></div>';
-    h += '<div class="at-sum" role="group" aria-label="Jump to">' + gs.map(function (g) { return '<button type="button" class="at-jump ' + g.tone + '" data-act="at-jump" data-v="' + g.key + '"><b>' + g.rows.length + '</b><span>' + esc(g.title) + '</span></button>'; }).join('') + '</div>';
-    h += gs.map(function (g) {
-      return '<section class="at-group ' + g.tone + '" id="at-' + g.key + '"><h2>' + esc(g.title) + ' <span>' + g.rows.length + '</span></h2>' + (g.intro ? '<p class="at-intro">' + esc(g.intro) + '</p>' : '') + '<div class="at-rows">' + g.rows.map(function (r, k) {
+    // Compact, accessible alert islands. Only the selected group expands into full order details.
+    var selected = S.attnIsland === 'closed' ? null : (S.attnIsland || gs[0].key);
+    if (selected && !gs.some(function (g) { return g.key === selected; })) selected = gs[0].key;
+    h += '<div class="at-islands" role="group" aria-label="Attention categories">' + gs.map(function (g) {
+      var icons = { overdue:'⚠', soon:'⏱', todaykit:'♨', unconf:'?', waiting:'↻', pay:'$', allergy:'✚', data:'✎', complaint:'!' };
+      var icon = icons[g.key] || '!';
+      return '<button type="button" class="at-island ' + g.tone + (selected === g.key ? ' is-selected' : '') + '" data-act="at-island" data-v="' + g.key + '" aria-expanded="' + (selected === g.key) + '" aria-controls="at-details" title="Show ' + esc(g.title) + ' details"><span class="at-island-icon" aria-hidden="true">' + icon + '</span><span class="at-island-body"><strong>' + g.rows.length + '</strong><span>' + esc(g.title) + '</span></span><span class="at-island-chevron" aria-hidden="true">' + (selected === g.key ? '−' : '+') + '</span></button>';
+    }).join('') + '</div>';
+    h += gs.filter(function (g) { return g.key === selected; }).map(function (g) {
+      return '<section class="at-group at-island-panel ' + g.tone + '" id="at-details" aria-label="' + esc(g.title) + ' details"><div class="at-panel-heading"><h2>' + esc(g.title) + ' <span>' + g.rows.length + '</span></h2><button type="button" class="at-island-close" data-act="at-island-close" aria-label="Close details">✕</button></div>' + (g.intro ? '<p class="at-intro">' + esc(g.intro) + '</p>' : '') + '<div class="at-rows">' + g.rows.map(function (r, k) {
         if (r.fb) return '<div class="at-row">' + fbAttnRow(r) + '</div>';
         var w = r.why.map(esc).join(' <span aria-hidden="true">·</span> '), rep = k > 0 && r.why.join('|') === g.rows[k - 1].why.join('|');
         return '<div class="at-row' + (rep ? ' is-rep' : '') + '"><p class="at-why">' + w + '</p>' + miniRow(r.o, false, true) + '</div>';
@@ -4786,6 +4793,8 @@
         case 'k-range': S.kit.days = Number(v); S.kit.focus = null; view(); break;
         case 'k-card': var KK = S.kit; if (v === 'soon') { var kc5 = kitCalState(); kc5.v = 'list'; kc5.a = addDays(today(), 1); secStore('kitM').kitM = 'cal'; view(); break; } secStore('kitM').kitM = 'board'; KK.focus = v === 'today' ? 'today' : null; if (v === 'ready') { secStore('kitP').kitP = 'ready'; KK.days = 7; } if (v === 'soon') { KK.days = 7; } if (v === 'today') { KK.days = 2; } view(); setTimeout(function () { var bd = document.querySelector('.kp-bar') || document.querySelector('.ccs-board'); if (bd && bd.scrollIntoView) bd.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 30); break;
         case 'k-focus-off': S.kit.focus = null; view(); break;
+        case 'at-island': S.attnIsland = S.attnIsland === v ? 'closed' : v; view(); break;
+        case 'at-island-close': S.attnIsland = 'closed'; view(); break;
         case 'at-jump': { var aj = document.getElementById('at-' + v); if (aj && aj.scrollIntoView) aj.scrollIntoView({ behavior: 'smooth', block: 'start' }); break; }
         case 'ho-shift': S.ho = S.ho || {}; S.ho.shift = v; var hn = document.getElementById('ho-note'); if (hn) S.ho.draft = hn.value; view(); break;
         case 'ho-save': hoSave(); break;

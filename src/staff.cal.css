@@ -2730,3 +2730,23 @@ body.ccs-is-off #cc-staff .ccs-side { top: var(--ccs-offh, 44px); }
 #cc-staff .ccs-slipopt small { color: var(--ccs-muted); font-size: 13px; }
 #cc-staff .ccs-slipopt:has(input:checked) { border-color: var(--ds-primary); }
 @media (pointer: coarse) { #cc-staff .ccs-slipopt { min-height: 56px !important; } #cc-staff .ccs-slipopt input { width: 24px; height: 24px; } }
+
+/* Needs attention: compact, tappable alert islands and one detail panel. */
+#cc-staff .at-islands{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));gap:12px;margin:18px 0 20px}
+#cc-staff .at-island{appearance:none;display:flex;align-items:center;gap:12px;text-align:left;min-height:84px;padding:14px 16px;border:1px solid #d5dbe3;border-radius:20px;background:#fff;color:#292f39;box-shadow:0 3px 12px rgba(17,24,39,.06);cursor:pointer;transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease}
+#cc-staff .at-island:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(17,24,39,.10)}
+#cc-staff .at-island:focus-visible{outline:3px solid #5875a5;outline-offset:2px}
+#cc-staff .at-island.is-selected{border-color:#444b57;box-shadow:0 0 0 2px #444b57,0 7px 20px rgba(17,24,39,.11);background:#f5f6f8}
+#cc-staff .at-island-icon{display:grid;place-items:center;flex:none;width:40px;height:40px;border-radius:13px;background:#e9eef5;color:#43516a;font-size:22px;font-weight:750}
+#cc-staff .at-island.is-red .at-island-icon{background:#fee7e5;color:#b42318}
+#cc-staff .at-island.is-amber .at-island-icon{background:#fff0d2;color:#a75b00}
+#cc-staff .at-island-body{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
+#cc-staff .at-island-body strong{font-size:26px;line-height:1.15;font-weight:750}
+#cc-staff .at-island-body>span{font-size:15px;line-height:1.3;font-weight:600;overflow-wrap:anywhere}
+#cc-staff .at-island-chevron{font-size:22px;align-self:center;color:#596577}
+#cc-staff .at-island-panel{border-radius:20px;box-shadow:0 8px 26px rgba(17,24,39,.08);padding:18px}
+#cc-staff .at-panel-heading{display:flex;justify-content:space-between;align-items:center;gap:12px}
+#cc-staff .at-panel-heading h2{margin:0}
+#cc-staff .at-island-close{width:42px;height:42px;border:1px solid #d1d5db;background:#fff;border-radius:12px;font-size:18px;cursor:pointer;color:#374151}
+@media(max-width:640px){#cc-staff .at-islands{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}#cc-staff .at-island{min-height:92px;padding:12px 10px;gap:8px;border-radius:16px}#cc-staff .at-island-icon{width:34px;height:34px;font-size:18px}#cc-staff .at-island-body>span{font-size:13px}#cc-staff .at-island-body strong{font-size:23px}}
+@media(prefers-reduced-motion:reduce){#cc-staff .at-island{transition:none}#cc-staff .at-island:hover{transform:none}}
