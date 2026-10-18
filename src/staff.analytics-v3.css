@@ -42,3 +42,46 @@
 #cc-staff .hb-v2-dayrail .hb-v2-value{font-size:12px}
 @media(max-width:1050px){#cc-staff .hb-k-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}#cc-staff .hb-k-panel{grid-column:span 3}#cc-staff .hb-k-panel.hb-k-wide{grid-column:span 3}}
 @media(max-width:680px){#cc-staff .hb-v2{padding:14px}#cc-staff .hb-k-kpis{gap:8px}#cc-staff .hb-k-kpi{padding:13px;min-height:116px}#cc-staff .hb-k-kpi strong{font-size:23px}#cc-staff .hb-k-kpi .hb-k-top span{font-size:12px}#cc-staff .hb-k-panels{grid-template-columns:1fr}#cc-staff .hb-k-panel,#cc-staff .hb-k-panel.hb-k-wide,#cc-staff .hb-k-panel.hb-k-half{grid-column:span 1}#cc-staff .hb-k-panel{padding:12px}}
+
+/* Approved Analytics layout refinement: preserve data/graphs and the six KPI + panels hierarchy. */
+#cc-staff .hb-v2{max-width:100%;overflow:hidden}
+#cc-staff .hb-v2-head{gap:14px;flex-wrap:wrap}
+#cc-staff .hb-v2-head h2{font-size:22px;line-height:1.25;letter-spacing:-.025em}
+#cc-staff .hb-v2-update{font-size:12px;line-height:1.4;color:#667982}
+#cc-staff .hb-k-heading{margin:17px 0 13px}
+#cc-staff .hb-k-heading h3{font-size:17px}
+#cc-staff .hb-k-heading p{font-size:13px}
+#cc-staff .hb-k-kpis{gap:12px;margin-bottom:17px}
+#cc-staff .hb-k-kpi{min-height:128px;gap:9px}
+#cc-staff .hb-k-kpi strong{font-variant-numeric:tabular-nums}
+#cc-staff .hb-k-caption{font-size:13px;line-height:1.4}
+#cc-staff .hb-k-panel header{align-items:flex-start;flex-wrap:wrap;gap:5px 12px}
+#cc-staff .hb-k-panel header span{font-size:12px;line-height:1.35;white-space:normal}
+#cc-staff .hb-k-panel .hb-m-tick{font-size:12px}
+#cc-staff .hb-k-panel .hb-m-rank{gap:10px}
+#cc-staff .hb-k-panel .hb-m-rank-label{font-size:13px}
+#cc-staff .hb-k-panel .hb-m-empty{min-height:112px;font-size:13px}
+#cc-staff .hb-v2-switch{flex-wrap:wrap;gap:3px}
+#cc-staff .hb-v2-switch button{min-height:32px;padding:7px 11px;font-size:12px}
+#cc-staff .hb-v2-switch button:focus-visible,#cc-staff .hb-v2-day:focus-visible,#cc-staff .hb-v2-railbuttons button:focus-visible{outline:2px solid #528dcb;outline-offset:2px}
+#cc-staff .hb-v2-tools{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;padding-top:18px}
+#cc-staff .hb-v2-options{display:flex;flex-wrap:wrap;gap:9px}
+#cc-staff .hb-v2-scrollbar{gap:10px}
+#cc-staff .hb-v2-railbuttons button{min-height:34px;font-size:13px}
+#cc-staff .hb-v2-day{min-height:122px}
+#cc-staff .hb-v2-date{font-size:12px}
+#cc-staff .hb-v2-date b{font-size:15px}
+#cc-staff .hb-v2-booked small{font-size:11px}
+#cc-staff .hb-v2-pickup{font-size:11px}
+#cc-staff .hb-v2-event{font-size:10px}
+#cc-staff .hb-v2-graph{height:192px}
+#cc-staff .hb-k-curve .hb-v2-axis-label{font-size:11px}
+#cc-staff .hb-v2-key{font-size:12px;gap:12px;line-height:1.4}
+#cc-staff .hb-m-details summary{font-size:14px;min-height:38px}
+#cc-staff .hb-v2-daystats{grid-template-columns:repeat(5,minmax(0,1fr))}
+#cc-staff .hb-v2-daystats span{font-size:12px}
+#cc-staff .hb-v2-list-head{font-size:13px}
+#cc-staff .hb-v2-list-head span,#cc-staff .hb-v2-list p,#cc-staff .hb-v2-footnote{font-size:12px}
+#cc-staff .hb-v2-order{font-size:13px}
+@media(max-width:880px){#cc-staff .hb-k-panel{grid-column:span 3}#cc-staff .hb-v2-daystats{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:680px){#cc-staff .hb-v2-head h2{font-size:20px}#cc-staff .hb-k-kpis{gap:9px}#cc-staff .hb-k-kpi{min-height:120px;padding:12px}#cc-staff .hb-k-kpi strong{font-size:22px}#cc-staff .hb-k-caption{font-size:12px}#cc-staff .hb-k-panels{gap:10px}#cc-staff .hb-k-panel{grid-column:span 1}#cc-staff .hb-v2-daystats{grid-template-columns:repeat(2,minmax(0,1fr))}#cc-staff .hb-v2-tools{align-items:flex-start}#cc-staff .hb-v2-switch button{font-size:12px}}
