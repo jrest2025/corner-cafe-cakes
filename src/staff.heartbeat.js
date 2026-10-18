@@ -122,7 +122,7 @@
     for (var i = 0; i <= HB.daysBehind + HB.daysAhead; i++) {
       var d = addDays(start, i);
       var row = { day: d, placed: [], pickups: [], orders: 0, cakes: 0, value: 0,
-                  pickupCount: 0, pickupCakes: 0, cumOrders: 0, cumCakes: 0, cumValue: 0 };
+                  pickupCount: 0, pickupCakes: 0, sales: 0, cumSales: 0, cumOrders: 0, cumCakes: 0, cumValue: 0 };
       rows.push(row); days[d] = row;
     }
     // Cumulative totals include history before the visible timeline.
@@ -138,16 +138,17 @@
       if (o.pd && days[o.pd]) {
         days[o.pd].pickups.push(o);
         days[o.pd].pickupCount++; days[o.pd].pickupCakes += qty;
+        if (o.sale) days[o.pd].sales += Math.max(0, hbNum(o.net != null ? o.net : value));
       }
     });
-    var running = { orders: carry.orders, cakes: carry.cakes, value: carry.value };
+    var running = { orders: carry.orders, cakes: carry.cakes, value: carry.value, sales: 0 };
     rows.forEach(function (r) {
-      running.orders += r.orders; running.cakes += r.cakes; running.value += r.value;
+      running.orders += r.orders; running.cakes += r.cakes; running.value += r.value; running.sales += r.sales;
       // Never show an invented future booking progression.
       if (r.day <= t) {
-        r.cumOrders = running.orders; r.cumCakes = running.cakes; r.cumValue = running.value;
+        r.cumOrders = running.orders; r.cumCakes = running.cakes; r.cumValue = running.value; r.cumSales = running.sales;
       } else {
-        r.cumOrders = null; r.cumCakes = null; r.cumValue = null;
+        r.cumOrders = null; r.cumCakes = null; r.cumValue = null; r.cumSales = null;
       }
     });
     return { rows: rows, byDay: days, missing: missing, live: live,
@@ -156,11 +157,11 @@
   function hbMetric(row) {
     var m = HB.metric;
     return HB.mode === 'cumulative' ?
-      (m === 'value' ? row.cumValue : m === 'cakes' ? row.cumCakes : row.cumOrders) :
-      (m === 'value' ? row.value : m === 'cakes' ? row.cakes : row.orders);
+      (m === 'sales' ? row.cumSales : m === 'value' ? row.cumValue : m === 'cakes' ? row.cumCakes : row.cumOrders) :
+      (m === 'sales' ? row.sales : m === 'value' ? row.value : m === 'cakes' ? row.cakes : row.orders);
   }
-  function hbMetricLabel() { return HB.metric === 'value' ? 'Booked value' : HB.metric === 'cakes' ? 'Cakes booked' : 'Orders placed'; }
-  function hbMetricFormat(v) { return HB.metric === 'value' ? hbFjd(v) : String(v == null ? '—' : v); }
+  function hbMetricLabel() { return HB.metric === 'sales' ? 'Completed sales' : HB.metric === 'value' ? 'Booked value' : HB.metric === 'cakes' ? 'Cakes booked' : 'Orders placed'; }
+  function hbMetricFormat(v) { return (HB.metric === 'value' || HB.metric === 'sales') ? hbFjd(v) : String(v == null ? '—' : v); }
   function hbSelectedDay(data) {
     var selected = HB.selected || data.today;
     return data.byDay[selected] || data.byDay[data.today];
@@ -237,7 +238,11 @@
       sales7 = pastWeek.reduce(function (n, r) { return n + r.value; },0),
       pickups7 = nextWeek.reduce(function (n, r) { return n + r.pickupCount; },0),
       upcomingCake = nextWeek.reduce(function (n, r) { return n + r.pickupCakes; },0),
-      lastRead = DX.data.generated_at ? stamp(DX.data.generated_at) : 'the latest refresh';
+      lastRead = DX.data.generated_at ? stamp(DX.data.generated_at) : 'the latest refresh',
+      salesNow = pastWeek.reduce(function(n,r){return n+r.sales;},0),
+      confirmed30 = data.live.filter(function(o){return o.st==='confirmed'&&o.pd>=data.today&&o.pd<addDays(data.today,30);}),
+      futureValue = confirmed30.reduce(function(n,o){return n+hbBookedValue(o);},0),
+      completed7 = data.live.filter(function(o){return o.sale&&o.pd>addDays(data.today,-7)&&o.pd<=data.today;});
     var cells = data.rows.map(function (r) {
       var dow = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date(r.day+'T12:00:00Z').getUTCDay()],
         selected = r.day === (HB.selected || data.today), now = r.day === data.today,
@@ -252,7 +257,7 @@
        '<span class="hb-v2-pickup">' + r.pickupCount + ' pickups</span>' +
        (hbEventMini(r.day) || '<span class="hb-v2-event-space"></span>') + '</button>';
     }).join('');
-    var metricOpts = [['value','Booked value'],['orders','Orders'],['cakes','Cakes']],
+    var metricOpts = [['sales','Sales'],['value','Booked value'],['orders','Orders'],['cakes','Cakes']],
       metricBtns = metricOpts.map(function (x) { return '<button type="button" data-act="dx-hb-metric" data-v="' + x[0] +
         '" aria-pressed="' + (HB.metric === x[0]) + '" class="' + (HB.metric === x[0] ? 'is-on' : '') + '">' + x[1] + '</button>'; }).join('');
     var modeBtns = [['daily','Daily'],['cumulative','Cumulative']].map(function (x) {
@@ -260,9 +265,12 @@
         '" aria-pressed="' + (HB.mode === x[0]) + '" class="' + (HB.mode === x[0] ? 'is-on' : '') + '">' + x[1] + '</button>';
     }).join('');
     return '<section class="hb-v2" aria-label="Cake Heartbeat daily performance">' +
-      '<div class="hb-v2-head"><div><h2>Cake Heartbeat</h2><p>Day-by-day cake bookings, value and pickup demand</p></div>' +
+      '<div class="hb-v2-head"><div><h2>Cake Heartbeat</h2><p>Daily completed sales, bookings and future pickup demand</p></div>' +
       '<div class="hb-v2-update"><span class="hb-v2-live"></span> Updated ' + esc(lastRead) + ' · refreshes every 60 sec</div></div>' +
       '<div class="hb-v2-kpis">' +
+      '<div><span>Last 7 days · completed sales</span><strong>' + hbFjd(salesNow) + '</strong></div>' +
+      '<div><span>Next 30 days · confirmed value</span><strong>' + hbFjd(futureValue) + '</strong></div>' +
+      '<div><span>Last 7 days · avg completed order</span><strong>' + (completed7.length ? hbFjd(salesNow/completed7.length) : '—') + '</strong></div>' +
       '<div><span>Last 7 days · orders placed</span><strong>' + ord7 + '</strong></div>' +
       '<div><span>Last 7 days · booked value</span><strong>' + hbFjd(sales7) + '</strong></div>' +
       '<div><span>Next 7 days · pickups</span><strong>' + pickups7 + '</strong></div>' +
