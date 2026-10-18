@@ -118,3 +118,16 @@
   #cc-staff .hb-kpis strong{font-size:20px}
 }
 @media(prefers-reduced-motion:reduce){#cc-staff .hb-card *{animation:none!important;transition:none!important}}
+
+/* Staff-page standalone integration states and order drill-down. */
+#cc-staff #cc-heartbeat .hb-loading,#cc-staff #cc-heartbeat .hb-error{padding:22px 24px;border:1px solid #dce4d8;border-radius:12px;background:#f9fbf9;color:#415940;font-size:13px;margin:14px 0}
+#cc-staff #cc-heartbeat .hb-error{border-left:4px solid #bf8f37;display:flex;justify-content:space-between;align-items:center;gap:12px}
+#cc-staff #cc-heartbeat .hb-error button,#cc-staff #cc-heartbeat .hb-detail button{background:#4b6339;color:white;border:0;border-radius:7px;padding:8px 12px;cursor:pointer;font:inherit;font-size:12px}
+#cc-staff #cc-heartbeat .hb-detail{padding:17px 21px;border:1px solid #dce4d8;border-radius:12px;background:#fff;margin:12px 0 20px;box-shadow:0 4px 16px rgba(32,57,30,.07)}
+#cc-staff #cc-heartbeat .hb-detail-head{display:flex;align-items:center;justify-content:space-between;gap:16px}
+#cc-staff #cc-heartbeat .hb-detail-head h3{margin:0;font-size:15px}
+#cc-staff #cc-heartbeat .hb-detail ul{padding:0;margin:12px 0 0;list-style:none;max-height:290px;overflow-y:auto}
+#cc-staff #cc-heartbeat .hb-detail li{display:flex;justify-content:space-between;gap:16px;padding:10px 0;border-bottom:1px solid #edf1eb;font-size:12px}
+#cc-staff #cc-heartbeat .hb-detail li:last-child{border-bottom:0}
+#cc-staff #cc-heartbeat .hb-detail li span{font-variant-numeric:tabular-nums;color:#63746b}
+#cc-staff #cc-heartbeat .hb-card button:focus-visible,#cc-staff #cc-heartbeat .hb-detail button:focus-visible{outline:2px solid #2c4a86;outline-offset:2px}
