@@ -65,3 +65,8 @@
 }
 /* A long list scrolls inside itself only when it really is long. */
 #cc-staff .fit-long{max-height:min(70vh,640px);overflow-y:auto;overscroll-behavior:contain}
+/* Breathing room: content sits well away from the screen edges (gutters set through the page spacing variables). */
+#cc-staff .ccs-app #ccs-main{--ccs-page-x:20px;--ccs-page-y:22px}
+@media (min-width:641px){#cc-staff .ccs-app #ccs-main{--ccs-page-x:32px;--ccs-page-y:28px}}
+@media (min-width:1280px){#cc-staff .ccs-app #ccs-main{--ccs-page-x:44px;--ccs-page-y:32px}}
+@media (min-width:1800px){#cc-staff .ccs-app #ccs-main{--ccs-page-x:64px;--ccs-page-y:40px}}
