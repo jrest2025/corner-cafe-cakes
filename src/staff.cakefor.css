@@ -1,0 +1,8 @@
+/* Cake for (18 October 2026): the line under Occasion on an order, and its one-field edit. */
+#cc-staff .cf-dd{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px}
+#cc-staff .cf-none{color:var(--ccs-muted,#6b7280)}
+#cc-staff .cf-src{color:var(--ccs-muted,#6b7280);font-size:.85em}
+#cc-staff .cf-chg{margin-left:auto;min-height:32px;padding:0 6px;line-height:1.2}
+#cc-staff .cf-edit form{display:grid;gap:8px;max-width:360px}
+#cc-staff .cf-acts{display:flex;gap:8px;flex-wrap:wrap}
+#cc-staff .cf-acts .ccs-btn{min-height:44px}
