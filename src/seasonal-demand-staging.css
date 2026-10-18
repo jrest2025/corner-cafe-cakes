@@ -1,0 +1,25 @@
+/* Corner Cafe staging seasonal demand. Scope never touches existing dashboard cards or charts. */
+#cc-seasonal-demand-staging.ccsd{font-family:inherit;background:#fff;border:1px solid #e0e7e2;border-radius:14px;padding:19px 21px;margin:16px 0 24px;color:#263a31}
+#cc-seasonal-demand-staging *{box-sizing:border-box}
+#cc-seasonal-demand-staging .ccsd-head{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:15px}
+#cc-seasonal-demand-staging h3{font-size:17px;font-weight:750;margin:0 0 5px}
+#cc-seasonal-demand-staging h4{font-size:15px;font-weight:750;margin:0 0 5px}
+#cc-seasonal-demand-staging p{font-size:12px;line-height:1.55;color:#6a7a71;margin:0}
+#cc-seasonal-demand-staging .ccsd-control{font-weight:650;font-size:12px;color:#495f52;display:flex;gap:8px;align-items:center}
+#cc-seasonal-demand-staging input{font:inherit;color:#253c30;border:1px solid #cddbd2;padding:8px 10px;border-radius:8px;background:#fff}
+#cc-seasonal-demand-staging input:focus-visible{outline:2px solid #5790c9;outline-offset:2px}
+#cc-seasonal-demand-staging .ccsd-legend{display:flex;flex-wrap:wrap;gap:18px;padding:8px 0 12px;font-size:12px;color:#495c50}
+#cc-seasonal-demand-staging .ccsd-legend span{display:inline-flex;gap:8px;align-items:center}
+#cc-seasonal-demand-staging .ccsd-legend i{width:20px;height:0;display:inline-block}
+#cc-seasonal-demand-staging .ccsd-legend .ccsd-due{border-top:3px solid #458c68}
+#cc-seasonal-demand-staging .ccsd-legend .ccsd-booked{border-top:3px dashed #955ca1}
+#cc-seasonal-demand-staging .ccsd-figure{overflow-x:auto;border:1px solid #edf0ed;border-radius:10px;padding:7px 10px;background:#fff}
+#cc-seasonal-demand-staging .ccsd-pace{overflow-x:auto;margin:8px 0 10px}
+#cc-seasonal-demand-staging .ccsd-table{width:100%;border-collapse:collapse;font-size:12px;min-width:580px}
+#cc-seasonal-demand-staging .ccsd-table th,#cc-seasonal-demand-staging .ccsd-table td{padding:10px 8px;border-bottom:1px solid #e9eeea;text-align:right;white-space:nowrap}
+#cc-seasonal-demand-staging .ccsd-table th:first-child{text-align:left}
+#cc-seasonal-demand-staging .ccsd-table thead th{font-weight:700;color:#627a6d}
+#cc-seasonal-demand-staging .ccsd-table tbody th{font-weight:700;color:#304c3c}
+#cc-seasonal-demand-staging .ccsd-season-head{border-top:1px solid #e9efeb;padding-top:17px;margin-top:18px}
+#cc-seasonal-demand-staging .ccsd-footnote{font-size:12px;color:#677c6d;margin:11px 0}
+@media(max-width:660px){#cc-seasonal-demand-staging.ccsd{padding:13px}#cc-seasonal-demand-staging .ccsd-control{width:100%}#cc-seasonal-demand-staging input{flex:1;min-width:0}}
