@@ -141,7 +141,7 @@
         if (o.sale) days[o.pd].sales += Math.max(0, hbNum(o.net != null ? o.net : value));
       }
     });
-    var running = { orders: carry.orders, cakes: carry.cakes, value: carry.value, sales: 0 };
+    var running = { orders: carry.orders, cakes: carry.cakes, value: carry.value, sales: live.reduce(function(sum,o){return sum+(o.sale&&o.pd&&o.pd<start?Math.max(0,hbNum(o.net!=null?o.net:hbBookedValue(o))):0);},0) };
     rows.forEach(function (r) {
       running.orders += r.orders; running.cakes += r.cakes; running.value += r.value; running.sales += r.sales;
       // Never show an invented future booking progression.
@@ -219,7 +219,8 @@
     return '<div class="hb-v2-detail"><div class="hb-v2-detail-title"><div><h3>' +
       esc(hbDateTitle(date)) + '</h3><span>Actual recorded bookings and scheduled pickups</span></div>' +
       '<div class="hb-v2-detail-tags">' + hbEventTags(date) + '</div></div>' +
-      '<div class="hb-v2-daystats"><div><span>Orders placed</span><strong>' + r.orders +
+      '<div class="hb-v2-daystats"><div><span>Completed sales</span><strong>' + hbFjd(r.sales) + '</strong></div>' +
+      '<div><span>Orders placed</span><strong>' + r.orders +
       '</strong></div><div><span>Booked value</span><strong>' + hbFjd(r.value) +
       '</strong></div><div><span>Cakes booked</span><strong>' + r.cakes +
       '</strong></div><div><span>Pickups due</span><strong>' + r.pickupCount +
