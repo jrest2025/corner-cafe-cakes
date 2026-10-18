@@ -33,3 +33,17 @@ Calendar stylesheet: `src/staff.calendar-dashboard.css`. Read-only month summary
 
 ## Calendar month interaction (approved 18 October 2026)
 The month grid shows date, order/cake count, holiday and occasion indicators only. Pickup times, cake names and order details belong in the selected-date view, using the existing right-hand panel on desktop and the native sheet on mobile/tablets. Preserve existing order actions and permissions; keep month cells legible and compact.
+
+## Approved Cake Analytics structure — locked 19 October 2026
+
+**Preserve the current visual hierarchy and scope in future refinements.** The user approved the V3 Analytics layout and specifically requested only typography, text, spacing, legibility and responsive polishing without restructuring.
+
+- Executive six-card summary: cakes booked, orders received, estimated booking value, confirmed cakes due, confirmed future order value, and average booking lead time.
+- Two large charts: cakes booked by booking date and cakes due by collection date.
+- Supporting charts: cake types, booking channels, lead time, weekday demand, upcoming pipeline, occasion mix.
+- Wide horizontally scrollable day-by-day cake-demand curve, defaulting to cakes due, with measure and cumulative toggles.
+- Expandable selected-day details. Operations and follow-ups stay out of the Analytics section.
+- Reporting source remains staff-authorized `dashboard_register` (read-only). Never treat estimated booked value as payments received or completed sales; do not invent numbers or compare incompatible date bases.
+- Maintain accessible labels (approximately 12–14px minimum for dense chart text), concise management wording, balanced panel sizes and mobile layouts.
+- Preserve the isolated analytics loader, fixed commit references, fallback behaviour, and all other tabs untouched. When refining, test combined script compilation and representative calculation paths before publication.
+- Baseline source ref: `0e007cf197d6e76ffa86836f9426946df435a8c4`, additionally snapshotted under `snapshot/approved-cake-analytics-v3-2026-10-19`.
