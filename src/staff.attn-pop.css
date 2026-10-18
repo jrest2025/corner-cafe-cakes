@@ -17,11 +17,9 @@
 #cc-staff .ap-slate{--ap-soft:#eceff3;--ap-ink:#3e4653}
 /* Pop-up: floats over the working area only, never over the side menu or the phone tab bar. */
 #cc-staff .ap-scrim{position:fixed;top:0;bottom:var(--ap-bottom,0);left:var(--ap-left,0);width:var(--ap-width,100%);z-index:24;background:rgba(23,27,33,.32);animation:ap-fade .18s ease both}
-#cc-staff .ap-pop{position:fixed;z-index:25;top:var(--ap-top,32px);max-height:calc(100vh - var(--ap-top,32px) - var(--ap-bottom,0px) - 24px);left:calc(var(--ap-left,0px) + max(24px,(var(--ap-width,100vw) - 880px)/2));width:min(880px,calc(var(--ap-width,100vw) - 48px));display:flex;flex-direction:column;background:#fff;border-radius:24px;box-shadow:0 24px 60px rgba(17,24,39,.28),0 2px 6px rgba(17,24,39,.08);overflow:hidden;animation:ap-rise .22s cubic-bezier(.2,.8,.2,1) both}
-@supports (height:1dvh){#cc-staff .ap-pop{max-height:calc(100dvh - var(--ap-top,32px) - var(--ap-bottom,0px) - 24px)}}
-/* While the panel is open the islands sit above the dimmed backdrop, so another category is one tap away.
-   Not on phones: there the panel is a bottom sheet that rises over the islands, so they must stay underneath it. */
-@media (min-width:641px){html.ap-is-open #cc-staff .ap-islands{position:relative;z-index:26}}
+#cc-staff .ap-pop{position:fixed;z-index:25;top:calc((100vh - var(--ap-bottom,0px))/2);left:calc(var(--ap-left,0px) + var(--ap-width,100vw)/2);translate:-50% -50%;width:min(880px,calc(var(--ap-width,100vw) - 48px));max-height:calc(100vh - var(--ap-bottom,0px) - 48px);display:flex;flex-direction:column;background:#fff;border-radius:24px;box-shadow:0 24px 60px rgba(17,24,39,.28),0 2px 6px rgba(17,24,39,.08);overflow:hidden;animation:ap-rise .22s cubic-bezier(.2,.8,.2,1) both}
+/* Always centred in the working area, above the phone tab bar, never over the side menu. */
+@supports (height:1dvh){#cc-staff .ap-pop{top:calc((100dvh - var(--ap-bottom,0px))/2);max-height:calc(100dvh - var(--ap-bottom,0px) - 48px)}}
 #cc-staff .ap-pop-head{flex:none;display:flex;align-items:center;gap:14px;padding:18px 18px 16px 22px;border-bottom:1px solid #eceef1}
 #cc-staff .ap-pop-title{flex:1;min-width:0}
 #cc-staff .ap-pop-title h2{margin:0;font-size:21px;line-height:1.25;font-weight:700;color:#15191f}
@@ -37,7 +35,20 @@
 #cc-staff .ap-pop-body .ccs-next{display:block;-webkit-line-clamp:unset;line-clamp:unset;overflow:visible;max-height:none}
 html.ap-is-open,html.ap-is-open body{overflow:hidden}
 @keyframes ap-fade{from{opacity:0}}
-@keyframes ap-rise{from{opacity:0;transform:translateY(12px) scale(.985)}}
+@keyframes ap-rise{from{opacity:0;transform:scale(.97)}}
+/* Two panes on wide landscape screens, like an inbox: islands down the left, the chosen category on the right. */
+#cc-staff .ap-split{display:grid;grid-template-columns:minmax(240px,300px) minmax(0,1fr);gap:20px;align-items:start;margin-top:20px}
+#cc-staff .ap-islands.ap-col{display:flex;flex-direction:column;gap:10px;margin:0}
+#cc-staff .ap-col .ap-island{min-height:76px;padding:12px 16px;border-radius:18px}
+#cc-staff .ap-col .ap-island:hover{transform:none;border-color:#c9ced6}
+#cc-staff .ap-col .ap-island.is-open{background:#f6f7f9}
+#cc-staff .ap-col .ap-icon{width:42px;height:42px;border-radius:13px}
+#cc-staff .ap-col .ap-text b{font-size:24px}
+#cc-staff .ap-pane{position:sticky;top:16px;display:flex;flex-direction:column;max-height:calc(100vh - var(--ap-pane-top,120px) - 16px);min-height:320px;background:#fff;border:1px solid #dfe3e8;border-radius:22px;box-shadow:0 1px 2px rgba(17,24,39,.04),0 8px 22px rgba(17,24,39,.06);overflow:hidden;animation:ap-swap .18s ease both}
+#cc-staff .ap-pane .ap-pop-head{padding:16px 20px 14px}
+/* In the narrower reading pane the status pills wrap so the cake, customer and order number keep their room. */
+#cc-staff .ap-pane .ccs-mini-r{flex-wrap:wrap;justify-content:flex-end;max-width:240px;row-gap:6px}
+@keyframes ap-swap{from{opacity:.4}}
 /* Phone: a bottom sheet above the tab bar. */
 @media (max-width:640px){
   #cc-staff .ap-islands{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:16px}
@@ -45,7 +56,7 @@ html.ap-is-open,html.ap-is-open body{overflow:hidden}
   #cc-staff .ap-icon{width:40px;height:40px;border-radius:13px}
   #cc-staff .ap-text b{font-size:25px}
   #cc-staff .ap-text span{font-size:14px}
-  #cc-staff .ap-pop{top:auto;left:0;width:100%;bottom:var(--ap-bottom,0px);max-height:calc(100% - 56px - var(--ap-bottom,0px));border-radius:22px 22px 0 0}
+  #cc-staff .ap-pop{width:calc(100% - 24px);max-height:calc(100vh - var(--ap-bottom,0px) - 32px);border-radius:22px}
   #cc-staff .ap-pop-head{padding:14px 14px 12px 16px}
   #cc-staff .ap-close span{display:none}
   #cc-staff .ap-close{width:48px;padding:0;justify-content:center}

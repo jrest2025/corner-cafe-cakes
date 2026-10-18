@@ -15,19 +15,36 @@ var AP_ICON = {
 var AP_TONE = { overdue: 'ap-red', soon: 'ap-red', todaykit: 'ap-amber', unconf: 'ap-amber', waiting: 'ap-slate', pay: 'ap-blue', allergy: 'ap-orange', data: 'ap-amber', complaint: 'ap-purple' };
 var AP_SHORT = { overdue: 'Overdue', soon: 'Due soon, not ready', todaykit: 'Kitchen not finished', unconf: 'Not confirmed', waiting: 'Waiting on you', pay: 'Balance to pay', allergy: 'Allergies to check', data: 'Missing details', complaint: 'Customer concerns' };
 function apSvg(k) { return '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' + (AP_ICON[k] || AP_ICON.overdue) + '</svg>'; }
+// Wide landscape screens (desktop, iPad landscape) use two panes like an inbox: islands on the left, the chosen
+// category's orders on the right. Portrait tablets and phones keep the pop-up.
+var AP_WIDE = '(min-width: 1100px) and (orientation: landscape)';
+function apSplit() { return !!(window.matchMedia && matchMedia(AP_WIDE).matches); }
 // The open category, or null. A category that has emptied out closes its panel.
-function apOpen(gs) { var k = y.attnIsland; return k && gs.some(function (g) { return g.key === k; }) ? k : null; }
+// In two panes something is always open: the chosen category, or the most urgent one (the first island).
+function apOpen(gs) {
+  var k = y.attnIsland, ok = k && gs.some(function (g) { return g.key === k; });
+  if (ok) return k;
+  return apSplit() && gs.length ? gs[0].key : null;
+}
 function apIslands(gs) {
-  var open = apOpen(gs);
-  return '<div class="ap-islands" role="group" aria-label="What needs attention">' + gs.map(function (g) {
+  var open = apOpen(gs), split = apSplit();
+  return (split ? '<div class="ap-split">' : '') + '<div class="ap-islands' + (split ? ' ap-col' : '') + '" role="group" aria-label="What needs attention">' + gs.map(function (g) {
     var on = open === g.key;
-    return '<button type="button" class="ap-island ' + (AP_TONE[g.key] || 'ap-slate') + (on ? ' is-open' : '') + '" data-act="ap-open" data-v="' + g.key + '" aria-haspopup="dialog" aria-expanded="' + on + '" title="' + Tt(g.title) + '">' +
+    return '<button type="button" class="ap-island ' + (AP_TONE[g.key] || 'ap-slate') + (on ? ' is-open' : '') + '" data-act="ap-open" data-v="' + g.key + '" ' + (split ? 'aria-pressed="' + on + '" aria-controls="ap-pane"' : 'aria-haspopup="dialog" aria-expanded="' + on + '"') + ' title="' + Tt(g.title) + '">' +
       '<span class="ap-icon">' + apSvg(g.key) + '</span><span class="ap-text"><b>' + g.rows.length + '</b><span>' + Tt(AP_SHORT[g.key] || g.title) + '</span></span></button>';
   }).join('') + '</div>';
 }
 // body is the existing group section (same rows, reasons and order buttons as before), rendered for the open category only.
 function apPanel(gs, body) {
-  var open = apOpen(gs); if (!open || !body) return '';
+  var open = apOpen(gs);
+  if (apSplit()) {
+    if (!open || !body) return '</div>';
+    var p = gs.filter(function (x) { return x.key === open; })[0], n = p.rows.length + (p.rows.length === 1 ? ' order' : ' orders');
+    return '<section class="ap-pane ' + (AP_TONE[open] || 'ap-slate') + '" id="ap-pane" aria-label="' + Tt(p.title) + ', ' + n + '" aria-live="polite">' +
+      '<div class="ap-pop-head"><span class="ap-icon">' + apSvg(open) + '</span><div class="ap-pop-title"><h2>' + Tt(p.title) + '</h2><span>' + n + ' · tap an order to open it</span></div></div>' +
+      '<div class="ap-pop-body ap-pane-body">' + body + '</div></section></div>';
+  }
+  if (!open || !body) return '';
   var g = gs.filter(function (x) { return x.key === open; })[0];
   return '<div class="ap-scrim" data-act="ap-close" aria-hidden="true"></div><div class="ap-pop ' + (AP_TONE[open] || 'ap-slate') + '" id="ap-pop" role="dialog" aria-modal="false" aria-label="' + Tt(g.title) + ', ' + g.rows.length + (g.rows.length === 1 ? ' order' : ' orders') + '">' +
     '<div class="ap-pop-head"><span class="ap-icon">' + apSvg(open) + '</span><div class="ap-pop-title"><h2>' + Tt(g.title) + '</h2><span>' + g.rows.length + (g.rows.length === 1 ? ' order' : ' orders') + ' · tap an order to open it</span></div>' +
@@ -36,6 +53,13 @@ function apPanel(gs, body) {
 }
 function apSet(k) {
   var was = y.attnIsland;
+  // Two panes: choosing a category just shows it; there is nothing to close, so focus stays on the island.
+  if (apSplit()) {
+    if (!k) return;
+    y.attnIsland = k; apScroll = 0; Ma();
+    setTimeout(function () { var el = document.querySelector('.ap-island[data-v="' + k + '"]'); if (el && el.focus) el.focus({ preventScroll: true }); }, 20);
+    return;
+  }
   y.attnIsland = k; apScroll = 0; Ma();
   // Focus moves into the panel when it opens, and back to its island when it closes.
   setTimeout(function () {
@@ -51,6 +75,13 @@ function apPlace() {
   if (scr && scr.getAttribute('data-screen') !== 'attn' && y.attnIsland) y.attnIsland = null;
   var pop = document.getElementById('ap-pop'), scrim = document.querySelector('.ap-scrim');
   document.documentElement.classList.toggle('ap-is-open', !!pop);
+  var pane = document.querySelector('#ap-pane .ap-pane-body');
+  if (pane) {
+    // The reading pane sits beside the islands and fills down to the bottom of the screen.
+    var pr = document.getElementById('ap-pane');
+    pr.style.setProperty('--ap-pane-top', Math.max(16, Math.min(pr.getBoundingClientRect().top, 120)) + 'px');
+    if (!pane.dataset.apBound) { pane.dataset.apBound = '1'; pane.scrollTop = apScroll; pane.addEventListener('scroll', function () { apScroll = pane.scrollTop; }, { passive: true }); }
+  }
   if (!pop) return;
   var main = document.getElementById('ccs-main'), nav = document.querySelector('.ccs-nav');
   var r = main ? main.getBoundingClientRect() : { left: 0, width: innerWidth };
@@ -74,6 +105,8 @@ function apPlace() {
     if (!root) return setTimeout(watch, 200);
     new MutationObserver(soon).observe(root, { childList: true, subtree: true });
     addEventListener('resize', soon, { passive: true });
+    // Rotating the iPad, or resizing a desktop window across the breakpoint, swaps pop-up and two panes.
+    if (window.matchMedia) { var mq = matchMedia(AP_WIDE), flip = function () { var m = document.getElementById('ccs-main'); if (m && m.getAttribute('data-screen') === 'attn') Ma(); }; if (mq.addEventListener) mq.addEventListener('change', flip); else if (mq.addListener) mq.addListener(flip); }
     soon();
   }
   watch();
