@@ -432,3 +432,133 @@
     display:none!important;
   }
 }
+
+
+/* Calendar v6 — a planning surface with its own quiet seven-day colour rhythm. */
+#cc-staff #ccs-main[data-screen="calendar"] .ccs-month{
+  border:1px solid #d9e2ec;
+  box-shadow:0 5px 20px rgba(39,53,73,.07);
+  border-radius:15px;
+}
+#cc-staff #ccs-main[data-screen="calendar"] .ccs-mhead span{
+  font-size:13px;
+  font-weight:760;
+  padding:13px 12px;
+  background:#f6f4fa;
+  color:#5f5677;
+  border-bottom:2px solid #d5c9e5;
+}
+#cc-staff #ccs-main[data-screen="calendar"] .ccs-mhead span:nth-child(2){background:#f9f5ed;color:#796447;border-bottom-color:#ead7af}
+#cc-staff #ccs-main[data-screen="calendar"] .ccs-mhead span:nth-child(3){background:#f1f7ec;color:#57724c;border-bottom-color:#cae1b7}
+#cc-staff #ccs-main[data-screen="calendar"] .ccs-mhead span:nth-child(4){background:#f8f2f7;color:#875b77;border-bottom-color:#e5c5db}
+#cc-staff #ccs-main[data-screen="calendar"] .ccs-mhead span:nth-child(5){background:#eff5fa;color:#4d7395;border-bottom-color:#c7daeb}
+#cc-staff #ccs-main[data-screen="calendar"] .ccs-mhead span:nth-child(6){background:#f3f6f8;color:#647d90;border-bottom-color:#cfdae1}
+#cc-staff #ccs-main[data-screen="calendar"] .ccs-mhead span:nth-child(7){background:#eff8f8;color:#47828c;border-bottom-color:#c2e2e5}
+#cc-staff #ccs-main[data-screen="calendar"] .ccs-month .ccs-mcell{
+  background:#fff;
+  border-color:#e8edf2;
+  min-height:118px!important;
+  transition:background-color .14s ease,box-shadow .14s ease;
+}
+#cc-staff #ccs-main[data-screen="calendar"] .ccs-month .ccs-mcell:nth-child(7n),
+#cc-staff #ccs-main[data-screen="calendar"] .ccs-month .ccs-mcell:nth-child(7n - 1){
+  background:#fbfcfe;
+}
+#cc-staff #ccs-main[data-screen="calendar"] .ccs-month .ccs-mcell.is-out{
+  background:#f3f5f8!important;
+}
+#cc-staff #ccs-main[data-screen="calendar"] .ccs-month .ccs-mcell.ccv-week-focused:not(.is-sel):not(.is-out){
+  box-shadow:inset 0 2px 0 #e5dbf0;
+}
+#cc-staff #ccs-main[data-screen="calendar"] .ccs-month .ccs-mcell.ccv-has-volume:not(.is-out){
+  background:linear-gradient(155deg,#f8fbf7 0%,#fff 78%);
+}
+#cc-staff #ccs-main[data-screen="calendar"] .ccs-month .ccs-mcell.ccv-load-medium:not(.is-out){
+  background:linear-gradient(155deg,#f0f7eb 0%,#fff 88%);
+}
+#cc-staff #ccs-main[data-screen="calendar"] .ccs-month .ccs-mcell.ccv-load-high:not(.is-out){
+  background:linear-gradient(155deg,#e8f3e4 0%,#fff 89%);
+}
+#cc-staff #ccs-main[data-screen="calendar"] .ccs-month .ccs-mcell.is-sel{
+  background:#f0ebf8!important;
+  box-shadow:inset 0 0 0 2px #9b78b3!important;
+}
+#cc-staff #ccs-main[data-screen="calendar"] .ccs-month .ccs-mcell.is-sel .ccs-mday{
+  background:transparent!important;
+}
+#cc-staff #ccs-main[data-screen="calendar"] .ccs-month .ccs-mday{
+  min-height:112px!important;
+  padding:12px 12px 9px;
+  gap:7px;
+}
+#cc-staff #ccs-main[data-screen="calendar"] .ccs-month .ccs-mday>b{
+  font-size:19px;
+  font-weight:780;
+  color:#2b3545;
+}
+#cc-staff #ccs-main[data-screen="calendar"] .ccs-month .ccs-mcell.is-today .ccs-mday>b{
+  background:#333d4a!important;
+  border-radius:10px;
+  width:31px;
+  height:31px;
+  color:white;
+}
+#cc-staff #ccs-main[data-screen="calendar"] .ccs-month .ccs-mcount{
+  font-size:14px;
+  color:#3b694c;
+  font-weight:700;
+}
+#cc-staff #ccs-main[data-screen="calendar"] .ccs-month .ccv-activity{
+  margin-top:auto;
+  display:flex;
+  align-items:center;
+  gap:4px;
+  width:78%;
+  max-width:96px;
+  height:5px;
+}
+#cc-staff #ccs-main[data-screen="calendar"] .ccs-month .ccv-activity i{
+  height:5px;
+  border-radius:4px;
+  flex:1;
+  background:#e6ece7;
+}
+#cc-staff #ccs-main[data-screen="calendar"] .ccs-month .ccv-activity i.is-active{
+  background:#78ac7c;
+}
+#cc-staff #ccs-main[data-screen="calendar"] .ccs-month .ccv-load-high .ccv-activity i.is-active{
+  background:#4b8264;
+}
+#cc-staff #ccs-main[data-screen="calendar"] .ccs-month .ccs-mcell.has-orders .ccs-mday::after{
+  display:none;
+}
+#cc-staff #ccs-main[data-screen="calendar"] .ccs-month .ccs-mcell:not(.is-out) .ccs-mday:hover{
+  background:rgba(223,231,245,.47)!important;
+}
+@media(max-width:899px){
+  #cc-staff #ccs-main[data-screen="calendar"] .ccs-month .ccs-mcell{
+    min-height:81px!important;
+  }
+  #cc-staff #ccs-main[data-screen="calendar"] .ccs-month .ccs-mday{
+    min-height:76px!important;
+    padding:8px 6px!important;
+  }
+  #cc-staff #ccs-main[data-screen="calendar"] .ccs-mhead span{
+    padding:9px 3px;
+    text-align:center;
+  }
+}
+@media(max-width:650px){
+  #cc-staff #ccs-main[data-screen="calendar"] .ccs-month .ccs-mcell{min-height:67px!important;}
+  #cc-staff #ccs-main[data-screen="calendar"] .ccs-month .ccs-mday{
+    min-height:62px!important;
+    padding:6px 2px!important;
+    align-items:center;
+    gap:3px;
+  }
+  #cc-staff #ccs-main[data-screen="calendar"] .ccs-month .ccs-mday>b{font-size:16px;}
+  #cc-staff #ccs-main[data-screen="calendar"] .ccs-month .ccv-activity{
+    width:70%;max-width:32px;height:4px;gap:2px;
+  }
+  #cc-staff #ccs-main[data-screen="calendar"] .ccs-month .ccv-activity i{height:4px;}
+}
