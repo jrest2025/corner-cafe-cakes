@@ -2,10 +2,9 @@
    already delivered by the staff application. No new customer API or record writes. */
 (function(){
 'use strict';
-if(window.__ccCustomerDirectoryV1)return;
-window.__ccCustomerDirectoryV1=true;
-var root=document.getElementById('cc-staff');
-if(!root)return;
+if(window.__ccCustomerDirectoryV2)return;
+window.__ccCustomerDirectoryV2=true;
+var root=null;
 var pending=false;
 var icon={
  people:'<path d="M16 19v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 19v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>',
@@ -110,6 +109,7 @@ function render(){
  var signature=[count,data.length,repeats,consent,occasions,ranked.map(function(r){return r.name+':'+r.count;}).join(','),frequent.map(function(r){return r.id+':'+r.orders;}).join(','),main.querySelector('#ccs-seg')?.value||''].join('|');
  if(prior.dataset.signature===signature&&prior.parentElement)return;
  prior.dataset.signature=signature;
+ main.setAttribute('data-customer-enhanced','true');
  prior.replaceChildren();
  var heading=el('div','cu-dashboard-heading');
  var left=el('div','cu-dashboard-title');
@@ -152,6 +152,17 @@ var observer=new MutationObserver(function(mutations){
  if(!relevant)return;
  pending=true;queueMicrotask(render);
 });
-observer.observe(root,{childList:true,subtree:true});
-render();
+var bootCount=0;
+function boot(){
+  root=document.getElementById('cc-staff');
+  if(!root){
+    if(++bootCount<120)setTimeout(boot,250);
+    else console.warn('Customer directory: staff app mount was not found');
+    return;
+  }
+  observer.observe(root,{childList:true,subtree:true});
+  render();
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});
+else boot();
 })();
