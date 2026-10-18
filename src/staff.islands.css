@@ -1,0 +1,17 @@
+/* Islands on other screens: uses the Needs attention island, pop-up and pane styles. */
+#cc-staff .ix-wrap:not(.ap-split)>.ap-islands{margin-top:16px}
+#cc-staff .ap-island.ix-zero{opacity:.72}
+#cc-staff .ap-island.ix-zero .ap-text b{color:#6b7280}
+/* A section moved into the pop-up or pane loses its own card look and heading; the panel header replaces them. */
+#cc-staff .ix-body>section.ix-in{margin:0;padding:12px 2px 4px;border:0;box-shadow:none;background:none}
+#cc-staff .ix-body>section.ix-in>h2{display:none}
+#cc-staff .ix-body .ho-write{margin-top:14px}
+/* Customers needing attention: rows as islands in a grid. Each still opens the filtered list. */
+#cc-staff .ix-cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,290px),1fr));gap:10px;margin-top:12px}
+#cc-staff .ov-att .ix-crow{width:auto;margin:0;min-height:88px;align-items:flex-start;border-bottom:1px solid #dfe3e8}
+#cc-staff .ov-att .ix-crow .ov-an{flex:none;display:grid;place-items:center;min-width:46px;height:46px;padding:0 6px;border-radius:15px;font-size:22px;font-weight:700;background:var(--ap-soft);color:var(--ap-ink)}
+#cc-staff .ov-att .ix-crow .ov-at{display:flex;flex-direction:column;gap:3px;flex:1;min-width:0}
+#cc-staff .ov-att .ix-crow .ov-at b{font-size:15px}
+#cc-staff .ov-att .ix-crow .ov-at>span{font-size:13px;line-height:1.35;color:#5b6370}
+#cc-staff .ov-att .ix-crow .ov-go{display:none}
+@media (max-width:640px){#cc-staff .ix-cgrid{grid-template-columns:minmax(0,1fr)}#cc-staff .ov-att .ix-crow{min-height:0}}
