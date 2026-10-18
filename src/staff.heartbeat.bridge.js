@@ -117,7 +117,7 @@
   }
   var observer = new MutationObserver(tickObserver);
   observer.observe(root,{childList:true,subtree:true});
-  root.addEventListener('change',function(e){var el=e.target;if(!el||!el.matches||!el.matches('#cc-heartbeat [data-hb-jump]'))return;var v=el.value;if(!/^\\d{4}-\\d{2}-01$/.test(v))return;HB.jumpMonth=v;HB.railScroll=null;hbScrollToDay(v,false);},true);
+  root.addEventListener('change',function(e){var el=e.target;if(!el||!el.matches||!el.matches('#cc-heartbeat [data-hb-jump]'))return;var v=el.value;if(!/^[0-9]{4}-[0-9]{2}-01$/.test(v))return;HB.jumpMonth=v;HB.railScroll=null;hbScrollToDay(v,false);},true);
   root.addEventListener('click',function (e) {
     var b = e.target && e.target.closest ? e.target.closest('#cc-heartbeat [data-act]') : null;
     if (!b) return;
