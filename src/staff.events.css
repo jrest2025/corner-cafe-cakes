@@ -1,0 +1,17 @@
+/* Settings > Events and public holidays. */
+#cc-staff .ev-list{list-style:none;margin:12px 0 18px;padding:0;display:flex;flex-direction:column;gap:8px}
+#cc-staff .ev-item{display:flex;align-items:center;gap:12px;padding:10px 12px;background:#fff;border:1px solid #e3e6ea;border-radius:14px}
+#cc-staff .ev-item.is-edit{border-color:#2f343c;box-shadow:0 0 0 1px #2f343c}
+#cc-staff .ev-dot{flex:none;width:10px;height:10px;border-radius:50%;background:#1d5fbf}
+#cc-staff .ev-holiday .ev-dot{background:#9ca3af}
+#cc-staff .ev-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+#cc-staff .ev-main b{font-size:15px}
+#cc-staff .ev-main span{font-size:13px;color:#5b6370;overflow-wrap:anywhere}
+#cc-staff .ev-btns{flex:none;display:flex;gap:6px}
+#cc-staff .ev-del{color:#b42318}
+#cc-staff .ev-form{padding:16px;border:1px solid #e3e6ea;border-radius:16px;background:#fafbfc}
+#cc-staff .ev-form h4{margin:0 0 12px;font-size:15px}
+#cc-staff .ev-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 16px}
+#cc-staff .ev-grid .ev-name,#cc-staff .ev-grid .ev-note{grid-column:1/-1}
+#cc-staff .ev-acts{display:flex;gap:10px;margin-top:14px}
+@media (max-width:640px){#cc-staff .ev-grid{grid-template-columns:minmax(0,1fr)}#cc-staff .ev-item{flex-wrap:wrap}#cc-staff .ev-btns{width:100%;justify-content:flex-end}}
