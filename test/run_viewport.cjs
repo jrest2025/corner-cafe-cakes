@@ -10,12 +10,13 @@ await p.setContent('<!doctype html><html><head><meta name="viewport" content="wi
 for(const tab of ['today','dash']){
 await p.locator('[data-tab="'+tab+'"]').first().evaluate(e=>e.click());await p.waitForTimeout(250);
 const s=await p.evaluate(()=>{const e=document.getElementById('ccs-main');const cards=[...e.querySelectorAll('.bi-kpis > *, .bi-ov-trend > *, .bi-ov-row > *, .an-grid > *, .tq-stats > *, .tq-main > *')];return{main:e.scrollHeight-e.clientHeight,body:document.documentElement.scrollHeight-innerHeight,x:document.documentElement.scrollWidth-innerWidth,cards:cards.map(c=>{const r=c.getBoundingClientRect();return{top:r.top,bottom:r.bottom,height:r.height}})}});
-check(w+'x'+h+' '+tab+' needs no page or main-area scrolling',s.main<=1&&s.body<=1);
-check(w+'x'+h+' '+tab+' every overview panel is visible',s.cards.length>0&&s.cards.every(r=>r.top>=0&&r.bottom<=h+1&&r.height>=60));
+// 18 Oct 2026 (Roneel): up to 1060px tall, Today and Analytics scroll once as a page instead of cards scrolling inside.
+if(h>1060)check(w+'x'+h+' '+tab+' needs no page or main-area scrolling',s.main<=1&&s.body<=1);else check(w+'x'+h+' '+tab+' scrolls only the working area, once',s.body<=1);
+check(w+'x'+h+' '+tab+' every overview panel is visible',s.cards.length>0&&s.cards.every(r=>r.top>=0&&(h<=1060||r.bottom<=h+1)&&r.height>=60));
 check(w+'x'+h+' '+tab+' does not overflow sideways',s.x<=1);
 if(w===1920&&h===1080)await p.screenshot({path:'/tmp/cc-viewport-final-'+tab+'.png'});
 }
 const long=await p.evaluate(()=>{const box=document.querySelector('.bi-opps');for(let i=0;i<30;i++){const p=document.createElement('p');p.textContent='Additional record '+i+' with readable detail.';box.appendChild(p)}box.scrollTop=box.scrollHeight;const last=box.lastElementChild.getBoundingClientRect(),r=box.getBoundingClientRect(),main=document.getElementById('ccs-main');return{inside:box.scrollHeight>box.clientHeight&&box.scrollTop>0,lastReachable:last.bottom<=r.bottom+1,main:main.scrollHeight-main.clientHeight}});
-check(w+' long lists scroll inside their own panel',long.inside&&long.lastReachable&&long.main<=1);
+check(w+' long lists scroll inside their own panel',long.inside&&long.lastReachable&&(h<=1060||long.main<=1));
 check(w+' no script errors',errors.length===0);await c.close();}
 console.log(count+' viewport-fit checks passed.');}finally{await b.close()}})().catch(e=>{console.error(e);process.exitCode=1});
