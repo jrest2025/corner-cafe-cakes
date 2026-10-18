@@ -14,6 +14,8 @@ create table if not exists public.calendar_events (
   check (ends_on is null or (ends_on >= day and ends_on - day <= 31)),
   unique (day, name)
 );
+alter table public.calendar_events add column if not exists updated_at timestamptz not null default now();
+alter table public.calendar_events add column if not exists updated_by text;
 alter table public.calendar_events enable row level security;
 drop policy if exists calendar_events_read on public.calendar_events;
 create policy calendar_events_read on public.calendar_events for select using (true);
