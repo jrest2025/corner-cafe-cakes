@@ -1,0 +1,65 @@
+/* Corner Cafe CRM — relationship-focused customer profile (scoped to customer sheets). */
+#ccs-sheet.rm-profile{--rm-ink:#263448;--rm-muted:#657386;--rm-purple:#955ca1;--rm-line:#e5e1eb}
+#ccs-sheet.rm-profile .ccs-sheet-head.rm-profile-header{background:#fcf9fd;border-bottom:1px solid #e6ddec;padding:20px 24px}
+#ccs-sheet.rm-profile .rm-identity{display:flex;align-items:center;gap:14px;min-width:0;flex:1}
+#ccs-sheet.rm-profile .rm-avatar{width:52px;height:52px;flex:none;display:grid;place-items:center;border-radius:16px;background:#efe2f4;color:#80528f;font-size:18px;font-weight:800;letter-spacing:.025em}
+#ccs-sheet.rm-profile .rm-names{display:grid;gap:2px;min-width:0}
+#ccs-sheet.rm-profile .rm-eyebrow{text-transform:uppercase;letter-spacing:.09em;font-weight:800;font-size:10px;color:#93639b}
+#ccs-sheet.rm-profile .rm-identity .ccs-title{font-size:clamp(23px,2.5vw,30px);line-height:1.2;white-space:normal;overflow-wrap:anywhere;letter-spacing:-.03em;color:#2a3143}
+#ccs-sheet.rm-profile .ccs-sheet-body{gap:13px;padding:18px 22px 30px;background:#fbfafc!important}
+#ccs-sheet.rm-profile .rm-reference{font-size:13px;color:#7b6883;letter-spacing:.015em;margin:0}
+#ccs-sheet.rm-profile .rm-review-alert{border:1px solid #f3d2b3;border-left:4px solid #c97c38;background:#fff7ed;border-radius:10px;padding:12px 14px;font-size:14px;line-height:1.5;margin:0}
+#ccs-sheet.rm-profile .ccs-cust-acts.rm-actions{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr) minmax(0,1fr);gap:9px}
+#ccs-sheet.rm-profile .rm-actions .ccs-btn{display:flex;align-items:center;justify-content:center;gap:8px;min-width:0;min-height:47px;padding:10px 12px;border-radius:11px;font-size:14px;font-weight:750;text-decoration:none}
+#ccs-sheet.rm-profile .rm-actions [data-act="cust-neworder"]{background:#343a43;color:#fff;border-color:#343a43}
+#ccs-sheet.rm-profile .rm-actions a{color:#305b84;background:#edf4fb;border:1px solid #cee0f1}
+#ccs-sheet.rm-profile .rm-icon{display:inline-flex;align-items:center;justify-content:center;flex:none;width:18px;height:18px}
+#ccs-sheet.rm-profile .rm-icon svg{height:100%;width:100%}
+#ccs-sheet.rm-profile .ccs-secbar{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;padding:5px;background:#fff;border:1px solid var(--rm-line);border-radius:12px;overflow:visible}
+#ccs-sheet.rm-profile .ccs-secbar .ccs-secbtn{display:flex;gap:7px;align-items:center;justify-content:center;white-space:normal;min-width:0;padding:10px 8px;border-radius:9px;font-weight:700;font-size:13px;line-height:1.25}
+#ccs-sheet.rm-profile .ccs-secbar .ccs-secbtn[aria-selected="true"]{color:#713b7e;background:#f4eaf7;border:1px solid #ddc8e5}
+#ccs-sheet.rm-profile .ccs-secbody{min-width:0}
+#ccs-sheet.rm-profile .cp-sec{padding:17px;border:1px solid var(--rm-line);border-radius:14px;background:#fff;box-shadow:0 2px 7px #251c3508}
+#ccs-sheet.rm-profile #cp-overview>h3{font-size:17px;color:var(--rm-ink);margin:0 0 13px}
+#ccs-sheet.rm-profile .rm-overview{display:grid;gap:14px}
+#ccs-sheet.rm-profile .rm-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
+#ccs-sheet.rm-profile .rm-metric{position:relative;display:flex;flex-direction:column;gap:7px;min-width:0;border:1px solid #e6e1ea;border-radius:11px;padding:14px 12px;background:#faf6fc}
+#ccs-sheet.rm-profile .rm-metric .rm-icon{position:absolute;right:10px;top:12px;color:var(--rm-accent);width:20px;height:20px}
+#ccs-sheet.rm-profile .rm-metric-label{font-size:12px;font-weight:750;padding-right:21px;color:#596376}
+#ccs-sheet.rm-profile .rm-metric-value{font-size:clamp(17px,1.8vw,24px);font-weight:790;color:var(--rm-ink);overflow-wrap:anywhere;line-height:1.3}
+#ccs-sheet.rm-profile .rm-metric-desc{font-size:11px;color:#738096;line-height:1.35}
+#ccs-sheet.rm-profile .rm-purple{--rm-accent:#955ca1;background:#faf5fc}
+#ccs-sheet.rm-profile .rm-lime{--rm-accent:#77a733;background:#f7fbea}
+#ccs-sheet.rm-profile .rm-pink{--rm-accent:#da4693;background:#fff3f9}
+#ccs-sheet.rm-profile .rm-blue{--rm-accent:#528dcb;background:#f1f7fc}
+#ccs-sheet.rm-profile .rm-groups{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+#ccs-sheet.rm-profile .rm-group{padding:15px;background:#fff;border:1px solid #e7e6ed;border-radius:12px;min-width:0}
+#ccs-sheet.rm-profile .rm-group:nth-child(3){grid-column:span 2}
+#ccs-sheet.rm-profile .rm-group-title{display:flex;align-items:center;gap:9px;margin:0 0 12px;font-size:15px;font-weight:780;color:#393349}
+#ccs-sheet.rm-profile .rm-group-title .rm-icon{color:#955ca1;width:19px;height:19px}
+#ccs-sheet.rm-profile .rm-fields{display:grid;gap:0;margin:0}
+#ccs-sheet.rm-profile .rm-field{display:grid;grid-template-columns:minmax(95px,.55fr) minmax(0,1fr);gap:10px;padding:9px 0;border-bottom:1px solid #f0eef3;line-height:1.45}
+#ccs-sheet.rm-profile .rm-field:last-child{border-bottom:none}
+#ccs-sheet.rm-profile .rm-field dt{color:#6d7788;font-size:13px;font-weight:650}
+#ccs-sheet.rm-profile .rm-field dd{margin:0;color:#2f3b4c;font-size:14px;font-weight:600;overflow-wrap:anywhere}
+#ccs-sheet.rm-profile .rm-unavailable{font-size:13px;color:#9ca3af}
+#ccs-sheet.rm-profile .rm-source-hidden{display:none}
+#ccs-sheet.rm-profile .ccs-more-row.rm-tools{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:14px}
+#ccs-sheet.rm-profile .rm-tools .ccs-btn{display:flex;align-items:center;justify-content:center;gap:8px;border-radius:10px;min-height:43px;padding:9px 8px;white-space:normal;font-size:13px}
+#ccs-sheet.rm-profile .rm-tools .rm-icon{color:#885291}
+@media(max-width:880px){
+ #ccs-sheet.rm-profile .rm-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #ccs-sheet.rm-profile .rm-groups{grid-template-columns:1fr}
+ #ccs-sheet.rm-profile .rm-group:nth-child(3){grid-column:auto}
+}
+@media(max-width:620px){
+ #ccs-sheet.rm-profile .ccs-sheet-head.rm-profile-header{padding:14px 16px}
+ #ccs-sheet.rm-profile .ccs-sheet-body{padding:14px 13px 30px}
+ #ccs-sheet.rm-profile .rm-avatar{height:42px;width:42px;border-radius:12px;font-size:15px}
+ #ccs-sheet.rm-profile .rm-actions{grid-template-columns:1fr 1fr!important}
+ #ccs-sheet.rm-profile .rm-actions [data-act="cust-neworder"]{grid-column:1/-1}
+ #ccs-sheet.rm-profile .ccs-secbar{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #ccs-sheet.rm-profile .rm-fields .rm-field{grid-template-columns:minmax(75px,.55fr) minmax(0,1fr)}
+ #ccs-sheet.rm-profile .ccs-more-row.rm-tools{grid-template-columns:1fr}
+ #ccs-sheet.rm-profile .cp-sec{padding:12px}
+}
