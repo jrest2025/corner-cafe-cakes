@@ -1,0 +1,50 @@
+/* Complete the shared visual language in staff forms, sheets and supporting pages.
+   CSS only: native actions, step sequence, validation and permission checks remain. */
+#cc-staff,#ccs-sheet{--form-accent:#3d709b;--form-soft:#eef3f8;--form-border:#dce3eb;--ds-primary:#3d709b;--ds-select-bg:#eef3f8;--ds-select-text:#254a6a}
+#ccs-sheet:has([data-act=cn-save]){--form-accent:#914969;--form-soft:#f8eff3}
+#cc-staff .sl-wrap{--form-accent:#3d709b;--form-soft:#eef3f8}
+/* Reuse readable controls across order, amendment, customer and settings forms. */
+#cc-staff :is(.sl-wrap,.ccs-step-body,.ccs-amend),#ccs-sheet{font-size:var(--read-body,16px);line-height:1.5}
+#cc-staff :is(.sl-k,.ccs-step-q,.sl-steptitle),#ccs-sheet .ccs-step-q{color:#283444;font-weight:650;line-height:1.35;letter-spacing:0}
+#cc-staff .sl-steptitle{font-size:24px!important}
+#cc-staff :is(.sl-k,.ccs-step-q){font-size:20px!important}
+#cc-staff :is(.sl-progress,.sl-sub,.sl-hint),#ccs-sheet :is(.ccs-label,.ccs-hint){font-size:var(--read-support,15px)!important;line-height:1.5}
+#cc-staff .sl-stephead{padding-bottom:16px;margin-bottom:18px;border-bottom:1px solid var(--form-border)}
+#cc-staff .sl-stepbody{gap:14px;min-width:0}
+#cc-staff .sl-stepbody .ccs-field,#ccs-sheet .ccs-field{gap:7px;min-width:0}
+#cc-staff :is(.sl-wrap,.ccs-amend,.ccs-step-body) .ccs-input,#ccs-sheet .ccs-input{box-sizing:border-box;min-width:0;max-width:100%;min-height:48px;border-radius:8px;line-height:1.45}
+#cc-staff .sl-stepper .ccs-input{font-size:18px!important}
+#cc-staff :is(.sl-wrap,.ccs-step-body,.ccs-amend) textarea.ccs-input,#ccs-sheet textarea.ccs-input{min-height:100px;resize:vertical}
+#cc-staff :is(.sl-wrap,.ccs-step-body,.ccs-amend) :is(input,select,textarea):focus-visible,#ccs-sheet :is(input,select,textarea):focus-visible{outline:3px solid var(--form-accent);outline-offset:2px}
+/* A clear selected choice; allergy/dietary selections keep their warning treatment. */
+#cc-staff .sl-wrap :is(.ccs-chip,.ccs-cake,.sl-cell):not([data-act*=diet])[aria-pressed=true],#ccs-sheet .ccs-chip:not([data-act*=diet])[aria-pressed=true]{background:var(--form-soft)!important;color:#254a6a!important;border-color:var(--form-accent)!important;box-shadow:inset 0 0 0 1px var(--form-accent)!important;font-weight:650}
+#cc-staff .sl-wrap .ccs-chips,#ccs-sheet .ccs-chips{gap:10px;flex-wrap:wrap}
+#cc-staff .sl-wrap .ccs-chip,#ccs-sheet .ccs-chip{min-height:48px;height:auto;padding:10px 16px;font-size:var(--read-body,16px)!important;line-height:1.4;white-space:normal;border-radius:9px}
+#cc-staff .sl-wrap .ccs-cake{border-radius:10px;white-space:normal;font-size:var(--read-body,16px)!important;line-height:1.4}
+#cc-staff .sl-wrap .sl-cell{font-size:var(--read-body,16px)!important;line-height:1.45;white-space:normal}
+/* Consistent progress: current = blue, complete = teal, future = neutral. */
+#cc-staff .sl-dots{gap:7px;margin-top:10px}
+#cc-staff .sl-dots li{height:7px;background:#e1e5ec}
+#cc-staff .sl-dots li.is-now{background:var(--form-accent)!important}
+#cc-staff .sl-dots li.is-done{background:#2c7278!important}
+#cc-staff .ccs-nprog li.is-now>span{background:var(--form-accent);color:#fff}
+#cc-staff .ccs-nprog li.is-done>span{background:#e8f4f1;color:#24645e}
+/* Preserve sticky action bars and their existing clearance. */
+#cc-staff .sl-stepbar{padding-top:14px;padding-bottom:max(14px,env(safe-area-inset-bottom,0px));gap:12px;border-top-color:var(--form-border)}
+#cc-staff .sl-stepbar-r,#ccs-sheet .ccs-actions-row{gap:10px;flex-wrap:wrap}
+#cc-staff :is([data-act=sl-next],[data-act=n-submit],[data-act=am-review],[data-act=am-save]),#ccs-sheet [data-act=cn-save]{background:var(--form-accent)!important;border-color:var(--form-accent)!important;color:#fff!important;border-radius:8px;font-size:var(--read-body,16px)!important;min-height:48px}
+#cc-staff :is([data-act=sl-next],[data-act=n-submit],[data-act=am-review],[data-act=am-save]):disabled,#ccs-sheet [data-act=cn-save]:disabled{opacity:.5}
+/* Screen summaries are styled; printed slips retain their established print layout. */
+@media screen{
+ #cc-staff .sl-live{border:1px solid var(--form-border);border-top:3px solid var(--form-accent);border-radius:12px;box-shadow:0 2px 8px #25304408}
+ #cc-staff .sl-live .sl-band{background:var(--form-soft);color:#283444}
+ #cc-staff .sl-live .sl-ll{padding-top:10px;padding-bottom:10px;line-height:1.5}
+ #cc-staff .sl-live .sl-ll :is(span,b){font-size:var(--read-body,16px)!important;line-height:1.5;overflow-wrap:anywhere}
+ #ccs-sheet .ccs-sheet-head{background:#f7f8fb;border-bottom-color:var(--form-border)}
+ #ccs-sheet .ccs-sheet-head .ccs-title{font-size:22px!important;line-height:1.3;font-weight:650}
+ #ccs-sheet .ccs-panel:not(.ccs-confirm):not([role=alert]){border-radius:12px}
+ #ccs-sheet :is(.cp-table,.cp-list){font-size:var(--read-body,16px);line-height:1.5}
+ #ccs-sheet .cp-table th{font-size:var(--read-support,15px);text-transform:none;letter-spacing:0;background:var(--form-soft)}
+}
+@media(pointer:coarse){#cc-staff .sl-stepper .ccs-input{font-size:20px!important;min-height:56px}#cc-staff .sl-stepper .ccs-chip{min-height:52px}}
+@media(max-width:759px){#cc-staff .sl-steptitle{font-size:22px!important}#cc-staff .sl-wrap .ccs-chips{gap:8px}#cc-staff .sl-stepbar{gap:8px}#cc-staff .sl-stepbar .ccs-btn{white-space:normal;line-height:1.4}}
