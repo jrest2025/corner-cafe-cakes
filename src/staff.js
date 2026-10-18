@@ -2363,7 +2363,7 @@
     }).join('') + '</div>';
   }
   function phPicker(id, label, link) { return '<label class="' + (link ? 'ccs-link ccs-phlink' : 'ccs-btn ccs-ghost ccs-phadd') + '"><input type="file" id="' + id + '" accept="image/jpeg,image/png,image/webp" multiple class="ccs-sr">' + label + '</label>'; }
-  function freshDraft() { return { key: uuid(), source: 'walk_in', taken: null, takenDate: '', step: 0, reached: 0, phone: '', noMob: null, matches: null, customer: null, isNew: false, name: '', email: '', whatsapp: true, optIn: null,
+  function freshDraft() { return { key: uuid(), source: null, taken: null, takenDate: '', step: 0, reached: 0, phone: '', noMob: null, matches: null, customer: null, isNew: false, name: '', email: '', whatsapp: true, optIn: null,
     product: null, req: false, sizeNote: '', reqPrice: '', variant: null, size: null, finish: 'standard', design: '', photos: [], phErr: null, message: '', candles: '', occasion: null, occOther: '', diet: null, diets: [], dietNote: '', notes: '', qty: 1,
     date: '', time: '', rush: '', rushBy: '', fromCal: false, method: 'collection', zone: null, address: '', fee: '', contact: '', confirmNow: false, askDeposit: false, deposit: '', payNow: false, payAmount: '', payMethod: 'cash', result: null, err: null, errField: null }; }
   var D = freshDraft();
@@ -2663,8 +2663,8 @@
     else if (custom) h += '<p class="ccs-note">Custom cakes are saved as Needs a quote. Confirm the final price from the order once the design is priced.</p>';
     else if (inSlip) {
       // Menu cake at the counter: one clear choice about money, so payments are never forgotten
-      var PLANS = [['full', 'Paid in full'], ['deposit', 'Paid a deposit'], ['later', 'Not paid yet']];
-      h += '<div class="sl-sub sl-payplan"><span class="sl-k">Payment <em class="sl-req">Required</em></span><div class="ccs-chips" role="group" aria-label="Payment">' +
+      var PLANS = [['full', 'Paid in full'], ['deposit', 'Deposit received'], ['later', 'No payment yet']];
+      h += '<div class="sl-sub sl-payplan"><span class="sl-k">What payment did we receive? <em class="sl-req">Required</em></span><div class="ccs-chips" role="group" aria-label="Payment">' +
         PLANS.map(function (x) { return '<button type="button" class="ccs-chip" data-act="n-plan" data-v="' + x[0] + '" aria-pressed="' + (D.payPlan === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div>' + ferr('payplan') + '</div>';
       if (D.payPlan === 'full' || D.payPlan === 'deposit') {
         h += (D.payPlan === 'deposit' ? '<div class="ccs-field"><label class="ccs-label" for="n-pay">Deposit paid (FJD)</label><input class="ccs-input" id="n-pay" inputmode="decimal" data-n="payAmount" value="' + esc(D.payAmount) + '" style="max-width:220px"><div class="ccs-chips"><button type="button" class="ccs-chip" data-act="n-payhalf">Half (' + money(Math.round(price / 2)) + ')</button></div></div>' : '') +
@@ -2720,7 +2720,7 @@
   var RECUR = ['Birthday', 'Anniversary', 'Wedding'];
   // Stage ids stay as they were (saved drafts and server error fields use them); the screens shown are 1, 0, 4, 3, 7.
   // 2 (contact) is part of 1 (Customer); 5 (allergies) and 6 are part of 4 (Make it yours).
-  var SL_STAGES = ['Cake', 'Customer', 'Customer', 'When is it needed?', 'Make it yours', 'Make it yours', 'Make it yours', 'Check and save'];
+  var SL_STAGES = ['Cake', 'Customer', 'Customer', 'When is it needed?', 'Make it yours', 'Make it yours', 'Make it yours', 'Finish order'];
   // The order staff go through: the customer first (the mobile number finds a returning customer), then the cake, what makes it theirs, when, and the check
   var SL_ORDER = [1, 0, 4, 3, 7];
   var SL_MAP = { 2: 1, 5: 4, 6: 4 };
@@ -2738,7 +2738,7 @@
     var p = prod(), closedL = (S.setup && S.setup.closed_dates) || [];
     if (s === 0 && D.req) return D.design.trim().length < 3 ? ['Describe how the cake should look'] : (D.sizeNote || '').trim().length < 2 ? ['Write the size or how many people it serves'] : D.reqPrice && !(num(D.reqPrice) > 0) ? ['Check the price, or leave it empty'] : [];
     if (s === 0) return !p || !D.size ? ['Tap a price to choose the cake and size'] : p.variants.length && !D.variant ? ['Choose the flavour'] : D.finish === 'custom' && D.design.trim().length < 3 ? ['Describe the custom design'] : [];
-    if (s === 1) { var n1 = slNeeds(2); if (!D.customer && D.name.trim().length < 2) n1.splice(D.noMob !== 'none' && digits(D.phone).length < 7 ? 1 : 0, 0, 'Write the guest name'); if (!takenDateOk()) n1.push(D.taken ? 'Choose a valid earlier order date (within the last 30 days)' : 'Choose when the customer placed the order'); return n1; }
+    if (s === 1) { var n1 = slNeeds(2); if (!D.customer && D.name.trim().length < 2) n1.splice(D.noMob !== 'none' && digits(D.phone).length < 7 ? 1 : 0, 0, 'Write the guest name'); if (!D.source) n1.push('Choose how the customer ordered'); if (!takenDateOk()) n1.push(D.taken ? 'Choose a valid earlier order date (within the last 30 days)' : 'Choose when the customer placed the order'); return n1; }
     if (s === 2) { if (D.customer) { if (D.custConsent === undefined) return ['Checking their permission']; return D.custConsent && D.custConsent.ok ? [] : (D.optIn === true || D.optIn === false) ? [] : ['Ask if they want cake offers and reminders']; } if (D.noMob === 'none') return []; var n = []; if (digits(D.phone).length < 7) n.push(D.noMob === 'other' ? 'Write the full phone number' : 'Write the full mobile number'); if (D.optIn !== true && D.optIn !== false) n.push('Ask if they want cake offers and reminders'); return n; }
     if (s === 3) { if (!D.date) return ['Choose the date']; if (closedL.indexOf(D.date) > -1) return ['Choose a day the café is open']; if (!D.time) return ['Choose the time']; var w = []; if (tooSoon() && !rushOk()) w.push('Give the short-notice reason and who approved it'); if (D.method === 'delivery' && !delivOk()) w.push('Finish the delivery details'); return w; }
     if (s === 4) { var n4 = slNeeds(5); if (!D.occasion) n4.push('Choose the occasion, or Customer didn\'t say'); return n4; }
@@ -2747,7 +2747,7 @@
     if (s === 7) {
       if (STEPPER && !D.req && D.finish !== 'custom') {
         if (!D.payPlan) return ['Choose how the customer is paying'];
-        if (D.payPlan === 'full' || D.payPlan === 'deposit') { var pa = D.payPlan === 'full' ? dTotal() : num(D.payAmount); if (!(pa > 0)) return ['Enter the deposit paid']; if (D.payPlan === 'deposit' && pa >= dTotal()) return ['The deposit is the full price: choose Paid in full']; }
+        if (D.payPlan === 'full' || D.payPlan === 'deposit') { var pa = D.payPlan === 'full' ? dTotal() : num(D.payAmount); if (!(pa > 0)) return ['Enter the payment received']; if (D.payPlan === 'deposit' && pa >= dTotal()) return ['The deposit is the full price: choose Paid in full']; if (!D.payMethodSet) return ['Choose the actual payment method']; }
         return [];
       }
       return D.payNow && !(num(D.payAmount) > 0) ? ['Enter the amount paid'] : [];
@@ -2939,7 +2939,7 @@
         '<label class="sl-k" for="n-notes">Other notes <em class="sl-opt">Optional</em></label><input class="ccs-input" id="n-notes" data-n="notes" value="' + esc(D.notes) + '" placeholder="Anything else for the order">' + slActions(4, false);
     } else {
       var miss = slipMissing();
-      ed = (miss.length ? '<p class="ccs-err" role="alert">Still to finish: ' + esc(miss.map(function (x) { return x[0]; }).join(', ')) + '. Tap Change on that line of the slip.</p>' : '<p class="ccs-hint">Read the slip back to the guest, then take any payment and save.</p>') +
+      ed = (miss.length ? '<p class="ccs-err" role="alert">Still to finish: ' + esc(miss.map(function (x) { return x[0]; }).join(', ')) + '. Tap Change on that line of the slip.</p>' : '<p class="ccs-hint">Check the guest, cake, pickup and allergies. Then record what happened with payment and save.</p>') +
         stepPay(true) + (D.err && D.errField !== 'stage' && !D.errField ? '<p class="ccs-err" role="alert">' + esc(D.err) + '</p>' : '') + (D.err && D.errField === 'stage' ? '<p class="ccs-err" role="alert">' + esc(D.err) + '</p>' : '');
     }
     // The live slip, in the paper order
@@ -3048,6 +3048,7 @@
     return d + 'T12:00:00+12:00';
   }
   function submitOrder() {
+    if (!D.source) { if (STEPPER) D.sl = 1; D.err = 'Choose how the customer ordered. This is required.'; D.errField = 'stage'; return refreshStep(); }
     if (!takenDateOk()) { if (STEPPER) D.sl = 1; D.err = D.taken ? 'Choose a valid earlier date (within the last 30 days).' : 'Choose when the customer placed the order. This is required.'; D.errField = 'stage'; return refreshStep(); }
     var L = S.setup.location, price = dTotal(), custom = D.finish === 'custom';
     if (STEPPER && !D.req && !custom) {
@@ -4948,7 +4949,7 @@
         case 'n-dep': D.deposit = String(v === 'full' ? dTotal() : Math.round(dTotal() / 2)); refreshStep(); break;
         case 'n-paynow': D.payNow = true; D.payAmount = D.askDeposit && D.deposit ? D.deposit : String(dTotal()); refreshStep(); break;
         case 'n-paym': D.payMethod = v; D.payMethodSet = true; refreshStep(); break;
-        case 'n-plan': D.payPlan = v; D.err = null; D.errField = null; if (v === 'deposit' && !num(D.payAmount)) D.payAmount = ''; refreshStep(); break;
+        case 'n-plan': if (D.payPlan !== v) D.payMethodSet = false; D.payPlan = v; D.err = null; D.errField = null; if (v === 'deposit' && !num(D.payAmount)) D.payAmount = ''; refreshStep(); break;
         case 'n-payhalf': D.payAmount = String(Math.round(dTotal() / 2)); refreshStep(); break;
         case 'n-submit': if (SLIP && slipMissing().length) { toast('Still to finish: ' + slipMissing().map(function (x) { return x[0]; }).join(', '), true); slipJump(); break; } submitOrder(); break;
         case 'n-req': D.req = true; D.product = null; D.size = null; D.variant = null; D.finish = 'custom'; D.confirmNow = false; if (D.errField === 'product' || D.errField === 'size') { D.err = null; D.errField = null; } refreshStep(); break;
