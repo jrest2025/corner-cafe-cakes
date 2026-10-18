@@ -1,0 +1,39 @@
+/* Bigger month calendar with cakes listed, occasions in colour, public holidays in grey. */
+@media (min-width:900px){
+  #cc-staff .ccs-mcell{min-height:132px;padding:4px}
+  #cc-staff .ccs-mday{min-height:124px;align-content:start;justify-items:stretch;text-align:left;padding:6px 8px;gap:4px;height:100%}
+  #cc-staff .ccs-mday>b{font-size:16px}
+}
+@media (min-width:1400px){#cc-staff .ccs-mcell{min-height:150px}#cc-staff .ccs-mday{min-height:142px}}
+#cc-staff .co-cakes{display:flex;flex-direction:column;gap:2px;margin-top:2px;min-width:0}
+#cc-staff .co-cake{display:block;font-size:12.5px;line-height:1.3;color:#374151;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#cc-staff .co-cake .co-t{font-weight:650;color:#1f242c}
+#cc-staff .co-more{font-size:12px;font-weight:650;color:#4b5563}
+@media (max-width:899px){#cc-staff .co-cakes{display:none}}
+/* Occasion and holiday labels. */
+#cc-staff .co-tag{display:inline-flex;align-items:center;gap:5px;max-width:100%;padding:2px 7px;border-radius:999px;font-size:12px;font-weight:650;line-height:1.3;color:var(--co);background:color-mix(in srgb,var(--co) 12%,#fff);border:1px solid color-mix(in srgb,var(--co) 28%,#fff)}
+#cc-staff .co-tag i{flex:none;width:7px;height:7px;border-radius:50%;background:var(--co)}
+#cc-staff .co-tag span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#cc-staff .co-tag.co-hol{color:#4b5563;background:#f3f4f6;border-color:#e5e7eb}
+#cc-staff .co-tag.co-hol i{background:#9ca3af}
+#cc-staff .ccs-mcell.co-has .ccs-mday{background:color-mix(in srgb,var(--co,#9ca3af) 4%,#fff)}
+/* Ordering lead-up: a thin coloured line along the top of each day in the window. */
+#cc-staff .ccs-mcell.co-lead{box-shadow:inset 0 2px 0 color-mix(in srgb,var(--co) 38%,#fff)}
+@media (max-width:899px){#cc-staff .co-tag span{display:none}#cc-staff .co-tag{padding:0;border:0;background:none;width:8px;height:8px}#cc-staff .co-tag i{width:8px;height:8px}}
+#cc-staff .ccs-whead .co-tag{margin-top:3px}
+/* Coming up strip above the calendar. */
+#cc-staff .co-strip{display:flex;align-items:stretch;gap:12px;margin:4px 0 16px;overflow-x:auto;scrollbar-width:none;padding:2px}
+#cc-staff .co-strip::-webkit-scrollbar{display:none}
+#cc-staff .co-strip-k{flex:none;align-self:center;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#6b7280}
+#cc-staff .co-card{appearance:none;flex:0 0 auto;display:flex;align-items:flex-start;gap:10px;min-width:220px;max-width:280px;padding:12px 14px;text-align:left;font:inherit;color:#1f242c;background:#fff;border:1px solid #dfe3e8;border-radius:16px;cursor:pointer;box-shadow:0 1px 2px rgba(17,24,39,.04)}
+#cc-staff .co-card:hover{border-color:#c9ced6}
+#cc-staff .co-card:focus-visible{outline:3px solid #4b5563;outline-offset:2px}
+#cc-staff .co-card.is-lead{border-color:color-mix(in srgb,var(--co) 45%,#fff);box-shadow:inset 3px 0 0 var(--co)}
+#cc-staff .co-dot{flex:none;width:10px;height:10px;margin-top:5px;border-radius:50%;background:var(--co)}
+#cc-staff .co-card.co-hol .co-dot{background:#9ca3af}
+#cc-staff .co-card-m{display:flex;flex-direction:column;gap:2px;min-width:0}
+#cc-staff .co-card-m b{font-size:15px;font-weight:700}
+#cc-staff .co-card-m span{font-size:13px;color:#4b5563}
+#cc-staff .co-card-m em{font-style:normal;font-size:12.5px;font-weight:600;color:#374151}
+#cc-staff .co-strip.is-empty{font-size:13px;color:#6b7280}
+@media (max-width:640px){#cc-staff .co-card{min-width:200px;padding:10px 12px}}
