@@ -12,7 +12,7 @@
 #cc-staff #ccs-main[data-screen="calendar"] {--ds-accent:#548dcb;--ds-soft:#ebf3fb;background:#f5f7fa}
 #cc-staff #ccs-main[data-screen="calendar"] .ccs-head{margin-bottom:13px!important}
 #cc-staff #ccs-main[data-screen="calendar"] .ccs-title{color:var(--ccv-ink);letter-spacing:-.025em}
-#cc-staff #ccs-main[data-screen="calendar"] .ccs-sub{color:var(--ccv-muted);font-size:12px;line-height:1.35}
+#cc-staff #ccs-main[data-screen="calendar"] .ccs-sub{color:var(--ccv-muted);font-size:14px;line-height:1.5}
 #cc-staff #ccs-main[data-screen="calendar"] .ccs-calbar{
   padding:11px 14px;margin:0 0 10px!important;border:1px solid var(--ccv-line);
   border-radius:14px;background:var(--ccv-surface);box-shadow:0 2px 9px #20304806;
@@ -20,7 +20,7 @@
 }
 #cc-staff #ccs-main[data-screen="calendar"] .ccs-calnav{gap:7px}
 #cc-staff #ccs-main[data-screen="calendar"] .ccs-caltitle{
-  font-size:19px;font-weight:750;letter-spacing:-.025em;color:var(--ccv-ink);margin-left:10px;
+  font-size:21px;font-weight:750;letter-spacing:-.025em;color:var(--ccv-ink);margin-left:10px;
 }
 #cc-staff #ccs-main[data-screen="calendar"] .ccs-calarrow{
   width:38px;height:38px;min-height:38px!important;border-radius:9px;
@@ -31,14 +31,14 @@
 }
 #cc-staff #ccs-main[data-screen="calendar"] .ccs-calnav [data-act="cal-today"]{
   background:#eaf3fc;color:#356b9f;border:1px solid #caddf0;border-radius:9px;
-  min-height:38px;padding:7px 13px;font-size:12px;font-weight:700;
+  min-height:42px;padding:8px 14px;font-size:14px;font-weight:700;
 }
 #cc-staff #ccs-main[data-screen="calendar"] .ccs-calviews{
   padding:3px;margin:0;border:1px solid var(--ccv-line);background:#f5f7f9;border-radius:10px;
   box-shadow:none;gap:1px;
 }
 #cc-staff #ccs-main[data-screen="calendar"] .ccs-calviews .ccs-tab{
-  font-size:12px;font-weight:650;border-radius:7px;min-height:36px!important;
+  font-size:14px;font-weight:650;border-radius:7px;min-height:42px!important;
   padding:7px 13px;color:#516174;
 }
 #cc-staff #ccs-main[data-screen="calendar"] .ccs-calviews .ccs-tab[aria-pressed="true"]{
@@ -49,11 +49,11 @@
   border-radius:12px;gap:8px 15px;
 }
 #cc-staff #ccs-main[data-screen="calendar"] .ccs-calfilt .ccs-show{
-  font-size:12px;color:#516176;font-weight:650
+  font-size:14px;color:#516176;font-weight:650
 }
 #cc-staff #ccs-main[data-screen="calendar"] .ccs-calfilt select{
   min-height:39px!important;border-color:#d9e2eb;border-radius:8px;background:#fff;color:#263545;
-  font-size:12px;
+  font-size:14px;
 }
 /* Remove the inert date-preview rail. Make the grid full-width until a real selection exists. */
 @media(min-width:1100px){
@@ -76,10 +76,10 @@
 }
 #cc-staff #ccs-main[data-screen="calendar"] .ccs-mhead span{
   background:#eef2f6;color:#53647a;border-bottom:1px solid #dce4ed;
-  padding:11px 10px;font-size:11px;font-weight:750;letter-spacing:.015em;text-transform:none;
+  padding:11px 10px;font-size:13px;font-weight:750;letter-spacing:.015em;text-transform:none;
 }
 #cc-staff #ccs-main[data-screen="calendar"] .ccs-mcell{
-  border-color:#e8ecf1;background:#fff;min-height:151px;
+  border-color:#e8ecf1;background:#fff;min-height:171px;
 }
 #cc-staff #ccs-main[data-screen="calendar"] .ccs-mcell.is-out{
   background:#f6f8fa;color:#9aa6b2;
@@ -94,18 +94,18 @@
   background:linear-gradient(180deg,#e9f3ed 0%,#fff 95%);
 }
 #cc-staff #ccs-main[data-screen="calendar"] .ccs-mday{
-  border-radius:9px;min-height:141px;padding:8px 9px;gap:4px;color:#2d3748;
+  border-radius:9px;min-height:161px;padding:9px 10px;gap:5px;color:#2d3748;
 }
 #cc-staff #ccs-main[data-screen="calendar"] .ccs-mcell:not(.is-out) .ccs-mday:hover{
   background:#edf4fc!important;
 }
 #cc-staff #ccs-main[data-screen="calendar"] .ccs-mday>b{
-  font-size:13px;font-weight:750;color:#334155;
+  font-size:16px;font-weight:750;color:#334155;
 }
 #cc-staff #ccs-main[data-screen="calendar"] .ccs-mcell.is-out .ccs-mday>b{color:#9da9b8}
 #cc-staff #ccs-main[data-screen="calendar"] .ccs-mcell.is-today .ccs-mday>b{
   background:#355d87!important;color:#fff!important;box-shadow:none!important;
-  border-radius:50%;width:27px;height:27px;display:inline-grid;place-items:center;
+  border-radius:50%;width:31px;height:31px;display:inline-grid;place-items:center;
 }
 #cc-staff #ccs-main[data-screen="calendar"] .ccs-mcell.is-sel{
   box-shadow:inset 0 0 0 2px #528dcb;background:#eff6fd;
@@ -114,14 +114,14 @@
   background:#edf5ff!important;outline:0!important;
 }
 #cc-staff #ccs-main[data-screen="calendar"] .ccs-mcount{
-  display:block;font-size:11px;font-weight:750;color:#416454;line-height:1.25;
+  display:block;font-size:14px;font-weight:750;color:#416454;line-height:1.35;
   letter-spacing:-.01em;
 }
-#cc-staff #ccs-main[data-screen="calendar"] .ccs-mneed{font-size:10.5px;color:#a96724}
+#cc-staff #ccs-main[data-screen="calendar"] .ccs-mneed{font-size:13px;color:#a96724}
 #cc-staff #ccs-main[data-screen="calendar"] .co-cakes{gap:3px;margin-top:3px}
 #cc-staff #ccs-main[data-screen="calendar"] .co-cake{
   padding:3px 5px 3px 7px;background:#fff;border-radius:5px;border:1px solid #e4eaf0;
-  border-left:3px solid #8eaabc;color:#4e596b;font-size:10.5px;line-height:1.4;
+  border-left:3px solid #8eaabc;color:#4e596b;font-size:13px;line-height:1.4;
 }
 #cc-staff #ccs-main[data-screen="calendar"] .co-cake .co-t{
   color:#263d56;font-weight:750;
@@ -129,7 +129,7 @@
 #cc-staff #ccs-main[data-screen="calendar"] .co-tag{
   background:color-mix(in srgb,var(--co,#518dcb) 9%,#fff);
   color:var(--co,#547b9f);border-color:color-mix(in srgb,var(--co,#518dcb) 24%,#fff);
-  font-size:10px;padding:3px 7px;
+  font-size:12px;padding:4px 7px;
 }
 #cc-staff #ccs-main[data-screen="calendar"] .co-tag.co-hol{
   color:#64748b;background:#eef1f5;border-color:#dce3ea
@@ -138,11 +138,11 @@
   margin:0 0 12px;gap:9px;padding:1px 1px 4px;scrollbar-width:thin;
 }
 #cc-staff #ccs-main[data-screen="calendar"] .co-strip-k{
-  font-size:10px;font-weight:800;letter-spacing:.07em;color:#7c8897;
+  font-size:12px;font-weight:800;letter-spacing:.04em;color:#7c8897;
 }
 #cc-staff #ccs-main[data-screen="calendar"] .co-card{
   background:#fff;border:1px solid #dde5ed;border-top:3px solid var(--co,#9fb9c9);
-  border-radius:11px;min-width:185px;max-width:235px;
+  border-radius:11px;min-width:215px;max-width:270px;
   padding:10px 12px;box-shadow:0 2px 8px #26385108;
   transition:transform .14s ease,border-color .14s ease;
 }
@@ -150,15 +150,15 @@
   transform:translateY(-1px);border-color:color-mix(in srgb,var(--co,#9fb9c9) 55%,#fff);
 }
 #cc-staff #ccs-main[data-screen="calendar"] .co-card.co-hol{border-top-color:#a6b4c4}
-#cc-staff #ccs-main[data-screen="calendar"] .co-card-m b{font-size:12px;color:#283748}
-#cc-staff #ccs-main[data-screen="calendar"] .co-card-m span{font-size:10px;color:#758296}
-#cc-staff #ccs-main[data-screen="calendar"] .co-card-m em{font-size:10px;color:#57677c}
+#cc-staff #ccs-main[data-screen="calendar"] .co-card-m b{font-size:15px;color:#283748}
+#cc-staff #ccs-main[data-screen="calendar"] .co-card-m span{font-size:13px;color:#758296}
+#cc-staff #ccs-main[data-screen="calendar"] .co-card-m em{font-size:13px;color:#57677c}
 #cc-staff #ccs-main[data-screen="calendar"] .co-dot{width:9px;height:9px}
 #cc-staff #ccs-main[data-screen="calendar"] .ccs-daytot div{
   border-radius:9px;background:#f5f9fc;border-color:#deebf5;
 }
 #cc-staff #ccs-main[data-screen="calendar"] .ccs-daytot b{font-size:25px;color:#325b83}
-#cc-staff #ccs-main[data-screen="calendar"] .ccs-daytot span{font-size:11px;color:#62748a}
+#cc-staff #ccs-main[data-screen="calendar"] .ccs-daytot span{font-size:14px;color:#62748a}
 #cc-staff #ccs-main[data-screen="calendar"] .ccs-ymonth,
 #cc-staff #ccs-main[data-screen="calendar"] .ccs-wgrid,
 #cc-staff #ccs-main[data-screen="calendar"] .ccs-dslots{
@@ -170,7 +170,7 @@
 #cc-staff #ccs-main[data-screen="calendar"] .ccs-wcell.is-busy{
   background:#fff9ef;
 }
-#cc-staff #ccs-main[data-screen="calendar"] .ccs-dayp-title{font-size:18px;color:var(--ccv-ink)}
+#cc-staff #ccs-main[data-screen="calendar"] .ccs-dayp-title{font-size:21px;color:var(--ccv-ink)}
 /* Compact, source-backed calendar strip. Only visible when the month grid is loaded. */
 #cc-staff #ccs-main[data-screen="calendar"] .ccv-summary{
   display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0 0 12px;
@@ -188,19 +188,19 @@
   font-variant-numeric:tabular-nums;
 }
 #cc-staff #ccs-main[data-screen="calendar"] .ccv-stat-label{
-  font-size:11px;color:#697989;font-weight:650;line-height:1.35
+  font-size:14px;color:#697989;font-weight:650;line-height:1.4
 }
 #cc-staff #ccs-main[data-screen="calendar"] .ccv-stat:nth-child(1){--ccv-stat:var(--ccv-production)}
 #cc-staff #ccs-main[data-screen="calendar"] .ccv-stat:nth-child(2){--ccv-stat:var(--ccv-inventory)}
 #cc-staff #ccs-main[data-screen="calendar"] .ccv-stat:nth-child(3){--ccv-stat:var(--ccv-vendors)}
 @media(min-width:1500px){
   #cc-staff #ccs-main[data-screen="calendar"] .ccs-calwrap:not(:has(>.ccs-calside .ccs-calhint)) {grid-template-columns:minmax(0,1fr) 305px!important}
-  #cc-staff #ccs-main[data-screen="calendar"] .ccs-mcell{min-height:165px}
-  #cc-staff #ccs-main[data-screen="calendar"] .ccs-mday{min-height:155px}
+  #cc-staff #ccs-main[data-screen="calendar"] .ccs-mcell{min-height:182px}
+  #cc-staff #ccs-main[data-screen="calendar"] .ccs-mday{min-height:172px}
 }
 @media(max-width:1100px){
-  #cc-staff #ccs-main[data-screen="calendar"] .ccs-mday{min-height:128px}
-  #cc-staff #ccs-main[data-screen="calendar"] .ccs-mcell{min-height:136px}
+  #cc-staff #ccs-main[data-screen="calendar"] .ccs-mday{min-height:140px}
+  #cc-staff #ccs-main[data-screen="calendar"] .ccs-mcell{min-height:150px}
 }
 @media(max-width:899px){
   #cc-staff #ccs-main[data-screen="calendar"] .ccs-mcell{min-height:64px}
@@ -209,7 +209,7 @@
 }
 @media(max-width:650px){
   #cc-staff #ccs-main[data-screen="calendar"] .ccs-calbar{padding:9px}
-  #cc-staff #ccs-main[data-screen="calendar"] .ccs-caltitle{font-size:15px;margin-left:4px}
+  #cc-staff #ccs-main[data-screen="calendar"] .ccs-caltitle{font-size:17px;margin-left:4px}
   #cc-staff #ccs-main[data-screen="calendar"] .ccs-calarrow{width:32px;height:36px}
   #cc-staff #ccs-main[data-screen="calendar"] .ccs-calviews{width:100%}
   #cc-staff #ccs-main[data-screen="calendar"] .ccs-calviews .ccs-tab{padding:6px 8px;flex:1;justify-content:center}
@@ -217,11 +217,21 @@
   #cc-staff #ccs-main[data-screen="calendar"] .ccv-summary{gap:6px}
   #cc-staff #ccs-main[data-screen="calendar"] .ccv-stat{padding:9px 7px 9px 10px;gap:2px;flex-direction:column;align-items:flex-start}
   #cc-staff #ccs-main[data-screen="calendar"] .ccv-stat-num{font-size:19px}
-  #cc-staff #ccs-main[data-screen="calendar"] .ccv-stat-label{font-size:9.5px}
-  #cc-staff #ccs-main[data-screen="calendar"] .ccs-mhead span{font-size:11px;padding:7px 2px}
+  #cc-staff #ccs-main[data-screen="calendar"] .ccv-stat-label{font-size:12px}
+  #cc-staff #ccs-main[data-screen="calendar"] .ccs-mhead span{font-size:12px;padding:8px 2px}
   #cc-staff #ccs-main[data-screen="calendar"] .ccs-mcell{min-height:54px}
   #cc-staff #ccs-main[data-screen="calendar"] .ccs-mday{min-height:52px;padding:4px}
 }
 @media(prefers-reduced-motion:reduce){
   #cc-staff #ccs-main[data-screen="calendar"] .co-card{transition:none}
+}
+
+/* Readable calendar typography and sizing: body text stays at least 14px on desktop. */
+#cc-staff #ccs-main[data-screen="calendar"] .ccs-mlist .ccs-cev:not(.is-full) .ccs-cev-t,
+#cc-staff #ccs-main[data-screen="calendar"] .ccs-mlist .ccs-cev:not(.is-full) .ccs-cev-n{font-size:14px;line-height:1.4}
+#cc-staff #ccs-main[data-screen="calendar"] .ccs-calwrap .ccs-dayp .ccs-hint{font-size:14px;line-height:1.5}
+@media(max-width:650px){
+ #cc-staff #ccs-main[data-screen="calendar"] .ccs-calnav [data-act="cal-today"]{font-size:13px}
+ #cc-staff #ccs-main[data-screen="calendar"] .ccs-calviews .ccs-tab{font-size:13px;min-height:40px!important}
+ #cc-staff #ccs-main[data-screen="calendar"] .ccs-calfilt .ccs-show,#cc-staff #ccs-main[data-screen="calendar"] .ccs-calfilt select{font-size:14px}
 }
