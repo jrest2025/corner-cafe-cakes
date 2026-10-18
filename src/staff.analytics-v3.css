@@ -85,3 +85,15 @@
 #cc-staff .hb-v2-order{font-size:13px}
 @media(max-width:880px){#cc-staff .hb-k-panel{grid-column:span 3}#cc-staff .hb-v2-daystats{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:680px){#cc-staff .hb-v2-head h2{font-size:20px}#cc-staff .hb-k-kpis{gap:9px}#cc-staff .hb-k-kpi{min-height:120px;padding:12px}#cc-staff .hb-k-kpi strong{font-size:22px}#cc-staff .hb-k-caption{font-size:12px}#cc-staff .hb-k-panels{gap:10px}#cc-staff .hb-k-panel{grid-column:span 1}#cc-staff .hb-v2-daystats{grid-template-columns:repeat(2,minmax(0,1fr))}#cc-staff .hb-v2-tools{align-items:flex-start}#cc-staff .hb-v2-switch button{font-size:12px}}
+
+/* Dual-series daily cake demand. The two colours represent different business dates. */
+#cc-staff .hb-k-curve .hb-k-line-booked{fill:none;stroke:#955ca1;stroke-width:3;stroke-dasharray:8 6;stroke-linecap:round;stroke-linejoin:round}
+#cc-staff .hb-k-curve .hb-k-dot-booked{fill:#fff;stroke:#955ca1;stroke-width:2}
+#cc-staff .hb-v2-key .hb-k-legend-booked i{background:transparent;width:18px;height:0;border-top:3px dashed #955ca1}
+#cc-staff .hb-v2-key .hb-k-legend-due i{background:#5a8f69;width:18px;height:3px}
+#cc-staff .hb-k-monthjump{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:#637386}
+#cc-staff .hb-k-monthjump select{font:inherit;font-size:13px;min-width:116px;padding:7px 8px;border:1px solid #cfd9e3;background:white;border-radius:7px;color:#334359}
+#cc-staff .hb-k-monthjump select:focus-visible{outline:2px solid #528dcb;outline-offset:2px}
+#cc-staff .hb-v2-key{align-items:center}
+#cc-staff .hb-v2-scroller{scroll-snap-type:none}
+@media(max-width:680px){#cc-staff .hb-v2-railbuttons{flex-wrap:wrap}#cc-staff .hb-k-monthjump{width:100%}#cc-staff .hb-k-monthjump select{flex:1}}
