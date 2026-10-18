@@ -9,14 +9,14 @@ async function open(b,w,h,opt){opt=opt||{};const p=await b.newPage({viewport:{wi
  await p.evaluate(([d,noHol,fail])=>{const mk=window.__ccsMock,from=mk.from.bind(mk);window.__coReads=[];
   const rows={occasions:[{code:'christmas',label:'Christmas',colour:'#15803D',category:'holiday',active:true},{code:'birthday',label:'Birthday',colour:'#9D174D',category:'personal',active:true},{code:'old',label:'Retired',colour:'#000000',category:'holiday',active:false}],
    occasion_dates:[{occasion_code:'christmas',starts_on:d.xmas,ends_on:null,promo_days:42},{occasion_code:'old',starts_on:d.in5,ends_on:null,promo_days:21}],
-   public_holidays:[{day:d.in3,name:'Diwali'},{day:d.xmas,name:'Christmas Day'},{day:d.in2,name:'Boxing Day'}]};
-  const chain=t=>{const q={_t:t,select(){return q},gte(){return q},order(){return q},eq(){return q},lte(){return q},then(res,rej){window.__coReads.push(t);if(fail)return Promise.resolve({error:{message:'Failed to fetch'}}).then(res,rej);if(t==='public_holidays'&&noHol)return Promise.resolve({data:null,error:{message:'relation "public_holidays" does not exist'}}).then(res,rej);return Promise.resolve({data:rows[t]}).then(res,rej)}};return q};
+   calendar_events:[{day:d.in3,name:'Diwali',kind:'holiday'},{day:d.xmas,name:'Christmas Day',kind:'holiday'},{day:d.in2,name:'Boxing Day',kind:'holiday'},{day:d.in5,ends_on:d.in6,name:'Beer Fest',kind:'event'}]};
+  const chain=t=>{const q={_t:t,select(){return q},gte(){return q},order(){return q},eq(){return q},lte(){return q},then(res,rej){window.__coReads.push(t);if(fail)return Promise.resolve({error:{message:'Failed to fetch'}}).then(res,rej);if(t==='calendar_events'&&noHol)return Promise.resolve({data:null,error:{message:'relation "public_holidays" does not exist'}}).then(res,rej);return Promise.resolve({data:rows[t]}).then(res,rej)}};return q};
   mk.from=t=>rows[t]?chain(t):from(t);
   // An order for the occasion so "orders booked" can be counted.
   window.__orders.push({id:'xm',reference:'CC-1900',order_status:'confirmed',production_status:'not_started',payment_status:'unpaid',fulfilment_method:'collection',order_type:'standard',source:'phone',created_at:new Date().toISOString(),required_date:d.in3,required_time:'10:00:00',estimate_total:60,final_total:60,has_dietary:false,version:1,customer_id:'c1',customers:{full_name:'Invented Xmas',phone:'1'},order_items:[{product_name:'Red Velvet',size_inch:8,quantity:1,finish:'standard',occasion:'Christmas'}],order_events:[],order_attachments:[],payments:[]});
   // A busy day: five cakes on the same date.
   ['09:00','10:00','11:00','12:00','13:00'].forEach((t,i)=>window.__orders.push({id:'b'+i,reference:'CC-195'+i,order_status:'confirmed',production_status:'not_started',payment_status:'paid',fulfilment_method:'collection',order_type:'standard',source:'phone',created_at:new Date().toISOString(),required_date:d.in4,required_time:t+':00',estimate_total:50,final_total:50,has_dietary:false,version:1,customer_id:'c1',customers:{full_name:'Busy '+i,phone:'1'},order_items:[{product_name:'Cheesecake',size_inch:6,quantity:1,finish:'standard'}],order_events:[],order_attachments:[],payments:[]}));
- },[{xmas:opt.xmas||fiji(20),in2:fiji(2),in3:fiji(3),in4:fiji(4),in5:fiji(5)},!!opt.noHol,!!opt.fail]);
+ },[{xmas:opt.xmas||fiji(20),in2:fiji(2),in3:fiji(3),in4:fiji(4),in5:fiji(5),in6:fiji(6)},!!opt.noHol,!!opt.fail]);
  await p.addScriptTag({path:path.join(root,m.file)});await p.waitForTimeout(400);
  await p.locator('[data-tab="calendar"]').first().evaluate(e=>e.click());await p.waitForTimeout(700);return {p,errors}}
 (async()=>{const b=await chromium.launch({executablePath:process.env.CHROMIUM_PATH,args:['--no-sandbox','--disable-dev-shm-usage']});try{
@@ -29,6 +29,7 @@ async function open(b,w,h,opt){opt=opt||{};const p=await b.newPage({viewport:{wi
   check(label+' inactive occasion left out',!cards.some(t=>t.includes('Retired')));
   check(label+' public holiday labelled',cards.some(t=>t.includes('Diwali')&&t.includes('Public holiday')));
   check(label+' cake occasion shows orders booked and open window',cards.some(t=>t.includes('Christmas')&&t.includes('1 order booked')&&t.includes('ordering window open')));
+  check(label+' café event shown in its own style',cards.some(t=>t.includes('Beer Fest')&&t.includes('Café event')));
   check(label+' Christmas shows once, not twice',cards.filter(t=>t.includes('Christmas')).length===1);
   const tag=await p.evaluate(d=>{const c=document.querySelector('.ccs-mday[data-v="'+d+'"]');return c?c.innerText:''},fiji(3));check(label+' holiday tagged on its day',tag.includes('Diwali')||w<=899,tag);
   check(label+' lead-up line on days before the occasion',await p.evaluate(d=>{const c=document.querySelector('.ccs-mday[data-v="'+d+'"]');return !!c&&c.parentElement.classList.contains('co-lead')},fiji(4)));

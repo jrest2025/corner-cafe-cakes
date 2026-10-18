@@ -10,7 +10,7 @@ function coLoad() {
   Promise.all([
     a.from('occasions').select('code,label,colour,category,active'),
     a.from('occasion_dates').select('occasion_code,starts_on,ends_on,promo_days').gte('starts_on', from).order('starts_on'),
-    a.from('public_holidays').select('day,name').gte('day', from).order('day')
+    a.from('calendar_events').select('day,ends_on,name,kind').gte('day', from).order('day')
   ]).then(function (r) {
     var occ = {}; ((r[0] && r[0].data) || []).forEach(function (o) { occ[o.code] = o; });
     var ev = [];
@@ -19,8 +19,11 @@ function coLoad() {
       ev.push({ kind: 'occ', day: d.starts_on, end: d.ends_on || d.starts_on, name: o.label, colour: /^#[0-9a-f]{6}$/i.test(o.colour || '') ? o.colour : '#5b6370', lead: Math.max(0, Math.min(120, d.promo_days || 0)) });
     });
     // A public holiday that is also a cake occasion on the same day shows once, as the occasion.
+    // Café events (Settings) in blue; public holidays in grey.
     ((r[2] && !r[2].error && r[2].data) || []).forEach(function (h) {
-      if (!ev.some(function (e) { return e.day === h.day; })) ev.push({ kind: 'hol', day: h.day, end: h.day, name: h.name, colour: '#6b7280', lead: 0 });
+      var hol = h.kind === 'holiday';
+      if (hol && ev.some(function (e) { return e.day === h.day; })) return;
+      ev.push({ kind: hol ? 'hol' : 'evt', day: h.day, end: h.ends_on || h.day, name: h.name, colour: hol ? '#6b7280' : '#1d5fbf', lead: 0 });
     });
     ev.sort(function (p, q) { return p.day < q.day ? -1 : 1; });
     CO.events = ev; CO.err = !!(r[0] && r[0].error) || !!(r[1] && r[1].error); done();
@@ -34,7 +37,7 @@ function coWhen(n) { return n === 0 ? 'Today' : n === 1 ? 'Tomorrow' : n < 14 ? 
 function coCls(d) { var l = coLeadOf(d), on = coOn(d); return (on.length ? ' co-has' : '') + (l ? ' co-lead" style="--co:' + l.colour : ''); }
 function coTag(d, short) {
   return coOn(d).map(function (e) {
-    return '<span class="co-tag co-' + e.kind + '" style="--co:' + e.colour + '" title="' + Tt(e.kind === 'hol' ? e.name + ' (public holiday)' : e.name) + '"><i aria-hidden="true"></i><span>' + Tt(e.name) + '</span></span>';
+    return '<span class="co-tag co-' + e.kind + '" style="--co:' + e.colour + '" title="' + Tt(e.kind === 'hol' ? e.name + ' (public holiday)' : e.kind === 'evt' ? e.name + ' (café event)' : e.name) + '"><i aria-hidden="true"></i><span>' + Tt(e.name) + '</span></span>';
   }).join('');
 }
 // Cakes due that day, up to three, so the month shows the work, not just a count.
@@ -61,6 +64,6 @@ function coStrip() {
     var n = coDays(e.day), inLead = e.kind === 'occ' && e.lead && n <= e.lead && n > 0, bk = e.kind === 'occ' ? coBooked(e) : -1;
     return '<button type="button" role="listitem" class="co-card co-' + e.kind + (inLead ? ' is-lead' : '') + '" style="--co:' + e.colour + '" data-act="co-go" data-v="' + e.day + '">' +
       '<span class="co-dot" aria-hidden="true"></span><span class="co-card-m"><b>' + Tt(e.name) + '</b><span>' + Tt(coWhen(Math.max(0, n))) + ' · ' + Tt(Mt(e.day)) + '</span>' +
-      '<em>' + (e.kind === 'hol' ? 'Public holiday' : (bk ? bk + (bk === 1 ? ' order booked' : ' orders booked') : 'No orders yet') + (inLead ? ' · ordering window open' : '')) + '</em></span></button>';
+      '<em>' + (e.kind === 'hol' ? 'Public holiday' : e.kind === 'evt' ? 'Café event' : (bk ? bk + (bk === 1 ? ' order booked' : ' orders booked') : 'No orders yet') + (inLead ? ' · ordering window open' : '')) + '</em></span></button>';
   }).join('') + '</div>';
 }
