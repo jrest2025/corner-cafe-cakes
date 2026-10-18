@@ -13,7 +13,7 @@
   function dxPeriods() { return DX_PERIODS.map(function (x) { return x[0] === 'all' && !DX.showOld ? ['all', 'Since the launch'] : x; }); }
   function dxState() { if (!DX) DX = { data: null, loading: false, err: null, f: { p: 'all', b: 'p', from: '', to: '', prod: 'all', ch: 'all', st: 'all' }, year: null, psort: 'q', drills: {} }; return DX; }
   function dashLoad(force) {
-    var d = dxState(); if (d.loading) return; if (d.data && !force) { view(); return; }
+    var d = dxState(); hbStart(); if (d.loading) return; if (d.data && !force) { view(); return; }
     d.loading = true; d.err = null; view();
     sb.rpc('dashboard_register').then(function (r) {
       d.loading = false;
@@ -202,7 +202,7 @@
     d.secs.push(['up', 'Uploads', '', 'x']);
     var mod = anMod(), mm = AN_MODS.filter(function (x) { return x.id === mod; })[0];
     h = hh + anModBar(mod);
-    if (mod === 'ov') return h + filt + period + gapNote + '<div class="dx-ov">' + ov + '</div>';
+    if (mod === 'ov') return h + hbView() + filt + period + gapNote + '<div class="dx-ov">' + ov + '</div>';
     if (mod === 'ci') return h + anCross();
     if (!AN_SUB[mod]) return h + (anState(mm) === 'missing' ? anEmpty(mm) : '<section class="dx-card"><p class="an-note">Data has arrived; charts are being built.</p></section>');
     var keys = AN_SUB[mod].filter(function (k) { return d.secs.some(function (x) { return x[0] === k; }); }), cs2 = secCur('dash', keys, keys[0]), sec = d.secs.filter(function (x) { return x[0] === cs2; })[0];
@@ -1050,7 +1050,11 @@
   }
   function dashAct(a, b, v) {
     dxKeep();
-    if (a === 'dx-refresh') dashLoad(true);
+    if (a === 'hb-prev') hbWeekNav(-1);
+    else if (a === 'hb-next') hbWeekNav(1);
+    else if (a === 'hb-today') { HB.week = 0; view(); }
+    else if (a === 'hb-week') { var hbN = Number(v); if (isFinite(hbN)) { HB.week = Math.max(-12, Math.min(26, Math.round(hbN))); view(); } }
+    else if (a === 'dx-refresh') dashLoad(true);
     else if (a === 'dx-export') dxExport();
     else if (a === 'dx-occ-csv') dxOccExport();
     else if (a === 'dx-lead-csv') dxLeadExport();
