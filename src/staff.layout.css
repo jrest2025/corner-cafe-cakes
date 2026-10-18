@@ -1,0 +1,61 @@
+/* Shared staff layout refinement, loaded after the exact production release. */
+#cc-staff #ccs-main{font-size:15px;line-height:1.45}
+#cc-staff .ccs-app #ccs-main{--ccs-page-x:24px;--ccs-page-y:24px;--ccs-panel-gap:16px}
+#cc-staff #ccs-main .ccs-head{margin-bottom:16px;align-items:flex-start;gap:12px 20px}
+#cc-staff #ccs-main .ccs-title{font-size:24px;line-height:1.25;letter-spacing:-.02em}
+#cc-staff #ccs-main .ccs-sub,#cc-staff #ccs-main .ccs-hint{font-size:14px;line-height:1.45}
+#cc-staff #ccs-main .ccs-input{font-size:15px;line-height:1.4;min-height:44px}
+#cc-staff #ccs-main .ccs-btn,#cc-staff #ccs-main .ccs-calarrow,#cc-staff #ccs-main .ccs-calviews .ccs-tab{min-height:44px}
+#cc-staff .ccs-side .ccs-nav-item{gap:12px;line-height:1.3;align-items:center}
+#cc-staff .ccs-side .ccs-nav-item svg{width:20px;height:20px;flex:0 0 20px}
+#cc-staff #ccs-main .dx-card-h h2,#cc-staff #ccs-main .ccs-card-head h2{font-size:18px;line-height:1.3;text-align:left}
+#cc-staff :is(button,a,input,select,textarea):focus-visible{outline:3px solid #2563a6;outline-offset:3px}
+/* A compact two-row calendar toolbar. The existing filters and actions are retained. */
+#cc-staff #ccs-main[data-screen="calendar"] .ccs-head{margin-bottom:12px}
+#cc-staff #ccs-main[data-screen="calendar"] .ccs-calbar{margin:0 0 8px;gap:12px;align-items:center;flex-wrap:wrap}
+#cc-staff #ccs-main[data-screen="calendar"] .ccs-calfilt{margin:0 0 12px;gap:10px 16px;align-items:center}
+#cc-staff #ccs-main[data-screen="calendar"] .ccs-show{gap:8px}
+#cc-staff .ccs-calnav{gap:8px;flex-wrap:wrap}
+#cc-staff .ccs-caltitle{font-size:19px;line-height:1.3;margin:0 0 0 4px}
+#cc-staff .ccs-calwrap:not(.ly-has-detail){grid-template-columns:minmax(0,1fr)!important}
+#cc-staff .ccs-calwrap:not(.ly-has-detail)>.ccs-calside{display:none!important}
+#cc-staff .ly-close{display:flex;margin-left:auto;margin-bottom:12px}
+#cc-staff .co-strip{margin:0 0 12px;gap:8px;align-items:center}
+#cc-staff .co-card{min-width:200px;max-width:300px;padding:8px 12px;border-radius:10px}
+#cc-staff .co-card-m{gap:1px}
+#cc-staff .co-card-m em{font-size:13px}
+#cc-staff .co-strip-k{font-size:12px;letter-spacing:.03em}
+#cc-staff .co-cakes{gap:4px;margin-top:4px}
+#cc-staff .co-cake{display:flex;align-items:flex-start;gap:5px;padding:4px 5px;border:1px solid #e1e6ec;border-left:3px solid #64748b;background:#f5f7fa;border-radius:5px;font-size:14px;line-height:1.35;color:#303944;min-width:0;white-space:normal}
+#cc-staff .co-cake.ly-delivery{border-left-color:#2563a6;background:#edf5fd}
+#cc-staff .co-cake.ly-attention{border-left-color:#b45309;background:#fff8eb}
+#cc-staff .co-cake .ly-method{flex:none;display:inline-flex;color:#526276;margin-top:1px}
+#cc-staff .co-cake .ly-method svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8}
+#cc-staff .co-cake .ly-summary{min-width:0;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+#cc-staff .co-cake .co-t{font-weight:700;white-space:nowrap}
+#cc-staff .co-more{display:block;padding:5px 0;font-size:13px;line-height:1.35;font-weight:700;color:#245f99;text-decoration:underline;text-underline-offset:2px;white-space:normal}
+#cc-staff .ccs-mcell.is-sel .ccs-mday{outline:2px solid #2563a6;outline-offset:-2px;background:#edf5fd!important}
+#cc-staff .ccs-mcell.is-today .ccs-mday>b{background:#34383f;color:white;border-radius:999px;display:inline-grid;place-items:center;width:28px;height:28px}
+#cc-staff .ccs-mday:focus-visible{outline-offset:-3px}
+@media(min-width:900px){
+ #cc-staff .ccs-mcell{min-height:180px!important}
+ #cc-staff .ccs-mday{padding:8px!important;min-height:172px!important}
+ #cc-staff .ccs-mgrid.fit-rows .ccs-mcell{height:auto!important;min-height:180px!important;overflow:visible}
+ #cc-staff .ccs-mgrid.fit-rows .ccs-mday{height:100%;min-height:172px!important;overflow:visible}
+ #cc-staff .ccs-mgrid.fit-rows{grid-auto-rows:minmax(180px,auto)!important}
+}
+@media(min-width:1100px){#cc-staff .ccs-calwrap.ly-has-detail{grid-template-columns:minmax(0,1fr) minmax(300px,350px)!important;gap:20px}}
+@media(min-width:1280px){#cc-staff .ccs-app #ccs-main{--ccs-page-x:32px;--ccs-page-y:24px}}
+@media(max-width:899px){#cc-staff .co-cakes{display:none}}
+@media(max-width:759px){
+ #cc-staff .ccs-app #ccs-main{--ccs-page-x:16px;--ccs-page-y:18px}
+ #cc-staff #ccs-main .ccs-title{font-size:22px}
+ #cc-staff #ccs-main .ccs-input{font-size:16px}
+ #cc-staff .ccs-calnav{gap:6px}
+ #cc-staff .ccs-calfilt .ccs-show{flex:1 1 180px;min-width:0}
+ #cc-staff .ccs-calfilt .ccs-input{width:100%;min-width:0}
+ #cc-staff .ccs-calviews{width:100%;justify-content:space-between}
+ #cc-staff .ccs-calviews .ccs-tab{flex:1}
+}
+@media(pointer:coarse){#cc-staff .ccs-side .ccs-nav-item{min-height:44px!important}}
+@media print{#cc-staff .ly-close{display:none!important}}
