@@ -7,7 +7,7 @@ function render(){scheduled=false;var main=root.querySelector('#ccs-main[data-sc
  var cells=Array.prototype.slice.call(grid.querySelectorAll('.ccs-mcell:not(.is-out)'));
  var orders=0,cakes=0,busy=0;
  cells.forEach(function(cell){var count=cell.querySelector('.ccs-mcount .ccs-mlong');if(!count)return;
-  var text=count.textContent||'';var a=/([0-9]+)\\s+orders?/.exec(text),b=/([0-9]+)\\s+cakes?/.exec(text);
+  var text=count.textContent||'';var a=/([0-9]+)\s+orders?/.exec(text),b=/([0-9]+)\s+cakes?/.exec(text);
   var n=a?+a[1]:0,q=b?+b[1]:0;orders+=n;cakes+=q;if(n>=3)busy++;
   cell.classList.toggle('ccv-load-medium',n===2);cell.classList.toggle('ccv-load-high',n>=3);
  });
