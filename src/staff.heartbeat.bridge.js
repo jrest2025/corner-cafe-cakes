@@ -19,6 +19,11 @@
   var DX = { data: null, loading: false, error: '', drills: {} };
   var S = { tab: 'other' };
   var mounting = false, scheduled = false, tick = 0;
+  function hbScrollToDay(day, instant) {
+    var pane=root.querySelector('[data-hb-scroll]'); if(!pane)return;
+    var base=addDays(today(),-HB.daysBehind),delta=daysBetween(base,day);
+    pane.scrollTo({left:Math.max(0,delta*98-pane.clientWidth/2+49),behavior:instant?'instant':'smooth'});
+  }
   function today() {
     return new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
   }
@@ -69,8 +74,12 @@
         target.parentNode.insertBefore(mount, target);
       }
       DX.drills = {};
+      var existingScroll=root.querySelector('[data-hb-scroll]');
+      if(existingScroll)HB.railScroll=existingScroll.scrollLeft;
       mount.innerHTML = DX.error ? message(DX.error) : DX.data ? hbView() :
         '<div class="hb-loading" role="status">Loading Cake Heartbeat…</div>';
+      var pane=root.querySelector('[data-hb-scroll]');
+      if(pane){if(HB.railScroll!=null)pane.scrollLeft=HB.railScroll;else hbScrollToDay(HB.selected||today(),true);}
     } finally { mounting = false; }
   }
   function dashLoad(force) {
@@ -113,12 +122,15 @@
     e.preventDefault();
     e.stopPropagation();
     var a = b.getAttribute('data-act'), v = b.getAttribute('data-v');
-    if (a === 'dx-hb-prev') hbWeekNav(-1);
-    else if (a === 'dx-hb-next') hbWeekNav(1);
-    else if (a === 'dx-hb-today') { HB.week = 0; view(); }
-    else if (a === 'dx-hb-week') {
-      var n = Number(v); if (isFinite(n)) { HB.week = Math.max(-12,Math.min(26,Math.round(n))); view(); }
-    } else if (a === 'dx-hb-retry') dashLoad(true);
+    if (a === 'dx-hb-prev' || a === 'dx-hb-next') {
+      var p=root.querySelector('[data-hb-scroll]');
+      if(p)p.scrollBy({left:a === 'dx-hb-prev'?-686:686,behavior:'smooth'});
+    }
+    else if (a === 'dx-hb-today') { HB.selected=today(); HB.railScroll=null; view(); hbScrollToDay(today(),false); }
+    else if (a === 'dx-hb-day') { HB.selected=v; view(); }
+    else if (a === 'dx-hb-metric' && ['orders','cakes','value'].indexOf(v)>-1) { HB.metric=v; view(); }
+    else if (a === 'dx-hb-mode' && ['daily','cumulative'].indexOf(v)>-1) { HB.mode=v; view(); }
+    else if (a === 'dx-hb-retry') dashLoad(true);
     else if (a === 'dx-drill') {
       var d = DX.drills[v];
       if (!d || !Array.isArray(d.l)) return;
