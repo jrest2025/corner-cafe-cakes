@@ -80,7 +80,7 @@
         '<div class="hb-loading" role="status">Loading Cake Heartbeat…</div>';
       mount.classList.toggle('hb-m-ready',!!DX.data&&!DX.error);
       var pane=root.querySelector('[data-hb-scroll]');
-      if(pane){if(HB.railScroll!=null)pane.scrollLeft=HB.railScroll;else hbScrollToDay(HB.selected||today(),true);}
+      if(pane){if(HB.jumpMonth){hbScrollToDay(HB.jumpMonth,true);HB.jumpMonth=null;}else if(HB.railScroll!=null)pane.scrollLeft=HB.railScroll;else hbScrollToDay(HB.selected||today(),true);}
     } finally { mounting = false; }
   }
   function dashLoad(force) {
@@ -117,6 +117,7 @@
   }
   var observer = new MutationObserver(tickObserver);
   observer.observe(root,{childList:true,subtree:true});
+  root.addEventListener('change',function(e){var el=e.target;if(!el||!el.matches||!el.matches('#cc-heartbeat [data-hb-jump]'))return;var v=el.value;if(!/^\\d{4}-\\d{2}-01$/.test(v))return;HB.jumpMonth=v;HB.railScroll=null;hbScrollToDay(v,false);},true);
   root.addEventListener('click',function (e) {
     var b = e.target && e.target.closest ? e.target.closest('#cc-heartbeat [data-act]') : null;
     if (!b) return;
@@ -129,7 +130,7 @@
     }
     else if (a === 'dx-hb-today') { HB.selected=today(); HB.railScroll=null; view(); hbScrollToDay(today(),false); }
     else if (a === 'dx-hb-day') { HB.selected=v; view(); }
-    else if (a === 'dx-hb-metric' && ['pickup_cakes','orders','cakes','value','sales'].indexOf(v)>-1) { HB.metric=v; view(); }
+    else if (a === 'dx-hb-metric' && ['flow','pickup_cakes','orders','cakes','value','sales'].indexOf(v)>-1) { HB.metric=v; view(); }
     else if (a === 'dx-hb-period' && ['7','30','90'].indexOf(v)>-1) { HB.period=Number(v); view(); }
     else if (a === 'dx-hb-mode' && ['daily','cumulative'].indexOf(v)>-1) { HB.mode=v; view(); }
     else if (a === 'dx-hb-retry') dashLoad(true);
