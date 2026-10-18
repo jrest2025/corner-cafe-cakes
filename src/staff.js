@@ -223,12 +223,12 @@
   function navTabs() {
     if (kitchenOnly()) return [['kitchen', 'Kitchen']];
     var tabs = [['today', 'Today'], ['attn', 'Needs attention'], ['orders', 'Orders'], ['calendar', 'Calendar']];
-    if (canP('ord.create')) tabs.push(['tablet', 'Service view']);
     if (canP('kit.view')) tabs.push(['kitchen', 'Kitchen']);
     if (canP('ord.view') || canP('kit.view')) tabs.push(['handover', 'Handover']);
     if (canP('nav.customers') && canP('cust.view')) tabs.push(['customers', 'Customers']);
     if (canP('mgmt.analytics') || canP('mgmt.reports')) tabs.push(['dash', 'Analytics']);
     if (canP('mgmt.reports')) tabs.push(['register', 'Register']);
+    if (canP('ord.create')) tabs.push(['tablet', 'Service view']);
     if (canSettings()) tabs.push(['settings', 'Settings']);
     tabs.push(['more', 'More']);
     return tabs;
