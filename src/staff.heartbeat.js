@@ -1,7 +1,7 @@
   // Cake Heartbeat: read-only operational pulse for the Analytics Overview.
   // Source: dashboard_register (deduplicated master register), plus staff-visible calendar tables.
   // These widgets deliberately ignore historical Analytics period filters: they always track pickup dates.
-  var HB = { events: [], eventsReady: false, eventError: false, loadingEvents: false, eventsAt: 0, timer: null, selected: null, metric: 'value', mode: 'daily', railScroll: null, chartScroll: null, daysBehind: 30, daysAhead: 59 };
+  var HB = { events: [], eventsReady: false, eventError: false, loadingEvents: false, eventsAt: 0, timer: null, selected: null, metric: 'sales', mode: 'daily', period: 30, railScroll: null, chartScroll: null, daysBehind: 30, daysAhead: 59 };
   function hbMonday(d) {
     return addDays(d, -((new Date(d + 'T12:00:00Z').getUTCDay() + 6) % 7));
   }
@@ -266,18 +266,10 @@
         '" aria-pressed="' + (HB.mode === x[0]) + '" class="' + (HB.mode === x[0] ? 'is-on' : '') + '">' + x[1] + '</button>';
     }).join('');
     return '<section class="hb-v2" aria-label="Cake Heartbeat daily performance">' +
-      '<div class="hb-v2-head"><div><h2>Cake Heartbeat</h2><p>Daily completed sales, bookings and future pickup demand</p></div>' +
+      '<div class="hb-v2-head"><div><h2>Cake performance</h2></div>' +
       '<div class="hb-v2-update"><span class="hb-v2-live"></span> Updated ' + esc(lastRead) + ' · refreshes every 60 sec</div></div>' +
-      '<div class="hb-v2-kpis">' +
-      '<div><span>Last 7 days · completed sales</span><strong>' + hbFjd(salesNow) + '</strong></div>' +
-      '<div><span>Next 30 days · confirmed value</span><strong>' + hbFjd(futureValue) + '</strong></div>' +
-      '<div><span>Last 7 days · avg completed order</span><strong>' + (completed7.length ? hbFjd(salesNow/completed7.length) : '—') + '</strong></div>' +
-      '<div><span>Last 7 days · orders placed</span><strong>' + ord7 + '</strong></div>' +
-      '<div><span>Last 7 days · booked value</span><strong>' + hbFjd(sales7) + '</strong></div>' +
-      '<div><span>Next 7 days · pickups</span><strong>' + pickups7 + '</strong></div>' +
-      '<div><span>Next 7 days · cakes due</span><strong>' + upcomingCake + '</strong></div></div>' +
-      '<div class="hb-v2-tools"><div class="hb-v2-chart-title"><h3>Daily booking performance</h3>' +
-      '<p>Orders are counted on the original booking date, even when entered later. Scroll the timeline left or right.</p></div>' +
+      hbMView(data) +
+      '<div class="hb-v2-tools"><div class="hb-v2-chart-title"><h3>Daily booking curve</h3></div>' +
       '<div class="hb-v2-options"><div class="hb-v2-switch" role="group" aria-label="Measure">' + metricBtns + '</div>' +
       '<div class="hb-v2-switch" role="group" aria-label="Display mode">' + modeBtns + '</div></div></div>' +
       '<div class="hb-v2-scrollbar"><div class="hb-v2-scrollhint">← Earlier days</div><div class="hb-v2-railbuttons">' +
@@ -293,7 +285,7 @@
       '<div class="hb-v2-key"><span><i class="hb-v2-key-line"></i>' +
         esc((HB.mode === 'cumulative' ? 'Running ' : 'Daily ') + hbMetricLabel().toLowerCase()) +
       '</span><span><i class="hb-v2-key-dot"></i>Today · future booking activity is not projected</span>' +
-      '<span>Bookings with unverified original date: ' + data.missing + ' (excluded from booking trend)</span>' +
+      (data.missing ? '<span>'+data.missing+' unverified booking dates</span>' : '') +
       (HB.eventError ? '<span>Calendar events temporarily unavailable</span>' : '') + '</div>' +
-      hbDayDetail(data) + '</section>';
+      '<details class="hb-m-details"><summary>'+esc(hbDateTitle((HB.selected||data.today)))+' · Daily detail</summary>'+hbDayDetail(data)+'</details></section>';
   }
