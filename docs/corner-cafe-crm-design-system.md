@@ -30,3 +30,6 @@ Use the user's reference image as an accent-colour system, **not** as a requirem
 
 ## Implementation
 Calendar stylesheet: `src/staff.calendar-dashboard.css`. Read-only month summary enhancer: `src/staff.calendar-dashboard.js`. Loaded by the pinned Webflow staff page footer after the hosted CRM bundle. The base CRM and booking functions remain untouched. To revert, remove the calendar-dashboard asset loader from that footer and republish.
+
+## Calendar month interaction (approved 18 October 2026)
+The month grid shows date, order/cake count, holiday and occasion indicators only. Pickup times, cake names and order details belong in the selected-date view, using the existing right-hand panel on desktop and the native sheet on mobile/tablets. Preserve existing order actions and permissions; keep month cells legible and compact.
