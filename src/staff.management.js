@@ -51,6 +51,7 @@
       grid+bars+xlabels+'</svg>';
   }
   function hbMRank(rows) {
+    rows=rows.filter(function(r){return r.v>0;});
     if(!rows.length)return hbMEmpty();
     var max=Math.max(1,rows[0].v);
     return '<div class="hb-m-ranks">'+rows.slice(0,6).map(function(r,i){
@@ -63,6 +64,7 @@
     if(!rows.length)return hbMEmpty();
     var total=rows.reduce(function(n,r){return n+r.v;},0);
     if(!total)return hbMEmpty();
+    if(rows.length>6)rows=rows.slice(0,5).concat([{l:'Other',v:rows.slice(5).reduce(function(n,r){return n+r.v;},0)}]);
     var colors=['#4b6339','#557fa0','#bf9a5c','#9a7b9f','#809a8d','#c77769'];
     var start=0,circ=2*Math.PI*36;
     var ring=rows.slice(0,6).map(function(r,i){
@@ -110,10 +112,10 @@
     var pastRows=daily.map(function(d){
       return {l:d,short:d.slice(8)+'/'+d.slice(5,7),v:totals[d]};
     });
-    var futureDays=hbMDateList(addDays(now,29),30),fqty={},fval={};
-    futureDays.forEach(function(d){fqty[d]=0;fval[d]=0;});
+    var futureDays=hbMDateList(addDays(now,29),30),fqty={};
+    futureDays.forEach(function(d){fqty[d]=0;});
     coming.forEach(function(o){
-      if(Object.prototype.hasOwnProperty.call(fqty,o.pd)){fqty[o.pd]+=hbCountCakes([o]);fval[o.pd]+=hbBookedValue(o);}
+      if(Object.prototype.hasOwnProperty.call(fqty,o.pd)){fqty[o.pd]+=hbCountCakes([o]);}
     });
     var demand=futureDays.map(function(d){return {l:d,short:d.slice(8)+'/'+d.slice(5,7),v:fqty[d]};});
     var mix={},chan={},leads=[0,0,0,0,0],leadNames=['0–1 day','2–3 days','4–7 days','8–14 days','15+ days'];
