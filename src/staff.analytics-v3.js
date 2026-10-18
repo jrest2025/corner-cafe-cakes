@@ -3,7 +3,7 @@
    "Recorded" and "confirmed" are never equated with paid or completed sales.
    Installed inside the existing isolated Analytics bridge, not the CRM app bundle.
 */
-  HB.metric='pickup_cakes';
+  HB.metric='flow';
   function hbKDay(d){return /^\d{4}-\d{2}-\d{2}$/.test(d||'')?d:'';}
   function hbKQty(o){return hbCountCakes([o]);}
   function hbKLive(o){return hbActive(o);}
