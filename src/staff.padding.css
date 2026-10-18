@@ -1,0 +1,41 @@
+/* Shared screen-edge and panel padding. Injected after the production bundle loads. */
+#cc-staff,#ccs-sheet{--pad-edge:24px;--pad-panel:16px;--pad-gap:16px}
+@media(min-width:1280px){#cc-staff,#ccs-sheet{--pad-edge:32px;--pad-panel:20px}}
+@media(max-width:759px){#cc-staff,#ccs-sheet{--pad-edge:16px;--pad-panel:14px;--pad-gap:12px}}
+/* Include counter-tablet mode, which earlier generic spacing rules excluded. */
+#cc-staff .ccs-app #ccs-main{
+ box-sizing:border-box;min-width:0;
+ padding-left:max(var(--pad-edge),env(safe-area-inset-left,0px))!important;
+ padding-right:max(var(--pad-edge),env(safe-area-inset-right,0px))!important;
+ scroll-padding-inline:var(--pad-edge);
+}
+#cc-staff #ccs-main>.ccs-head{min-width:0}
+#cc-staff #ccs-main :is(.dx-card,.ov-kpi,.ccs-panel-card){box-sizing:border-box;min-width:0;padding:var(--pad-panel)!important}
+#cc-staff #ccs-main :is(.ccs-card,.ccs-set,.ccs-calbody,.ccs-table-wrap){box-sizing:border-box;min-width:0;max-width:100%}
+#cc-staff #ccs-main :is(.bi-kpis,.bi-ov-row,.ov-row){gap:var(--pad-gap)!important}
+#cc-staff #ccs-main .ccs-set .ccs-set-body{padding-inline:var(--pad-panel)!important;padding-bottom:var(--pad-panel)!important}
+#cc-staff #ccs-main .ccs-set summary{padding-inline:var(--pad-panel)!important}
+#cc-staff #ccs-main .ccs-calside{padding:var(--pad-panel)!important;min-width:0;box-sizing:border-box}
+/* Keep the headings and body of every island detail panel aligned. */
+#cc-staff :is(.ap-pop,.ap-pane) .ap-pop-head{padding:var(--pad-panel)!important}
+#cc-staff :is(.ap-pop,.ap-pane) .ap-pop-body{padding:var(--pad-panel)!important}
+#cc-staff .ap-pop{
+ width:min(880px,calc(var(--ap-width,100vw) - var(--pad-edge) - var(--pad-edge)))!important;
+ max-height:calc(100vh - var(--ap-bottom,0px) - var(--pad-edge) - var(--pad-edge) - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px))!important;
+}
+@supports(height:1dvh){#cc-staff .ap-pop{max-height:calc(100dvh - var(--ap-bottom,0px) - var(--pad-edge) - var(--pad-edge) - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px))!important}}
+/* Sheets keep their own inset, including under the keyboard and device safe areas.
+   Leave vertical layout and existing extra space for bottom action bars intact. */
+#ccs-sheet .ccs-sheet-head,#ccs-sheet .ccs-sheet-body{
+ box-sizing:border-box;min-width:0;
+ padding-left:max(var(--pad-panel),env(safe-area-inset-left,0px))!important;
+ padding-right:max(var(--pad-panel),env(safe-area-inset-right,0px))!important;
+}
+#ccs-sheet .ccs-sheet-body{scroll-padding:var(--pad-panel)}
+#cc-staff .ap-pop-title,#cc-staff .ccs-mini-m,#ccs-sheet .ccs-kv dd{min-width:0;overflow-wrap:anywhere}
+@media(min-width:760px){
+ #cc-staff #ccs-main .ccs-table-wrap{overflow-x:auto;max-width:100%;overscroll-behavior-inline:contain}
+ #cc-staff #ccs-main .ccs-table :is(th,td):first-child{padding-left:var(--pad-panel)}
+ #cc-staff #ccs-main .ccs-table :is(th,td):last-child{padding-right:var(--pad-panel)}
+}
+@media print{#cc-staff .ccs-app #ccs-main{padding-left:0!important;padding-right:0!important}}
