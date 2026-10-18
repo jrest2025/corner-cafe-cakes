@@ -54,3 +54,13 @@ Live issue reported by Roneel: on phones the islands drew over the bottom-sheet 
 Release commit 7a0bcd0e7104244c44fbcadd5a99b9027b35d4e0, artifact dist/app/staff-app.2a1e12fa07.js, SRI sha384-9ufXmHYP845e2kZyLrLdaYFq07zxqNEv06HACOT6SwX8/mEOIDrQJbOFYWHi2fpH. Footer read-back matched. Published to both production domains. Live check at 412px phone width, signed in: Balance still to pay opened with all 4 orders, header, Close button and orders not covered by anything.
 
 Rollback: docs/rollback/staff-footer-before-phone-fix-2026-10-18.html (returns to the first release, which has the overlap), or docs/rollback/staff-footer-before-attn-pop-2026-10-18.html (returns to before islands).
+
+## Two panes and centred pop-up — 18 October 2026, 12:05 Fiji
+
+Approved by Roneel 12:01. Desktop and iPad landscape (landscape, at least 1100px wide): islands down the left, the most urgent category open on the right. Narrower screens: pop-up centred horizontally and vertically in the working area, above the phone tab bar.
+
+Release commit fdef88a145dc0eec396ee4d4d7de6572aeaf4a4b, artifact dist/app/staff-app.9e3eaffd00.js, SRI sha384-mo0eb5SSTt57QMlbSZ82YemMmlfUaCNyH0AB18u9pMjNBy62EsQjR6zStLxZ3bcD. 171 island checks, 34 order-date checks, 517 earlier checks passed. Footer read-back matched. Published to both production domains.
+
+Live check, signed in: desktop showed two panes with Overdue (2 orders) open first; switching to Kitchen not finished showed its order. At 412px phone width the pop-up centre matched the screen centre exactly (206, 391 above the tab bar).
+
+Rollback: docs/rollback/staff-footer-before-two-pane-2026-10-18.html (returns to the phone-fixed pop-up release).
