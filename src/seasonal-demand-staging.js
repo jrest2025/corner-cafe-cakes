@@ -4,7 +4,7 @@
 */
 (function (global) {
   'use strict';
-  var VERSION='2026-10-19-refined-v3', DAY=86400000, selections={month:null,event:null};
+  var VERSION='2026-10-19-management-v4', DAY=86400000, selections={month:null,event:null};
   if(global.CCCakeSeasonalStage&&global.CCCakeSeasonalStage.version===VERSION)return;
   function iso(d){if(typeof d!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(d))return '';var t=Date.parse(d+'T12:00:00Z');return isNaN(t)||new Date(t).toISOString().slice(0,10)!==d?'':d;}
   function utc(d){return new Date(d+'T12:00:00Z').getTime();}
@@ -131,6 +131,98 @@
     });
     return h+'</tbody></table>';
   }
+  /* Management snapshot: generated from the same authorized register payload.
+     It never guesses whether staff have called a customer or collected payment. */
+  function mgrAlive(o){return !!(o&&!o.off&&iso(o.pd)&&['cancelled','declined','not_confirmed'].indexOf(o.st)<0);}
+  function mgrDate(o,today){return o.odok===true&&iso(o.od)&&o.od<=today&&o.od<=o.pd?o.od:'';}
+  function mgrCount(items){return items.reduce(function(total,o){return total+cakes(o);},0);}
+  function mgrCurrency(value){return 'FJD '+Number(value).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0});}
+  function mgrValue(o){
+    var val=o.cv!=null?Number(o.cv):o.lv!=null?Number(o.lv):null;
+    return val!=null&&isFinite(val)&&val>=0?val:null;
+  }
+  function mgrIdentity(o){var key=o&&o.c;return typeof key==='string'&&key.trim().length>=4?key.trim():'';}
+  function mgrKpi(label,amount,note,color){
+    return '<article class="hb-k-kpi hb-k-'+color+'"><div class="hb-k-top"><span>'+escapeHTML(label)+'</span><i class="hb-k-pip"></i></div>'+
+      '<strong>'+escapeHTML(amount)+'</strong><div class="hb-k-caption">'+escapeHTML(note)+'</div></article>';
+  }
+  function mgrRank(source,title,note){
+    var max=Math.max(1,...source.map(function(x){return x.v;}));
+    return '<section class="hb-k-panel ccsd-management-panel"><header><h3>'+escapeHTML(title)+'</h3><span>'+escapeHTML(note)+'</span></header>'+
+      (source.length?'<div class="ccsd-manager-rows">'+source.slice(0,6).map(function(x){
+        var pct=Math.round(100*x.v/max);
+        return '<div class="ccsd-manager-row"><span title="'+escapeHTML(x.n)+'">'+escapeHTML(x.n)+'</span>'+
+          '<div class="ccsd-manager-track"><i style="width:'+pct+'%"></i></div><b>'+x.v+'</b></div>';
+      }).join('')+'</div>':'<p class="ccsd-manager-empty">No eligible records in this period.</p>')+'</section>';
+  }
+  function mgrTotals(items,keyMaker,weightMaker){
+    var totals={};items.forEach(function(o){
+      var k=String(keyMaker(o)||'Not recorded').replace(/_/g,' ').trim()||'Not recorded';
+      totals[k]=(totals[k]||0)+(weightMaker?weightMaker(o):1);
+    });
+    return Object.keys(totals).map(function(k){return {n:k,v:totals[k]};}).sort(function(a,b){return b.v-a.v||a.n.localeCompare(b.n);});
+  }
+  function mgrSnapshot(orders,now,period){
+    var active=(orders||[]).filter(mgrAlive),begin=add(now,1-period);
+    var recent=active.filter(function(o){var d=mgrDate(o,now);return !!d&&d>=begin&&d<=now;});
+    var confirmed=active.filter(function(o){return o.st==='confirmed'&&o.pd>=now&&o.pd<add(now,30);});
+    var completed=active.filter(function(o){return o.st==='completed'&&o.cp==='recorded'&&o.pd>=begin&&o.pd<=now;});
+    var allVerified=active.filter(function(o){return !!mgrDate(o,now);});
+    var byCustomer={};
+    allVerified.forEach(function(o){var id=mgrIdentity(o);if(id)byCustomer[id]=(byCustomer[id]||0)+1;});
+    var recentIds={};recent.forEach(function(o){var id=mgrIdentity(o);if(id)recentIds[id]=true;});
+    var unique=Object.keys(recentIds),returning=unique.filter(function(id){return byCustomer[id]>=2;}).length;
+    var prices=confirmed.map(mgrValue),priced=prices.filter(function(v){return v!=null;});
+    var knownValue=priced.reduce(function(n,v){return n+v;},0);
+    var unknownBookingDates=active.filter(function(o){return !mgrDate(o,now);}).length;
+    var topCakes=mgrTotals(recent,function(o){return Array.isArray(o.it)&&o.it[0]?(o.it[0][1]||o.it[0][0]||'Cake'):'Cake';},cakes);
+    var channels=mgrTotals(recent,function(o){return o.src||o.sys||'Not recorded';});
+    var customerMix=[{n:'Returning customers',v:returning},{n:'First-time in available history',v:Math.max(0,unique.length-returning)}];
+    return {recent:recent,confirmed:confirmed,completed:completed,returning:returning,unique:unique.length,
+      identified:unique.length,unverified:unknownBookingDates,priced:priced.length,knownValue:knownValue,
+      topCakes:topCakes,channels:channels,customerMix:customerMix};
+  }
+  function mgrBuild(host,orders,now){
+    var main=host.querySelector('.hb-v2');
+    if(!main)return false;
+    var originalKpis=main.querySelector('.hb-k-kpis'),originalPanels=main.querySelector('.hb-k-panels');
+    if(!originalKpis||!originalPanels||!originalKpis.parentNode||!originalPanels.parentNode)return false;
+    var periodButton=main.querySelector('[data-act="dx-hb-period"].is-on');
+    var period=periodButton?Number(periodButton.getAttribute('data-v')):30;
+    if([7,30,90].indexOf(period)<0)period=30;
+    var data=mgrSnapshot(orders,now,period);
+    var cards=host.ownerDocument.createElement('div');
+    cards.className='hb-k-kpis ccsd-manager-kpis';
+    cards.setAttribute('aria-label','Management key performance indicators');
+    cards.innerHTML=
+      mgrKpi('Orders received',String(data.recent.length),'Verified booking dates · last '+period+' days','purple')+
+      mgrKpi('Confirmed cakes due',String(mgrCount(data.confirmed)),data.confirmed.length+' confirmed orders · next 30 days','green')+
+      mgrKpi('Confirmed order value',data.priced.length?mgrCurrency(data.knownValue):'—',
+        data.priced.length+'/'+data.confirmed.length+' orders have recorded values · estimate','pink')+
+      mgrKpi('Completed orders',String(data.completed.length),'Recorded completion · last '+period+' days','blue')+
+      mgrKpi('Returning customers',data.unique?String(data.returning):'—',
+        data.unique?data.unique+' identifiable customers · last '+period+' days':'No identifiable recent customers','teal')+
+      mgrKpi('Booking dates to verify',String(data.unverified),'Across the active register · excluded from booking trends','amber');
+    var panels=host.ownerDocument.createElement('div');
+    panels.className='hb-k-panels ccsd-manager-panels';
+    panels.setAttribute('aria-label','Customer and product insights');
+    panels.innerHTML=
+      mgrRank(data.topCakes,'Popular cake types','Cakes booked · last '+period+' days')+
+      mgrRank(data.channels,'Booking channels','Orders booked · last '+period+' days')+
+      mgrRank(data.unique?data.customerMix:[],'Customer mix',
+        data.unique?'Identifiable customers · last '+period+' days':'Customer identity unavailable')+
+      '<section class="hb-k-panel ccsd-management-panel ccsd-followup"><header><h3>Customer follow-ups</h3>'+
+        '<span>Needs activity reporting</span></header><div class="ccsd-followup-body">'+
+        '<strong>Not yet measured</strong><p>Calls, messages and retargeting outcomes are not part of the Analytics reporting feed. '+
+        'Use Customer Profiles for individual activity; no follow-up completion count is assumed.</p></div></section>';
+    originalKpis.parentNode.insertBefore(cards,originalKpis);
+    try{
+      originalPanels.parentNode.insertBefore(panels,originalPanels);
+      main.classList.add('ccsd-management');
+    }catch(err){cards.remove();panels.remove();throw err;}
+    return true;
+  }
+
   function mount(host,orders,options){
     if(!host||typeof host.querySelector!=='function')return false;
     if(host.querySelector('#cc-seasonal-demand-staging'))return false;
@@ -173,6 +265,7 @@
       event.addEventListener('change',function(){selections.event=event.value;drawPace();});
       drawMonth();drawPace();
       if(main)main.classList.add('ccsd-consolidated');
+      try{mgrBuild(host,orders,now);}catch(managerError){if(typeof console!=='undefined')console.warn('Management summary not available; original dashboard preserved',managerError);}
     }catch(err){container.remove();throw err;}
     return true;
   }
