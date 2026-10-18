@@ -1,0 +1,52 @@
+/* Executive presentation layer across the staff dashboard.
+   Retains the reference palette, operational status meanings and responsive layout. */
+#cc-staff #ccs-main{--ds-accent:#3d709b;--ds-soft:#eef3f8;color:#283444;line-height:1.45}
+#cc-staff #ccs-main[data-screen=today],#cc-staff #ccs-main[data-screen=handover],#cc-staff #ccs-main[data-screen=dash]{--ds-accent:#2c7278;--ds-soft:#edf5f4}
+#cc-staff #ccs-main[data-screen=attn]{--ds-accent:#816827;--ds-soft:#f8f3e7}
+#cc-staff #ccs-main[data-screen=calendar],#cc-staff #ccs-main[data-screen=settings]{--ds-accent:#72557f;--ds-soft:#f3eff6}
+#cc-staff #ccs-main[data-screen^=kitchen]{--ds-accent:#8a5e30;--ds-soft:#f8f1e9}
+#cc-staff #ccs-main[data-screen^=customers]{--ds-accent:#914969;--ds-soft:#f8eff3}
+/* Clear hierarchy and shared alignment; no changes to table structure or control order. */
+#cc-staff #ccs-main .ccs-head{gap:12px 20px;align-items:flex-start}
+#cc-staff #ccs-main .ccs-head .ccs-title{font-size:24px!important;line-height:1.25;letter-spacing:-.02em;font-weight:700;text-align:left;margin:0}
+#cc-staff #ccs-main>.ccs-head .ccs-title{padding-left:13px}
+#cc-staff #ccs-main>.ccs-head .ccs-title::before{width:3px;border-radius:2px}
+#cc-staff #ccs-main :is(.ccs-sub,.ccs-hint){font-size:14px;line-height:1.5;text-align:left}
+#cc-staff #ccs-main :is(.ccs-headacts,.ccs-head-acts,.ccs-actions-row){gap:10px;flex-wrap:wrap;min-width:0}
+#cc-staff #ccs-main :is(.dx-card-h,.ccs-card-head){gap:8px 14px;text-align:left}
+#cc-staff #ccs-main :is(.dx-card-h,.ccs-card-head) h2{font-size:18px!important;line-height:1.35;font-weight:650;letter-spacing:0;text-align:left}
+#cc-staff #ccs-main :is(.dx-card,.ccs-panel-card,.ccs-set){border-radius:12px;box-shadow:none;border-color:#dde2e9}
+#cc-staff #ccs-main :is(.ccs-card,.crm-card){border-radius:12px;box-shadow:none}
+#cc-staff #ccs-main :is(.ccs-btn,.ccs-input){border-radius:8px}
+#cc-staff #ccs-main .ccs-table th{font-size:13px;line-height:1.4;font-weight:650;letter-spacing:.025em;text-transform:none}
+#cc-staff #ccs-main .ccs-table td{line-height:1.45}
+#cc-staff #ccs-main :is(.ov-kv,.ccs-kpi-n,.ccs-daytot b,.an-lrow b,.an-lrow em){font-variant-numeric:tabular-nums}
+#cc-staff #ccs-main .ccs-kv dt{font-size:14px;line-height:1.45;color:#566171}
+#cc-staff #ccs-main .ccs-kv dd{line-height:1.45}
+/* Muted full-colour hero; supporting metrics use calm washes with dark text. */
+#cc-staff #ccs-main.cv-crm{background:#f5f6f9!important}
+#cc-staff #ccs-main.cv-crm .crm-kpi{border-radius:12px!important;min-height:140px!important;box-shadow:none!important;gap:7px}
+#cc-staff #ccs-main.cv-crm .crm-kpi.cv-metric-0{--cv-bg:#72517e;--cv-ink:#fff;border-color:#72517e!important}
+#cc-staff #ccs-main.cv-crm .crm-kpi.cv-metric-1{--cv-bg:#f8e8bd;--cv-ink:#654b12;border-color:#ead8aa!important}
+#cc-staff #ccs-main.cv-crm .crm-kpi.cv-metric-2{--cv-bg:#e0ebcf;--cv-ink:#405a2d;border-color:#d0dfba!important}
+#cc-staff #ccs-main.cv-crm .crm-kpi.cv-metric-3{--cv-bg:#f1dfe9;--cv-ink:#804361;border-color:#e5cbd9!important}
+#cc-staff #ccs-main.cv-crm .crm-kpi.cv-metric-4{--cv-bg:#edf2f8;--cv-ink:#305b83}
+#cc-staff #ccs-main.cv-crm .crm-kpi.cv-metric-5{--cv-bg:#edf5f4;--cv-ink:#2d686c}
+#cc-staff #ccs-main.cv-crm .crm-kpi.cv-metric-6{--cv-bg:#f9f1e8;--cv-ink:#855426}
+#cc-staff #ccs-main.cv-crm .crm-kpi.cv-metric-7{--cv-bg:#f3eff6;--cv-ink:#705584}
+#cc-staff #ccs-main.cv-crm .crm-kpi .ov-kv{font-size:30px!important;letter-spacing:-.02em}
+#cc-staff #ccs-main.cv-crm .crm-kpi .ov-kl{font-weight:650;font-size:14px!important}
+#cc-staff #ccs-main.cv-crm .crm-kpi .ov-ks{opacity:1;font-size:13px!important;line-height:1.45}
+#cc-staff #ccs-main.cv-crm .cv-icon{background:#ffffff40;border-radius:9px}
+#cc-staff #ccs-main.cv-crm .crm-row>.dx-card{border-radius:12px;box-shadow:none}
+#cc-staff #ccs-main.cv-crm .crm-row .ov-att .ov-arow.cv-done{border-top-width:2px!important;border-radius:10px!important}
+#cc-staff #ccs-main.cv-crm .cv-avatar{border-radius:8px}
+#cc-staff #ccs-main.cv-crm button.crm-kpi{transition:border-color .15s}
+#cc-staff #ccs-main.cv-crm button.crm-kpi:hover{box-shadow:none!important;outline:1px solid currentColor;outline-offset:-1px}
+#cc-staff .ap-island{box-shadow:0 1px 3px #25304408}
+#cc-staff .ap-island:hover{transform:none;box-shadow:0 2px 6px #25304410}
+#cc-staff .ap-pane{border-radius:14px;box-shadow:0 2px 8px #25304408}
+#cc-staff .ap-pop{border-radius:16px}
+#cc-staff .ap-pop-title h2{font-size:20px;line-height:1.3;letter-spacing:0}
+@media(max-width:759px){#cc-staff #ccs-main .ccs-head .ccs-title{font-size:22px!important}}
+@media print{#cc-staff #ccs-main :is(.dx-card,.ccs-card,.ccs-panel-card){box-shadow:none!important}}
