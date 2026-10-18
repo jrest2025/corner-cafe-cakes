@@ -1,0 +1,329 @@
+/* Corner Cafe / New Order clarity / 19 Oct 2026
+ * Screen-only presentation. Existing actions, validation and field data are unchanged.
+ * The live order-slip preview and the operational kitchen slip/PDF/print layouts
+ * are intentionally outside every selector in this stylesheet.
+ */
+@media screen {
+  #cc-staff .sl-wrap.is-stepper {
+    --ow-ink: #293847;
+    --ow-muted: #627382;
+    --ow-line: #dce4e9;
+    --ow-accent: #3d709b;
+    --ow-accent-wash: #edf4f8;
+    --ow-complete: #327568;
+    --ow-complete-wash: #edf6f2;
+  }
+
+  /* Guided work surface; retain existing two-column and sticky layout. */
+  #cc-staff .sl-wrap.is-stepper .sl-stepmain {
+    border: 1px solid var(--ow-line);
+    border-radius: 16px;
+    padding: clamp(14px, 2vw, 24px) clamp(14px, 2.2vw, 26px) 0;
+    background: #fff;
+    box-shadow: 0 4px 22px rgba(33, 49, 59, .045);
+    overflow: visible;
+  }
+  #cc-staff .sl-wrap.is-stepper .sl-stephead {
+    gap: 8px 12px;
+    padding-bottom: 18px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--ow-line);
+    align-items: center;
+  }
+  #cc-staff .sl-wrap.is-stepper .sl-progress {
+    display: inline-flex;
+    width: max-content;
+    min-height: 28px;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 99px;
+    background: var(--ow-accent-wash);
+    color: #305e7e;
+    font-size: 13px !important;
+    font-weight: 750;
+    letter-spacing: .035em;
+    line-height: 1.25;
+  }
+  #cc-staff .sl-wrap.is-stepper .sl-steptitle {
+    color: var(--ow-ink);
+    font-size: clamp(22px, 2.1vw, 28px) !important;
+    font-weight: 750;
+    line-height: 1.22;
+    letter-spacing: -.02em;
+  }
+  /* Guidance follows the real stage; text does not replace native labels. */
+  #cc-staff .sl-wrap.is-stepper .sl-steptitle::after {
+    display: block;
+    margin-top: 6px;
+    color: var(--ow-muted);
+    font: 450 14px/1.45 "Figtree", Arial, sans-serif;
+    letter-spacing: 0;
+  }
+  #cc-staff .sl-wrap.is-stepper #sl-st-1 .sl-steptitle::after { content: "Find the guest, then record how and when the order was placed."; }
+  #cc-staff .sl-wrap.is-stepper #sl-st-0 .sl-steptitle::after { content: "Choose the cake, size and quantity before continuing."; }
+  #cc-staff .sl-wrap.is-stepper #sl-st-4 .sl-steptitle::after { content: "Capture the inscription, preferences and any allergy details."; }
+  #cc-staff .sl-wrap.is-stepper #sl-st-3 .sl-steptitle::after { content: "Confirm collection or delivery and the required date and time."; }
+  #cc-staff .sl-wrap.is-stepper #sl-st-7 .sl-steptitle::after { content: "Check the order details and payment before saving."; }
+
+  /* Upgrade the five progress dots into an immediately readable step guide.
+   * These are not new controls; the native step navigation is unchanged. */
+  #cc-staff .sl-wrap.is-stepper .sl-dots {
+    display: grid !important;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 6px;
+    margin: 12px 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  #cc-staff .sl-wrap.is-stepper .sl-dots > li {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 6px;
+    min-width: 0;
+    min-height: 52px;
+    height: auto !important;
+    padding: 7px;
+    border: 1px solid #e3e8ed;
+    border-radius: 9px;
+    background: #f8fafb !important;
+    color: #71808d;
+  }
+  #cc-staff .sl-wrap.is-stepper .sl-dots > li::before {
+    content: "1";
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 24px;
+    height: 24px;
+    border: 1px solid #d4dce4;
+    border-radius: 50%;
+    background: white;
+    color: #637381;
+    font: 750 12px/1 "Figtree", Arial, sans-serif;
+  }
+  #cc-staff .sl-wrap.is-stepper .sl-dots > li:nth-child(2)::before { content: "2"; }
+  #cc-staff .sl-wrap.is-stepper .sl-dots > li:nth-child(3)::before { content: "3"; }
+  #cc-staff .sl-wrap.is-stepper .sl-dots > li:nth-child(4)::before { content: "4"; }
+  #cc-staff .sl-wrap.is-stepper .sl-dots > li:nth-child(5)::before { content: "5"; }
+  #cc-staff .sl-wrap.is-stepper .sl-dots > li::after {
+    content: "Customer";
+    min-width: 0;
+    overflow-wrap: anywhere;
+    font: 650 11px/1.25 "Figtree", Arial, sans-serif;
+  }
+  #cc-staff .sl-wrap.is-stepper .sl-dots > li:nth-child(2)::after { content: "Cake"; }
+  #cc-staff .sl-wrap.is-stepper .sl-dots > li:nth-child(3)::after { content: "Details"; }
+  #cc-staff .sl-wrap.is-stepper .sl-dots > li:nth-child(4)::after { content: "Collection"; }
+  #cc-staff .sl-wrap.is-stepper .sl-dots > li:nth-child(5)::after { content: "Review"; }
+  #cc-staff .sl-wrap.is-stepper .sl-dots > li.is-now {
+    border-color: #80a5c0;
+    background: var(--ow-accent-wash) !important;
+    color: #284f6b;
+  }
+  #cc-staff .sl-wrap.is-stepper .sl-dots > li.is-now::before {
+    border-color: var(--ow-accent);
+    background: var(--ow-accent);
+    color: #fff;
+  }
+  #cc-staff .sl-wrap.is-stepper .sl-dots > li.is-done {
+    border-color: #bcd8ce;
+    background: var(--ow-complete-wash) !important;
+    color: #356c60;
+  }
+  #cc-staff .sl-wrap.is-stepper .sl-dots > li.is-done::before {
+    content: "✓";
+    border-color: var(--ow-complete);
+    background: var(--ow-complete);
+    color: #fff;
+    font-size: 15px;
+  }
+  #cc-staff .sl-wrap.is-stepper .sl-viewbtn {
+    min-height: 38px;
+    padding: 5px 10px;
+    border: 1px solid #cedee8;
+    border-radius: 8px;
+    background: #fff;
+    color: #365f78;
+    font-weight: 700;
+    text-decoration: none;
+  }
+  #cc-staff .sl-wrap.is-stepper .sl-viewbtn:hover { background: #f1f6f9; }
+
+  /* Form hierarchy and prominent, accessible entry controls. */
+  #cc-staff .sl-wrap.is-stepper .sl-stepbody { gap: 14px; }
+  #cc-staff .sl-wrap.is-stepper .sl-stepbody > .sl-k,
+  #cc-staff .sl-wrap.is-stepper .sl-stepbody > label.sl-k {
+    margin-top: 5px;
+    color: #324354;
+    font-weight: 720;
+  }
+  #cc-staff .sl-wrap.is-stepper .sl-stepbody .ccs-input {
+    background: #fff;
+    border: 1px solid #cbd6df;
+    border-radius: 9px;
+  }
+  #cc-staff .sl-wrap.is-stepper .sl-stepbody .ccs-input:focus-visible {
+    outline: 3px solid rgba(61, 112, 155, .22);
+    outline-offset: 1px;
+    border-color: var(--ow-accent);
+    box-shadow: 0 0 0 1px var(--ow-accent);
+  }
+  #cc-staff .sl-wrap.is-stepper .sl-stepbody .ccs-hint {
+    color: #627382;
+    line-height: 1.5;
+  }
+  #cc-staff .sl-wrap.is-stepper .sl-found {
+    padding: 17px 18px;
+    border: 1px solid #d8ccdb;
+    border-left: 4px solid #846a87;
+    border-radius: 12px;
+    background: #fbf8fb;
+    gap: 5px 14px;
+  }
+  #cc-staff .sl-wrap.is-stepper .sl-found .sl-fixed {
+    color: #41384b;
+    font-size: 19px;
+    font-weight: 740;
+  }
+  #cc-staff .sl-wrap.is-stepper .sl-matches,
+  #cc-staff .sl-wrap.is-stepper .sl-nomob-pick,
+  #cc-staff .sl-wrap.is-stepper .sl-nomob-none {
+    padding: 13px;
+    border: 1px solid var(--ow-line);
+    border-radius: 12px;
+    background: #f8fafb;
+  }
+  #cc-staff .sl-wrap.is-stepper .ccs-match {
+    border: 1px solid #cedbe5;
+    border-radius: 10px;
+    background: #fff;
+  }
+  #cc-staff .sl-wrap.is-stepper .ccs-match:hover,
+  #cc-staff .sl-wrap.is-stepper .ccs-match:focus-visible {
+    border-color: var(--ow-accent);
+    background: var(--ow-accent-wash);
+  }
+
+  /* Source and order-taken selections have their own contained groups. */
+  #cc-staff .sl-wrap.is-stepper .sl-stepbody .ccs-chips:has(> [data-act="n-source"]),
+  #cc-staff .sl-wrap.is-stepper .sl-stepbody .tk-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 9px;
+    border: 1px solid var(--ow-line);
+    border-radius: 12px;
+    background: #f7f9fb;
+  }
+  #cc-staff .sl-wrap.is-stepper .sl-stepbody .ccs-chips > .ccs-chip:not(.ccs-datecell) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-height: 49px;
+    padding: 9px 15px;
+    border-radius: 9px;
+    font-size: 16px !important;
+    font-weight: 630;
+    line-height: 1.35;
+    white-space: normal;
+    text-align: center;
+    transition: background-color .12s, border-color .12s, box-shadow .12s;
+  }
+  #cc-staff .sl-wrap.is-stepper .sl-stepbody .ccs-chip[aria-pressed="true"]:not([data-act="n-diet"]):not([data-act="n-diets"]) {
+    border-color: var(--ow-accent) !important;
+    background: var(--ow-accent-wash) !important;
+    color: #285577 !important;
+    box-shadow: inset 0 0 0 1px var(--ow-accent) !important;
+    font-weight: 730;
+  }
+  /* Discreet monochrome affordances; existing source labels stay literal. */
+  #cc-staff .sl-wrap.is-stepper .ccs-chip[data-act="n-source"]::before {
+    display: inline-grid;
+    place-items: center;
+    width: 19px;
+    font: 700 18px/1 Arial, sans-serif;
+    opacity: .8;
+  }
+  #cc-staff .sl-wrap.is-stepper .ccs-chip[data-act="n-source"][data-v="walk_in"]::before { content: "⌂"; }
+  #cc-staff .sl-wrap.is-stepper .ccs-chip[data-act="n-source"][data-v="phone"]::before { content: "☎"; }
+  #cc-staff .sl-wrap.is-stepper .ccs-chip[data-act="n-source"][data-v="whatsapp"]::before { content: "✉"; }
+  #cc-staff .sl-wrap.is-stepper .ccs-chip[data-act="n-source"][data-v="social"]::before { content: "◎"; }
+  #cc-staff .sl-wrap.is-stepper .ccs-chip[data-act="n-source"][data-v="corporate"]::before { content: "▦"; }
+
+  /* Better separation for optional details, without changing visible fields. */
+  #cc-staff .sl-wrap.is-stepper .sl-stepbody .sl-occ2,
+  #cc-staff .sl-wrap.is-stepper .sl-stepbody .tk-sub,
+  #cc-staff .sl-wrap.is-stepper .sl-stepbody .ccs-panel {
+    border: 1px solid var(--ow-line);
+    border-radius: 12px;
+    background: #fbfcfd;
+    padding: 14px 15px;
+  }
+
+  /* Native Back, Skip, Start over and Save buttons retain their handlers. */
+  #cc-staff .sl-wrap.is-stepper .sl-stepbar {
+    gap: 10px;
+    margin-top: 20px;
+    padding: 15px 0 max(15px, env(safe-area-inset-bottom, 0px));
+    background: #fff;
+    border-top: 1px solid var(--ow-line);
+  }
+  #cc-staff .sl-wrap.is-stepper .sl-stepbar .ccs-btn {
+    border-radius: 9px;
+    font-weight: 730;
+  }
+  #cc-staff .sl-wrap.is-stepper .sl-stepbar [data-act="sl-next"] {
+    background: var(--ow-accent) !important;
+    border-color: var(--ow-accent) !important;
+    color: #fff !important;
+    box-shadow: 0 3px 10px rgba(41, 81, 111, .16);
+  }
+  #cc-staff .sl-wrap.is-stepper .sl-stepbar [data-act="sl-next"]::after {
+    content: "›";
+    margin-left: 10px;
+    font: 700 23px/1 Arial, sans-serif;
+  }
+  #cc-staff .sl-wrap.is-stepper .sl-stepbar .ccs-ghost {
+    border-color: #cfdbe3;
+    color: #40566a;
+  }
+  #cc-staff .sl-wrap.is-stepper .sl-stepbar :is(button, a):focus-visible,
+  #cc-staff .sl-wrap.is-stepper .sl-stephead button:focus-visible,
+  #cc-staff .sl-wrap.is-stepper .sl-stepbody button:focus-visible {
+    outline: 3px solid rgba(61, 112, 155, .45);
+    outline-offset: 3px;
+  }
+
+  @media (max-width: 900px) {
+    #cc-staff .sl-wrap.is-stepper .sl-stepmain { border-radius: 12px; }
+    #cc-staff .sl-wrap.is-stepper .sl-dots > li {
+      flex-direction: column;
+      text-align: center;
+      justify-content: center;
+      gap: 4px;
+      padding: 5px 3px;
+    }
+    #cc-staff .sl-wrap.is-stepper .sl-dots > li::after { font-size: 10px; }
+  }
+  @media (max-width: 759px) {
+    #cc-staff .sl-wrap.is-stepper .sl-stepmain {
+      padding: 15px 13px 0;
+      box-shadow: none;
+    }
+    #cc-staff .sl-wrap.is-stepper .sl-stephead { margin-bottom: 16px; }
+    #cc-staff .sl-wrap.is-stepper .sl-dots { gap: 5px; }
+    #cc-staff .sl-wrap.is-stepper .sl-dots > li { min-height: 38px; }
+    #cc-staff .sl-wrap.is-stepper .sl-dots > li::after { display: none; }
+    #cc-staff .sl-wrap.is-stepper .sl-dots > li::before { width: 26px; height: 26px; }
+    #cc-staff .sl-wrap.is-stepper .sl-stepbody .ccs-chips > .ccs-chip:not(.ccs-datecell) {
+      min-height: 47px;
+      padding: 8px 12px;
+    }
+    #cc-staff .sl-wrap.is-stepper .sl-stepbar [data-act="sl-next"]::after { margin-left: 5px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #cc-staff .sl-wrap.is-stepper .sl-stepbody .ccs-chip { transition: none; }
+  }
+}
