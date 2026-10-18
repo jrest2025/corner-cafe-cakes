@@ -253,8 +253,8 @@
        (now ? ' data-hb-today="true"' : '') + ' aria-pressed="' + selected + '" aria-label="' + esc(label) + '">' +
        '<span class="hb-v2-date">' + dow + ' <b>' + +r.day.slice(8) + '</b></span>' +
        '<span class="hb-v2-booked"><b>' + hbKTimelineValue(r,'pickup_cakes') +
-       '</b><small>booked</small></span>' +
-       '<span class="hb-v2-value">' + (r.day > data.today ? 'Confirmed demand' : r.orders + ' bookings') + '</span>' +
+       '</b><small>cakes due</small></span>' +
+       '<span class="hb-v2-value">' + (r.day > data.today ? 'Confirmed' : r.orders + ' booked orders') + '</span>' +
        '<span class="hb-v2-pickup">' + r.pickupCount + ' pickup orders</span>' +
        (hbEventMini(r.day) || '<span class="hb-v2-event-space"></span>') + '</button>';
     }).join('');
@@ -267,9 +267,9 @@
     }).join('');
     return '<section class="hb-v2" aria-label="Cake Heartbeat daily performance">' +
       '<div class="hb-v2-head"><div><h2>Cake performance</h2></div>' +
-      '<div class="hb-v2-update"><span class="hb-v2-live"></span> Updated ' + esc(lastRead) + ' · refreshes every 60 sec</div></div>' +
+      '<div class="hb-v2-update"><span class="hb-v2-live"></span> Refreshed ' + esc(lastRead) + ' · refreshes every 60 sec</div></div>' +
       hbMView(data) +
-      '<div class="hb-v2-tools"><div class="hb-v2-chart-title"><h3>Daily cake demand &amp; booking curve</h3></div>' +
+      '<div class="hb-v2-tools"><div class="hb-v2-chart-title"><h3>Daily cake demand</h3></div>' +
       '<div class="hb-v2-options"><div class="hb-v2-switch" role="group" aria-label="Measure">' + metricBtns + '</div>' +
       '<div class="hb-v2-switch" role="group" aria-label="Display mode">' + modeBtns + '</div></div></div>' +
       '<div class="hb-v2-scrollbar"><div class="hb-v2-scrollhint">← Earlier days</div><div class="hb-v2-railbuttons">' +
@@ -284,8 +284,8 @@
       '</div></div>' +
       '<div class="hb-v2-key"><span><i class="hb-v2-key-line"></i>' +
         esc((HB.mode === 'cumulative' ? 'Running ' : 'Daily ') + hbMetricLabel().toLowerCase()) +
-      '</span><span><i class="hb-v2-key-dot"></i>Today · future booking activity is not projected</span>' +
+      '</span><span><i class="hb-v2-key-dot"></i>Future dates show confirmed demand only</span>' +
       (data.missing ? '<span>'+data.missing+' unverified booking dates</span>' : '') +
       (HB.eventError ? '<span>Calendar events temporarily unavailable</span>' : '') + '</div>' +
-      '<details class="hb-m-details"><summary>'+esc(hbDateTitle((HB.selected||data.today)))+' · Daily detail</summary>'+hbDayDetail(data)+'</details></section>';
+      '<details class="hb-m-details"><summary>'+esc(hbDateTitle((HB.selected||data.today)))+' · View daily breakdown</summary>'+hbDayDetail(data)+'</details></section>';
   }
