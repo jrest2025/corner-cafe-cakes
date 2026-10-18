@@ -85,3 +85,12 @@
 #cc-staff .hb-v2-order{font-size:13px}
 @media(max-width:880px){#cc-staff .hb-k-panel{grid-column:span 3}#cc-staff .hb-v2-daystats{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:680px){#cc-staff .hb-v2-head h2{font-size:20px}#cc-staff .hb-k-kpis{gap:9px}#cc-staff .hb-k-kpi{min-height:120px;padding:12px}#cc-staff .hb-k-kpi strong{font-size:22px}#cc-staff .hb-k-caption{font-size:12px}#cc-staff .hb-k-panels{gap:10px}#cc-staff .hb-k-panel{grid-column:span 1}#cc-staff .hb-v2-daystats{grid-template-columns:repeat(2,minmax(0,1fr))}#cc-staff .hb-v2-tools{align-items:flex-start}#cc-staff .hb-v2-switch button{font-size:12px}}
+
+#cc-staff .hb-k-curve .hb-k-line-booked{fill:none;stroke:#955ca1;stroke-width:3;stroke-dasharray:8 6;stroke-linejoin:round;stroke-linecap:round}
+#cc-staff .hb-k-curve .hb-k-dot-booked{fill:white;stroke:#955ca1;stroke-width:2}
+#cc-staff .hb-v2-key .hb-k-legend-booked i{background:transparent;border-top:3px dashed #955ca1;width:19px;height:0}
+#cc-staff .hb-v2-key .hb-k-legend-due i{background:#5a8f69;width:19px;height:3px}
+#cc-staff .hb-k-monthjump{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#56677a}
+#cc-staff .hb-k-monthjump select{font:inherit;font-size:13px;padding:7px 9px;border:1px solid #c9d3df;background:white;border-radius:7px;min-width:120px;color:#273443}
+#cc-staff .hb-v2-key{align-items:center}
+@media(max-width:680px){#cc-staff .hb-k-monthjump{width:100%}#cc-staff .hb-v2-railbuttons{flex-wrap:wrap}}
