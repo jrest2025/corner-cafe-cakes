@@ -36,7 +36,7 @@
     return {start:start,period:period,now:when,current:current,previous:previous,next:next,due:due,completed:completed,unresolved:unresolved};
   }
   function hbKDelta(now,prior,units){
-    if(!prior)return '<span class="hb-m-delta hb-m-neutral">No prior baseline</span>';
+    if(!prior)return '<span class="hb-m-delta hb-m-neutral">'+(now>0?'New vs previous '+esc(units):'No prior-period activity')+'</span>';
     var p=Math.round(100*(now-prior)/prior);
     return '<span class="hb-m-delta '+(p>0?'hb-m-positive':p<0?'hb-m-negative':'hb-m-neutral')+'">'+
       (p>0?'+':'')+p+'% vs previous '+units+'</span>';
@@ -96,33 +96,33 @@
       '" class="'+(n===p?'is-on':'')+'" aria-pressed="'+(n===p)+'">'+n+' days</button>';}).join('');
     var kpis='<div class="hb-k-kpis">'+
       hbKCard('Cakes booked',bookedCakes.toLocaleString('en-US'),hbKDelta(bookedCakes,priorCakes,p+' days'),'count','green')+
-      hbKCard('Orders taken',cur.length.toLocaleString('en-US'),hbKDelta(cur.length,prevOrders,p+' days'),'count','purple')+
-      hbKCard('Booked value',hbFjd(nowVal),hbKDelta(nowVal,pastVal,p+' days'),'money','pink')+
+      hbKCard('Orders received',cur.length.toLocaleString('en-US'),hbKDelta(cur.length,prevOrders,p+' days'),'count','purple')+
+      hbKCard('Estimated booking value',hbFjd(nowVal),hbKDelta(nowVal,pastVal,p+' days'),'money','pink')+
       hbKCard('Confirmed cakes due',hbKCount(up).toLocaleString('en-US'),up.length+' confirmed orders · next 30 days','count','blue')+
-      hbKCard('Confirmed future value',hbFjd(confirmedVal),'Estimated order value · next 30 days','money','teal')+
-      hbKCard('Avg booking lead',avgLead==null?'—':avgLead+' days',avgLead==null?'No verified bookings in period':oldVerified+' verified booking dates','time','amber')+
+      hbKCard('Confirmed order value',hbFjd(confirmedVal),'Next 30 days · not yet collected','money','teal')+
+      hbKCard('Average lead time',avgLead==null?'—':avgLead+' days',avgLead==null?'No verified booking dates':oldVerified+' bookings · booking to pickup','time','amber')+
       '</div>';
     var lead=['0–1 day','2–3 days','4–7 days','8–14 days','15+ days'].map(function(n,i){return {l:n,v:buckets[i]};}).sort(function(a,b){return b.v-a.v;});
     var group=hbKDayRank(up),pipeline=[
       {l:'Confirmed',v:up.length},
       {l:'Other active',v:Math.max(0,du.length-up.length)}
     ];
-    var mixScope=up.length?'Next 30d confirmed':'Recent bookings';
+    var mixScope=up.length?'Confirmed · next 30 days':'Bookings · selected period';
     var panels='<div class="hb-k-panels">'+
-      hbKPanel('Daily cakes booked',hbMBarChart(bookedDaily,function(v){return String(Math.round(v));},'#72a26c'),p+' days · original booking date','hb-k-wide')+
-      hbKPanel('Cakes due by day',hbMBarChart(dueDaily,function(v){return String(Math.round(v));},'#6091b7'),'Next 30 days · confirmed','hb-k-wide')+
-      hbKPanel('Most requested cakes',hbMRank(topCakes),mixScope,'')+
-      hbKPanel('Order sources',hbMDoughnut(sources),mixScope,'')+
-      hbKPanel('Booking lead time',hbMRank(lead),p+' days · verified dates','')+
-      hbKPanel('Busiest pickup weekdays',hbMBarChart(group,function(v){return String(Math.round(v));},'#a678a9'),'Next 30 days · confirmed cakes','hb-k-half')+
-      hbKPanel('Upcoming order pipeline',hbMRank(pipeline),'Next 30 days · active orders','hb-k-half')+
+      hbKPanel('Cakes booked by day',hbMBarChart(bookedDaily,function(v){return String(Math.round(v));},'#72a26c'),p+' days · booking date','hb-k-wide')+
+      hbKPanel('Cakes due for collection',hbMBarChart(dueDaily,function(v){return String(Math.round(v));},'#6091b7'),'Next 30 days · confirmed orders','hb-k-wide')+
+      hbKPanel('Popular cake types',hbMRank(topCakes),mixScope,'')+
+      hbKPanel('Booking channels',hbMDoughnut(sources),mixScope,'')+
+      hbKPanel('Booking lead time',hbMRank(lead),p+' days · booking to pickup','')+
+      hbKPanel('Demand by weekday',hbMBarChart(group,function(v){return String(Math.round(v));},'#a678a9'),'Next 30 days · confirmed cakes','hb-k-half')+
+      hbKPanel('Confirmed vs other orders',hbMRank(pipeline),'Next 30 days · active orders','hb-k-half')+
       hbKPanel('Upcoming occasions',hbMRank(upcomingOcc),'Next 30 days · confirmed orders','hb-k-half')+
       '</div>';
     var notices=(!s.completed.length?
-      '<span class="hb-k-note">Completed sales not estimated: no recorded completed orders in this period.</span>':
-      '<span class="hb-k-note">'+s.completed.length+' recorded completed orders · fulfilment date basis, not payment timing.</span>')+
+      '<span class="hb-k-note">No completed orders recorded in this period · bookings are not counted as sales.</span>':
+      '<span class="hb-k-note">'+s.completed.length+' completed orders recorded · not the same as payments collected.</span>')+
       (s.unresolved?'<span class="hb-k-note">'+s.unresolved+' records have unverified booking dates; excluded from bookings-by-date.</span>':'');
-    return '<div class="hb-k-heading"><div><h3>Business performance</h3><p>Bookings · demand · product mix</p></div>'+
+    return '<div class="hb-k-heading"><div><h3>Performance snapshot</h3><p>Bookings, cake demand and product trends</p></div>'+
       '<div class="hb-v2-switch" role="group" aria-label="Reporting period">'+periods+'</div></div>'+
       kpis+panels+'<div class="hb-k-notices">'+notices+'</div>';
   }
