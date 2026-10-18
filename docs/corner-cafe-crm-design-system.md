@@ -47,3 +47,10 @@ The month grid shows date, order/cake count, holiday and occasion indicators onl
 - Maintain accessible labels (approximately 12–14px minimum for dense chart text), concise management wording, balanced panel sizes and mobile layouts.
 - Preserve the isolated analytics loader, fixed commit references, fallback behaviour, and all other tabs untouched. When refining, test combined script compilation and representative calculation paths before publication.
 - Baseline source ref: `0e007cf197d6e76ffa86836f9426946df435a8c4`, additionally snapshotted under `snapshot/approved-cake-analytics-v3-2026-10-19`.
+
+## Cake demand timeline — approved direction, 19 October 2026
+- Two clearly named date-based curves on the same daily axis: **dashed purple** = cakes booked on each original, verified booking date; **solid green** = cakes scheduled for pickup/collection on each fulfilment date.
+- Future pickups only count currently confirmed bookings. Future booking creation is unknown and is never projected or represented as zero.
+- The horizontally scrollable calendar runs through **31 December 2027**, with a month-jump selector to navigate distant seasons efficiently.
+- Keep daily/cumulative controls and the other existing metrics. The two lines are not connected order-by-order and cannot alone quantify individual lead times; use the booking lead-time and occasion breakdowns for that.
+- Beware booking date quality: invalid/unverified dates do not enter the booked-on-date series. Past fulfilled dates reflect recorded scheduled pickups, not evidence of actual collection.
