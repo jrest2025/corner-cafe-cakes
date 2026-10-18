@@ -1,0 +1,78 @@
+/* Colour icons and tidy layout (18 October 2026). Palette from the reference: purple, amber, green, pink, blue, slate, teal. */
+#cc-staff{--cl-purple:#8e5ba6;--cl-amber:#e3a21a;--cl-green:#6faf2f;--cl-pink:#d6438f;--cl-blue:#4a86c5;--cl-slate:#7f97a8;--cl-teal:#3fb0c2;--cl-red:#d14343}
+#cc-staff .cl-tile{flex:none;display:inline-grid;place-items:center;width:40px;height:40px;border-radius:11px;color:#fff;background:var(--cl-slate)}
+#cc-staff .cl-tile{color:#fff!important;border:0!important;padding:0!important;margin:0!important}
+#cc-staff .cl-tile.cl-purple{background:var(--cl-purple)!important}#cc-staff .cl-tile.cl-amber{background:var(--cl-amber)!important}#cc-staff .cl-tile.cl-green{background:var(--cl-green)!important}
+#cc-staff .cl-tile.cl-pink{background:var(--cl-pink)!important}#cc-staff .cl-tile.cl-blue{background:var(--cl-blue)!important}#cc-staff .cl-tile.cl-teal{background:var(--cl-teal)!important}#cc-staff .cl-tile.cl-red{background:var(--cl-red)!important}
+/* Headings: a small tile before the title. */
+#cc-staff .cl-h{display:flex!important;align-items:center;gap:10px}
+#cc-staff .cl-h>.cl-tile{width:28px;height:28px;border-radius:8px}
+/* Island icons: solid tiles to match. */
+#cc-staff .ap-island .ap-icon,#cc-staff .ap-pop-head .ap-icon{background:var(--ap-ink);color:#fff}
+
+/* ---- Today ---- */
+#cc-staff #ccs-main .tq-stats>.tq-stat.cl-stat{flex-direction:row!important;position:relative;display:grid!important;grid-template-columns:auto minmax(0,1fr);grid-template-rows:auto auto auto;column-gap:14px;align-items:center;align-content:center;min-height:0!important;height:auto!important;padding:14px 16px!important;text-align:left}
+#cc-staff #ccs-main .tq-stats>.tq-stat.cl-stat>.cl-tile{grid-column:1!important;grid-row:1 / 4;width:48px;height:48px;border-radius:13px}
+#cc-staff #ccs-main .tq-stats>.tq-stat.cl-stat>b{grid-column:2;font-size:26px;line-height:1.1}
+#cc-staff #ccs-main .tq-stats>.tq-stat.cl-stat>span:not(.cl-tile){grid-column:2;font-weight:600}
+#cc-staff #ccs-main .tq-stats>.tq-stat.cl-stat>small{grid-column:2}
+#cc-staff #ccs-main .cl-biz{background:#fff;border:1px solid #dce3eb;border-radius:12px}
+#cc-staff #ccs-main > .tq-biz.cl-moved{display:none!important}
+@media (min-width:1100px){
+  /* Figures across the top; Needs attention beside This week; the two order lists below, sized to their orders. */
+  #cc-staff #ccs-main[data-screen="today"]{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;grid-template-rows:none!important;grid-auto-rows:max-content!important;align-content:start!important;gap:14px!important;
+    grid-template-areas:"head head" "note note" "stats stats" "warn week" "main main" "fu fu"!important}
+  #cc-staff #ccs-main[data-screen="today"]>*{grid-column:auto!important;grid-row:auto!important;margin:0!important}
+  #cc-staff #ccs-main[data-screen="today"]>.tp-head{grid-area:head!important}
+  #cc-staff #ccs-main[data-screen="today"]>.ccs-mirnote{grid-area:note!important}
+  #cc-staff #ccs-main[data-screen="today"]>.tq-stats{grid-area:stats!important;display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:14px!important}
+  #cc-staff #ccs-main[data-screen="today"]>.tq-warn{grid-area:warn!important;height:auto!important;overflow:visible!important}
+  #cc-staff #ccs-main[data-screen="today"]>.tq-week{grid-area:week!important;height:auto!important}
+  #cc-staff #ccs-main[data-screen="today"]>.tq-main{grid-area:main!important;height:auto!important;align-items:start!important}
+  #cc-staff #ccs-main[data-screen="today"]>.tq-fu{grid-area:fu!important}
+  #cc-staff #ccs-main[data-screen="today"] .tq-main>.ccs-panel-card{height:auto!important;min-height:0!important;align-self:start}
+  #cc-staff #ccs-main[data-screen="today"] .tq-main .ccs-minis{overflow:visible!important;max-height:none!important}
+  /* This week fills the same height as Needs attention beside it: taller day cells, no blank band. */
+  #cc-staff #ccs-main[data-screen="today"]>.tq-week{display:flex!important;flex-direction:column}
+  #cc-staff #ccs-main[data-screen="today"] .tq-week .tq-days{flex:1;display:grid!important;grid-template-columns:repeat(7,minmax(0,1fr))!important;align-items:stretch}
+  #cc-staff #ccs-main[data-screen="today"] .tq-week .ccs-daycell{height:auto!important;display:flex;flex-direction:column;justify-content:center;gap:4px}
+  #cc-staff #ccs-main[data-screen="today"] .tq-week .ccs-daycell b{font-size:24px}
+  /* Needs attention fills its half: islands stretch to the card height instead of leaving a gap. */
+  #cc-staff #ccs-main[data-screen="today"]>.tq-warn{display:flex!important;flex-direction:column}
+  #cc-staff #ccs-main[data-screen="today"] .tq-warn .tx-wrap{flex:1;display:flex;margin-top:6px}
+  #cc-staff #ccs-main[data-screen="today"] .tq-warn .tx-islands{flex:1;grid-template-columns:repeat(2,minmax(0,1fr))!important;align-items:stretch}
+  #cc-staff #ccs-main[data-screen="today"] .tq-warn .tx-islands .ap-island{height:100%;min-height:0;padding:12px 14px}
+  #cc-staff #ccs-main[data-screen="today"] .tq-warn .tx-islands{margin:0!important}
+  #cc-staff #ccs-main[data-screen="today"] .tq-wh{flex-wrap:nowrap;align-items:center;padding:0 2px 4px}
+  #cc-staff #ccs-main[data-screen="today"] .tq-wh .tq-more{margin-left:auto}
+}
+@media (min-width:641px) and (max-width:1099px){
+  #cc-staff #ccs-main[data-screen="today"]>.tq-stats{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:12px!important}
+}
+@media (max-width:640px){
+  #cc-staff #ccs-main .tq-stats{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important}
+  #cc-staff #ccs-main .tq-stats>.tq-stat.cl-stat{column-gap:10px;padding:12px!important}
+  #cc-staff #ccs-main .tq-stats>.tq-stat.cl-stat>.cl-tile{width:38px;height:38px;border-radius:11px}
+  #cc-staff #ccs-main .tq-stats>.tq-stat.cl-stat>b{font-size:21px}
+  #cc-staff #ccs-main .tq-stats>.tq-stat.cl-stat>span:not(.cl-tile){font-size:14px;line-height:1.25}
+  #cc-staff #ccs-main .tq-stats>.tq-stat.cl-stat>small{display:none}
+}
+
+/* ---- Kitchen: sections stack in order, nothing pinned to the bottom with a gap above. ---- */
+#cc-staff #ccs-main[data-screen="kitchen-today"] .kw-main{flex:none!important;min-height:0!important}
+@media (min-width:900px){
+  /* Next priority beside Needs attention (same height), then the three counts across the full width. */
+  #cc-staff #ccs-main[data-screen="kitchen-today"] .kw-main{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;grid-template-areas:"next side" "counts counts";gap:14px!important;align-items:stretch}
+  #cc-staff #ccs-main[data-screen="kitchen-today"] .kw-main .kw-top{display:contents!important}
+  #cc-staff #ccs-main[data-screen="kitchen-today"] .kw-main .kw-next{grid-area:next}
+  #cc-staff #ccs-main[data-screen="kitchen-today"] .kw-main .kw-counts{grid-area:counts;display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:14px!important}
+  #cc-staff #ccs-main[data-screen="kitchen-today"] .kw-main .kw-secs{grid-area:side;display:flex!important;flex-direction:column}
+  #cc-staff #ccs-main[data-screen="kitchen-today"] .kw-main .kw-secs>:last-child{flex:1 1 auto}
+}
+#cc-staff #ccs-main[data-screen="kitchen-today"] .kw-main .kw-top,#cc-staff #ccs-main[data-screen="kitchen-today"] .kw-main .kw-secs{overflow:visible!important}
+#cc-staff #ccs-main[data-screen="kitchen-today"]{justify-content:flex-start!important}
+#cc-staff #ccs-main[data-screen="kitchen-today"]>.kw-week{margin-top:4px!important}
+#cc-staff #ccs-main .kw-count.cl-count{display:grid!important;grid-template-columns:auto minmax(0,1fr);grid-template-rows:auto auto;column-gap:12px;align-items:center;align-content:center;padding:12px 14px!important}
+#cc-staff #ccs-main .kw-count.cl-count>.cl-tile{grid-column:1;grid-row:1 / 3}
+#cc-staff #ccs-main .kw-count.cl-count>b,#cc-staff #ccs-main .kw-count.cl-count>em{grid-column:2}
+#cc-staff #ccs-main .kw-count.cl-count>em{font-style:normal;font-size:20px;font-weight:700;color:#1f242c}
