@@ -52,8 +52,8 @@ change(out.querySelector('.cc-f-money'),total===null||paid===null?'':'Paid now: 
 }
 function paint(){queued=false;var f=form();if(!f){if(wasOpen){agree=null;methodChosen=false;sourceChosen=false}wasOpen=false;return}wasOpen=true;var e=step();if(!e){var src=f.querySelector('#sl-st-1 [data-act="n-source"]');if(src&&!sourceChosen)f.querySelectorAll('#sl-st-1 [data-act="n-source"]').forEach(function(b){b.setAttribute('aria-pressed','false')});return}attach(e);calc(e)}
 function schedule(){if(!queued){queued=true;Promise.resolve().then(paint)}}
-function err(e,msg,selector){e.preventDefault();e.stopImmediatePropagation();var s=step(),place=s?.querySelector(selector)||s?.querySelector('.sl-stepbody');if(!place)return;var n=s.querySelector('#cc-f-error');if(!n){n=make('p','ccs-err cc-f-error');n.id='cc-f-error';n.setAttribute('role','alert');place.after(n)}change(n,msg);place.scrollIntoView({block:'center',behavior:'auto'})}
-root.addEventListener('click',function(e){var b=e.target.closest?.('button,[data-act]');if(!b||!form()?.contains(b))return;
+function err(e,msg,selector){e.preventDefault();e.stopImmediatePropagation();var s=step()||form()?.querySelector('#sl-st-1'),place=s?.querySelector(selector)||s?.querySelector('.sl-stepbody');if(!place)return;var n=s.querySelector('#cc-f-error');if(!n){n=make('p','ccs-err cc-f-error');n.id='cc-f-error';n.setAttribute('role','alert');place.after(n)}change(n,msg);place.scrollIntoView({block:'center',behavior:'auto'})}
+root.addEventListener('click',function(e){var b=e.target.closest?.('button,[data-act]'),f=form();if(!b||!f?.contains(b))return;
 if(b.dataset.ccAgree&&step()){e.preventDefault();e.stopImmediatePropagation();agree=b.dataset.ccAgree;var box=step().querySelector('input[data-nc="confirmNow"]');if(box&&box.checked!==(agree==='yes'))box.click();schedule();return}
 if(b.dataset.act==='n-source'){sourceChosen=true;return}
 if((b.dataset.act==='sl-next'||b.dataset.act==='sl-skip')&&f.querySelector('#sl-st-1')&&!sourceChosen)return err(e,'Choose how the customer placed the order. This is required.','#sl-st-1 [aria-label="How they ordered"]');
