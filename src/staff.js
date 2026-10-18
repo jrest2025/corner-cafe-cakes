@@ -2363,7 +2363,7 @@
     }).join('') + '</div>';
   }
   function phPicker(id, label, link) { return '<label class="' + (link ? 'ccs-link ccs-phlink' : 'ccs-btn ccs-ghost ccs-phadd') + '"><input type="file" id="' + id + '" accept="image/jpeg,image/png,image/webp" multiple class="ccs-sr">' + label + '</label>'; }
-  function freshDraft() { return { key: uuid(), source: 'walk_in', step: 0, reached: 0, phone: '', noMob: null, matches: null, customer: null, isNew: false, name: '', email: '', whatsapp: true, optIn: null,
+  function freshDraft() { return { key: uuid(), source: 'walk_in', taken: null, takenDate: '', step: 0, reached: 0, phone: '', noMob: null, matches: null, customer: null, isNew: false, name: '', email: '', whatsapp: true, optIn: null,
     product: null, req: false, sizeNote: '', reqPrice: '', variant: null, size: null, finish: 'standard', design: '', photos: [], phErr: null, message: '', candles: '', occasion: null, occOther: '', diet: null, diets: [], dietNote: '', notes: '', qty: 1,
     date: '', time: '', rush: '', rushBy: '', fromCal: false, method: 'collection', zone: null, address: '', fee: '', contact: '', confirmNow: false, askDeposit: false, deposit: '', payNow: false, payAmount: '', payMethod: 'cash', result: null, err: null, errField: null }; }
   var D = freshDraft();
@@ -2738,7 +2738,7 @@
     var p = prod(), closedL = (S.setup && S.setup.closed_dates) || [];
     if (s === 0 && D.req) return D.design.trim().length < 3 ? ['Describe how the cake should look'] : (D.sizeNote || '').trim().length < 2 ? ['Write the size or how many people it serves'] : D.reqPrice && !(num(D.reqPrice) > 0) ? ['Check the price, or leave it empty'] : [];
     if (s === 0) return !p || !D.size ? ['Tap a price to choose the cake and size'] : p.variants.length && !D.variant ? ['Choose the flavour'] : D.finish === 'custom' && D.design.trim().length < 3 ? ['Describe the custom design'] : [];
-    if (s === 1) { var n1 = slNeeds(2); if (!D.customer && D.name.trim().length < 2) n1.splice(D.noMob !== 'none' && digits(D.phone).length < 7 ? 1 : 0, 0, 'Write the guest name'); return n1; }
+    if (s === 1) { var n1 = slNeeds(2); if (!D.customer && D.name.trim().length < 2) n1.splice(D.noMob !== 'none' && digits(D.phone).length < 7 ? 1 : 0, 0, 'Write the guest name'); if (!takenDateOk()) n1.push(D.taken ? 'Choose a valid earlier order date (within the last 30 days)' : 'Choose when the customer placed the order'); return n1; }
     if (s === 2) { if (D.customer) { if (D.custConsent === undefined) return ['Checking their permission']; return D.custConsent && D.custConsent.ok ? [] : (D.optIn === true || D.optIn === false) ? [] : ['Ask if they want cake offers and reminders']; } if (D.noMob === 'none') return []; var n = []; if (digits(D.phone).length < 7) n.push(D.noMob === 'other' ? 'Write the full phone number' : 'Write the full mobile number'); if (D.optIn !== true && D.optIn !== false) n.push('Ask if they want cake offers and reminders'); return n; }
     if (s === 3) { if (!D.date) return ['Choose the date']; if (closedL.indexOf(D.date) > -1) return ['Choose a day the café is open']; if (!D.time) return ['Choose the time']; var w = []; if (tooSoon() && !rushOk()) w.push('Give the short-notice reason and who approved it'); if (D.method === 'delivery' && !delivOk()) w.push('Finish the delivery details'); return w; }
     if (s === 4) { var n4 = slNeeds(5); if (!D.occasion) n4.push('Choose the occasion, or Customer didn\'t say'); return n4; }
@@ -3027,13 +3027,19 @@
   }
   // When the order was taken, for orders keyed in later (phone or walk-in written down first). Lead-time reports rely on it.
   function takenHtml() {
-    var o = D.taken || 'now', opts = [['now', 'Today'], ['yesterday', 'Yesterday'], ['other', 'Another date']];
-    return '<p class="sl-k tk-k">When did the customer place this order?</p><p class="ccs-hint">Choose the day the customer first ordered, even if you are entering it later.</p><div class="ccs-chips tk-chips" role="group" aria-label="Date the customer placed the order">' + opts.map(function (x) { return '<button type="button" class="ccs-chip" data-act="n-taken" data-v="' + x[0] + '" aria-pressed="' + (o === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div>' +
-      (o === 'other' ? '<div class="sl-sub tk-sub"><label class="sl-k" for="n-takedate">Date order was taken</label><input class="ccs-input" id="n-takedate" type="date" data-n="takenDate" max="' + today() + '" value="' + esc(D.takenDate || '') + '"></div>' : '') +
-      '<p class="ccs-hint">The CRM automatically records when this entry is saved.</p>';
+    var o = D.taken || '', opts = [['now', 'Today'], ['yesterday', 'Yesterday'], ['other', 'Another date']];
+    return '<p class="sl-k tk-k">When did the customer place this order? <em class="sl-req">Required</em></p><p class="ccs-hint">Choose the actual day the customer first ordered. No date is selected automatically.</p><div class="ccs-chips tk-chips" role="group" aria-label="Date the customer placed the order (required)">' + opts.map(function (x) { return '<button type="button" class="ccs-chip" data-act="n-taken" data-v="' + x[0] + '" aria-pressed="' + (o === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div>' +
+      (o === 'other' ? '<div class="sl-sub tk-sub"><label class="sl-k" for="n-takedate">Date order was taken <em class="sl-req">Required</em></label><input class="ccs-input" id="n-takedate" type="date" data-n="takenDate" min="' + addDays(today(), -29) + '" max="' + addDays(today(), -1) + '" required value="' + esc(D.takenDate || '') + '"><span class="ccs-hint">For a date within the last 30 days. Choose Today above if the order was placed today.</span></div>' : '') +
+      '<p class="ccs-hint">The CRM separately records when staff save this entry.</p>';
+  }
+  function takenDateOk() {
+    if (D.taken === 'now' || D.taken === 'today' || D.taken === 'yesterday') return true;
+    if (D.taken !== 'other') return false;
+    var v = D.takenDate || '', t = /^\d{4}-\d{2}-\d{2}$/.test(v) ? Date.parse(v + 'T12:00:00+12:00') : NaN;
+    return isFinite(t) && new Date(t + 43200000).toISOString().slice(0, 10) === v && v >= addDays(today(), -29) && v < today();
   }
   function takenAt() {
-    var o = D.taken || 'now';
+    var o = D.taken;
     if (o === 'now' || o === 'today') return null;
     var d = o === 'yesterday' ? addDays(today(), -1) : D.takenDate;
     if (!d) return null;
@@ -3042,6 +3048,7 @@
     return d + 'T12:00:00+12:00';
   }
   function submitOrder() {
+    if (!takenDateOk()) { if (STEPPER) D.sl = 1; D.err = D.taken ? 'Choose a valid earlier date (within the last 30 days).' : 'Choose when the customer placed the order. This is required.'; D.errField = 'stage'; return refreshStep(); }
     var L = S.setup.location, price = dTotal(), custom = D.finish === 'custom';
     if (STEPPER && !D.req && !custom) {
       var pn = slNeeds(7); if (pn.length) { D.err = pn.join('. ') + '.'; D.errField = 'stage'; return refreshStep(); }
@@ -4864,7 +4871,7 @@
         case 'new-keep': D.confirmReset = false; newRender(); break;
         case 'new-clear': var keepDate = newInSheet() ? [D.date, D.time] : null; clearDraft(); if (keepDate) { D.date = keepDate[0]; D.time = keepDate[1]; D.fromCal = true; } newRender(); break;
         case 'n-source': D.source = v; root.querySelectorAll('[data-act="n-source"]').forEach(function (c) { c.setAttribute('aria-pressed', c.dataset.v === v); }); break;
-        case 'n-taken': D.taken = v; if (v === 'other' && !D.takenDate) D.takenDate = addDays(today(), -2); if (STEPPER || SLIP) refreshStep(); else view(); if (v === 'other') setTimeout(function () { var el = document.getElementById('n-takedate'); if (el) el.focus(); }, 30); break;
+        case 'n-taken': D.taken = v; D.takenDate = ''; D.err = null; D.errField = null; if (STEPPER || SLIP) refreshStep(); else view(); if (v === 'other') setTimeout(function () { var el = document.getElementById('n-takedate'); if (el) el.focus(); }, 30); break;
         case 'n-edit': goStep(Number(v)); break;
         case 'n-pick': if (SLIP) { var pl = b.dataset.from === 'name' ? D.nameMatches : D.matches; D.customer = pl[Number(v)]; D.isNew = false; D.nameMatches = null; D.matches = null; D.optIn = null; D.custConsent = undefined; slGo(1); slConsent(D.customer.id); break; }
         case 'sl-heard': D.heard = D.heard === v ? null : v; refreshStep(); break; D.customer = D.matches[Number(v)]; D.isNew = false; goStep(nextOpen(1)); break;
