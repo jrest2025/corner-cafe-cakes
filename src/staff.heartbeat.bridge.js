@@ -128,7 +128,7 @@
     }
     else if (a === 'dx-hb-today') { HB.selected=today(); HB.railScroll=null; view(); hbScrollToDay(today(),false); }
     else if (a === 'dx-hb-day') { HB.selected=v; view(); }
-    else if (a === 'dx-hb-metric' && ['orders','cakes','value'].indexOf(v)>-1) { HB.metric=v; view(); }
+    else if (a === 'dx-hb-metric' && ['orders','cakes','value','sales'].indexOf(v)>-1) { HB.metric=v; view(); }
     else if (a === 'dx-hb-mode' && ['daily','cumulative'].indexOf(v)>-1) { HB.mode=v; view(); }
     else if (a === 'dx-hb-retry') dashLoad(true);
     else if (a === 'dx-drill') {
