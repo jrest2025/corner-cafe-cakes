@@ -6,7 +6,7 @@ run('npx -y terser@5.31.0 guest.js -c -m -o dist/guest.min.js')
 slip = open('/home/claude/corner-cafe-cakes/supabase/functions/send-emails/slip_pdf.js').read().replace('export const ', 'const ').replace('export async function ', 'async function ').replace('export function ', 'function ')
 assert 'export ' not in slip and 'import ' not in slip
 slipjs = 'var SlipPdf = (function () {\n' + slip + '\nreturn { buildSlipPdf: buildSlipPdf, slipFileName: slipFileName };\n})();\n'
-open('dist/staff.full.js','w').write(open('staff.js').read().replace('/*@DASH@*/', slipjs + open('staff.dash.js').read() + open('staff.bi.js').read() + open('staff.an.js').read() + open('staff.oi.js').read() + open('staff.up.js').read() + open('staff.reg.js').read() + open('staff.crm.js').read()))
+open('dist/staff.full.js','w').write(open('staff.js').read().replace('/*@DASH@*/', slipjs + open('staff.dash.js').read() + open('staff.heartbeat.js').read() + open('staff.bi.js').read() + open('staff.an.js').read() + open('staff.oi.js').read() + open('staff.up.js').read() + open('staff.reg.js').read() + open('staff.crm.js').read()))
 run('npx -y terser@5.31.0 dist/staff.full.js -c -m -o dist/staff.min.js')
 run('npx -y csso-cli@4.0.2 guest.css -o dist/guest.min.css')
 run('npx -y csso-cli@4.0.2 staff.css -o dist/staff.min.css')
@@ -37,6 +37,9 @@ calcss = open('dist/staff.cal.min.css').read().strip()
 # Jack's Restaurants Hospitality UI (17 Oct 2026): loaded last, over every earlier rule
 run('npx -y csso-cli@4.0.2 staff.hospitality.css -o dist/staff.hospitality.min.css')
 calcss += open('dist/staff.hospitality.min.css').read().strip()
+# Cake Heartbeat: load last, isolated to its component selectors
+run('npx -y csso-cli@4.0.2 staff.heartbeat.css -o dist/staff.heartbeat.min.css')
+calcss += open('dist/staff.heartbeat.min.css').read().strip()
 app = "(function(){var s=document.createElement('style');s.id='ccs-style';s.textContent=" + json.dumps(re.sub(r'font-size:(\d+(?:\.\d+)?)px', r'font-size:calc(\1*var(--u,1px))', css + calcss)) + ";document.head.appendChild(s)})();\n" + s + "\n"
 raw = app.encode('utf-8')
 name = 'staff-app.' + hashlib.sha256(raw).hexdigest()[:10] + '.js'

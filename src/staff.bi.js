@@ -30,7 +30,8 @@
     var T = function (x, k) { return x.replace('class="dx-card', 'class="dx-card ov-k-' + k); };
     h += '<div class="bi-ov-trend">' + T(ovTrend(bk, r), 'trend') + '</div>';
     h += anCharts(cur, got);
-    h += '<div class="bi-ov-row">' + T(ovAttention(owing), 'att') + biOpps(r, cur, up) + '</div>';
+    // Operational attention and action prompts belong in Today, not Analytics Overview.
+    // Keep overview exclusively for measurement, trends, comparisons and analysis.
     return h;
   }
   // Up to three opportunities, each worked out from records and opening them
