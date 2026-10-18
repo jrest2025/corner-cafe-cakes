@@ -47,3 +47,11 @@ The month grid shows date, order/cake count, holiday and occasion indicators onl
 - Maintain accessible labels (approximately 12–14px minimum for dense chart text), concise management wording, balanced panel sizes and mobile layouts.
 - Preserve the isolated analytics loader, fixed commit references, fallback behaviour, and all other tabs untouched. When refining, test combined script compilation and representative calculation paths before publication.
 - Baseline source ref: `0e007cf197d6e76ffa86836f9426946df435a8c4`, additionally snapshotted under `snapshot/approved-cake-analytics-v3-2026-10-19`.
+
+## Windowed Daily Cake Demand release (19 October 2026)
+- Preserve the previously approved six KPI cards and eight chart panels. Only the Daily Cake Demand component was changed.
+- In the default two-line mode, dashed purple shows cakes on their verified booking date (past through today), and solid green shows scheduled cake collections on pickup date. Upcoming pickup cakes require `confirmed` status; do not count unknown historical statuses as confirmed future obligations.
+- Month picker spans historical months through December 2027, but only ~46 days are rendered per selection, preventing the previous 500+-day rendering regression. The 7/30/90-day reporting period controls for other charts remain independent.
+- Historical cleaned worksheet `Cake_Orders_Cleaned(1).xlsx` was audited: 578 source submissions (398 Walk-In, 180 Online), 573 analysis_include=Yes, 393 review_required=Yes, nine possible duplicate pairs, and predominantly Unknown source confirmation statuses. Existing Supabase register already contains 398 walk-in and 177 online records, so DO NOT re-import these files blindly.
+- Live source remains the staff-authorized `dashboard_register`, not a client-side spreadsheet upload. Keep non-confirmed historical records distinct from confirmed orders or sales.
+- Rollback baseline 82263b98ed98e55ea788fae1a826052eaf1cd3d2.
