@@ -126,35 +126,36 @@
       '<div class="hb-v2-switch" role="group" aria-label="Reporting period">'+periods+'</div></div>'+
       kpis+panels+'<div class="hb-k-notices">'+notices+'</div>';
   }
+  function hbKMonthOptions(now){
+    var yr=Number(now.slice(0,4)),mo=Number(now.slice(5,7)),endYear=Math.max(yr,2027),endMonth=yr>2027?12:12,html='';
+    for(var y=Math.max(2024,yr-2);y<=endYear;y++)for(var m=1;m<=12;m++){
+      var iso=y+'-'+String(m).padStart(2,'0');
+      if(iso>String(endYear)+'-'+String(endMonth).padStart(2,'0'))continue;
+      var label=new Date(iso+'-01T12:00:00Z').toLocaleDateString('en-GB',{month:'short',year:'numeric',timeZone:'UTC'});
+      html+='<option value="'+iso+'"'+((HB.focusMonth||now.slice(0,7))===iso?' selected':'')+'>'+esc(label)+'</option>';
+    }
+    return html;
+  }
   function hbChart(data){
-    // Cakes due has past recorded schedules and future confirmed schedules.
-    // A different line style prevents a future schedule being mistaken for an achieved sale.
     var rows=data.rows,kind=HB.metric,step=98,w=rows.length*step,bottom=160,top=22,now=data.today;
+    var due=rows.map(function(r){return hbKTimelineValue(r,'pickup_cakes');});
+    var booked=rows.map(function(r){return r.day<=now?r.cakes:null;});
     var vals=rows.map(function(r){return hbKTimelineValue(r,kind);});
-    if(HB.mode==='cumulative'){
-      var total=0;vals=vals.map(function(v,i){if(kind!=='pickup_cakes'&&rows[i].day>now)return null;total+=v;return total;});
-    }else if(kind!=='pickup_cakes')vals=vals.map(function(v,i){return rows[i].day>now?null:v;});
-    var observed=vals.filter(function(v){return v!=null;}),maximum=Math.max(1,Math.max.apply(null,observed));
-    var y=function(v){return bottom-(v/maximum)*(bottom-top);};
-    var line=function(test){var dataSet=[],started=false;rows.forEach(function(r,i){var v=vals[i];if(v==null||!test(r,i)){started=false;return;}dataSet.push((started?'L':'M')+(i*step+step/2)+' '+y(v).toFixed(1));started=true;});return dataSet.join(' ');};
-    var past=line(function(r){return r.day<=now;}),future=line(function(r,i){return kind==='pickup_cakes'&&r.day>=now;});
-    var grid=[0,.5,1].map(function(f){
-      var v=Math.round(maximum*f*10)/10,yy=y(maximum*f);
-      return '<line x1="0" x2="'+w+'" y1="'+yy+'" y2="'+yy+'" class="hb-v2-grid"/>'+
-        '<text x="6" y="'+(yy-6)+'" class="hb-k-axis">'+(kind==='value'||kind==='sales'?hbFjd(v):v)+'</text>';
+    if(kind!=='pickup_cakes'&&kind!=='flow')vals=vals.map(function(v,i){return rows[i].day<=now?v:null;});
+    function cumulative(list){var total=0;return list.map(function(v){if(v==null)return null;total+=v;return total;});}
+    if(HB.mode==='cumulative'){due=cumulative(due);booked=cumulative(booked);vals=cumulative(vals);}
+    var main=kind==='flow'?due:(kind==='pickup_cakes'?due:vals);
+    var series=kind==='flow'?[main,booked]:[main];
+    var max=Math.max(1,...series.flat().filter(function(v){return v!=null;}));
+    function y(v){return bottom-v/max*(bottom-top);}
+    function line(list){var d='',on=false;rows.forEach(function(r,i){var v=list[i];if(v==null){on=false;return;}d+=(on?'L':'M')+(i*step+step/2)+' '+y(v).toFixed(1)+' ';on=true;});return d.trim();}
+    var grid=[0,.5,1].map(function(f){var z=Math.round(max*f*10)/10,yy=y(max*f);return '<line x1="0" x2="'+w+'" y1="'+yy+'" y2="'+yy+'" class="hb-v2-grid"/><text x="6" y="'+(yy-6)+'" class="hb-k-axis">'+(kind==='value'||kind==='sales'?hbFjd(z):z)+'</text>';}).join('');
+    var labels=rows.map(function(r,i){var cx=i*step+step/2,one=main[i],two=kind==='flow'?booked[i]:null;
+      var tip=hbDateTitle(r.day)+': '+r.cakes+' cakes booked; '+hbKTimelineValue(r,'pickup_cakes')+' cakes due'+(r.day>now?' (confirmed only)':'');
+      function dot(v,cls){return v==null?'':'<circle cx="'+cx+'" cy="'+y(v)+'" r="3.5" class="'+cls+'"><title>'+esc(tip)+'</title></circle>';}
+      return dot(one,r.day>now?'hb-k-dot-future':'hb-v2-dot')+(kind==='flow'?dot(two,'hb-k-dot-booked'):'')+
+      '<text x="'+cx+'" y="186" text-anchor="middle" class="hb-v2-axis-label">'+(+r.day.slice(8))+' '+esc(['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+r.day.slice(5,7)-1])+'</text>';
     }).join('');
-    var marks=rows.map(function(r,i){var v=vals[i],cx=i*step+step/2,selected=(HB.selected||now)===r.day;
-      var tooltip=hbDateTitle(r.day)+': '+(v==null?'Not yet recorded':hbMetricFormat(v))+
-        ' · '+r.cakes+' cakes booked · '+hbKTimelineValue(r,'pickup_cakes')+' cakes due';
-      var dot=v==null?'':'<circle cx="'+cx+'" cy="'+y(v).toFixed(1)+'" r="'+(selected?5:3.5)+'" class="'+
-        (r.day>now?'hb-k-dot-future':'hb-v2-dot')+'"><title>'+esc(tooltip)+'</title></circle>';
-      return (selected?'<rect x="'+(i*step+2)+'" y="3" width="'+(step-4)+'" height="'+(bottom+6)+'" rx="8" class="hb-v2-focus"/>':'')+
-        (r.day===now?'<line x1="'+cx+'" x2="'+cx+'" y1="10" y2="'+bottom+'" class="hb-v2-now"/>':'')+
-        dot+'<text x="'+cx+'" y="186" text-anchor="middle" class="hb-v2-axis-label">'+
-        (+r.day.slice(8))+' '+esc(['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+r.day.slice(5,7)-1])+'</text>';
-    }).join('');
-    return '<svg class="hb-v2-chart-svg hb-k-curve" viewBox="0 0 '+w+' 192" width="'+w+'" height="192" role="img" aria-label="'+
-      esc(hbKLabel(kind)+' per day. Solid: recorded dates. Dashed: upcoming confirmed demand.')+'">'+grid+
-      (past?'<path d="'+past+'" class="hb-k-line"/>':'')+
-      (future?'<path d="'+future+'" class="hb-k-line-future"/>':'')+marks+'</svg>';
+    return '<svg class="hb-v2-chart-svg hb-k-curve" viewBox="0 0 '+w+' 192" width="'+w+'" height="192" role="img" aria-label="'+esc(kind==='flow'?'Solid green cakes due by collection date, dashed purple cakes booked by booking date':hbKLabel(kind))+'">'+grid+
+      '<path d="'+line(main)+'" class="hb-k-line"/>'+(kind==='flow'?'<path d="'+line(booked)+'" class="hb-k-line-booked"/>':'')+labels+'</svg>';
   }
