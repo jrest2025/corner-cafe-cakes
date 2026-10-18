@@ -324,3 +324,10 @@
 #cc-staff .up-hist b{font-size:16px;color:var(--ccs-ink);word-break:break-word}
 #cc-staff .up-hist span{font-size:15px;color:var(--ccs-muted)}
 #cc-staff .up-hist .is-undone b{text-decoration:line-through;color:var(--ccs-muted)}
+
+/* Analytics Overview has only KPI, trend and chart groups; do not reserve the removed operations row. */
+#cc-staff #ccs-main[data-screen="dash"] .dx-ov{display:flex!important;flex-direction:column!important;align-items:stretch!important;flex:0 0 auto!important;height:auto!important;min-height:0!important;grid-template-columns:none!important;grid-template-rows:none!important;gap:12px!important}
+#cc-staff #ccs-main[data-screen="dash"] .dx-ov>.bi-ov-row{display:none!important}
+#cc-staff #ccs-main[data-screen="dash"] .dx-ov>:is(.ov-kpis,.bi-ov-trend,.an-grid){flex:0 0 auto!important;width:100%!important;min-width:0!important}
+#cc-staff #ccs-main[data-screen="dash"] .dx-ov>.bi-ov-trend{margin-top:0!important}
+#cc-staff #ccs-main[data-screen="dash"] .dx-ov>.an-grid{margin:0!important}
