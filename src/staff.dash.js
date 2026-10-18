@@ -1050,10 +1050,10 @@
   }
   function dashAct(a, b, v) {
     dxKeep();
-    if (a === 'hb-prev') hbWeekNav(-1);
-    else if (a === 'hb-next') hbWeekNav(1);
-    else if (a === 'hb-today') { HB.week = 0; view(); }
-    else if (a === 'hb-week') { var hbN = Number(v); if (isFinite(hbN)) { HB.week = Math.max(-12, Math.min(26, Math.round(hbN))); view(); } }
+    if (a === 'dx-hb-prev') hbWeekNav(-1);
+    else if (a === 'dx-hb-next') hbWeekNav(1);
+    else if (a === 'dx-hb-today') { HB.week = 0; view(); }
+    else if (a === 'dx-hb-week') { var hbN = Number(v); if (isFinite(hbN)) { HB.week = Math.max(-12, Math.min(26, Math.round(hbN))); view(); } }
     else if (a === 'dx-refresh') dashLoad(true);
     else if (a === 'dx-export') dxExport();
     else if (a === 'dx-occ-csv') dxOccExport();
