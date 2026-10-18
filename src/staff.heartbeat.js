@@ -99,33 +99,37 @@
       label: ['Before 11 AM', '11 AM–2 PM', '2 PM–5 PM', 'After 5 PM'][at] };
   }
   function hbCurve(orders, start) {
-    var withDate = orders.filter(function (o) { return o.odok && /^\\d{4}-\\d{2}-\\d{2}$/.test(o.od || '') && o.od <= o.pd; });
-    var invalid = orders.length - withDate.length, t = today();
-    var labels = ['6w', '5w', '4w', '3w', '2w', '1w', 'Pickup'];
-    var cutoffs = [42, 35, 28, 21, 14, 7, 0].map(function (d) { return addDays(start, -d); });
-    var points = cutoffs.map(function (d) {
-      return d > t ? null : withDate.filter(function (o) { return o.od <= d; }).length;
+    // Actual booking cohorts, by lead days before each order's individual pickup date.
+    // No future bookings or forecasts are invented.
+    var t = today();
+    var withDate = orders.filter(function (o) {
+      return o.odok && /^\d{4}-\d{2}-\d{2}$/.test(o.od || '') && o.od <= o.pd && o.od <= t;
     });
-    var n = points.filter(function (v) { return v !== null; }).length;
-    if (!n) return '<div class="hb-chart-empty">The six-week booking window has not started yet.</div>';
-    if (!withDate.length) return '<div class="hb-chart-empty">No reliable order dates available for this week.</div>';
-    var max = Math.max(1, withDate.length), x = function (i) { return 30 + i * 76; }, y = function (v) { return 118 - v / max * 90; };
-    var dots = [], seg = [];
-    points.forEach(function (v, i) {
-      if (v === null) return;
-      seg.push(x(i) + ',' + y(v).toFixed(1));
-      dots.push('<circle cx="' + x(i) + '" cy="' + y(v).toFixed(1) + '" r="4.5" class="hb-curve-dot"><title>' +
-        esc(labels[i] + ' before pickup: ' + v + ' dated booking' + (v === 1 ? '' : 's')) + '</title></circle>');
+    var excluded = orders.length - withDate.length;
+    if (!withDate.length) return '<div class="hb-chart-empty">No reliable order dates available for this pickup week.</div>';
+    var labels = ['6w', '5w', '4w', '3w', '2w', '1w', 'Booked'];
+    var cutoffs = [42, 35, 28, 21, 14, 7, 0];
+    var points = cutoffs.map(function (days) {
+      return withDate.filter(function (o) { return daysBetween(o.od, o.pd) >= days; }).length;
     });
-    var line = '<polyline class="hb-curve-line" points="' + seg.join(' ') + '"/>';
-    var bars = points.map(function (v, i) {
-      return '<text x="' + x(i) + '" y="146" class="hb-curve-label" text-anchor="middle">' + labels[i] + '</text>' +
-        (v === null ? '' : '<text x="' + x(i) + '" y="' + Math.max(15, y(v) - 11).toFixed(1) + '" class="hb-curve-number" text-anchor="middle">' + v + '</text>');
+    var max = Math.max(1, withDate.length), x = function (i) { return 30 + i * 76; },
+      y = function (v) { return 118 - v / max * 90; };
+    var coords = points.map(function (v, i) { return x(i) + ',' + y(v).toFixed(1); });
+    var dots = points.map(function (v, i) {
+      return '<circle cx="' + x(i) + '" cy="' + y(v).toFixed(1) + '" r="4.5" class="hb-curve-dot"><title>' +
+        esc(labels[i] + ': ' + v + ' of ' + withDate.length + ' orders booked') + '</title></circle>';
     }).join('');
-    return '<svg class="hb-curve" viewBox="0 0 520 154" role="img" aria-label="Cumulative dated bookings by weeks before pickup">' +
-      '<line x1="30" x2="486" y1="118" y2="118" class="hb-axis"/>' + line + dots.join('') + bars + '</svg>' +
-      '<div class="hb-curve-foot">' + withDate.length + ' of ' + orders.length + ' orders have reliable booking dates' +
-      (invalid ? ' · ' + invalid + ' excluded from curve only' : '') + ' · Future bookings are not projected.</div>';
+    var labelsSvg = points.map(function (v, i) {
+      return '<text x="' + x(i) + '" y="146" class="hb-curve-label" text-anchor="middle">' + labels[i] + '</text>' +
+        '<text x="' + x(i) + '" y="' + Math.max(15, y(v) - 11).toFixed(1) +
+        '" class="hb-curve-number" text-anchor="middle">' + v + '</text>';
+    }).join('');
+    return '<svg class="hb-curve" viewBox="0 0 520 154" role="img" aria-label="Cumulative bookings by lead time before each order pickup">' +
+      '<line x1="30" x2="486" y1="118" y2="118" class="hb-axis"/>' +
+      '<polyline class="hb-curve-line" points="' + coords.join(' ') + '"/>' + dots + labelsSvg + '</svg>' +
+      '<div class="hb-curve-foot">' + withDate.length + ' of ' + orders.length + ' bookings have reliable order dates' +
+      (excluded ? ' · ' + excluded + ' excluded from this curve' : '') +
+      ' · Relative to individual pickup dates; current bookings only, no forecast.</div>';
   }
   function hbView() {
     if (!DX || !DX.data) return '';
@@ -143,7 +147,7 @@
       var offset = HB.week + i, week = hbWeekStart(offset), count = hbWeekOrders(week).length;
       if (offset < -12 || offset > 26) return '';
       return '<button type="button" class="hb-week' + (i === 0 ? ' is-selected' : '') +
-        '" data-act="hb-week" data-v="' + offset + '" aria-pressed="' + (i === 0) + '">' +
+        '" data-act="dx-hb-week" data-v="' + offset + '" aria-pressed="' + (i === 0) + '">' +
         '<span class="hb-week-date">' + esc(nice(week)) + '</span><b>' + count + '</b><small>orders</small></button>';
     }).join('');
     var daysHtml = days.map(function (d, i) {
@@ -169,9 +173,9 @@
       '<div class="hb-fresh"><span class="hb-live-dot"></span><b>Auto-refresh · 60 sec</b><small>Orders as of ' + esc(generated) + '</small></div></div>' +
       '<div class="hb-top"><div class="hb-period"><span>' + hbWhenLabel(start) + '</span><b>' + esc(hbWindowLabel(start)) +
       '</b></div><div class="hb-controls">' +
-      '<button type="button" class="hb-nav" data-act="hb-prev" ' + (HB.week <= -12 ? 'disabled ' : '') + 'aria-label="Previous week">←</button>' +
-      '<button type="button" class="hb-today" data-act="hb-today"' + (HB.week === 0 ? ' disabled' : '') + '>This week</button>' +
-      '<button type="button" class="hb-nav" data-act="hb-next" ' + (HB.week >= 26 ? 'disabled ' : '') + 'aria-label="Next week">→</button>' +
+      '<button type="button" class="hb-nav" data-act="dx-hb-prev" ' + (HB.week <= -12 ? 'disabled ' : '') + 'aria-label="Previous week">←</button>' +
+      '<button type="button" class="hb-today" data-act="dx-hb-today"' + (HB.week === 0 ? ' disabled' : '') + '>This week</button>' +
+      '<button type="button" class="hb-nav" data-act="dx-hb-next" ' + (HB.week >= 26 ? 'disabled ' : '') + 'aria-label="Next week">→</button>' +
       '</div></div>' +
       '<div class="hb-weekstrip" aria-label="Navigate weeks">' + weekCards + '</div>' +
       '<div class="hb-kpis"><div><span>Orders on calendar</span><strong>' + orders.length + '</strong><small>Excludes cancelled orders and quotes</small></div>' +
