@@ -163,7 +163,7 @@
         forward.disabled=position+client>=range*STEP-1;
       }
     }
-    function schedule(){if(raf)return;raf=(global.requestAnimationFrame||global.setTimeout)(function(){draw(false);},0);}
+    function schedule(){if(raf)return;raf=(global.requestAnimationFrame||global.setTimeout)(function(){draw(false);},16);}
     function go(day,behavior){
       var d=stamp(day)||today,idx=clamp(gap(MIN,d),0,range-1);
       var wanted=clamp(idx*STEP-(scroller.clientWidth||1000)/2+STEP/2,0,Math.max(0,range*STEP-(scroller.clientWidth||1000)));
