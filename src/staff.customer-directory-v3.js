@@ -301,7 +301,7 @@
       state.page=Math.max(0,state.page+(dir==='next'?1:-1));
       schedule();
       var scroll=root.querySelector('#ccs-main .ccs-table-wrap');
-      if(scroll&&scroll.scrollTo)scroll.scrollTo({top:0,behavior:'instant'});
+      if(scroll&&scroll.scrollTo)scroll.scrollTo({top:0,behavior:'auto'});
     }
   }
   function onChange(e){
