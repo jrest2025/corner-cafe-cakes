@@ -223,12 +223,12 @@
   function navTabs() {
     if (kitchenOnly()) return [['kitchen', 'Kitchen']];
     var tabs = [['today', 'Today'], ['attn', 'Needs attention'], ['orders', 'Orders'], ['calendar', 'Calendar']];
-    if (canP('ord.create')) tabs.push(['tablet', 'Counter tablet']);
     if (canP('kit.view')) tabs.push(['kitchen', 'Kitchen']);
     if (canP('ord.view') || canP('kit.view')) tabs.push(['handover', 'Handover']);
     if (canP('nav.customers') && canP('cust.view')) tabs.push(['customers', 'Customers']);
     if (canP('mgmt.analytics') || canP('mgmt.reports')) tabs.push(['dash', 'Analytics']);
     if (canP('mgmt.reports')) tabs.push(['register', 'Register']);
+    if (canP('ord.create')) tabs.push(['tablet', 'Service view']);
     if (canSettings()) tabs.push(['settings', 'Settings']);
     tabs.push(['more', 'More']);
     return tabs;
@@ -237,11 +237,11 @@
   function navHtml() {
     var needs = needsCount();
     // On phones the bottom bar is Today, Needs attention (with its count), Orders and More; Calendar and the rest live under More
-    var GROUP = { today: 'Service', customers: 'Customers', dash: 'Business', settings: 'Set-up' }, firstBiz = true;
+    var GROUP = { today: 'Service', calendar: 'Planning', customers: 'Customers', dash: 'Business', tablet: 'Quick service', settings: 'Set-up' }, firstBiz = true;
     return navTabs().map(function (t) {
       var gh = GROUP[t[0]] || (t[0] === 'register' && firstBiz && !navTabs().some(function (x) { return x[0] === 'dash'; }) ? 'Business' : '');
       var where = t[0] === 'more' ? ' ccs-nav-phone' : (t[0] === 'calendar' || t[0] === 'tablet' || t[0] === 'handover' || t[0] === 'customers' || t[0] === 'settings' || t[0] === 'kitchen' || t[0] === 'dash' || t[0] === 'register') ? ' ccs-nav-wide' : '';
-      return (gh ? '<p class="ccs-navh" aria-hidden="true">' + gh + '</p>' : '') + '<button type="button" class="ccs-nav-item' + (t[0] === 'new' ? ' ccs-nav-new' : '') + where + '" data-tab="' + t[0] + '" title="' + esc(t[1]) + '"' + (S.tab === t[0] ? ' aria-current="page"' : '') + '>' + NAV_ICON[t[0]] + '<span>' + t[1] + '</span>' +
+      return (gh ? '<p class="ccs-navh" aria-hidden="true">' + gh + '</p>' : '') + '<button type="button" class="ccs-nav-item' + (t[0] === 'new' ? ' ccs-nav-new' : '') + where + '" data-tab="' + t[0] + '" title="' + esc(t[1]) + '" aria-label="' + esc(t[1] === 'Service view' ? 'Service view — full-screen counter workflow' : t[1]) + '"' + (S.tab === t[0] ? ' aria-current="page"' : '') + '>' + NAV_ICON[t[0]] + '<span>' + t[1] + '</span>' +
         (t[0] === 'orders' && needs ? '<span class="ccs-count">' + needs + '</span>' : '') + (t[0] === 'attn' && S.loaded && attnCount() ? '<span class="ccs-count at-count">' + attnCount() + '</span>' : '') + '</button>';
     }).join('');
   }
