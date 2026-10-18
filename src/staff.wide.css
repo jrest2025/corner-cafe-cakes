@@ -1,0 +1,19 @@
+/* Wide screens: island previews and two-column order cards in the reading pane. */
+#cc-staff .ap-col .ap-island{flex-wrap:wrap;align-items:flex-start}
+#cc-staff .ap-col .wd-prev{flex:1 0 100%;display:flex;flex-direction:column;gap:3px;margin-top:8px;padding-top:8px;border-top:1px solid #eceef1;min-width:0}
+#cc-staff .ap-col .wd-p{display:block;font-size:12.5px;line-height:1.35;color:#4a525e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#cc-staff .ap-col .wd-p .wd-t{font-weight:650;color:#1f242c}
+#cc-staff .ap-col .wd-more{font-size:12px;font-weight:650;color:#6b7280}
+@media (min-width:1600px){#cc-staff .ap-split{grid-template-columns:minmax(280px,340px) minmax(0,1fr)}}
+/* Reading pane: order cards keep the status pills right under the cake details. */
+#cc-staff .ap-pane .ap-pane-body{container-type:inline-size}
+#cc-staff .ap-pane .ccs-mini{grid-template-columns:auto minmax(0,1fr)!important}
+#cc-staff .ap-pane .ccs-mini .ccs-mini-r{grid-column:2!important;justify-content:flex-start!important;justify-self:start;flex-wrap:wrap;max-width:none!important;margin-top:6px}
+/* Enough width for two cards side by side. */
+@container (min-width:800px){
+  #cc-staff .ap-pane .at-rows{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 16px;align-items:start}
+  #cc-staff .ap-pane .at-row{margin-top:0!important}
+  #cc-staff .ap-pane .at-row.is-rep .at-why{display:block}
+  #cc-staff .ap-pane .ccs-minis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  #cc-staff .ap-pane .kw-lines{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+}
