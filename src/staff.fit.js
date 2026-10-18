@@ -8,7 +8,7 @@ function fitCalendar() {
   var avail = (main ? main.clientHeight : innerHeight) - top - 20;
   var row = Math.floor(avail / weeks);
   // Too little room for readable days (short laptop windows): keep the normal height and let the page scroll once.
-  if (row < 92) { g.classList.remove('fit-rows'); g.style.removeProperty('--fit-row'); return; }
+  if (row < 72) { g.classList.remove('fit-rows'); g.style.removeProperty('--fit-row'); return; }
   g.classList.add('fit-rows'); g.style.setProperty('--fit-row', Math.min(row, 220) + 'px');
   [].forEach.call(g.querySelectorAll('.ccs-mday'), function (d) {
     var cakes = [].slice.call(d.querySelectorAll('.co-cake')); if (!cakes.length) return;

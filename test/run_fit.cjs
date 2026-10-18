@@ -14,7 +14,7 @@ const ALLOW='.bi-opps,.ov-k-att,.ov-k-opp,.ov-rec,#ccs-sheet,#ccs-sheet *,.ap-po
    const m=document.getElementById('ccs-main'),cw=document.querySelector('.ccs-mgrid');return {bad,sx:document.scrollingElement.scrollWidth>innerWidth+1,mainOver:m?m.scrollHeight-m.clientHeight:0,calFits:cw?cw.getBoundingClientRect().bottom<=(m?m.getBoundingClientRect().bottom:innerHeight)+1:null,calFitOn:cw?cw.classList.contains('fit-rows'):null}},ALLOW);
   check(label+' '+t+': no small boxes scrolling on their own',!r.bad.length,r.bad);
   check(label+' '+t+': no sideways scroll',!r.sx);
-  if(t==='calendar'&&w>640&&h>=840)check(label+' calendar: whole month fits the window',r.calFits&&r.calFitOn,r);
+  if(t==='calendar'&&w>640&&h>=820)check(label+' calendar: whole month fits the window',r.calFits&&r.calFitOn,r);
   if(t==='calendar'&&w>640&&h>=840)check(label+' calendar: no "+N more" overlaps its day',await p.evaluate(()=>[...document.querySelectorAll('.ccs-mday')].every(d=>{const b=d.getBoundingClientRect();return [...d.querySelectorAll('.co-cakes:not(.fit-none) .co-cake:not(.fit-hide),.co-cakes:not(.fit-none) .co-more:not([hidden])')].every(x=>x.getBoundingClientRect().bottom<=b.bottom+1)})));
   if(w>640&&['attn','orders','handover','settings'].includes(t))check(label+' '+t+': fits without scrolling',r.mainOver<=2,r.mainOver);
   check(label+' '+t+': no script errors',errors.length===0,errors);
