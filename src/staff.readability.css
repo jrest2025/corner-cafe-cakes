@@ -1,0 +1,51 @@
+/* Screen-first readability: grow the content, never shrink working text to fit. */
+#cc-staff,#ccs-sheet{--read-body:16px;--read-detail:17px;--read-support:15px;--read-heading:24px}
+@media(min-width:1600px){#cc-staff,#ccs-sheet{--read-body:17px;--read-detail:18px;--read-support:16px;--read-heading:26px}}
+#cc-staff #ccs-main{font-size:var(--read-body)!important;line-height:1.5}
+#cc-staff #ccs-main .ccs-head .ccs-title{font-size:var(--read-heading)!important;line-height:1.3}
+#cc-staff #ccs-main :is(.dx-card-h,.ccs-card-head) h2{font-size:20px!important;line-height:1.35}
+#cc-staff #ccs-main :is(.ccs-sub,.ccs-hint,.ccs-label,.crm-period,.crm-meta,.crm-last,.crm-perm){font-size:var(--read-support)!important;line-height:1.5}
+#cc-staff #ccs-main :is(.ccs-sub,.ccs-hint,.crm-meta,.crm-last,.crm-perm){color:#526071}
+#cc-staff #ccs-main :is(.ccs-mini-m b,.ccs-prow-m b,.vr-customer,.crm-name,.crm-reason){font-size:var(--read-detail)!important;line-height:1.45;white-space:normal!important;overflow:visible!important;text-overflow:clip}
+#cc-staff #ccs-main :is(.ccs-mini-m span,.ccs-mini-t,.ccs-prow-m span,.ccs-prow-t span,.ccs-kv dt,.ccs-kv dd){font-size:var(--read-body)!important;line-height:1.5;white-space:normal!important;overflow-wrap:anywhere}
+#cc-staff #ccs-main :is(.ccs-next,.at-why){font-size:var(--read-body)!important;line-height:1.5;display:block!important;-webkit-line-clamp:unset!important;max-height:none!important;overflow:visible!important}
+#cc-staff #ccs-main :is(.ccs-pill,.ccs-pay,.ccs-prow-f){font-size:var(--read-support)!important;line-height:1.4;white-space:normal;max-width:100%}
+#cc-staff #ccs-main :is(.ccs-btn,.ccs-input,.ccs-secbtn,.ccs-tab){font-size:var(--read-body)!important;line-height:1.4}
+#cc-staff #ccs-main .ccs-input{min-height:44px}
+#cc-staff #ccs-main .ccs-table th{font-size:var(--read-support)!important;line-height:1.4}
+#cc-staff #ccs-main .ccs-table td{font-size:var(--read-body)!important;line-height:1.5}
+#cc-staff #ccs-main .ccs-mini-m{min-width:0}
+#cc-staff #ccs-main .ccs-mini-r{row-gap:8px;flex-wrap:wrap}
+#cc-staff #ccs-main .at-rows{gap:18px}
+@media(min-width:760px){#cc-staff #ccs-main .ccs-mini{height:auto!important;min-height:0!important;padding:16px 18px!important;gap:14px;align-items:start}}
+/* Island previews in the supplied screenshot were only 12.5px. */
+#cc-staff #ccs-main .ap-text span{font-size:var(--read-body)!important;line-height:1.4}
+#cc-staff #ccs-main .ap-col .wd-p{font-size:var(--read-support)!important;line-height:1.5;white-space:normal!important;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}
+#cc-staff #ccs-main .ap-col .wd-prev{gap:6px;padding-top:10px;margin-top:10px}
+#cc-staff #ccs-main .ap-col .wd-more{font-size:var(--read-support)!important;line-height:1.4}
+#cc-staff #ccs-main .ap-col .ap-island{height:auto;min-height:100px;padding:16px 18px}
+#cc-staff .ap-pop-title h2{font-size:22px!important;line-height:1.35}
+#cc-staff .ap-pop-title span{font-size:var(--read-support)!important;line-height:1.5}
+/* Customer metrics and activity keep the same hierarchy at a comfortable size. */
+#cc-staff #ccs-main.cv-crm .crm-kpi :is(.ov-kl,.ov-ks){font-size:var(--read-support)!important;line-height:1.5}
+#cc-staff #ccs-main.cv-crm .crm-kpi{height:auto!important;min-height:154px!important}
+#cc-staff #ccs-main.cv-crm .crm-row .ov-att .cv-done .ov-at>b{font-size:var(--read-body)!important;line-height:1.4}
+#cc-staff #ccs-main.cv-crm .crm-row .ov-att .cv-done .ov-at>span{font-size:var(--read-support)!important;line-height:1.5}
+#cc-staff #ccs-main.cv-crm :is(.cv-open,.ov-ew){font-size:var(--read-support)!important;line-height:1.5}
+#cc-staff #ccs-main.cv-crm .ov-et b{font-size:var(--read-body)!important;line-height:1.4}
+#cc-staff #ccs-main.cv-crm .ov-et span{font-size:var(--read-support)!important;line-height:1.5}
+#cc-staff #ccs-main :is(.ov-kpi:not(.crm-kpi),.ccs-kpi) :is(.ov-kl,.ov-ks,.ccs-kpi-l,.ccs-kpi-s){font-size:var(--read-support)!important;line-height:1.45}
+/* Calendar remains fitted: larger text means fewer previews, with View all still available. */
+#cc-staff #ccs-main :is(.co-cake,.ccs-mcount,.ccs-mneed){font-size:var(--read-support)!important;line-height:1.4}
+#cc-staff #ccs-main .ccs-mgrid.vf-fit .co-more{font-size:var(--read-support)!important;line-height:1.4}
+#cc-staff #ccs-main :is(.co-card-m span,.co-card-m em,.co-strip-k){font-size:var(--read-support)!important;line-height:1.45}
+#cc-staff #ccs-main .co-card{max-width:340px}
+/* Order detail sheets retain bottom-action and safe-area spacing. */
+#ccs-sheet .ccs-sheet-body{font-size:var(--read-body)!important;line-height:1.5}
+#ccs-sheet :is(.ccs-hint,.ccs-label,.ccs-kv dt,.ccs-pill){font-size:var(--read-support)!important;line-height:1.5}
+#ccs-sheet :is(.ccs-kv dd,.ccs-btn,.ccs-input){font-size:var(--read-body)!important;line-height:1.5}
+@media(max-width:759px){#cc-staff,#ccs-sheet{--read-body:16px;--read-detail:17px;--read-support:14px;--read-heading:23px}}
+@media print{#cc-staff #ccs-main{font-size:12pt!important}}
+
+#cc-staff #ccs-main :is(.an-leg,.an-lrow,.dx-legend,.dx-card-h>span){font-size:var(--read-support)!important;line-height:1.45}
+#cc-staff .ccs-side .ccs-nav-item{font-size:16px;line-height:1.4}
