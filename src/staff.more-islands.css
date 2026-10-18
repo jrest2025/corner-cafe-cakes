@@ -1,0 +1,30 @@
+/* More islands (18 October 2026): Today's Needs attention, Kitchen > Handover, Customers follow-ups pop-up.
+   Uses the Needs attention island, pop-up and preview styles. */
+#cc-staff section.tq-warn.tx-done{display:block}
+#cc-staff .tx-wrap{margin-top:12px}
+#cc-staff .tx-islands{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:12px}
+#cc-staff .tx-islands .ap-island{width:100%;min-height:84px;align-items:flex-start}
+#cc-staff .tx-islands .ap-text{display:flex;flex-direction:column;gap:2px;min-width:0}
+#cc-staff .tx-islands .ap-text>b{font-size:26px;line-height:1.05}
+#cc-staff .tx-islands .wd-prev{display:flex;flex-direction:column;gap:1px;margin-top:4px;font-size:13px;line-height:1.35;color:#5b6370}
+#cc-staff .tx-islands .wd-p{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+#cc-staff .tx-body .tq-w{display:flex;width:100%}
+#cc-staff .ap-pop .tx-body .tq-w{padding-top:14px;padding-bottom:14px;white-space:normal}
+#cc-staff .ap-pop .tx-body .tq-w span{white-space:normal;overflow:visible}
+#cc-staff .tx-body .tx-all{display:inline-block;margin-top:14px;font-weight:600}
+/* Customers: the overview stays behind the pop-up, dimmed by the scrim; the list fills the pop-up. */
+#cc-staff #ccs-main .tx-hid{display:none!important}
+#cc-staff .tx-back{pointer-events:none;user-select:none}
+#cc-staff .tx-cwrap .ap-pop{width:min(960px,calc(var(--ap-width,100vw) - 48px))}
+#cc-staff .tx-cwrap .tx-body .crm-fhead{margin-top:12px}
+#cc-staff .tx-cwrap .tx-body .crm-cards{grid-template-columns:repeat(auto-fill,minmax(min(100%,360px),1fr))}
+@media (max-width:640px){
+  #cc-staff .tx-islands{grid-template-columns:1fr 1fr;gap:10px}
+  #cc-staff .tx-islands .ap-island{min-height:0}
+  #cc-staff .tx-islands .wd-prev{display:none}
+  #cc-staff .tx-cwrap .ap-pop{width:calc(100% - 24px)}
+}
+#cc-staff .tx-cwrap .tx-body .crm-fhead h2{display:none}
+#cc-staff .tx-cwrap .tx-body .crm-fhead{justify-content:flex-end}
+#cc-staff .tq-warn .tq-w.tx-hide{display:none!important}
+#cc-staff #ccs-main[data-screen="today"] > .tq-warn.tx-done{overflow:visible}
