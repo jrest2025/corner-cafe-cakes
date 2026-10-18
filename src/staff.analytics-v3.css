@@ -1,0 +1,44 @@
+
+/* Business analytics v3: full, readable, visually distinct management dashboard */
+#cc-staff .hb-v2{padding:22px 24px}
+#cc-staff .hb-k-heading{display:flex;align-items:center;justify-content:space-between;gap:15px;flex-wrap:wrap;margin:20px 0 15px}
+#cc-staff .hb-k-heading h3{font-size:18px;font-weight:760;margin:0;color:#263b32}
+#cc-staff .hb-k-heading p{font-size:13px;color:#778578;margin:3px 0 0}
+#cc-staff .hb-k-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:16px}
+#cc-staff .hb-k-kpi{--accent:#5d9164;position:relative;display:flex;flex-direction:column;gap:10px;padding:16px 19px;min-height:132px;min-width:0;background:#f3f9f1;border:1px solid #dce9d9;border-radius:13px;overflow:hidden}
+#cc-staff .hb-k-kpi:before{content:"";position:absolute;inset:0 auto 0 0;width:5px;background:var(--accent)}
+#cc-staff .hb-k-purple{--accent:#955ca1;background:#faf5fc;border-color:#ebdff0}
+#cc-staff .hb-k-pink{--accent:#d34d8b;background:#fff4f9;border-color:#f1dce6}
+#cc-staff .hb-k-blue{--accent:#548fc0;background:#f1f7fc;border-color:#dce8f2}
+#cc-staff .hb-k-teal{--accent:#3c9aa3;background:#eef9fa;border-color:#d2ecef}
+#cc-staff .hb-k-amber{--accent:#cd9c33;background:#fffaee;border-color:#eee2c4}
+#cc-staff .hb-k-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+#cc-staff .hb-k-top span{font-size:14px;font-weight:700;color:#566676}
+#cc-staff .hb-k-pip{width:10px;height:10px;background:var(--accent);border-radius:4px}
+#cc-staff .hb-k-kpi strong{font-size:clamp(23px,2.3vw,34px);font-weight:770;letter-spacing:-.035em;line-height:1.15;color:#263d32;overflow-wrap:anywhere}
+#cc-staff .hb-k-caption{font-size:12px;line-height:1.4;color:#667784;min-height:18px}
+#cc-staff .hb-k-caption .hb-m-delta{font-size:12px;margin:0;padding:0}
+#cc-staff .hb-k-panels{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px}
+#cc-staff .hb-k-panel{grid-column:span 2;border-radius:13px;border:1px solid #e2e8e4;background:white;padding:16px;min-width:0}
+#cc-staff .hb-k-panel.hb-k-wide{grid-column:span 3}
+#cc-staff .hb-k-panel.hb-k-half{grid-column:span 2}
+#cc-staff .hb-k-panel header{display:flex;justify-content:space-between;gap:8px;border-bottom:1px solid #edf0ee;padding-bottom:12px;margin-bottom:13px;align-items:center}
+#cc-staff .hb-k-panel h3{font-size:15px;font-weight:740;color:#2c4135;margin:0}
+#cc-staff .hb-k-panel header span{font-size:12px;color:#79877f}
+#cc-staff .hb-k-panel .hb-m-bars{max-height:260px}
+#cc-staff .hb-k-panel .hb-m-ranks{min-height:130px}
+#cc-staff .hb-k-panel .hb-m-rank-label,#cc-staff .hb-k-panel .hb-m-rank strong{font-size:13px}
+#cc-staff .hb-k-panel .hb-m-legend>div{font-size:12px}
+#cc-staff .hb-k-notices{display:flex;gap:12px;flex-wrap:wrap;padding:12px 1px 6px}
+#cc-staff .hb-k-note{color:#68776b;font-size:12px}
+#cc-staff .hb-k-curve .hb-k-axis{font-size:13px;fill:#6b7c70}
+#cc-staff .hb-k-curve .hb-k-line{fill:none;stroke:#5a8f69;stroke-width:3.6;stroke-linecap:round;stroke-linejoin:round}
+#cc-staff .hb-k-curve .hb-k-line-future{fill:none;stroke:#568db5;stroke-width:3.2;stroke-dasharray:9 6;stroke-linecap:round;stroke-linejoin:round}
+#cc-staff .hb-k-curve .hb-k-dot-future{fill:#fff;stroke:#568db5;stroke-width:2}
+#cc-staff .hb-v2-tools{margin-top:24px}
+#cc-staff .hb-v2-tools .hb-v2-chart-title h3{font-size:17px}
+#cc-staff .hb-v2-dayrail .hb-v2-booked b{font-size:18px}
+#cc-staff .hb-v2-dayrail .hb-v2-booked small{font-size:12px}
+#cc-staff .hb-v2-dayrail .hb-v2-value{font-size:12px}
+@media(max-width:1050px){#cc-staff .hb-k-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}#cc-staff .hb-k-panel{grid-column:span 3}#cc-staff .hb-k-panel.hb-k-wide{grid-column:span 3}}
+@media(max-width:680px){#cc-staff .hb-v2{padding:14px}#cc-staff .hb-k-kpis{gap:8px}#cc-staff .hb-k-kpi{padding:13px;min-height:116px}#cc-staff .hb-k-kpi strong{font-size:23px}#cc-staff .hb-k-kpi .hb-k-top span{font-size:12px}#cc-staff .hb-k-panels{grid-template-columns:1fr}#cc-staff .hb-k-panel,#cc-staff .hb-k-panel.hb-k-wide,#cc-staff .hb-k-panel.hb-k-half{grid-column:span 1}#cc-staff .hb-k-panel{padding:12px}}
