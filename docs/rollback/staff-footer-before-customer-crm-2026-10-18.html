@@ -1,0 +1,43 @@
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>(function(){var f="gh/jrest2025/corner-cafe-cakes@73bf5c930ae1a1b39311d220e5e110e91c4b18b3/dist/app/staff-app.2e90891108.js",h=['https://cdn.jsdelivr.net/','https://fastly.jsdelivr.net/'],k="sha384-wbhgJoBtbIVuFKBEAAjKsOX8Hx/dOIbR6iabHstUwv1TMzAU8o+ijuGEKO8gqr2I",i=0;function go(){if(i>=h.length){var m=document.getElementById('cc-staff');if(m)m.innerHTML='<p style="padding:30px;font-family:Arial,sans-serif">The staff app did not load. Check the internet connection, then refresh the page.</p>';console.error('staff app did not load');return}var s=document.createElement('script');s.src=h[i++]+f;s.integrity=k;s.crossOrigin='anonymous';s.onload=function(){var p=document.createElement("style");p.id="ccs-padding";p.textContent="/* Shared screen-edge and panel padding. Injected after the production bundle loads. */\n#cc-staff,#ccs-sheet{--pad-edge:24px;--pad-panel:16px;--pad-gap:16px}\n@media(min-width:1280px){#cc-staff,#ccs-sheet{--pad-edge:32px;--pad-panel:20px}}\n@media(max-width:759px){#cc-staff,#ccs-sheet{--pad-edge:16px;--pad-panel:14px;--pad-gap:12px}}\n/* Include counter-tablet mode, which earlier generic spacing rules excluded. */\n#cc-staff .ccs-app #ccs-main{\n box-sizing:border-box;min-width:0;\n padding-left:max(var(--pad-edge),env(safe-area-inset-left,0px))!important;\n padding-right:max(var(--pad-edge),env(safe-area-inset-right,0px))!important;\n scroll-padding-inline:var(--pad-edge);\n}\n#cc-staff #ccs-main>.ccs-head{min-width:0}\n#cc-staff #ccs-main :is(.dx-card,.ov-kpi,.ccs-panel-card){box-sizing:border-box;min-width:0;padding:var(--pad-panel)!important}\n#cc-staff #ccs-main :is(.ccs-card,.ccs-set,.ccs-calbody,.ccs-table-wrap){box-sizing:border-box;min-width:0;max-width:100%}\n#cc-staff #ccs-main :is(.bi-kpis,.bi-ov-row,.ov-row){gap:var(--pad-gap)!important}\n#cc-staff #ccs-main .ccs-set .ccs-set-body{padding-inline:var(--pad-panel)!important;padding-bottom:var(--pad-panel)!important}\n#cc-staff #ccs-main .ccs-set summary{padding-inline:var(--pad-panel)!important}\n#cc-staff #ccs-main .ccs-calside{padding:var(--pad-panel)!important;min-width:0;box-sizing:border-box}\n/* Keep the headings and body of every island detail panel aligned. */\n#cc-staff :is(.ap-pop,.ap-pane) .ap-pop-head{padding:var(--pad-panel)!important}\n#cc-staff :is(.ap-pop,.ap-pane) .ap-pop-body{padding:var(--pad-panel)!important}\n#cc-staff .ap-pop{\n width:min(880px,calc(var(--ap-width,100vw) - var(--pad-edge) - var(--pad-edge)))!important;\n max-height:calc(100vh - var(--ap-bottom,0px) - var(--pad-edge) - var(--pad-edge) - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px))!important;\n}\n@supports(height:1dvh){#cc-staff .ap-pop{max-height:calc(100dvh - var(--ap-bottom,0px) - var(--pad-edge) - var(--pad-edge) - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px))!important}}\n/* Sheets keep their own inset, including under the keyboard and device safe areas.\n   Leave vertical layout and existing extra space for bottom action bars intact. */\n#ccs-sheet .ccs-sheet-head,#ccs-sheet .ccs-sheet-body{\n box-sizing:border-box;min-width:0;\n padding-left:max(var(--pad-panel),env(safe-area-inset-left,0px))!important;\n padding-right:max(var(--pad-panel),env(safe-area-inset-right,0px))!important;\n}\n#ccs-sheet .ccs-sheet-body{scroll-padding:var(--pad-panel)}\n#cc-staff .ap-pop-title,#cc-staff .ccs-mini-m,#ccs-sheet .ccs-kv dd{min-width:0;overflow-wrap:anywhere}\n@media(min-width:760px){\n #cc-staff #ccs-main .ccs-table-wrap{overflow-x:auto;max-width:100%;overscroll-behavior-inline:contain}\n #cc-staff #ccs-main .ccs-table :is(th,td):first-child{padding-left:var(--pad-panel)}\n #cc-staff #ccs-main .ccs-table :is(th,td):last-child{padding-right:var(--pad-panel)}\n}\n@media print{#cc-staff .ccs-app #ccs-main{padding-left:0!important;padding-right:0!important}}\n";document.head.appendChild(p);var v=document.createElement("style");v.id="ccs-viewport-fit";v.textContent="/* Supersede the fixed 180px rows: the month shares the available working height. */\n@media(min-width:760px){\n #cc-staff #ccs-main .ccs-mgrid.vf-fit{grid-template-rows:none!important;grid-auto-rows:var(--vf-row)!important}\n #cc-staff #ccs-main .ccs-mgrid.vf-fit>.ccs-mcell{height:var(--vf-row)!important;min-height:0!important;overflow:hidden;box-sizing:border-box}\n #cc-staff #ccs-main .ccs-mgrid.vf-fit .ccs-mday{height:100%!important;min-height:0!important;box-sizing:border-box;overflow:hidden;padding:6px!important}\n #cc-staff #ccs-main .ccs-mgrid.vf-fit .co-cake[hidden],#cc-staff #ccs-main .ccs-mgrid.vf-fit .co-more[hidden]{display:none!important}\n #cc-staff #ccs-main .ccs-mgrid.vf-fit .co-cakes{gap:3px;margin-top:3px}\n #cc-staff #ccs-main .ccs-mgrid.vf-fit .co-more{padding:3px 0;font-size:13px}\n}\n";document.head.appendChild(v);// Calendar viewport sizing. Operates on the rendered UI without touching records.
+(function(){
+ var scheduled=false,wasCalendar=false;
+ function fit(){
+  scheduled=false;
+  var main=document.getElementById('ccs-main'),g=document.querySelector('#cc-staff .ccs-mgrid');
+  if(!main||!g){wasCalendar=false;return;}
+  if(!wasCalendar){main.scrollTop=0;wasCalendar=true;}
+  var days=[].slice.call(g.querySelectorAll('.ccs-mcell')),weeks=Math.ceil(days.length/7)||5;
+  var mr=main.getBoundingClientRect(),gr=g.getBoundingClientRect();
+  var bottom=parseFloat(getComputedStyle(main).paddingBottom)||24;
+  var top=gr.top-mr.top+main.scrollTop;
+  var available=Math.min(main.clientHeight,innerHeight-Math.max(0,mr.top))-top-bottom-2;
+  var row=Math.floor(available/weeks);
+  // Very short windows retain a readable minimum and one page scroll.
+  if(innerWidth<760||row<96){g.classList.remove('vf-fit');g.style.removeProperty('--vf-row');return;}
+  g.style.setProperty('--vf-row',row+'px');g.classList.add('vf-fit');
+  [].forEach.call(g.querySelectorAll('.ccs-mday'),function(day){
+   var cakes=[].slice.call(day.querySelectorAll('.co-cake'));if(!cakes.length)return;
+   var wrap=cakes[0].parentNode,more=day.querySelector('.co-more');
+   if(!wrap.hasAttribute('data-vf-total'))wrap.setAttribute('data-vf-total',cakes.length+(more?+(more.getAttribute('data-n')||0):0));
+   var total=+wrap.getAttribute('data-vf-total'),shown=cakes.length;
+   wrap.classList.remove('fit-none');cakes.forEach(function(c){c.classList.remove('fit-hide');c.hidden=false;});
+   function label(){
+    if(!more&&total>shown){more=document.createElement('span');more.className='co-more';wrap.appendChild(more);}
+    if(more){more.hidden=shown===total;more.textContent='View all '+total+' orders';}
+   }
+   function fits(){
+    var end=day.getBoundingClientRect().bottom-6;
+    var last=shown?cakes[shown-1].getBoundingClientRect().bottom:0;
+    var link=more&&!more.hidden?more.getBoundingClientRect().bottom:0;
+    return Math.max(last,link)<=end;
+   }
+   label();while(shown>0&&!fits()){shown--;cakes[shown].hidden=true;label();}
+  });
+ }
+ function soon(){if(scheduled)return;scheduled=true;requestAnimationFrame(fit);}
+ var root=document.getElementById('cc-staff');if(!root)return;
+ new MutationObserver(function(ms){if(ms.some(function(m){return !m.target.closest||!m.target.closest('.ccs-mday');}))soon();}).observe(root,{childList:true,subtree:true});
+ addEventListener('resize',soon,{passive:true});soon();
+})();
+};s.onerror=go;document.body.appendChild(s)}go()})();</script>
