@@ -61,3 +61,24 @@
 #cc-staff #cc-seasonal-demand-staging .ccsd-control{width:100%}
 #cc-staff #cc-seasonal-demand-staging .ccsd-legend{flex-direction:column;gap:7px}
 }
+
+/* Approved management simplification: only hide the original KPI and panel groups
+   after the alternative is mounted successfully. This never alters other CRM pages. */
+#cc-staff .hb-v2.ccsd-management .hb-k-kpis:not(.ccsd-manager-kpis),
+#cc-staff .hb-v2.ccsd-management .hb-k-panels:not(.ccsd-manager-panels){display:none!important}
+#cc-staff .ccsd-manager-kpis{margin-top:12px}
+#cc-staff .ccsd-manager-panels{grid-template-columns:repeat(4,minmax(0,1fr));margin:0 0 18px}
+#cc-staff .ccsd-manager-panels>.ccsd-management-panel{grid-column:span 2;min-height:195px}
+#cc-staff .ccsd-manager-rows{display:grid;gap:13px;padding:8px 1px 0}
+#cc-staff .ccsd-manager-row{display:grid;grid-template-columns:minmax(90px,1fr) minmax(60px,1.6fr) 30px;align-items:center;gap:12px;font-size:13px;color:#4d6356}
+#cc-staff .ccsd-manager-row span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#cc-staff .ccsd-manager-row b{text-align:right;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums}
+#cc-staff .ccsd-manager-track{background:#e9efea;overflow:hidden;height:9px;border-radius:20px}
+#cc-staff .ccsd-manager-track i{background:#688f72;height:100%;display:block;border-radius:20px}
+#cc-staff .ccsd-manager-panels>.ccsd-management-panel:nth-child(2) .ccsd-manager-track i{background:#9a70a4}
+#cc-staff .ccsd-manager-panels>.ccsd-management-panel:nth-child(3) .ccsd-manager-track i{background:#6594b9}
+#cc-staff .ccsd-followup-body{padding:15px 2px}
+#cc-staff .ccsd-followup-body strong{font-size:18px;color:#435b4d;display:block;margin-bottom:7px}
+#cc-staff .ccsd-followup-body p,#cc-staff .ccsd-manager-empty{font-size:13px;line-height:1.55;color:#697b71;margin:0}
+@media(max-width:1020px){#cc-staff .ccsd-manager-panels{grid-template-columns:repeat(2,minmax(0,1fr))}#cc-staff .ccsd-manager-panels>.ccsd-management-panel{grid-column:span 1}}
+@media(max-width:700px){#cc-staff .ccsd-manager-panels{grid-template-columns:1fr}#cc-staff .ccsd-manager-panels>.ccsd-management-panel{grid-column:span 1}#cc-staff .ccsd-manager-row{grid-template-columns:minmax(75px,1fr) minmax(70px,1.5fr) 26px;gap:8px}}
