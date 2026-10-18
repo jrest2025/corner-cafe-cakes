@@ -1,7 +1,7 @@
   // Cake Heartbeat: read-only operational pulse for the Analytics Overview.
   // Source: dashboard_register (deduplicated master register), plus staff-visible calendar tables.
   // These widgets deliberately ignore historical Analytics period filters: they always track pickup dates.
-  var HB = { events: [], eventsReady: false, eventError: false, loadingEvents: false, eventsAt: 0, timer: null, selected: null, metric: 'sales', mode: 'daily', period: 30, railScroll: null, chartScroll: null, daysBehind: 30, daysAhead: 59 };
+  var HB = { events: [], eventsReady: false, eventError: false, loadingEvents: false, eventsAt: 0, timer: null, selected: null, metric: 'pickup_cakes', mode: 'daily', period: 30, railScroll: null, chartScroll: null, daysBehind: 30, daysAhead: 59 };
   function hbMonday(d) {
     return addDays(d, -((new Date(d + 'T12:00:00Z').getUTCDay() + 6) % 7));
   }
@@ -252,13 +252,13 @@
        (r.day > data.today ? ' is-future' : '') + '" data-act="dx-hb-day" data-v="' + r.day + '"' +
        (now ? ' data-hb-today="true"' : '') + ' aria-pressed="' + selected + '" aria-label="' + esc(label) + '">' +
        '<span class="hb-v2-date">' + dow + ' <b>' + +r.day.slice(8) + '</b></span>' +
-       '<span class="hb-v2-booked"><b>' + (r.day > data.today ? '—' : r.orders) +
+       '<span class="hb-v2-booked"><b>' + hbKTimelineValue(r,'pickup_cakes') +
        '</b><small>booked</small></span>' +
-       '<span class="hb-v2-value">' + (r.day > data.today ? 'Not yet' : hbFjd(r.value)) + '</span>' +
-       '<span class="hb-v2-pickup">' + r.pickupCount + ' pickups</span>' +
+       '<span class="hb-v2-value">' + (r.day > data.today ? 'Confirmed demand' : r.orders + ' bookings') + '</span>' +
+       '<span class="hb-v2-pickup">' + r.pickupCount + ' pickup orders</span>' +
        (hbEventMini(r.day) || '<span class="hb-v2-event-space"></span>') + '</button>';
     }).join('');
-    var metricOpts = [['sales','Sales'],['value','Booked value'],['orders','Orders'],['cakes','Cakes']],
+    var metricOpts = [['pickup_cakes','Cakes due'],['cakes','Cakes booked'],['orders','Orders'],['value','Booked value'],['sales','Completed value']],
       metricBtns = metricOpts.map(function (x) { return '<button type="button" data-act="dx-hb-metric" data-v="' + x[0] +
         '" aria-pressed="' + (HB.metric === x[0]) + '" class="' + (HB.metric === x[0] ? 'is-on' : '') + '">' + x[1] + '</button>'; }).join('');
     var modeBtns = [['daily','Daily'],['cumulative','Cumulative']].map(function (x) {
@@ -269,7 +269,7 @@
       '<div class="hb-v2-head"><div><h2>Cake performance</h2></div>' +
       '<div class="hb-v2-update"><span class="hb-v2-live"></span> Updated ' + esc(lastRead) + ' · refreshes every 60 sec</div></div>' +
       hbMView(data) +
-      '<div class="hb-v2-tools"><div class="hb-v2-chart-title"><h3>Daily booking curve</h3></div>' +
+      '<div class="hb-v2-tools"><div class="hb-v2-chart-title"><h3>Daily cake demand &amp; booking curve</h3></div>' +
       '<div class="hb-v2-options"><div class="hb-v2-switch" role="group" aria-label="Measure">' + metricBtns + '</div>' +
       '<div class="hb-v2-switch" role="group" aria-label="Display mode">' + modeBtns + '</div></div></div>' +
       '<div class="hb-v2-scrollbar"><div class="hb-v2-scrollhint">← Earlier days</div><div class="hb-v2-railbuttons">' +
