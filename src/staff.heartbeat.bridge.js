@@ -78,6 +78,7 @@
       if(existingScroll)HB.railScroll=existingScroll.scrollLeft;
       mount.innerHTML = DX.error ? message(DX.error) : DX.data ? hbView() :
         '<div class="hb-loading" role="status">Loading Cake Heartbeat…</div>';
+      mount.classList.toggle('hb-m-ready',!!DX.data&&!DX.error);
       var pane=root.querySelector('[data-hb-scroll]');
       if(pane){if(HB.railScroll!=null)pane.scrollLeft=HB.railScroll;else hbScrollToDay(HB.selected||today(),true);}
     } finally { mounting = false; }
@@ -129,6 +130,7 @@
     else if (a === 'dx-hb-today') { HB.selected=today(); HB.railScroll=null; view(); hbScrollToDay(today(),false); }
     else if (a === 'dx-hb-day') { HB.selected=v; view(); }
     else if (a === 'dx-hb-metric' && ['orders','cakes','value','sales'].indexOf(v)>-1) { HB.metric=v; view(); }
+    else if (a === 'dx-hb-period' && ['7','30','90'].indexOf(v)>-1) { HB.period=Number(v); view(); }
     else if (a === 'dx-hb-mode' && ['daily','cumulative'].indexOf(v)>-1) { HB.mode=v; view(); }
     else if (a === 'dx-hb-retry') dashLoad(true);
     else if (a === 'dx-drill') {
