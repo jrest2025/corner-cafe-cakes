@@ -1,7 +1,7 @@
   // Cake Heartbeat: read-only operational pulse for the Analytics Overview.
   // Source: dashboard_register (deduplicated master register), plus staff-visible calendar tables.
   // These widgets deliberately ignore historical Analytics period filters: they always track pickup dates.
-  var HB = { events: [], eventsReady: false, eventError: false, loadingEvents: false, eventsAt: 0, timer: null, selected: null, metric: 'pickup_cakes', mode: 'daily', period: 30, railScroll: null, chartScroll: null, daysBehind: 30, daysAhead: 59 };
+  var HB = { events: [], eventsReady: false, eventError: false, loadingEvents: false, eventsAt: 0, timer: null, selected: null, metric: 'flow', mode: 'daily', period: 30, railScroll: null, chartScroll: null, jumpMonth: null, daysBehind: 90, daysAhead: 59 };
   function hbMonday(d) {
     return addDays(d, -((new Date(d + 'T12:00:00Z').getUTCDay() + 6) % 7));
   }
@@ -26,7 +26,7 @@
   function hbLoadEvents(force) {
     if (HB.loadingEvents || (!force && HB.eventsAt && Date.now() - HB.eventsAt < 600000)) return;
     HB.loadingEvents = true;
-    var from = addDays(today(), -45), until = addDays(today(), 210);
+    var from = addDays(today(), -100), until = today() <= '2027-12-31' ? '2027-12-31' : addDays(today(), 210);
     Promise.all([
       sb.from('calendar_events').select('day,ends_on,name,kind').gte('day', from).lte('day', until),
       sb.from('occasion_dates').select('occasion_code,starts_on,ends_on').gte('starts_on', from).lte('starts_on', until),
@@ -116,10 +116,12 @@
     return Math.max(0, hbNum(o.cv != null ? o.cv : o.lv != null ? o.lv : o.tot));
   }
   function hbData() {
-    var t = today(), start = addDays(t, -HB.daysBehind), end = addDays(t, HB.daysAhead);
+    var t = today(), horizon = Math.max(59, daysBetween(t, '2027-12-31'));
+    HB.daysAhead = horizon;
+    var start = addDays(t, -HB.daysBehind), end = addDays(t, horizon);
     var all = DX && DX.data ? (DX.data.allOrders || DX.data.orders || []) : [];
     var rows = [], days = {}, missing = 0, live = all.filter(hbActive);
-    for (var i = 0; i <= HB.daysBehind + HB.daysAhead; i++) {
+    for (var i = 0; i <= HB.daysBehind + horizon; i++) {
       var d = addDays(start, i);
       var row = { day: d, placed: [], pickups: [], orders: 0, cakes: 0, value: 0,
                   pickupCount: 0, pickupCakes: 0, sales: 0, cumSales: 0, cumOrders: 0, cumCakes: 0, cumValue: 0 };
@@ -206,7 +208,8 @@
       marks + '</svg>';
   }
   function hbDayDetail(data) {
-    var r = hbSelectedDay(data), date = r.day, p = hbPeak(r.pickups);
+    var r = hbSelectedDay(data), date = r.day, listedPickups = date > data.today ? r.pickups.filter(hbKActiveConfirmed) : r.pickups,
+      p = hbPeak(listedPickups);
     var list = function (name, array, pickup) {
       return '<div class="hb-v2-list"><div class="hb-v2-list-head"><strong>' + esc(name) +
         '</strong><span>' + array.length + ' orders</span></div>' +
@@ -217,16 +220,16 @@
         }).join('') + '</div>' : '<p>No ' + (pickup ? 'pickups scheduled' : 'orders recorded') + ' on this day.</p>') + '</div>';
     };
     return '<div class="hb-v2-detail"><div class="hb-v2-detail-title"><div><h3>' +
-      esc(hbDateTitle(date)) + '</h3><span>Actual recorded bookings and scheduled pickups</span></div>' +
+      esc(hbDateTitle(date)) + '</h3><span>Booking dates and scheduled cake collections</span></div>' +
       '<div class="hb-v2-detail-tags">' + hbEventTags(date) + '</div></div>' +
-      '<div class="hb-v2-daystats"><div><span>Completed sales</span><strong>' + hbFjd(r.sales) + '</strong></div>' +
+      '<div class="hb-v2-daystats"><div><span>Cakes due</span><strong>' + hbKTimelineValue(r,'pickup_cakes') + '</strong></div>' +
       '<div><span>Orders placed</span><strong>' + r.orders +
       '</strong></div><div><span>Booked value</span><strong>' + hbFjd(r.value) +
       '</strong></div><div><span>Cakes booked</span><strong>' + r.cakes +
-      '</strong></div><div><span>Pickups due</span><strong>' + r.pickupCount +
+      '</strong></div><div><span>Pickup orders</span><strong>' + listedPickups.length +
       '</strong></div></div>' +
       '<div class="hb-v2-detail-bottom">' + list('Booked on this date',r.placed,false) +
-      list('Pickups for this date',r.pickups,true) + '</div>' +
+      list(date > data.today ? 'Confirmed collections' : 'Scheduled collections',listedPickups,true) + '</div>' +
       (p.count ? '<p class="hb-v2-footnote">Busiest pickup window: ' + esc(p.label) + ' · ' +
         p.count + (p.count === 1 ? ' order' : ' orders') + '</p>' : '') + '</div>';
   }
@@ -247,18 +250,18 @@
     var cells = data.rows.map(function (r) {
       var dow = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date(r.day+'T12:00:00Z').getUTCDay()],
         selected = r.day === (HB.selected || data.today), now = r.day === data.today,
-        label = hbDateTitle(r.day) + ', ' + r.orders + ' orders booked, ' + r.pickupCount + ' pickups';
+        label = hbDateTitle(r.day) + ': ' + r.cakes + ' cakes booked on this date; ' + hbKTimelineValue(r,'pickup_cakes') + ' cakes scheduled for collection';
       return '<button type="button" class="hb-v2-day' + (selected ? ' is-selected' : '') + (now ? ' is-today' : '') +
        (r.day > data.today ? ' is-future' : '') + '" data-act="dx-hb-day" data-v="' + r.day + '"' +
        (now ? ' data-hb-today="true"' : '') + ' aria-pressed="' + selected + '" aria-label="' + esc(label) + '">' +
        '<span class="hb-v2-date">' + dow + ' <b>' + +r.day.slice(8) + '</b></span>' +
        '<span class="hb-v2-booked"><b>' + hbKTimelineValue(r,'pickup_cakes') +
-       '</b><small>cakes due</small></span>' +
-       '<span class="hb-v2-value">' + (r.day > data.today ? 'Confirmed' : r.orders + ' booked orders') + '</span>' +
-       '<span class="hb-v2-pickup">' + r.pickupCount + ' pickup orders</span>' +
+       '</b><small>due</small></span>' +
+       '<span class="hb-v2-value">' + (r.day > data.today ? 'Bookings —' : r.cakes + ' booked') + '</span>' +
+       '<span class="hb-v2-pickup">' + (r.day > data.today ? 'Confirmed pickups only' : r.pickupCount + ' pickup orders') + '</span>' +
        (hbEventMini(r.day) || '<span class="hb-v2-event-space"></span>') + '</button>';
     }).join('');
-    var metricOpts = [['pickup_cakes','Cakes due'],['cakes','Cakes booked'],['orders','Orders'],['value','Booked value'],['sales','Completed value']],
+    var metricOpts = [['flow','Booked vs due'],['pickup_cakes','Cakes due'],['cakes','Cakes booked'],['orders','Orders'],['value','Booked value'],['sales','Completed value']],
       metricBtns = metricOpts.map(function (x) { return '<button type="button" data-act="dx-hb-metric" data-v="' + x[0] +
         '" aria-pressed="' + (HB.metric === x[0]) + '" class="' + (HB.metric === x[0] ? 'is-on' : '') + '">' + x[1] + '</button>'; }).join('');
     var modeBtns = [['daily','Daily'],['cumulative','Cumulative']].map(function (x) {
@@ -273,6 +276,7 @@
       '<div class="hb-v2-options"><div class="hb-v2-switch" role="group" aria-label="Measure">' + metricBtns + '</div>' +
       '<div class="hb-v2-switch" role="group" aria-label="Display mode">' + modeBtns + '</div></div></div>' +
       '<div class="hb-v2-scrollbar"><div class="hb-v2-scrollhint">← Earlier days</div><div class="hb-v2-railbuttons">' +
+      '<label class="hb-k-monthjump">Month <select data-hb-jump aria-label="Jump to a month">' + hbKMonthOptions(data) + '</select></label>' +
       '<button type="button" data-act="dx-hb-prev" aria-label="Scroll seven days earlier">←</button>' +
       '<button type="button" data-act="dx-hb-today">Today</button>' +
       '<button type="button" data-act="dx-hb-next" aria-label="Scroll seven days later">→</button>' +
@@ -283,8 +287,10 @@
       '<div class="hb-v2-graph">' + hbChart(data) + '</div>' +
       '</div></div>' +
       '<div class="hb-v2-key"><span><i class="hb-v2-key-line"></i>' +
-        esc((HB.mode === 'cumulative' ? 'Running ' : 'Daily ') + hbMetricLabel().toLowerCase()) +
-      '</span><span><i class="hb-v2-key-dot"></i>Future dates show confirmed demand only</span>' +
+        esc((HB.mode === 'cumulative' ? 'Running totals · ' : 'Daily · ') + (HB.metric === 'flow' ? 'two date-based series' : hbMetricLabel().toLowerCase())) +
+      '</span>' + (HB.metric === 'flow' ? '<span class="hb-k-legend-booked"><i></i>Dashed purple: cakes booked on this date</span>' +
+        '<span class="hb-k-legend-due"><i></i>Solid green: cakes due for pickup</span>' : '') +
+      '<span><i class="hb-v2-key-dot"></i>Bookings stop today; future pickups are confirmed only</span>' +
       (data.missing ? '<span>'+data.missing+' unverified booking dates</span>' : '') +
       (HB.eventError ? '<span>Calendar events temporarily unavailable</span>' : '') + '</div>' +
       '<details class="hb-m-details"><summary>'+esc(hbDateTitle((HB.selected||data.today)))+' · View daily breakdown</summary>'+hbDayDetail(data)+'</details></section>';
