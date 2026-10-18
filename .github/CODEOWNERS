@@ -1,0 +1,5 @@
+# Protected Analytics: changes require CRM owner review.
+# Configure 'Require review from Code Owners' in GitHub branch protection for enforcement.
+/src/staff.demand-rail.locked.js @jrest2025
+/src/staff.demand-rail.locked.css @jrest2025
+/docs/ANALYTICS_MODULE_LOCK.md @jrest2025
