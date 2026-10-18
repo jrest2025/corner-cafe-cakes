@@ -1,0 +1,9 @@
+/* Supersede the fixed 180px rows: the month shares the available working height. */
+@media(min-width:760px){
+ #cc-staff #ccs-main .ccs-mgrid.vf-fit{grid-template-rows:none!important;grid-auto-rows:var(--vf-row)!important}
+ #cc-staff #ccs-main .ccs-mgrid.vf-fit>.ccs-mcell{height:var(--vf-row)!important;min-height:0!important;overflow:hidden;box-sizing:border-box}
+ #cc-staff #ccs-main .ccs-mgrid.vf-fit .ccs-mday{height:100%!important;min-height:0!important;box-sizing:border-box;overflow:hidden;padding:6px!important}
+ #cc-staff #ccs-main .ccs-mgrid.vf-fit .co-cake[hidden],#cc-staff #ccs-main .ccs-mgrid.vf-fit .co-more[hidden]{display:none!important}
+ #cc-staff #ccs-main .ccs-mgrid.vf-fit .co-cakes{gap:3px;margin-top:3px}
+ #cc-staff #ccs-main .ccs-mgrid.vf-fit .co-more{padding:3px 0;font-size:13px}
+}
