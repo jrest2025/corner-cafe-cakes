@@ -46,3 +46,13 @@
 #cc-staff #ccs-main[data-screen="customers"] .cu-repeat-tag{display:inline-flex;margin-left:8px;padding:3px 7px;border-radius:15px;background:#f5edf8;color:#8a5599;font-size:11px;font-weight:700;vertical-align:middle}
 @media(max-width:1050px){#cc-staff #ccs-main[data-screen="customers"] .cu-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:680px){#cc-staff #ccs-main[data-screen="customers"] .cu-insights{grid-template-columns:1fr}#cc-staff #ccs-main[data-screen="customers"] .cu-stat{padding:12px}#cc-staff #ccs-main[data-screen="customers"] .cu-stat-value{font-size:23px}#cc-staff #ccs-main[data-screen="customers"] .cu-name-cell>.cu-avatar{width:26px;height:26px}}
+
+/* Customer workspace is recognisable even before dashboard JS enhancement. */
+#cc-staff #ccs-main[data-screen="customers"] .ccs-head{padding-bottom:10px;border-bottom:1px solid #e3dfeb}
+#cc-staff #ccs-main[data-screen="customers"] .ccs-title{color:#382943;letter-spacing:-.025em}
+#cc-staff #ccs-main[data-screen="customers"] .ccs-ctool{border:1px solid #dfdbe8;border-radius:13px;background:#fff;box-shadow:0 2px 8px #2f24410a}
+#cc-staff #ccs-main[data-screen="customers"] .ccs-table tbody tr{transition:background .12s ease}
+#cc-staff #ccs-main[data-screen="customers"] .ccs-table tbody tr:nth-child(even){background:#fcfafd}
+#cc-staff #ccs-main[data-screen="customers"] .ccs-table tbody tr:nth-child(even):hover{background:#f6eef9}
+#cc-staff #ccs-main[data-screen="customers"] .ccs-table tbody td{font-size:14px;line-height:1.45}
+#cc-staff #ccs-main[data-screen="customers"] .ccs-headacts .ccs-search{min-width:min(320px,75vw)}
