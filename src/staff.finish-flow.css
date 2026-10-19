@@ -28,4 +28,7 @@
 #cc-staff .cc-f-error{padding:9px 12px;border-radius:9px;background:#fff4ee}
 @media(max-width:1050px){#cc-staff .cc-f-grid{grid-template-columns:1fr}}
 @media(max-width:759px){#cc-staff .cc-f-review{padding:12px}#cc-staff .cc-f-grid,#cc-staff .cc-f-options{grid-template-columns:1fr}}
+#cc-staff .sl-missing-list{display:grid;gap:8px;margin-top:12px}
+#cc-staff .sl-fix-missing{display:block;width:100%;max-width:none;text-align:left;white-space:normal;height:auto;padding:12px 14px;line-height:1.45}
+
 }
