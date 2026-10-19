@@ -55,6 +55,7 @@
     var id = 'cc-dp-' + (++serial), b = document.createElement('button');
     b.type = 'button'; b.id = id; b.className = 'ccs-input cc-dp-trigger is-empty';
     b.dataset.ccDateOpen = '1'; b.setAttribute('aria-haspopup', 'dialog'); b.setAttribute('aria-expanded', 'false');
+    if (input.required) b.setAttribute('aria-required', 'true');
     b.innerHTML = '<span class="cc-dp-value">Choose date</span><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v5M17 3v5M3 11h18M8 15h3M14 15h2"/></svg>';
     input.after(b); input._ccDateButton = b; b._ccDateInput = input;
     var lab = input.id && document.querySelector('label[for="' + CSS.escape(input.id) + '"]');
@@ -73,7 +74,7 @@
     var last = new Date(first.getFullYear(), first.getMonth() + 1, 0, 12);
     return (!active.min || isoDate(last) >= active.min) && (!active.max || isoDate(first) <= active.max);
   }
-  function render() {
+  function render(focusDate) {
     if (!active || !active.isConnected) return close(false);
     var selected = parse(active.value), today = fijiToday();
     var first = new Date(month.getFullYear(), month.getMonth(), 1, 12);
@@ -83,18 +84,19 @@
     for (i = 0; i < 42; i++) {
       var d = new Date(start); d.setDate(start.getDate() + i);
       var s = isoDate(d), outside = d.getMonth() !== first.getMonth(), disabled = !within(s, active);
-      days += '<button type="button" class="cc-dp-day' + (outside ? ' is-outside' : '') + (selected && s === isoDate(selected) ? ' is-selected' : '') + (s === isoDate(today) ? ' is-today' : '') + '" data-cc-date-day="' + s + '"' + (disabled ? ' disabled' : '') + ' aria-label="' + esc(dayName(d)) + '"' + (selected && s === isoDate(selected) ? ' aria-pressed="true"' : '') + (s === isoDate(today) ? ' aria-current="date"' : '') + '><span>' + d.getDate() + '</span></button>';
+      days += '<button type="button" role="gridcell" tabindex="-1" class="cc-dp-day' + (outside ? ' is-outside' : '') + (selected && s === isoDate(selected) ? ' is-selected' : '') + (s === isoDate(today) ? ' is-today' : '') + '" data-cc-date-day="' + s + '"' + (disabled ? ' disabled' : '') + ' aria-label="' + esc(dayName(d)) + '" aria-selected="' + !!(selected && s === isoDate(selected)) + '"' + (s === isoDate(today) ? ' aria-current="date"' : '') + '><span>' + d.getDate() + '</span></button>';
     }
     layer.innerHTML = '<div class="cc-dp-backdrop" data-cc-date-close="1"></div><section class="cc-dp-dialog" role="dialog" aria-modal="true" aria-labelledby="cc-dp-title">' +
-      '<header class="cc-dp-head"><div><p>Choose date</p><h2 id="cc-dp-title">' + esc(monthName(first)) + '</h2></div><button type="button" class="cc-dp-close" data-cc-date-close="1" aria-label="Close calendar">&#215;</button></header>' +
-      '<div class="cc-dp-nav"><button type="button" data-cc-date-move="-1"' + (monthAllowed(first, -1) ? '' : ' disabled') + ' aria-label="Previous month">&#8592;</button><button type="button" data-cc-date-today="1"' + (within(isoDate(today), active) ? '' : ' disabled') + '>Today</button><button type="button" data-cc-date-move="1"' + (monthAllowed(first, 1) ? '' : ' disabled') + ' aria-label="Next month">&#8594;</button></div>' +
+      '<header class="cc-dp-head"><div><p>Choose date</p><h2 id="cc-dp-title" aria-live="polite">' + esc(monthName(first)) + '</h2></div><button type="button" class="cc-dp-close" data-cc-date-close="1" aria-label="Close calendar">&#215;</button></header>' +
+      '<div class="cc-dp-nav"><button type="button" data-cc-date-move="-12"' + (monthAllowed(first, -12) ? '' : ' disabled') + ' aria-label="Previous year">&#171;</button><button type="button" data-cc-date-move="-1"' + (monthAllowed(first, -1) ? '' : ' disabled') + ' aria-label="Previous month">&#8592;</button><button type="button" data-cc-date-today="1"' + (within(isoDate(today), active) ? '' : ' disabled') + '>Today</button><button type="button" data-cc-date-move="1"' + (monthAllowed(first, 1) ? '' : ' disabled') + ' aria-label="Next month">&#8594;</button><button type="button" data-cc-date-move="12"' + (monthAllowed(first, 12) ? '' : ' disabled') + ' aria-label="Next year">&#187;</button></div>' +
       '<div class="cc-dp-week" aria-hidden="true"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div>' +
       '<div class="cc-dp-grid" role="grid" aria-label="' + esc(monthName(first)) + '">' + days + '</div>' +
       '<footer class="cc-dp-foot">' + (active.required ? '' : '<button type="button" class="cc-dp-clear" data-cc-date-clear="1">Clear date</button>') + '<button type="button" class="cc-dp-cancel" data-cc-date-close="1">Cancel</button></footer></section>';
     requestAnimationFrame(function () {
+      var requested = focusDate && layer.querySelector('[data-cc-date-day="' + focusDate + '"]:not([disabled])');
       var chosen = layer.querySelector('.is-selected:not([disabled])');
-      var target = chosen || layer.querySelector('[aria-current="date"]:not([disabled])') || layer.querySelector('.cc-dp-day:not([disabled])');
-      if (target) target.focus();
+      var target = requested || chosen || layer.querySelector('[aria-current="date"]:not([disabled])') || layer.querySelector('.cc-dp-day:not([disabled])');
+      if (target) { target.tabIndex = 0; target.focus(); }
     });
   }
   function open(input, button) {
@@ -115,6 +117,24 @@
     input.dispatchEvent(new Event('change', { bubbles: true }));
     close();
   }
+  function focusDay(s) {
+    var d = parse(s);
+    if (!d || !active || !within(s, active)) return;
+    month = new Date(d.getFullYear(), d.getMonth(), 1, 12);
+    render(s);
+  }
+  function moveDay(button, days) {
+    var d = parse(button && button.dataset.ccDateDay);
+    if (!d) return;
+    d.setDate(d.getDate() + days); focusDay(isoDate(d));
+  }
+  function movePage(button, months) {
+    var d = parse(button && button.dataset.ccDateDay);
+    if (!d) return;
+    var day = d.getDate(), target = new Date(d.getFullYear(), d.getMonth() + months, 1, 12);
+    target.setDate(Math.min(day, new Date(target.getFullYear(), target.getMonth() + 1, 0, 12).getDate()));
+    focusDay(isoDate(target));
+  }
 
   document.addEventListener('click', function (e) {
     var b = e.target.closest && e.target.closest('[data-cc-date-open]');
@@ -132,6 +152,19 @@
   document.addEventListener('keydown', function (e) {
     if (layer.hidden) return;
     if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); close(); return; }
+    var day = e.target.closest && e.target.closest('[data-cc-date-day]');
+    if (day) {
+      var delta = e.key === 'ArrowLeft' ? -1 : e.key === 'ArrowRight' ? 1 : e.key === 'ArrowUp' ? -7 : e.key === 'ArrowDown' ? 7 : 0;
+      if (delta) { e.preventDefault(); moveDay(day, delta); return; }
+      if (e.key === 'Home' || e.key === 'End') {
+        e.preventDefault();
+        var d = parse(day.dataset.ccDateDay), weekday = (d.getDay() + 6) % 7;
+        moveDay(day, e.key === 'Home' ? -weekday : 6 - weekday); return;
+      }
+      if (e.key === 'PageUp' || e.key === 'PageDown') {
+        e.preventDefault(); movePage(day, (e.key === 'PageUp' ? -1 : 1) * (e.shiftKey ? 12 : 1)); return;
+      }
+    }
     if (e.key !== 'Tab') return;
     var focusable = [].slice.call(layer.querySelectorAll('button:not([disabled])'));
     if (!focusable.length) return;

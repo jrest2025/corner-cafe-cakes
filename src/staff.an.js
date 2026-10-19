@@ -92,11 +92,21 @@
   // Every slice is labelled with its name, value and share beside the chart, so colour is never the only key.
   var AN_PAL = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4'], AN_OTHER = '#b5bac1';
   function anFold(rows, n) {
-    rows = rows.filter(function (r) { return r.v > 0; }).sort(function (a, b) { return b.v - a.v; });
+    // Merge equal display labels first. Custom occasion codes can intentionally resolve to
+    // "Other"; folding a long list must not create a second, indistinguishable Other slice.
+    var merged = {};
+    rows.filter(function (r) { return r.v > 0; }).forEach(function (r) {
+      var k = r.l || 'Other';
+      if (!merged[k]) merged[k] = { l: k, v: 0, list: [], other: !!r.other };
+      merged[k].v += r.v; merged[k].list = merged[k].list.concat(r.list || []); merged[k].other = merged[k].other || !!r.other;
+    });
+    rows = Object.keys(merged).map(function (k) { return merged[k]; }).sort(function (a, b) { return b.v - a.v; });
     if (rows.length <= n) return rows;
-    var rest = rows.slice(n - 1), o = { l: 'Other', v: 0, list: [], other: true };
+    var named = rows.filter(function (r) { return r.l !== 'Other'; });
+    var rest = named.slice(n - 1).concat(rows.filter(function (r) { return r.l === 'Other'; }));
+    var o = { l: 'Other', v: 0, list: [], other: true };
     rest.forEach(function (r) { o.v += r.v; o.list = o.list.concat(r.list || []); });
-    return rows.slice(0, n - 1).concat([o]);
+    return named.slice(0, n - 1).concat([o]);
   }
   function anDonut(title, rows, fmt, lbl) {
     rows = anFold(rows, 6);
