@@ -1,6 +1,6 @@
 // Calendar day view: empty slots show a faint + only, stay tappable. Invented data; remote requests blocked.
 const fs=require('fs'),path=require('path'),os=require('os');const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
-const root=path.resolve(__dirname,'..'),m=JSON.parse(fs.readFileSync(path.join(root,'dist/app/staff-calendar-quiet-manifest.json')));
+const root=path.resolve(__dirname,'..'),m=JSON.parse(fs.readFileSync(path.join(root,process.env.MANIFEST||'dist/app/staff-calendar-quiet-manifest.json')));
 const shots=process.env.SHOTS||os.tmpdir();let n=0,fails=0;
 function check(s,v,d){if(v){n++;console.log('PASS '+s)}else{fails++;console.log('FAIL '+s+(d!==undefined?' -> '+JSON.stringify(d):''))}}
 const OK=["Cannot read properties of undefined (reading 'length')","Cannot read properties of undefined (reading 'filter')"];
@@ -11,7 +11,7 @@ const OK=["Cannot read properties of undefined (reading 'length')","Cannot read 
   await p.addScriptTag({path:path.join(root,'test/mock.js')});await p.addScriptTag({path:path.join(root,m.file)});await p.waitForTimeout(500);
   await p.locator('[data-tab="calendar"]').first().evaluate(e=>e.click());await p.waitForTimeout(600);
   const dv=p.locator('[data-act="cal-view"][data-v="day"],[data-v="day"][data-act]').first();if(await dv.count())await dv.evaluate(e=>e.click());await p.waitForTimeout(500);
-  const add=p.locator('.ccs-dslot:not(.has-orders) .ccs-dadd');const k=await add.count();check(label+': day view has empty-slot buttons',k>0,k);
+  const add=p.locator('.ccs-dslot:not(.has-orders):not(.cc-folded) .ccs-dadd');const k=await add.count();check(label+': day view has empty-slot buttons',k>0,k);
   check(label+': no "New order at" text visible',await p.evaluate(()=>![...document.querySelectorAll('.ccs-dslot')].some(s=>/New order at/.test(s.innerText))));
   check(label+': each shows a +',await add.evaluateAll(es=>es.every(e=>e.textContent.trim()==='+')));
   check(label+': screen readers still hear the time',await add.evaluateAll(es=>es.every(e=>/^New order at \d{1,2}:\d{2} (AM|PM)$/.test(e.getAttribute('aria-label')))));
