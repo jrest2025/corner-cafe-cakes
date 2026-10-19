@@ -27,6 +27,7 @@ revoke all on public.customer_deletions from anon, authenticated;
 -- One hidden holder for orders whose customer was deleted. Archived, so it never appears in the customer list,
 -- follow-ups, customer numbers or exports.
 insert into public.customers (full_name, email, preferred_contact, customer_no, customer_source, archived_at, archive_reason, notes)
+overriding system value
 select 'Deleted customer', 'deleted-customer@cornercafefiji.com', 'email', 0, 'staff_added', now(), 'system_deleted_holder',
        'System record. Holds past orders of customers who were deleted. Do not edit or merge.'
 where not exists (select 1 from public.customers where archive_reason = 'system_deleted_holder');
