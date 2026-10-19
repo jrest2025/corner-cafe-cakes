@@ -1,0 +1,13 @@
+
+/* Occasion comparison only; does not target demand dashboard. */
+#cc-staff .cc-occasion-bars{margin:20px 0 0;padding:18px;border:1px solid var(--ccs-line,#dce1e7);border-radius:12px;background:#fff;display:grid;gap:12px;min-width:0}
+#cc-staff .cc-occasion-bars h3{margin:0;font-size:19px;font-weight:700;color:var(--ccs-ink,#242b35)}
+#cc-staff .cc-occasion-bars p{font-size:14px;line-height:1.5;margin:0;color:var(--ccs-muted,#626c77)}
+#cc-staff .cc-occasion-row{appearance:none;display:grid;grid-template-columns:minmax(120px,1fr) minmax(100px,2fr) minmax(70px,auto);align-items:center;gap:12px;text-align:left;background:transparent;border:0;border-radius:8px;min-height:44px;padding:6px 8px;color:var(--ccs-ink,#242b35);cursor:pointer;font:inherit;font-size:14px}
+#cc-staff .cc-occasion-row:hover{background:var(--ccs-grey-wash,#f5f7f9)}
+#cc-staff .cc-occasion-row:focus-visible{outline:2px solid var(--ccs-blue,#286bad);outline-offset:2px}
+#cc-staff .cc-occasion-label{overflow-wrap:anywhere}
+#cc-staff .cc-occasion-track{height:18px;border-radius:5px;background:#edf2ef;overflow:hidden}
+#cc-staff .cc-occasion-track i{display:block;height:100%;background:#4b6339;border-radius:5px}
+#cc-staff .cc-occasion-row strong{font-size:14px;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+@media(max-width:640px){#cc-staff .cc-occasion-row{grid-template-columns:minmax(0,1fr) minmax(64px,auto);gap:6px}#cc-staff .cc-occasion-track{grid-column:1/-1;grid-row:2}#cc-staff .cc-occasion-row strong{grid-column:2;grid-row:1}}
