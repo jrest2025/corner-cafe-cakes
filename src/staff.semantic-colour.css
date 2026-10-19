@@ -116,6 +116,8 @@
 #cc-staff .ccs-card.k-good::before { background: var(--sc-blue); }
 #cc-staff :is(.ccs-card.k-action,.ccs-card.k-deposit)::before { background: var(--sc-amber); }
 #cc-staff .ccs-card.is-red::before { background: var(--sc-red); }
+#cc-staff .ccs-card.k-off::before { background: var(--sc-red); }
+#cc-staff .ccs-card.k-off .ccs-pill.s-off { background: var(--sc-red-bg) !important; color: var(--sc-red) !important; border-color: var(--sc-red-line) !important; }
 #cc-staff .ccs-overdue { box-shadow: inset 4px 0 0 var(--sc-red) !important; }
 #cc-staff .ccs-overdue h2,
 #cc-staff .kw-line.is-late,
