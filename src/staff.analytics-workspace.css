@@ -123,3 +123,33 @@
  #cc-staff .aw-workspace .aw-template .aw-chart-empty {padding:20px 14px;min-height:150px}
  #cc-staff .aw-workspace .aw-template>[data-aw-action=template] {justify-self:stretch;width:100%}
 }
+
+/* Chart and executive scan pass, scoped only to the optional Analytics workspace. */
+#cc-staff .aw-workspace .aw-month-chart {overflow-x:auto;overscroll-behavior-x:contain;padding-bottom:8px}
+#cc-staff .aw-workspace .aw-month-chart figcaption {font-size:15px;font-weight:650;line-height:1.5;color:var(--ccs-ink,#242b35);margin-bottom:14px}
+#cc-staff .aw-workspace .aw-month-bars {min-width:560px;gap:10px}
+#cc-staff .aw-workspace .aw-month-track {height:150px;max-width:52px}
+#cc-staff .aw-workspace .aw-month-value {font-size:13px;font-weight:650;line-height:1.4}
+#cc-staff .aw-workspace .aw-month-label {font-size:13px;line-height:1.4;color:var(--ccs-ink,#242b35)}
+#cc-staff .aw-workspace .aw-month-bar {min-height:206px}
+#cc-staff .aw-workspace button.aw-month-bar:hover .aw-month-track i {filter:brightness(.85)}
+#cc-staff .aw-workspace .aw-toolbar-title h2 {font-size:clamp(20px,2vw,24px)}
+#cc-staff .aw-workspace .aw-island-head h2 {font-size:18px;line-height:1.4}
+#cc-staff .aw-workspace .aw-island-body {font-size:15px;line-height:1.6}
+#cc-staff .aw-workspace .aw-island-body .an-how {font-size:14px;line-height:1.55}
+#cc-staff .aw-workspace .aw-summary .ccs-kpi-l,#cc-staff .aw-workspace .aw-summary .ccs-kpi-s {font-size:14px;line-height:1.5}
+#cc-staff .aw-workspace .aw-summary .ccs-kpi-n {font-variant-numeric:tabular-nums}
+#cc-staff .aw-workspace .aw-records summary {font-size:15px;min-height:44px}
+#cc-staff .aw-workspace .aw-filterbar :is(select,input,button) {max-width:100%}
+@media(max-width:760px) {
+ #cc-staff .aw-workspace .aw-month-chart {margin-right:-4px}
+ #cc-staff .aw-workspace .aw-month-bars {min-width:560px}
+ #cc-staff .aw-workspace .aw-month-value,#cc-staff .aw-workspace .aw-month-label {font-size:13px}
+ #cc-staff .aw-workspace .aw-toolbar-actions {width:100%}
+ #cc-staff .aw-workspace .aw-toolbar-actions>.aw-button {flex:1 1 auto}
+ #cc-staff .aw-workspace .aw-island-body {font-size:15px}
+ #cc-staff .aw-workspace .aw-summary .ccs-kpi-n {font-size:clamp(22px,6vw,28px)}
+}
+@media(prefers-reduced-motion:reduce) {
+ #cc-staff .aw-workspace button.aw-month-bar:hover .aw-month-track i {filter:none}
+}
