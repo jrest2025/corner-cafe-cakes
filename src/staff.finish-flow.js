@@ -3,7 +3,7 @@
 'use strict';
 if(window.__ccFinish20261019)return;window.__ccFinish20261019=true;
 var root=document.getElementById('cc-staff');if(!root)return;
-var agree=null,methodChosen=false,sourceChosen=false,wasOpen=false,queued=false;
+var agree=null,methodChosen=false,wasOpen=false,queued=false;
 function form(){return root.querySelector('#ccs-slipform .sl-stepper')}
 function step(){return root.querySelector('#ccs-slipform #sl-st-7')}
 function clean(s){return String(s||'').replace(/\s+/g,' ').trim()}
@@ -50,16 +50,14 @@ var out=e.querySelector('#cc-f-outcome');if(!out)return;out.classList.toggle('cc
 change(out.querySelector('.cc-f-status'),status);change(out.querySelector('.cc-f-next'),next);
 change(out.querySelector('.cc-f-money'),total===null||paid===null?'':'Paid now: $'+paid.toFixed(2)+'  ·  Balance: $'+Math.max(0,total-paid).toFixed(2));
 }
-function paint(){queued=false;var f=form();if(!f){if(wasOpen){agree=null;methodChosen=false;sourceChosen=false}wasOpen=false;return}wasOpen=true;var e=step();if(!e){var src=f.querySelector('#sl-st-1 [data-act="n-source"]');if(src&&!sourceChosen)f.querySelectorAll('#sl-st-1 [data-act="n-source"]').forEach(function(b){b.setAttribute('aria-pressed','false')});return}attach(e);calc(e)}
+function paint(){queued=false;var f=form();if(!f){if(wasOpen){agree=null;methodChosen=false}wasOpen=false;return}wasOpen=true;var e=step();if(!e)return;attach(e);calc(e)}
 function schedule(){if(!queued){queued=true;Promise.resolve().then(paint)}}
 function err(e,msg,selector){e.preventDefault();e.stopImmediatePropagation();var s=step()||form()?.querySelector('#sl-st-1'),place=s?.querySelector(selector)||s?.querySelector('.sl-stepbody');if(!place)return;var n=s.querySelector('#cc-f-error');if(!n){n=make('p','ccs-err cc-f-error');n.id='cc-f-error';n.setAttribute('role','alert');place.after(n)}change(n,msg);place.scrollIntoView({block:'center',behavior:'auto'})}
 root.addEventListener('click',function(e){var b=e.target.closest?.('button,[data-act]'),f=form();if(!b||!f?.contains(b))return;
 if(b.dataset.ccAgree&&step()){e.preventDefault();e.stopImmediatePropagation();agree=b.dataset.ccAgree;var box=step().querySelector('input[data-nc="confirmNow"]');if(box&&box.checked!==(agree==='yes'))box.click();schedule();return}
-if(b.dataset.act==='n-source'){sourceChosen=true;return}
-if((b.dataset.act==='sl-next'||b.dataset.act==='sl-skip')&&f.querySelector('#sl-st-1')&&!sourceChosen)return err(e,'Choose how the customer placed the order. This is required.','#sl-st-1 [aria-label="How they ordered"]');
 if(b.dataset.act==='n-plan'){agree=null;methodChosen=false;return}
 if(b.dataset.act==='n-paym'&&step()){methodChosen=true;return}
-if(b.dataset.act==='n-submit'&&step()){if(!sourceChosen)return err(e,'Choose how the customer placed the order. Return to Customer to select the source.','.cc-f-review');var p=step().querySelector('.sl-payplan [data-act="n-plan"][aria-pressed="true"]')?.dataset.v;if(p==='later'&&agree===null)return err(e,'Choose whether the customer agreed to the price.','.cc-f-agreement');if((p==='full'||p==='deposit')&&!methodChosen)return err(e,'Choose the payment method used.','[aria-label="Paid by"]')}
+if(b.dataset.act==='n-submit'&&step()){var p=step().querySelector('.sl-payplan [data-act="n-plan"][aria-pressed="true"]')?.dataset.v;if(p==='later'&&agree===null)return err(e,'Choose whether the customer agreed to the price.','.cc-f-agreement');if((p==='full'||p==='deposit')&&!methodChosen)return err(e,'Choose the payment method used.','[aria-label="Paid by"]')}
 },true);
 root.addEventListener('input',function(e){if(e.target?.id==='n-pay'&&step())schedule()},true);
 new MutationObserver(schedule).observe(root,{childList:true,subtree:true});schedule();
