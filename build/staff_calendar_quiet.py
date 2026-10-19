@@ -12,7 +12,7 @@ def rep(old, new):
 rep("""'" data-t="'+e+'">New order at '+Ft(e)+"</button>\"""",
     """'" data-t="'+e+'" aria-label="New order at '+Ft(e)+'" title="New order at '+Ft(e)+'"><span class="ccs-dadd-plus" aria-hidden="true">+</span></button>'""")
 # 2. Delete customer: replace the embedded add-on with the current source.
-old_js = (ROOT / 'build/.cd_prev.js').read_text()
+import subprocess; old_js = subprocess.run(['git', '-C', str(ROOT), 'show', '94c21aa:src/staff.customer-delete.js'], capture_output=True, text=True, check=True).stdout
 rep(old_js, (ROOT / 'src/staff.customer-delete.js').read_text())
 css = (ROOT / 'src/staff.calendar-quiet-slots.css').read_text(); assert '</script' not in css.lower()
 s += '\n(function(){var s=document.createElement("style");s.id="ccs-calendar-quiet-slots";s.textContent=' + json.dumps(css) + ';document.head.appendChild(s)})();\n'

@@ -11,11 +11,16 @@ const OK=["Cannot read properties of undefined (reading 'length')","Cannot read 
   await p.addScriptTag({path:path.join(root,'test/mock.js')});await p.addScriptTag({path:path.join(root,m.file)});await p.waitForTimeout(500);
   await p.locator('[data-tab="calendar"]').first().evaluate(e=>e.click());await p.waitForTimeout(600);
   const dv=p.locator('[data-act="cal-view"][data-v="day"],[data-v="day"][data-act]').first();if(await dv.count())await dv.evaluate(e=>e.click());await p.waitForTimeout(500);
-  const add=p.locator('.ccs-dslot .ccs-dadd');const k=await add.count();check(label+': day view has empty-slot buttons',k>0,k);
+  const add=p.locator('.ccs-dslot:not(.has-orders) .ccs-dadd');const k=await add.count();check(label+': day view has empty-slot buttons',k>0,k);
   check(label+': no "New order at" text visible',await p.evaluate(()=>![...document.querySelectorAll('.ccs-dslot')].some(s=>/New order at/.test(s.innerText))));
   check(label+': each shows a +',await add.evaluateAll(es=>es.every(e=>e.textContent.trim()==='+')));
   check(label+': screen readers still hear the time',await add.evaluateAll(es=>es.every(e=>/^New order at \d{1,2}:\d{2} (AM|PM)$/.test(e.getAttribute('aria-label')))));
   check(label+': slot is still a full-width tap target (44px+)',await add.evaluateAll(es=>es.every(e=>{const r=e.getBoundingClientRect();return r.height>=44&&r.width>=e.parentElement.getBoundingClientRect().width-20})));
+  check(label+': booked orders shown on the day',await p.locator('.ccs-dslot .ccs-cev.is-full').count()>0);
+  check(label+': booked order card is tinted, not white',await p.evaluate(()=>[...document.querySelectorAll('.ccs-dslot .ccs-cev.is-full')].every(c=>{const b=getComputedStyle(c).backgroundColor;return b!=='rgb(255, 255, 255)'&&b!=='rgba(0, 0, 0, 0)'})));
+  check(label+': booked order has a coloured edge',await p.evaluate(()=>[...document.querySelectorAll('.ccs-dslot .ccs-cev.is-full')].every(c=>{const b=getComputedStyle(c,'::before');return parseFloat(b.width)>=6&&b.backgroundColor!=='rgb(203, 213, 225)'})));
+  check(label+': no extra + under a booked order',await p.evaluate(()=>[...document.querySelectorAll('.ccs-dslot.has-orders .ccs-dadd')].every(b=>getComputedStyle(b).display==='none')));
+  await p.locator('.ccs-dslot.has-orders').first().scrollIntoViewIfNeeded();
   await p.screenshot({path:shots+'/cal-quiet-'+label+'.png'});
   await add.first().click();await p.waitForTimeout(500);
   check(label+': tapping a slot starts a new order',await p.evaluate(()=>{const s=document.getElementById('ccs-sheet');return !!s&&s.classList.contains('ccs-open')}));
