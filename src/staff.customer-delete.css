@@ -1,0 +1,19 @@
+/* Delete customer (20 October 2026). Quiet until asked; red only on the final, irreversible button. */
+#cc-staff .cd-zone, #ccs-sheet .cd-zone{margin-top:18px;padding:14px 16px;border:1px solid #e4e7ec;border-radius:12px;background:#fff}
+#ccs-sheet .cd-zone.is-confirm{border-color:#fda29b;background:#fffbfa}
+#ccs-sheet .cd-zone h3{margin:0 0 8px;font-size:18px;color:#101828}
+#ccs-sheet .cd-ask{background:#fff;color:#b42318;border:1px solid #fda29b;min-height:44px;font-weight:600}
+#ccs-sheet .cd-ask:hover{background:#fef3f2}
+#ccs-sheet .cd-list{margin:0 0 12px;padding-left:20px;color:#344054;font-size:15px;line-height:1.5}
+#ccs-sheet .cd-block{margin:0 0 12px;color:#93370d;font-size:15px;line-height:1.5}
+#ccs-sheet .cd-q{margin:0 0 6px;font-size:14px;font-weight:600;color:#344054}
+#ccs-sheet .cd-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+#ccs-sheet .cd-chip{min-height:44px;padding:8px 14px;border:1px solid #d0d5dd;border-radius:999px;background:#fff;color:#344054;font:inherit;font-size:14px;cursor:pointer}
+#ccs-sheet .cd-chip[aria-pressed="true"]{border-color:#344054;background:#344054;color:#fff}
+#ccs-sheet .cd-err{margin:0 0 12px}
+#ccs-sheet .cd-acts{display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-end}
+#ccs-sheet .cd-acts .ccs-btn{min-height:48px}
+#ccs-sheet .cd-go{background:#d92d20;border:1px solid #d92d20;color:#fff;font-weight:700}
+#ccs-sheet .cd-go:hover{background:#b42318}
+#ccs-sheet .cd-go[disabled]{opacity:.7;cursor:progress}
+@media (max-width:640px){#ccs-sheet .cd-acts .ccs-btn{flex:1 1 0}}
