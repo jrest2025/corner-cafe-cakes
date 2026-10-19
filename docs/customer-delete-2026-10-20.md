@@ -17,7 +17,7 @@ Decisions (Roneel): past orders are kept for sales figures, shown as "Deleted cu
 ## Files
 
 - Database: `supabase/customer_delete_20261020.sql` (not yet applied; needs approval).
-- App: `src/staff.customer-delete.js`, `src/staff.customer-delete.css`, `build/staff_customer_delete.py` (base: live Urgent pop-up release, checked by SRI).
+- App: `src/staff.customer-delete.js`, `src/staff.customer-delete.css`, `build/staff_customer_delete.py` (base: live release `dist/app/staff-app.flow-clean-20261019.js`, commit 3985975, checked by hash).
 - Tests: `test/run_customer_delete.cjs` (32 checks at tablet and phone sizes, including front-of-house not seeing the button, open orders blocking, server refusal, reason sent). Urgent pop-up suite still passes on this bundle.
 
 ## Release order
@@ -25,4 +25,4 @@ Decisions (Roneel): past orders are kept for sales figures, shown as "Deleted cu
 1. Apply the SQL.
 2. Point the staff page footer at the new bundle and publish both domains.
 
-Rollback: footer back to `dist/app/staff-app.4dbb2ab370.js` (SRI sha384-v8NXRZNG1GeLb3NVID/Ars/wM0gNRgACvbYPOsCdI9o0HS2YtedjdPRDNqNoiOZ7). The SQL only adds functions, a table and the holder record; deletions themselves cannot be undone.
+Rollback: footer app loader back to `gh/jrest2025/corner-cafe-cakes@3985975ef33d295bb653e1433f3de5b2c5ab7f39/dist/app/staff-app.flow-clean-20261019.js`. The SQL only adds functions, a table and the holder record; deletions themselves cannot be undone.
