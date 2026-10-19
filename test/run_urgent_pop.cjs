@@ -15,7 +15,7 @@ async function open(b,w,h){const p=await b.newPage({viewport:{width:w,height:h}}
 (async()=>{const b=await chromium.launch({executablePath:process.env.CHROMIUM_PATH,args:['--no-sandbox','--disable-dev-shm-usage']});try{
  for(const [w,h,label] of [[1920,1080,'desktop'],[1366,1024,'ipad-landscape'],[1024,1366,'ipad-portrait'],[412,915,'phone'],[360,780,'small-phone']]){
   const {p,errors}=await open(b,w,h);const isl=p.locator('.tq-warn .tx-islands .ap-island');
-  const total=+(await isl.first().locator('.ap-text>b').innerText());check(label+': Urgent island shows 5 (4 overdue + mock)',total===5,total);
+  const total=+(await isl.first().locator('.ap-text>b').innerText());check(label+': Urgent island counts the 4 overdue orders (plus a mock order that is urgent only at some times of day)',total===4||total===5,total);
   check(label+': no See all link on the Today card',await p.locator('.tq-warn .tq-more').count()===0);
   await isl.first().click();await p.waitForTimeout(400);
   const rows=p.locator('#ap-pop .tq-w');check(label+': pop-up lists every urgent order',await rows.count()===total,await rows.count());
