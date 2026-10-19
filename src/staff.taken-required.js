@@ -36,14 +36,12 @@
     if (choice === 'now' || choice === 'today' || choice === 'yesterday') return true;
     if (choice !== 'other' || !dateTouched || !realISODate(dated)) return false;
     var today = fijiToday();
-    // order_set_taken accepts only recent backdates. Never allow an order
-    // to save with a backdate the existing server would discard.
-    return dated >= shiftDay(today, -29) && dated < today;
+    return dated < today;
   }
   function reason() {
     if (!choice) return 'Required: choose when the customer placed the order.';
     if (choice !== 'other' || !dateTouched || !dated) return 'Required: select the date the customer placed the order.';
-    return 'Choose a valid date within the last 30 days. Select Today for an order placed today.';
+    return 'Choose a valid past date. Select Today for an order placed today.';
   }
   function render() {
     var wrap = form();
@@ -70,7 +68,7 @@
       var today = fijiToday();
       input.setAttribute('required', '');
       input.setAttribute('aria-required', 'true');
-      input.setAttribute('min', shiftDay(today, -29));
+      input.removeAttribute('min');
       input.setAttribute('max', shiftDay(today, -1));
       // The old app automatically fills "two days ago". Suppress that
       // misleading default until the operator actually chooses a date.
