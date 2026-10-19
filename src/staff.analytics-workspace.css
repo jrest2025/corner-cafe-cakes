@@ -109,3 +109,17 @@
 }
 #cc-staff .aw-filterbar>.ccs-field {flex:0 1 240px!important;width:240px!important}
 @media(max-width:760px) {#cc-staff .aw-filterbar>.ccs-field {flex:1 1 180px!important;width:auto!important}}
+
+/* Analytics data-source cards: readable on phones and tablets without changing cake-demand reports. */
+#cc-staff .aw-workspace .aw-template {display:grid;gap:14px;min-width:0}
+#cc-staff .aw-workspace .aw-template .aw-chart-caption {font-size:15px;line-height:1.55;margin:0;color:var(--ccs-ink,#242b35)}
+#cc-staff .aw-workspace .aw-template .aw-chart-empty {min-height:160px;gap:12px;padding:24px 18px;font-size:15px;line-height:1.55;border:1px solid var(--ccs-line,#dce1e7);border-radius:12px;background:var(--ccs-grey-wash,#f5f7f9);text-wrap:pretty}
+#cc-staff .aw-workspace .aw-template .aw-chart-empty strong {font-size:18px;line-height:1.35}
+#cc-staff .aw-workspace .aw-template .aw-requirements {margin:0;padding:14px 16px;border:1px solid var(--ccs-line,#dce1e7);border-radius:10px;font-size:15px}
+#cc-staff .aw-workspace .aw-template .aw-requirements summary {font-size:15px;min-height:44px;display:list-item;padding:8px 0}
+#cc-staff .aw-workspace .aw-template .aw-requirements ul {font-size:15px;line-height:1.55;gap:8px;margin:8px 0;padding-left:24px}
+#cc-staff .aw-workspace .aw-template>[data-aw-action=template] {justify-self:start;margin:0;min-height:44px;font-size:15px;white-space:normal;text-align:center}
+@media(max-width:760px) {
+ #cc-staff .aw-workspace .aw-template .aw-chart-empty {padding:20px 14px;min-height:150px}
+ #cc-staff .aw-workspace .aw-template>[data-aw-action=template] {justify-self:stretch;width:100%}
+}
