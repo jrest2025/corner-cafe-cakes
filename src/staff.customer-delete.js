@@ -54,7 +54,8 @@ function cdGo() {
   var s = cdSheet(); if (!s || CD.step === 'busy') return;
   var c = s.data.c; CD.step = 'busy'; CD.err = ''; cdApply();
   a.rpc('customer_delete', { p_customer: c.id, p_version: c.version, p_reason: CD.reason || null }).then(function (r) {
-    if (r.error) throw r.error;
+    // A refusal from the database: show its reason instead of blaming the connection.
+    if (r.error) { CD.step = 'confirm'; CD.err = 'The customer was not deleted. ' + (r.error.message || 'The database refused the request.'); cdApply(); return; }
     var d = r.data || {};
     if (!d.ok) { CD.step = 'confirm'; CD.err = d.message || 'The customer was not deleted. Please try again.'; cdApply(); return; }
     CD.id = null; CD.step = 'idle'; CD.reason = '';

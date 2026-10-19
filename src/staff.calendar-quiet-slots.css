@@ -1,0 +1,6 @@
+/* Calendar day view (20 October 2026): empty time slots show a faint + instead of "New order at …".
+   The whole row stays one tap to start an order at that time; the full wording stays for screen readers. */
+#cc-staff .ccs-dslot .ccs-dadd{display:flex!important;align-items:center;justify-content:flex-end;width:100%;min-height:44px;padding:0 14px!important;border:1px dashed transparent!important;background:transparent!important;box-shadow:none!important}
+#cc-staff .ccs-dslot .ccs-dadd-plus{font-size:24px;font-weight:400;line-height:1;color:#c4cad2}
+#cc-staff .ccs-dslot .ccs-dadd:hover,#cc-staff .ccs-dslot .ccs-dadd:focus-visible,#cc-staff .ccs-dslot .ccs-dadd:active{border-color:#c9d3be!important;background:#f4f6ef!important}
+#cc-staff .ccs-dslot .ccs-dadd:hover .ccs-dadd-plus,#cc-staff .ccs-dslot .ccs-dadd:focus-visible .ccs-dadd-plus,#cc-staff .ccs-dslot .ccs-dadd:active .ccs-dadd-plus{color:#243247}
