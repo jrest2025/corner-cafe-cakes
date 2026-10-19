@@ -2738,7 +2738,7 @@
     var p = prod(), closedL = (S.setup && S.setup.closed_dates) || [];
     if (s === 0 && D.req) return D.design.trim().length < 3 ? ['Describe how the cake should look'] : (D.sizeNote || '').trim().length < 2 ? ['Write the size or how many people it serves'] : D.reqPrice && !(num(D.reqPrice) > 0) ? ['Check the price, or leave it empty'] : [];
     if (s === 0) return !p || !D.size ? ['Tap a price to choose the cake and size'] : p.variants.length && !D.variant ? ['Choose the flavour'] : D.finish === 'custom' && D.design.trim().length < 3 ? ['Describe the custom design'] : [];
-    if (s === 1) { var n1 = slNeeds(2); if (!D.customer && D.name.trim().length < 2) n1.splice(D.noMob !== 'none' && digits(D.phone).length < 7 ? 1 : 0, 0, 'Write the guest name'); if (!D.source) n1.push('Choose how the customer ordered'); if (!takenDateOk()) n1.push(D.taken ? 'Choose a valid earlier order date (within the last 30 days)' : 'Choose when the customer placed the order'); return n1; }
+    if (s === 1) { var n1 = slNeeds(2); if (!D.customer && D.name.trim().length < 2) n1.splice(D.noMob !== 'none' && digits(D.phone).length < 7 ? 1 : 0, 0, 'Write the guest name'); if (!D.source) n1.push('Choose how the customer ordered'); if (!takenDateOk()) n1.push(D.taken ? 'Choose a valid earlier order date' : 'Choose when the customer placed the order'); return n1; }
     if (s === 2) { if (D.customer) { if (D.custConsent === undefined) return ['Checking their permission']; return D.custConsent && D.custConsent.ok ? [] : (D.optIn === true || D.optIn === false) ? [] : ['Ask if they want cake offers and reminders']; } if (D.noMob === 'none') return []; var n = []; if (digits(D.phone).length < 7) n.push(D.noMob === 'other' ? 'Write the full phone number' : 'Write the full mobile number'); if (D.optIn !== true && D.optIn !== false) n.push('Ask if they want cake offers and reminders'); return n; }
     if (s === 3) { if (!D.date) return ['Choose the date']; if (closedL.indexOf(D.date) > -1) return ['Choose a day the café is open']; if (!D.time) return ['Choose the time']; var w = []; if (tooSoon() && !rushOk()) w.push('Give the short-notice reason and who approved it'); if (D.method === 'delivery' && !delivOk()) w.push('Finish the delivery details'); return w; }
     if (s === 4) { var n4 = slNeeds(5); if (!D.occasion) n4.push('Choose the occasion, or Customer didn\'t say'); return n4; }
@@ -2755,7 +2755,7 @@
     return [];
   }
   function slipMissing() { var m = []; SL_ORDER.forEach(function (s) { if (s !== 7 && slNeeds(s).length) m.push([SL_STAGES[s], s]); }); return m; }
-  function slNextStage(from) { var seen = slSeen(), at = slPos(from); for (var k = 0; k < SL_ORDER.length; k++) { var s = SL_ORDER[k]; if (s !== from && (!seen[s] || slNeeds(s).length) && (k > at || slNeeds(s).length)) return s; } return 7; }
+  function slNextStage(from) { if (from === 4) return 7; var seen = slSeen(), at = slPos(from); for (var k = 0; k < SL_ORDER.length; k++) { var s = SL_ORDER[k]; if (s !== from && (!seen[s] || slNeeds(s).length) && (k > at || slNeeds(s).length)) return s; } return 7; }
   function slGo(s) { s = slMap(s); D.sl = s; D.err = null; D.errField = null; D.restored = false; D.showSlip = false; refreshStep(); if (STEPPER) { setTimeout(function () { var bd = document.querySelector('#ccs-sheet .ccs-sheet-body') || document.scrollingElement; if (bd) bd.scrollTop = 0; var m = document.querySelector('.sl-stepbody'); var f = m && m.querySelector('input:not([type=checkbox]):not([type=number]),textarea'); if (f && s > 0) { try { f.focus({ preventScroll: true }); } catch (e) { f.focus(); } } }, 40); return; } setTimeout(function () { var el = document.getElementById('sl-st-' + s); if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); var f = el && el.querySelector('input:not([type=checkbox]):not([type=number]),textarea'); if (f && s > 0) { try { f.focus({ preventScroll: true }); } catch (e) { f.focus(); } } }, 60); }
   function slPhone() { return !!(window.matchMedia && window.matchMedia('(max-width: 759px)').matches) || !!(D && D.date && (tooSoon() || D.method === 'delivery')); }
   // Phones: pickup is two screens, the date and then the time
@@ -3029,14 +3029,14 @@
   function takenHtml() {
     var o = D.taken || '', opts = [['now', 'Today'], ['yesterday', 'Yesterday'], ['other', 'Another date']];
     return '<p class="sl-k tk-k">When did the customer place this order? <em class="sl-req">Required</em></p><p class="ccs-hint">Choose the actual day the customer first ordered. No date is selected automatically.</p><div class="ccs-chips tk-chips" role="group" aria-label="Date the customer placed the order (required)">' + opts.map(function (x) { return '<button type="button" class="ccs-chip" data-act="n-taken" data-v="' + x[0] + '" aria-pressed="' + (o === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div>' +
-      (o === 'other' ? '<div class="sl-sub tk-sub"><label class="sl-k" for="n-takedate">Date order was taken <em class="sl-req">Required</em></label><input class="ccs-input" id="n-takedate" type="date" data-n="takenDate" min="' + addDays(today(), -29) + '" max="' + addDays(today(), -1) + '" required value="' + esc(D.takenDate || '') + '"><span class="ccs-hint">For a date within the last 30 days. Choose Today above if the order was placed today.</span></div>' : '') +
+      (o === 'other' ? '<div class="sl-sub tk-sub"><label class="sl-k" for="n-takedate">Date order was taken <em class="sl-req">Required</em></label><input class="ccs-input" id="n-takedate" type="date" data-n="takenDate" max="' + addDays(today(), -1) + '" required value="' + esc(D.takenDate || '') + '"><span class="ccs-hint">Choose any earlier date. Choose Today above if the order was placed today.</span></div>' : '') +
       '<p class="ccs-hint">The CRM separately records when staff save this entry.</p>';
   }
   function takenDateOk() {
     if (D.taken === 'now' || D.taken === 'today' || D.taken === 'yesterday') return true;
     if (D.taken !== 'other') return false;
     var v = D.takenDate || '', t = /^\d{4}-\d{2}-\d{2}$/.test(v) ? Date.parse(v + 'T12:00:00+12:00') : NaN;
-    return isFinite(t) && new Date(t + 43200000).toISOString().slice(0, 10) === v && v >= addDays(today(), -29) && v < today();
+    return isFinite(t) && new Date(t + 43200000).toISOString().slice(0, 10) === v && v < today();
   }
   function takenAt() {
     var o = D.taken;
@@ -3048,8 +3048,8 @@
     return d + 'T12:00:00+12:00';
   }
   function submitOrder() {
-    if (!D.source) { if (STEPPER) D.sl = 1; D.err = 'Choose how the customer ordered. This is required.'; D.errField = 'stage'; return refreshStep(); }
-    if (!takenDateOk()) { if (STEPPER) D.sl = 1; D.err = D.taken ? 'Choose a valid earlier date (within the last 30 days).' : 'Choose when the customer placed the order. This is required.'; D.errField = 'stage'; return refreshStep(); }
+    if (!D.source) { D.err = 'Choose how the customer ordered. This is required.'; D.errField = 'stage'; return refreshStep(); }
+    if (!takenDateOk()) { D.err = D.taken ? 'Choose a valid earlier date.' : 'Choose when the customer placed the order. This is required.'; D.errField = 'stage'; return refreshStep(); }
     var L = S.setup.location, price = dTotal(), custom = D.finish === 'custom';
     if (STEPPER && !D.req && !custom) {
       var pn = slNeeds(7); if (pn.length) { D.err = pn.join('. ') + '.'; D.errField = 'stage'; return refreshStep(); }
@@ -4951,7 +4951,7 @@
         case 'n-paym': D.payMethod = v; D.payMethodSet = true; refreshStep(); break;
         case 'n-plan': if (D.payPlan !== v) D.payMethodSet = false; D.payPlan = v; D.err = null; D.errField = null; if (v === 'deposit' && !num(D.payAmount)) D.payAmount = ''; refreshStep(); break;
         case 'n-payhalf': D.payAmount = String(Math.round(dTotal() / 2)); refreshStep(); break;
-        case 'n-submit': if (SLIP && slipMissing().length) { toast('Still to finish: ' + slipMissing().map(function (x) { return x[0]; }).join(', '), true); slipJump(); break; } submitOrder(); break;
+        case 'n-submit': if (SLIP && slipMissing().length) { D.err = 'Complete the required details listed here before saving.'; D.errField = 'stage'; refreshStep(); break; } submitOrder(); break;
         case 'n-req': D.req = true; D.product = null; D.size = null; D.variant = null; D.finish = 'custom'; D.confirmNow = false; if (D.errField === 'product' || D.errField === 'size') { D.err = null; D.errField = null; } refreshStep(); break;
         case 'n-unreq': D.req = false; D.finish = 'standard'; D.variant = null; D.sizeNote = ''; D.reqPrice = ''; refreshStep(); break;
         case 'n-cell': (function () { var pr = v.split('|'), code = pr[0], inch = Number(pr[1]); if (D.req) { D.req = false; D.finish = 'standard'; D.variant = null; } if (D.product !== code) { D.product = code; D.variant = null; } D.size = inch; D.restored = false; if (D.errField === 'product' || D.errField === 'size') { D.err = null; D.errField = null; } refreshStep(); })(); break;
