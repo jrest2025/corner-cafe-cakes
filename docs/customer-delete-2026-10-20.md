@@ -26,3 +26,10 @@ Decisions (Roneel): past orders are kept for sales figures, shown as "Deleted cu
 2. Point the staff page footer at the new bundle and publish both domains.
 
 Rollback: footer app loader back to `gh/jrest2025/corner-cafe-cakes@3985975ef33d295bb653e1433f3de5b2c5ab7f39/dist/app/staff-app.flow-clean-20261019.js`. The SQL only adds functions, a table and the holder record; deletions themselves cannot be undone.
+
+## Publication — 20 October 2026, about 1:25 AM Fiji
+
+- Database update applied by Roneel in the Supabase SQL editor (after the in-app approval prompt was cancelled twice). Checked: function, deletion log and holder present; only signed-in staff can call it; holder hidden from list and search.
+- The staff page had moved on to `staff-app.flow-clean-20261019.js` (linear order steps, commit 3985975) since the Urgent pop-up release; Delete customer was rebuilt on that file so those changes are kept.
+- Footer app loader now `gh/jrest2025/corner-cafe-cakes@94c21aa684115d108e7a171b7096b6974abf1c52/dist/app/staff-app.3617ace401.js`. No other footer line changed. Published to cornercafefiji.com and www.cornercafefiji.com.
+- Not checked in a live browser from this session (no browser reachable).
