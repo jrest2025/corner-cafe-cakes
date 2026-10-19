@@ -1,0 +1,4 @@
+/* Order list (20 October 2026): under a day heading, cards show the time only; the heading already gives the date. */
+#cc-staff .ccs-list.cc-grouped .ccs-prow-t>b,#cc-staff .ccs-list.cc-grouped .ccs-when>b{display:none!important}
+#cc-staff .ccs-list.cc-grouped .ccs-prow-t>span,#cc-staff .ccs-list.cc-grouped .ccs-when>span{font-weight:650;color:#1f242c}
+#cc-staff .ccs-day .cc-yr{font-weight:inherit}
