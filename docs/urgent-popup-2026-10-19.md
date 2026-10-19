@@ -21,3 +21,10 @@ Cause of the overlap: on phones the shared layer clamps each reason to one line 
 ## Rollback
 
 Restore the footer loader to `dist/app/staff-app.7b79e268a8.js` at commit f530750, SRI sha384-+zNXU0JhB+yN9DaTEbTp+x4I3xxe85JBYr6ZQ6v8DEZBR20Xb72lzPfNA0VBd56c. No database change.
+
+## Publication
+
+Approved by Roneel 19 October 2026, 18:29 Fiji. Main fast-forwarded to 09c1de8.
+Footer app loader pinned to commit 09c1de85ed49898546fdacddae5f551659379959, artifact dist/app/staff-app.4dbb2ab370.js, SRI sha384-v8NXRZNG1GeLb3NVID/Ars/wM0gNRgACvbYPOsCdI9o0HS2YtedjdPRDNqNoiOZ7. Only the loader's file and integrity values changed; footer read-back returned the written content. Published to cornercafefiji.com and www.cornercafefiji.com (not the Webflow subdomain).
+
+Live browser check not done from this session (no browser reachable; CDN not reachable from the workspace). Roneel to confirm on device.
