@@ -1,0 +1,57 @@
+/* Screen fit for phones and tablets (20 October 2026). Presentation only. */
+
+/* Fold line used on phones (Calendar and Customers). */
+#cc-staff .cc-fit-bar{appearance:none;display:flex;align-items:center;gap:10px;width:100%;box-sizing:border-box;min-height:48px;margin:8px 0;padding:8px 14px;border:1px solid #dfe3e8;border-radius:12px;background:#fff;font:inherit;text-align:left;color:#1f242c;cursor:pointer;-webkit-tap-highlight-color:transparent}
+#cc-staff .cc-fit-k{display:flex;align-items:center;gap:6px;flex:none;font-size:14px;font-weight:650}
+#cc-staff .cc-fit-dot{width:8px;height:8px;border-radius:50%;background:#2f6db5}
+#cc-staff .cc-fit-s{flex:1;min-width:0;font-size:13px;color:#5b6370;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#cc-staff .cc-fit-go{flex:none;font-size:14px;font-weight:600;color:#2f6db5}
+#cc-staff .cc-fit-bar:active{background:#f4f6f9}
+#cc-staff .cc-fit-bar:focus-visible{outline:3px solid #397bb8;outline-offset:2px}
+
+@media (max-width:759px){
+  /* Calendar: filters and totals fold behind the line; an empty "Coming up" line is hidden. */
+  #cc-staff #ccs-main[data-screen="calendar"]:not(.cc-fit-cal-open) :is(.ccs-calfilt,.ccs-daytot,.ccv-summary){display:none!important}
+  #cc-staff #ccs-main[data-screen="calendar"] .co-strip.is-empty{display:none!important}
+  #cc-staff #ccs-main[data-screen="calendar"] .ccs-calfilt{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:10px!important}
+  #cc-staff #ccs-main[data-screen="calendar"] .ccs-calfilt .ccs-show{display:grid!important;grid-template-columns:56px minmax(0,1fr)!important;align-items:center;gap:8px;width:100%!important;min-width:0}
+  #cc-staff #ccs-main[data-screen="calendar"] .ccs-calfilt select{width:100%!important;min-width:0!important;max-width:100%}
+  #cc-staff #ccs-main[data-screen="calendar"] .ccs-head .ccs-sub{display:none}
+  #cc-staff #ccs-main[data-screen="calendar"] .ccs-calnav{flex-wrap:wrap!important;min-width:0;max-width:100%}
+  #cc-staff #ccs-main[data-screen="calendar"] .ccs-caltitle{white-space:normal!important;overflow-wrap:anywhere;min-width:0}
+
+  /* Customers: filter, groups and sort fold behind the line; the list comes up sooner. */
+  #cc-staff #ccs-main:is([data-screen="customers-all"],[data-screen="customers-search"]):not(.cc-fit-cust-open) :is(.ccs-ctool,.cdir-segments,.cdir-sort-label){display:none!important}
+  #cc-staff #ccs-main:is([data-screen="customers-all"],[data-screen="customers-search"]) .cdir-heading-summary{display:none!important}
+  #cc-staff #ccs-main:is([data-screen="customers-all"],[data-screen="customers-search"]) .cdir-heading{margin:4px 0 0!important}
+  /* All three section tabs (Customers, Follow-ups, Insights) fit across the screen. */
+  #cc-staff #ccs-main .crm-bar .ccs-secbar,#cc-staff #ccs-main.cdir-v3-ready .crm-bar .ccs-secbar{display:flex!important;width:100%;box-sizing:border-box;overflow:visible!important;gap:4px}
+  #cc-staff #ccs-main .crm-bar .ccs-secbar .ccs-secbtn,#cc-staff #ccs-main.cdir-v3-ready .crm-bar .ccs-secbar .ccs-secbtn{flex:1 1 auto!important;min-width:0!important;justify-content:center;padding-left:8px!important;padding-right:8px!important;white-space:nowrap}
+
+  /* Today: a single "Needs attention" card runs the full width as one row, with names; no repeated count. */
+  #cc-staff .tq-warn .tx-islands:has(>.ap-island:only-child){grid-template-columns:minmax(0,1fr)!important}
+  #cc-staff .tq-warn .tx-islands>.ap-island:only-child{flex-direction:row!important;align-items:center!important;min-height:72px!important;gap:14px!important}
+  #cc-staff .tq-warn .tx-islands>.ap-island:only-child .ap-text{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:8px;align-items:baseline;min-width:0;flex:1}
+  #cc-staff .tq-warn .tx-islands>.ap-island:only-child .wd-prev{display:flex!important;grid-column:1/-1;flex-direction:column;gap:1px;font-size:13px;line-height:1.35;color:#5b6370;min-width:0}
+  #cc-staff .tq-warn .tx-islands>.ap-island:only-child .wd-p{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+  #cc-staff .tq-warn:has(.tx-islands>.ap-island:only-child) .tq-wh>span{display:none}
+
+  /* Kitchen view tabs keep a gap on small phones. */
+  #cc-staff #ccs-main .ccs-toolbar .kw-modes{display:flex!important;gap:6px!important;flex-wrap:nowrap!important;width:100%;box-sizing:border-box}
+  #cc-staff #ccs-main .ccs-toolbar .kw-modes .ccs-chip{flex:1 1 0!important;min-width:0!important;justify-content:center;padding-left:4px!important;padding-right:4px!important;font-size:14px!important;white-space:nowrap}
+}
+
+/* Kitchen on an upright tablet: one column, so nothing is squeezed. */
+@media (min-width:760px) and (max-width:1199px){
+  #cc-staff #ccs-main .kw-main{display:flex!important;flex-direction:column!important;gap:14px!important}
+  #cc-staff #ccs-main .kw-top,#cc-staff #ccs-main .kw-secs{width:100%!important;min-width:0}
+  #cc-staff #ccs-main .kw-counts{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+  #cc-staff #ccs-main .kw-count{min-width:0}
+  #cc-staff #ccs-main .kw-count b,#cc-staff #ccs-main .kw-count em{overflow-wrap:normal;word-break:normal}
+}
+
+/* Tablets and phones: calendar arrows big enough to tap; week view names wrap instead of cutting off. */
+@media (max-width:1366px){
+  #cc-staff #ccs-main[data-screen="calendar"] .ccs-calarrow{min-width:44px!important;min-height:44px!important;flex-shrink:0}
+  #cc-staff #ccs-main[data-screen="calendar"] .ccs-cev-n{white-space:normal!important;overflow:hidden;text-overflow:clip;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow-wrap:anywhere;line-height:1.25}
+}
