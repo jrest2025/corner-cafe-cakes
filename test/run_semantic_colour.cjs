@@ -20,6 +20,7 @@ check('primary actions are blue', css.includes('.ccs-btn:not(.ccs-ghost)') && cs
 check('paid and completed share green', css.includes('.ccs-pay.p-paid') && css.includes('.ccs-pill.s-done'));
 check('pending and unpaid share amber', css.includes('.ccs-pay.p-unpaid') && css.includes('.ccs-pill.s-action'));
 check('critical and allergy share red', css.includes('.ccs-pill.s-alert') && css.includes('.vr-allergy'));
+check('cancelled or declined order cards use the red exception state', css.includes('.ccs-card.k-off .ccs-pill.s-off'));
 check('reminders and follow-ups share purple', css.includes('.ws-fu') && css.includes('--ds-accent: var(--sc-purple)'));
 check('customer rainbow cards are neutralised', css.includes('#cc-staff #ccs-main.cv-crm .crm-kpi') && css.includes('--cv-bg: var(--sc-surface) !important'));
 check('forced-colour mode keeps visible boundaries', css.includes('@media (forced-colors: active)'));
