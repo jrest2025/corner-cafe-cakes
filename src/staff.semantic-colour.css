@@ -1,0 +1,221 @@
+/*
+ * Cake CRM semantic colour layer (19 October 2026).
+ *
+ * Colour is operational language, not decoration:
+ *   charcoal / grey = structure and ordinary information
+ *   blue            = active controls and information
+ *   green           = paid, ready, completed or successful
+ *   amber           = pending or needs attention
+ *   red             = overdue, failed, cancelled, allergy or critical
+ *   purple          = reminders and follow-ups
+ *
+ * Every coloured state already carries visible text and/or an icon. This file
+ * intentionally changes presentation only; it does not alter records, actions,
+ * permissions, payment logic, order logic or print markup.
+ */
+#cc-staff,
+#ccs-sheet {
+  --sc-charcoal: #292d33;
+  --sc-charcoal-strong: #20242a;
+  --sc-ink: #29323d;
+  --sc-muted: #596574;
+  --sc-page: #f3f5f7;
+  --sc-surface: #ffffff;
+  --sc-surface-soft: #f7f8fa;
+  --sc-line: #dce2e8;
+  --sc-line-strong: #aeb7c2;
+
+  --sc-blue: #245f99;
+  --sc-blue-bg: #eaf3fc;
+  --sc-blue-line: #b7d3ee;
+  --sc-green: #166534;
+  --sc-green-bg: #eaf6ee;
+  --sc-green-line: #a7d7bd;
+  --sc-amber: #8a4b08;
+  --sc-amber-bg: #fff6e5;
+  --sc-amber-line: #efc574;
+  --sc-red: #b42318;
+  --sc-red-bg: #fef1f0;
+  --sc-red-line: #efb3ae;
+  --sc-purple: #6f4a8e;
+  --sc-purple-bg: #f4eff8;
+  --sc-purple-line: #d5c0e2;
+
+  --u-page: var(--sc-page);
+  --u-card: var(--sc-surface);
+  --u-line: var(--sc-line);
+  --u-line-strong: var(--sc-line-strong);
+  --u-ink: var(--sc-ink);
+  --u-ink2: var(--sc-muted);
+  --u-ok: var(--sc-green);
+  --u-ok-bg: var(--sc-green-bg);
+  --u-ok-line: var(--sc-green-line);
+  --u-attn: var(--sc-amber);
+  --u-attn-bg: var(--sc-amber-bg);
+  --u-attn-line: var(--sc-amber-line);
+  --u-crit: var(--sc-red);
+  --u-crit-bg: var(--sc-red-bg);
+  --u-crit-line: var(--sc-red-line);
+  --u-info: var(--sc-blue);
+  --u-info-bg: var(--sc-blue-bg);
+  --u-info-line: var(--sc-blue-line);
+  --u-quiet: var(--sc-muted);
+  --u-quiet-bg: #eef1f4;
+  --u-quiet-line: var(--sc-line);
+}
+
+/* Neutral framework: dark structure, quiet page, white working islands. */
+#cc-staff .ccs-side { background: var(--sc-charcoal) !important; }
+#cc-staff .ccs-app .ccs-main,
+#cc-staff #ccs-main,
+#ccs-sheet .ccs-sheet-body { background: var(--sc-page) !important; color: var(--sc-ink); }
+#cc-staff #ccs-main > .ccs-head .ccs-title::before { background: var(--sc-charcoal) !important; }
+#cc-staff :is(.ccs-card,.ccs-panel-card,.ccs-box,.dx-card,.ov-kpi,.crm-kpi,.ccs-table-wrap,.ccs-tabs,.ccs-segs,.ccs-set details) {
+  border-color: var(--sc-line);
+}
+#cc-staff :is(.ccs-meta,.ccs-hint,.ccs-sub,.ccs-quiet,.ov-ks,.crm-period) { color: var(--sc-muted); }
+
+/* Active choices and actions are blue; passive choices remain grey. */
+#cc-staff .ccs-btn:not(.ccs-ghost):not(.ccs-good):not(.ccs-danger),
+#cc-staff .ccs-btn.ccs-new {
+  background: var(--sc-blue);
+  border-color: var(--sc-blue);
+  color: #fff;
+}
+#cc-staff .ccs-btn:not(.ccs-ghost):not(.ccs-good):not(.ccs-danger):hover,
+#cc-staff .ccs-btn.ccs-new:hover { background: #194d7e; border-color: #194d7e; }
+#cc-staff :is(.ccs-tabs .ccs-tab[aria-pressed="true"],.ccs-secbar .ccs-secbtn[aria-selected="true"],.ccs-segs .ccs-chip[aria-pressed="true"],.ccs-chips .ccs-chip[aria-pressed="true"]) {
+  background: var(--sc-blue-bg) !important;
+  border-color: var(--sc-blue) !important;
+  color: var(--sc-blue) !important;
+  box-shadow: inset 0 0 0 1px var(--sc-blue);
+}
+#cc-staff :is(.ccs-tabs,.ccs-segs) :is(button,[role="button"]):not([aria-pressed="true"]),
+#cc-staff .ccs-chip:not([aria-pressed="true"]) { background: var(--sc-surface); color: var(--sc-ink); }
+#cc-staff :is(button,a,input,select,textarea,summary):focus-visible { outline-color: var(--sc-blue) !important; }
+
+/* Five reusable operational states. Words and icons remain visible. */
+#cc-staff :is(.ccs-pill.s-ready,.ccs-pill.s-good,.ccs-pill.s-done,.ccs-pay.p-paid,.ccs-prow-f.is-paid) {
+  background: var(--sc-green-bg) !important; color: var(--sc-green) !important; border-color: var(--sc-green-line) !important;
+}
+#cc-staff :is(.ccs-pill.s-review,.ccs-pill.s-wait,.ccs-pill.s-action,.ccs-pill.s-deposit,.ccs-pill.s-flag,.ccs-pill.s-amend,.ccs-tag.t-warn,.ccs-pay.p-unpaid,.ccs-pay.p-part,.ccs-prow-f.is-amber) {
+  background: var(--sc-amber-bg) !important; color: var(--sc-amber) !important; border-color: var(--sc-amber-line) !important;
+}
+#cc-staff :is(.ccs-pill.s-alert,.ccs-prow-f.is-red,.vr-allergy,.ws-miss) {
+  background: var(--sc-red-bg) !important; color: var(--sc-red) !important; border-color: var(--sc-red-line) !important;
+}
+#cc-staff :is(.ccs-pill.s-confirmed,.ccs-pill.s-prep,.ccs-pill.s-info,.ccs-tag.t-info) {
+  background: var(--sc-blue-bg) !important; color: var(--sc-blue) !important; border-color: var(--sc-blue-line) !important;
+}
+#cc-staff :is(.ccs-pill.s-idle,.ccs-pill.s-off,.ccs-pay.p-refunded) {
+  background: #eef1f4 !important; color: var(--sc-muted) !important; border-color: var(--sc-line) !important;
+}
+
+/* Orders and kitchen: a narrow edge communicates state without flooding cards. */
+#cc-staff .ccs-card { background: var(--sc-surface); }
+#cc-staff .ccs-card.k-good::before { background: var(--sc-blue); }
+#cc-staff :is(.ccs-card.k-action,.ccs-card.k-deposit)::before { background: var(--sc-amber); }
+#cc-staff .ccs-card.is-red::before { background: var(--sc-red); }
+#cc-staff .ccs-overdue { box-shadow: inset 4px 0 0 var(--sc-red) !important; }
+#cc-staff .ccs-overdue h2,
+#cc-staff .kw-line.is-late,
+#cc-staff .ccs-kcard.is-late { color: var(--sc-red); border-color: var(--sc-red-line); }
+#cc-staff .ccs-col > h2 { border-top-color: var(--sc-line-strong); }
+#cc-staff .ccs-col-prog > h2 { border-top-color: var(--sc-blue); }
+#cc-staff .ccs-col-qc > h2 { border-top-color: var(--sc-amber); }
+#cc-staff :is(.ccs-col-ready,.ccs-col-done) > h2 { border-top-color: var(--sc-green); }
+
+/* Calendar: booked/on-schedule blue, pending amber, done green, late red. */
+#cc-staff .ccs-mcell.is-today .ccs-mday b { background: var(--sc-blue) !important; color: #fff; }
+#cc-staff .ccs-mcell.is-sel { background: var(--sc-blue-bg) !important; box-shadow: inset 0 0 0 2px var(--sc-blue) !important; }
+#cc-staff :is(.ccs-cev,.kc-chip,.kc-mbar) { border-left-color: var(--sc-blue) !important; }
+#cc-staff :is(.kc-chip,.kc-mbar).is-todo { background: #eef1f4 !important; border-left-color: var(--sc-line-strong) !important; }
+#cc-staff :is(.kc-chip,.kc-mbar).is-late { background: var(--sc-red-bg) !important; border-color: var(--sc-red-line) !important; border-left-color: var(--sc-red) !important; }
+#cc-staff :is(.kc-chip,.kc-mbar).is-ready,
+#cc-staff :is(.kc-chip,.kc-mbar).is-done { background: var(--sc-green-bg) !important; color: var(--sc-green) !important; border-color: var(--sc-green-line) !important; border-left-color: var(--sc-green) !important; }
+
+/* Follow-ups and reminders have one restrained purple identity. */
+#cc-staff :is(.ws-fu,.ws-follow,.ws-orderfu,.crm-bar) { --ds-accent: var(--sc-purple); }
+#cc-staff :is(.ws-fu,.ws-follow,.ws-orderfu) { border-color: var(--sc-purple-line); box-shadow: inset 4px 0 0 var(--sc-purple); }
+#cc-staff :is(.ws-fu,.ws-follow,.ws-orderfu) :is(h2,h3,.ccs-label) { color: var(--sc-purple); }
+#cc-staff .ws-furow:not(.is-late) .ccs-mini-t { color: var(--sc-purple); }
+#cc-staff .ws-furow.is-late { border-left-color: var(--sc-red) !important; }
+#cc-staff #ccs-main.cv-crm .crm-bar [aria-selected="true"] { background: var(--sc-purple-bg) !important; border-color: var(--sc-purple) !important; color: var(--sc-purple) !important; }
+#cc-staff #ccs-main.cv-crm .ccs-secbtn[data-v="fu"][aria-selected="true"] { background: var(--sc-purple-bg) !important; border-color: var(--sc-purple) !important; color: var(--sc-purple) !important; box-shadow: inset 0 0 0 1px var(--sc-purple); }
+
+/* Customer overview: remove decorative rainbow fills; reserve colour for meaning. */
+#cc-staff #ccs-main.cv-crm { background: var(--sc-page) !important; }
+#cc-staff #ccs-main.cv-crm .crm-kpi {
+  --cv-bg: var(--sc-surface) !important;
+  --cv-ink: var(--sc-ink) !important;
+  background: var(--sc-surface) !important;
+  color: var(--sc-ink) !important;
+  border-color: var(--sc-line) !important;
+  border-top: 3px solid var(--sc-charcoal) !important;
+}
+#cc-staff #ccs-main.cv-crm .crm-kpi .cv-icon { background: #eef1f4; color: var(--sc-charcoal); }
+#cc-staff #ccs-main.cv-crm .crm-kpi:has(.ov-kv.is-warn) { border-top-color: var(--sc-red) !important; background: var(--sc-red-bg) !important; }
+#cc-staff #ccs-main.cv-crm .crm-kpi .ov-kv.is-warn { color: var(--sc-red) !important; }
+#cc-staff #ccs-main.cv-crm .crm-row .ov-att .ov-arow.cv-done {
+  --cv-accent: var(--sc-charcoal) !important;
+  --cv-wash: var(--sc-surface-soft) !important;
+  background: var(--sc-surface-soft) !important;
+  border-color: var(--sc-line) !important;
+  border-top-color: var(--sc-charcoal) !important;
+}
+#cc-staff #ccs-main.cv-crm .crm-row .ov-att [data-v="late"] { --cv-accent: var(--sc-red) !important; --cv-wash: var(--sc-red-bg) !important; border-top-color: var(--sc-red) !important; }
+#cc-staff #ccs-main.cv-crm .crm-row .ov-att [data-v="today"] { --cv-accent: var(--sc-amber) !important; --cv-wash: var(--sc-amber-bg) !important; border-top-color: var(--sc-amber) !important; }
+#cc-staff #ccs-main.cv-crm .crm-row .ov-att :is([data-v="quote"],[data-v="occasion"],[data-v="last_year"],[data-v="lapsed"]) { --cv-accent: var(--sc-purple) !important; --cv-wash: var(--sc-purple-bg) !important; border-top-color: var(--sc-purple) !important; }
+#cc-staff #ccs-main.cv-crm .crm-row .ov-att .ov-arow[data-v] {
+  background: var(--sc-surface-soft) !important;
+  border-color: var(--sc-line) !important;
+  border-left: 4px solid var(--sc-charcoal) !important;
+}
+#cc-staff #ccs-main.cv-crm .crm-row .ov-att .ov-arow[data-v="late"] { background: var(--sc-red-bg) !important; border-left-color: var(--sc-red) !important; }
+#cc-staff #ccs-main.cv-crm .crm-row .ov-att .ov-arow[data-v="today"] { background: var(--sc-amber-bg) !important; border-left-color: var(--sc-amber) !important; }
+#cc-staff #ccs-main.cv-crm .crm-row .ov-att .ov-arow:is([data-v="quote"],[data-v="occasion"],[data-v="last_year"],[data-v="lapsed"]) { background: var(--sc-purple-bg) !important; border-left-color: var(--sc-purple) !important; }
+#cc-staff #ccs-main.cv-crm .crm-row .ov-att .ov-arow[data-v="late"] .ov-an { color: var(--sc-red) !important; background: #fff !important; }
+#cc-staff #ccs-main.cv-crm .crm-row .ov-att .ov-arow[data-v="today"] .ov-an { color: var(--sc-amber) !important; background: #fff !important; }
+#cc-staff #ccs-main.cv-crm .crm-row .ov-att .ov-arow:is([data-v="quote"],[data-v="occasion"],[data-v="last_year"],[data-v="lapsed"]) .ov-an { color: var(--sc-purple) !important; background: #fff !important; }
+#cc-staff #ccs-main.cv-crm .cv-avatar { background: #eef1f4 !important; color: var(--sc-charcoal) !important; }
+
+/* Dashboard charts keep multiple series distinguishable without neon colour. */
+#cc-staff .dx-colbar i,
+#cc-staff .dx-bt i,
+#cc-staff .dx-cb i,
+#cc-staff .dx-key-bar { background: var(--sc-blue); }
+#cc-staff .dx-col.is-dim .dx-colbar i { background: var(--sc-line); }
+#cc-staff .dx-col.is-top .dx-colbar i,
+#cc-staff .dx-brow.is-top .dx-bt i,
+#cc-staff .dx-peak i { background: var(--sc-charcoal); }
+
+/* Small colour tiles may vary by meaning, but use the same controlled palette. */
+#cc-staff .cl-tile { background: var(--sc-charcoal) !important; }
+#cc-staff .cl-tile.cl-blue,
+#cc-staff .cl-tile.cl-teal { background: var(--sc-blue) !important; }
+#cc-staff .cl-tile.cl-green { background: var(--sc-green) !important; }
+#cc-staff .cl-tile.cl-amber { background: var(--sc-amber) !important; }
+#cc-staff .cl-tile.cl-red,
+#cc-staff .cl-tile.cl-pink { background: var(--sc-red) !important; }
+#cc-staff .cl-tile.cl-purple { background: var(--sc-purple) !important; }
+#cc-staff .tq-stat[data-v="deposit"] > .cl-tile { background: var(--sc-amber) !important; }
+#cc-staff .tq-warn .cl-tile { background: var(--sc-amber) !important; }
+
+/* Customer attention islands are rewritten by a later enhancement, so these
+   final direct selectors deliberately survive that render pass. */
+#cc-staff button.ov-arow[data-v="late"] { background: var(--sc-red-bg) !important; border-left: 4px solid var(--sc-red) !important; }
+#cc-staff button.ov-arow[data-v="late"] .ov-an { background: #fff !important; color: var(--sc-red) !important; }
+#cc-staff button.ov-arow[data-v="today"] { background: var(--sc-amber-bg) !important; border-left: 4px solid var(--sc-amber) !important; }
+#cc-staff button.ov-arow[data-v="today"] .ov-an { background: #fff !important; color: var(--sc-amber) !important; }
+#cc-staff button.ov-arow:is([data-v="quote"],[data-v="occasion"],[data-v="last_year"],[data-v="lapsed"]) { background: var(--sc-purple-bg) !important; border-left: 4px solid var(--sc-purple) !important; }
+#cc-staff button.ov-arow:is([data-v="quote"],[data-v="occasion"],[data-v="last_year"],[data-v="lapsed"]) .ov-an { background: #fff !important; color: var(--sc-purple) !important; }
+#cc-staff .crm-card { border-left-color: var(--sc-purple) !important; }
+#cc-staff .crm-card.is-high { border-left-color: var(--sc-amber) !important; }
+
+@media (forced-colors: active) {
+  #cc-staff :is(.ccs-pill,.ccs-tag,.ccs-pay,.ccs-card,.crm-kpi) { border: 1px solid CanvasText !important; }
+}
+@media print {
+  #cc-staff .ccs-app .ccs-main { background: #fff !important; }
+  #cc-staff :is(.ccs-card,.ccs-panel-card,.ccs-box,.dx-card,.ov-kpi,.crm-kpi) { box-shadow: none !important; }
+}
