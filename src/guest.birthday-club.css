@@ -1,0 +1,12 @@
+/* Corner Café Birthday Club on the website cake order form (20 October 2026): the optional tick box at the end of
+   "Your details", the birthday it asks for once ticked, and the line on the thank-you page. */
+#cc-cake-order .cco-bc{display:grid;gap:2px;margin:2px 0 8px}
+#cc-cake-order .cco-bc-check span{line-height:1.45}
+#cc-cake-order .cco-bc-when{display:grid;gap:8px;margin:2px 0 4px 32px}
+#cc-cake-order .cco-bc-pick{display:grid;grid-template-columns:minmax(92px,.55fr) minmax(0,1.45fr);gap:10px;max-width:380px}
+#cc-cake-order .cco-bc-pick .cco-input{min-width:0;cursor:pointer}
+#cc-cake-order .cco-bc-when .cco-hint{margin:0}
+#cc-cake-order .cco-bc-note{margin:0;padding:12px 14px;border-radius:12px;border:1px solid #cad7c1;background:#f4f7f1;color:#2f4a26;font-size:16px;line-height:1.5}
+#cc-cake-order .cco-bc-note b{color:#24371d}
+#cc-cake-order .cco-bc-note:not(.is-in){border-color:#e6d6b8;background:#fbf6ec;color:#5c3d0b}
+@media(max-width:420px){#cc-cake-order .cco-bc-when{margin-left:0}}

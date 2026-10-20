@@ -1,0 +1,99 @@
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap">
+<style>[data-cake-photos]{display:none!important}.cco-page{background:#fff;padding:32px 16px 72px}.cco-page .cco-intro,.cco-page .cco-help,#cc-cake-order{max-width:1120px;margin-left:auto;margin-right:auto}.cco-page .cco-intro{margin-bottom:22px}.cco-page .cco-kicker{font-family:Causten,"Figtree",Arial,sans-serif;font-size:15px;font-weight:600;color:#46603A;margin:0 0 6px}.cco-page .cco-h1{font-family:Causten,"Figtree",Arial,sans-serif;font-weight:700;color:#24211D;font-size:clamp(32px,4.6vw,46px);line-height:1.05;letter-spacing:-.03em;margin:0 0 10px}.cco-page .cco-lead{font-family:Causten,"Figtree",Arial,sans-serif;font-size:17px;line-height:1.5;color:#46403A;margin:0;max-width:36em}.cco-page .cco-help{margin-top:28px;font-family:Causten,"Figtree",Arial,sans-serif;font-size:16px;color:#6B645D}@media (min-width:760px){.cco-page{padding:48px 24px 88px}.cco-page .cco-intro{margin-bottom:28px}}</style>
+<style id="cco-layout-polish-20261016">
+/* Cake ordering layout polish: isolated to customer order page */
+#cc-cake-order .cco-cakes{align-items:stretch}
+#cc-cake-order .cco-cakes>.cco-sub-inline{grid-column:1/-1;min-width:0;margin:0;scroll-margin-top:120px}
+#cc-cake-order .cco-cakes>.cco-sub-inline .cco-chip{min-height:44px}
+#cc-cake-order .cco-cake-req{grid-column:1/-1;display:grid;grid-template-columns:104px minmax(0,1fr);align-items:center;min-height:118px}
+#cc-cake-order .cco-cake-req .cco-cake-vis{width:100%;height:100%;min-height:118px;aspect-ratio:auto}
+#cc-cake-order .cco-cake-req .cco-disc-req{width:62px;font-size:12px}
+#cc-cake-order .cco-cake-req .cco-cake-txt{padding:16px 20px}
+@media(min-width:1000px){#cc-cake-order:not(.cco-at-review){grid-template-columns:minmax(0,1fr) minmax(290px,320px);gap:clamp(20px,3vw,36px)}#cc-cake-order .cco-side{top:104px;max-height:calc(100dvh - 120px);overflow-y:auto;overscroll-behavior:contain}#cc-cake-order .cco-cakes{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:639px){#cc-cake-order .cco-cake-req{grid-template-columns:84px minmax(0,1fr);min-height:98px}#cc-cake-order .cco-cake-req .cco-cake-vis{min-height:98px}#cc-cake-order .cco-cake-req .cco-cake-txt{padding:12px 14px}#cc-cake-order .cco-cake-req .cco-cake-name{font-size:15px}}
+@media(prefers-reduced-motion:reduce){#cc-cake-order .cco-cake,#cc-cake-order .cco-cake-vis img,#cc-cake-order .cco-sub-inline{animation:none!important;transition:none!important}}
+</style>
+<style id="cco-back-navigation-20261016">
+#cc-cake-order .cco-progress-back{appearance:none;display:inline-flex;align-items:center;justify-content:center;flex:none;gap:6px;min-height:44px;padding:9px 13px;border:1px solid #D5CFC6;border-radius:10px;background:#fff;color:#24211D;font:600 14px Causten,"Figtree",Arial,sans-serif;cursor:pointer;transition:border-color .18s,background-color .18s}
+#cc-cake-order .cco-progress-back:hover{background:#F1F5EC;border-color:#5F7A4A}
+#cc-cake-order .cco-progress-back:focus-visible{outline:3px solid #C7D3BA;outline-offset:2px}
+@media(min-width:760px){#cc-cake-order .cco-progress-back{display:none}}
+@media(max-width:759px){#cc-cake-order .cco-progress{gap:10px;align-items:center}}
+@media(prefers-reduced-motion:reduce){#cc-cake-order .cco-progress-back{transition:none}}
+</style>
+<style id="cco-ux-finish-20261016">
+/* Progressive visual polish; scoped to customer ordering only. */
+#cc-cake-order .cco-head{align-items:center;gap:12px}
+#cc-cake-order .cco-head .cco-q{min-width:0;text-wrap:balance}
+#cc-cake-order .cco-back{flex-shrink:0;min-height:44px;padding:9px 13px;margin:0;border:1px solid #D5CFC6;background:#fff;color:#46403A;border-radius:10px;transition:background-color .16s,border-color .16s,color .16s}
+#cc-cake-order .cco-back:hover{background:#F1F5EC;border-color:#5F7A4A;color:#24211D}
+#cc-cake-order .cco-cake:focus-visible,#cc-cake-order .cco-chip:focus-visible,#cc-cake-order .cco-back:focus-visible,#cc-cake-order .cco-primary:focus-visible{outline:3px solid #5F7A4A;outline-offset:3px}
+#cc-cake-order .cco-cake[aria-pressed="true"]{box-shadow:0 0 0 2px #5F7A4A,0 8px 24px -16px rgba(36,33,29,.28)}
+#cc-cake-order .cco-cake-txt{min-width:0}
+#cc-cake-order .cco-cake-name{overflow-wrap:break-word}
+#cc-cake-order .cco-chips{display:flex;flex-wrap:wrap;gap:10px}
+#cc-cake-order .cco-chip{min-height:46px}
+#cc-cake-order .cco-sum{min-height:58px}
+#cc-cake-order .cco-step.cco-open{scroll-margin-top:110px}
+#cc-cake-order .cco-rail button{min-height:48px}
+@media(max-width:759px){#cc-cake-order .cco-head{flex-wrap:wrap}#cc-cake-order .cco-body{gap:16px}#cc-cake-order .cco-back{order:-1}#cc-cake-order .cco-cakes{gap:10px}#cc-cake-order .cco-chip{min-height:48px;padding:11px 16px}}
+@media(max-width:420px){#cc-cake-order .cco-cake-txt{padding:10px 11px 12px}#cc-cake-order .cco-cake-name{font-size:15px}#cc-cake-order .cco-back{font-size:14px}}
+@media(prefers-reduced-motion:reduce){#cc-cake-order .cco-back,#cc-cake-order .cco-cake{transition:none!important}}
+</style>
+<style id="cco-human-visual-pass-20261016">
+/* Corner Cafe customer-facing cake experience: thoughtful visual hierarchy,
+   generous imagery, tactile interactions, no change to data or form logic. */
+#cc-cake-order{--o-ink:#282720;--o-body:#4a4741;--o-leaf:#526f43;--o-leaf-deep:#3f5d34;--o-line:#e6e4df;--o-crumb:#f7f5f1;--o-r:18px}
+.cco-page .cco-intro{max-width:1120px}
+.cco-page .cco-kicker{font-size:13px!important;letter-spacing:.085em!important;text-transform:uppercase!important;font-weight:700!important;color:#526f43!important}
+.cco-page .cco-h1{letter-spacing:-.035em!important;line-height:1.08!important;max-width:20ch}
+.cco-page .cco-lead{font-size:clamp(16px,1.5vw,18px)!important;line-height:1.6!important;max-width:54ch!important;color:#5a554d!important}
+#cc-cake-order .cco-q{font-size:clamp(23px,2.5vw,30px);letter-spacing:-.025em;line-height:1.2}
+#cc-cake-order .cco-qsub{color:#69635b;font-size:15px;line-height:1.55}
+#cc-cake-order .cco-cakes{gap:clamp(12px,1.5vw,18px)}
+#cc-cake-order .cco-cake{border-radius:16px;border:1px solid #e4e0da;box-shadow:0 2px 12px -9px rgba(40,39,32,.13);transition:transform .2s cubic-bezier(.2,.8,.2,1),box-shadow .2s,border-color .2s}
+#cc-cake-order .cco-cake-vis{background:#f7f5f1}
+#cc-cake-order .cco-cake:not(.cco-cake-req) .cco-cake-vis{aspect-ratio:1 / .89}
+#cc-cake-order .cco-cake-vis img{object-fit:cover;transition:transform .32s cubic-bezier(.2,.8,.2,1)}
+#cc-cake-order .cco-cake:hover{transform:translateY(-2px);border-color:#a7b69e;box-shadow:0 12px 26px -18px rgba(40,39,32,.34)}
+#cc-cake-order .cco-cake[aria-pressed="true"]{border-color:#526f43;background:#fbfcfa;box-shadow:0 0 0 2px #526f43,0 12px 22px -18px rgba(40,39,32,.3)}
+#cc-cake-order .cco-cake-txt{gap:6px;padding:14px 15px 16px}
+#cc-cake-order .cco-cake-name{font-size:16px;line-height:1.28;font-weight:700}
+#cc-cake-order .cco-cake-desc{font-size:13px;line-height:1.5;color:#69635b}
+#cc-cake-order .cco-cake-from{font-size:13px;letter-spacing:.005em;margin-top:8px}
+#cc-cake-order .cco-cake-from b{font-size:17px}
+#cc-cake-order .cco-sub-inline{padding:17px 20px;background:#f4f7f1;border:1px solid #cad7c1;border-radius:14px}
+#cc-cake-order .cco-sub-q{font-size:16px;font-weight:700}
+#cc-cake-order .cco-chip{border-radius:12px;min-height:48px;font-weight:600;box-shadow:0 1px 1px rgba(40,39,32,.03)}
+#cc-cake-order .cco-chip[aria-pressed="true"]{box-shadow:0 0 0 2px rgba(82,111,67,.15)}
+#cc-cake-order .cco-cake-req{background:#faf9f7;border-style:dashed;border-color:#d1cbc2}
+#cc-cake-order .cco-cake-req:hover{background:#f4f7f1}
+#cc-cake-order .cco-step.cco-open{box-shadow:0 12px 30px -26px rgba(40,39,32,.24)}
+#cc-cake-order .cco-ticket{border-color:#ddd8cf;box-shadow:0 18px 38px -30px rgba(40,39,32,.34)}
+#cc-cake-order .cco-tk-name{letter-spacing:-.025em}
+#cc-cake-order .cco-primary{border-radius:12px;background:#526f43;font-weight:700;letter-spacing:.005em}
+#cc-cake-order .cco-primary:hover{background:#3f5d34}
+@media(min-width:1000px){#cc-cake-order .cco-ticket{margin-top:8px}#cc-cake-order .cco-cakes{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:759px){.cco-page{padding-top:28px!important}#cc-cake-order .cco-body{padding:18px 16px 22px}#cc-cake-order .cco-cake-txt{padding:12px 12px 14px}#cc-cake-order .cco-cake-name{font-size:15px}#cc-cake-order .cco-sub-inline{padding:15px}}
+@media(prefers-reduced-motion:reduce){#cc-cake-order .cco-cake,#cc-cake-order .cco-cake-vis img{transition:none!important;transform:none!important}}
+</style>
+<style id="cco-journey-clarity-20261016">
+/* Human-friendly guided order: readable, calm, reversible steps */
+#cc-cake-order .cco-rail{margin-bottom:22px}
+#cc-cake-order .cco-rail li>button,#cc-cake-order .cco-rail li>span{gap:7px;align-items:center}
+#cc-cake-order .cco-rail-now>span{color:#3f5d34}
+#cc-cake-order .cco-sum{border-radius:12px;transition:background-color .17s ease,border-color .17s ease}
+#cc-cake-order .cco-sum:hover{background:#f4f7f1}
+#cc-cake-order .cco-sum-e{font-weight:700;text-decoration:underline;text-underline-offset:3px}
+#cc-cake-order .cco-head{row-gap:10px}
+#cc-cake-order .cco-back{white-space:nowrap}
+#cc-cake-order .cco-field label{line-height:1.4}
+#cc-cake-order input,#cc-cake-order textarea,#cc-cake-order select{max-width:100%}
+#cc-cake-order .cco-chip[aria-pressed="true"]{font-weight:700}
+#cc-cake-order .cco-cakes>.cco-sub-inline{scroll-margin-top:calc(100px + env(safe-area-inset-top,0px))}
+#cc-cake-order .cco-step.cco-open{scroll-margin-top:calc(100px + env(safe-area-inset-top,0px))}
+@media(min-width:760px) and (max-width:999px){#cc-cake-order .cco-rail{grid-template-columns:repeat(3,minmax(0,1fr));row-gap:12px}}
+@media(max-width:759px){#cc-cake-order .cco-progress{margin-bottom:16px}#cc-cake-order .cco-progress-back{min-width:82px}#cc-cake-order .cco-sum{min-height:60px}#cc-cake-order .cco-primary{min-height:54px}#cc-cake-order .cco-cakes>.cco-sub-inline{padding:14px}}
+@media(max-width:390px){#cc-cake-order .cco-cakes{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}#cc-cake-order .cco-cake-name{hyphens:auto}}
+@media(prefers-reduced-motion:reduce){#cc-cake-order .cco-sum{transition:none!important}}
+</style>
