@@ -1,7 +1,8 @@
 /* Corner Cafe Analytics: one page per tab, every tab the same shape (20 October 2026, approved by Roneel).
  *
- * Tabs: Overview (the Cake Heartbeat, untouched) · Cake sales · Cakes · Customers · Occasions · Planning · Data.
- * Café sales, Marketing and Website stay hidden until their data arrives (unchanged).
+ * Tabs: Overview (the Cake Heartbeat, untouched) · Cake sales · Cakes · Customers · Occasions · Marketing · Planning · Data.
+ * Marketing is drawn by src/staff.campaigns.js through register() (20 October 2026). Café sales and Website stay hidden
+ * until their data arrives (unchanged).
  *
  * Each page: four headline figures, one main chart, small charts, "What to do" cards from the insight engine, and a
  * closed Details section that holds every table and explanation the old sub-tabs showed, so nothing is lost.
@@ -14,12 +15,13 @@
 (function (global) {
   'use strict';
   if (global.CCAnalyticsTabs) return;
-  var VERSION = '2026-10-20-tabs-v1';
+  var VERSION = '2026-10-20-tabs-v2';
   var INFO = {
     sl: ['Cake sales', 'What did we sell, and what is it worth?'],
     pd: ['Cakes', 'What are people buying?'],
     cu: ['Customers', 'Who orders, and who comes back?'],
     sd: ['Occasions', 'When do occasion orders come in?'],
+    mk: ['Marketing', 'Which promotions bring in cake orders?'],
     pl: ['Planning', 'What is coming up, and are we ready?'],
     da: ['Data', 'Is the data complete?']
   };
@@ -161,8 +163,8 @@
       (p.main || '') +
       (p.side && p.side.filter(Boolean).length ? '<div class="cat-row cat-n' + p.side.filter(Boolean).length + '">' + p.side.filter(Boolean).join('') + '</div>' : '') +
       (p.body || '') +
-      (p.todo ? '<section class="cat-todo" data-cat-todo="' + p.todo.join(',') + '" aria-label="What to do" hidden></section>' : '') +
-      details(mod, x, p.details || []) + '</section>';
+      (p.todo ? '<section class="cat-todo" data-cat-todo="' + p.todo.join(',') + '" aria-label="What to do" hidden></section>' : '') + (p.todoHtml || '') +
+      (p.moreHtml != null ? p.moreHtml : details(mod, x, p.details || [])) + '</section>';
   }
 
   // ---------- period buckets for the main trend ----------
@@ -413,5 +415,9 @@
     setTimeout(fillTodo, 0);
     return html;
   }
-  global.CCAnalyticsTabs = { version: VERSION, page: page, time12: time12 };
+  // Other add-ons (Marketing campaigns) add their own tab page with the same building blocks, so every tab looks alike
+  function register(mod, fn) { if (INFO[mod] && typeof fn === 'function') PAGES[mod] = fn; }
+  var kit = { esc: esc, num: num, pl: pl, short: short, dm: dm, dayOf: dayOf, facts: facts, allOf: allOf, tap: tap, kpi: kpi, card: card,
+    none: none, cols: cols, bars: bars, donut: donut, split: split, frame: frame, WD: WD, MON: MON };
+  global.CCAnalyticsTabs = { version: VERSION, page: page, time12: time12, register: register, kit: kit };
 })(typeof window !== 'undefined' ? window : globalThis);

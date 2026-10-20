@@ -105,7 +105,7 @@ function check(s, v, d) { if (v) { n++; console.log('PASS ' + s); } else { fails
             main: pg ? !!pg.querySelector(':scope > .cat-main') : false, details: pg ? [...pg.querySelectorAll(':scope > .cat-more')].map(d => d.open) : [] };
         });
         check(label + ': the ' + t + ' tab opens cleanly', (o.before === 'none' || o.before === 'normal') && o.bad === 0 && o.h24.length === 0 && o.sx <= 1 && (w < 760 || o.fits), o);
-        if (['sl', 'pd', 'cu', 'pl'].includes(t)) check(label + ': the ' + t + ' tab has four headline figures, one main chart and closed details', o.page && o.kpis === 4 && o.main && o.details.length === 1 && o.details[0] === false, o);
+        if (['sl', 'pd', 'cu', 'pl', 'mk'].includes(t)) check(label + ': the ' + t + ' tab has four headline figures, one main chart and closed details', o.page && o.kpis === 4 && o.main && o.details.length === 1 && o.details[0] === false, o);
       }
       await p.evaluate(() => document.querySelector('#ccs-main [data-act="secgo"][data-v="sd"]').click());
       await p.waitForTimeout(900);
