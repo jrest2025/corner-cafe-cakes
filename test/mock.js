@@ -45,7 +45,7 @@
       return { k: (sheet ? 'sheet:x' : 'app:') + o.i, i: sheet ? (n % 3 ? null : o.i) : o.i, r: o.r, src: o.src === 'online' ? 'Online' : 'Walk-in', sys: sheet ? (o.src === 'online' ? 'Online sheet' : 'Walk-in sheet') : (o.src === 'online' ? 'Website' : 'Staff app'),
         st: st, cp: cp, od: o.od, odb: sheet ? 'Date taken by staff' : 'Entered in the system', odok: !(sheet && n % 5 === 0), pd: o.pd, pt: o.pt, fm: o.fm, c: o.c, cn: o.cn, it: o.it,
         lv: o.est, cv: o.fin, paid: sheet ? null : paid, ref: sheet ? null : ref, bal: sheet || st === 'cancelled' ? null : Math.max(tot - paid, 0), wn: [], pay: o.pay, ho: o.ho, ra: o.ra, rev: o.rev, cx: o.cx, ca: o.ca,
-        oc: ['birthday', 'birthday', 'anniversary', 'mothers_day', 'not_specified', 'birthday', 'other', 'fathers_day', 'wedding'][n % 9], ocd: n % 9 === 6 ? 'Farewell' : null, cmp: n % 11 === 3 ? 'mothers-day-2026' : null };
+        oc: ['birthday', 'birthday', 'anniversary', 'mothers_day', 'not_specified', 'birthday', 'other', 'fathers_day', 'wedding'][n % 9], ocd: n % 9 === 6 ? 'Farewell' : null, cmp: sheet ? null : n % 11 === 3 ? 'mothers-day-2026' : n % 13 === 6 ? 'catalogue-2026' : null };
     });
     window.__regLast = out;
     var ago = function (m) { return new Date(Date.now() - m * 6e4).toISOString(); };
@@ -192,6 +192,59 @@
       return Promise.resolve({ data: { ok: false, message: 'Unknown request.' } }); } },
     rpc: function (fn, args) {
       if (window.__failR && window.__failR[fn]) { calls.push(['rpc-failed', fn, args]); return Promise.resolve({ error: { message: 'Failed to fetch' } }); }
+      // Marketing campaigns (invented data): one running, one starting soon, one ended
+      if (fn === 'campaign_list' || fn === 'campaign_save' || fn === 'campaign_remove' || fn === 'campaigns_active' || fn === 'order_set_campaign') {
+        calls.push(['rpc', fn, args]);
+        var CT = new Intl.DateTimeFormat('en-CA', { timeZone: 'Pacific/Fiji' }).format(new Date());
+        var cadd = function (n) { var d = new Date(CT + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+        var CP = window.__camps = window.__camps || (window.__campNone ? [] : [
+          { id: 'cp1', code: 'mothers-day-2026', name: "Mother's Day cakes", starts_on: cadd(-20), ends_on: cadd(10), channels: ['facebook', 'instagram'], spend: 150, occasion: 'mothers_day', created_by: 'Test Manager', removed: false },
+          { id: 'cp2', code: 'christmas-cakes-2026', name: 'Christmas cakes', starts_on: cadd(5), ends_on: cadd(60), channels: ['print'], spend: null, occasion: 'christmas', created_by: 'Test Manager', removed: false },
+          { id: 'cp3', code: 'spring-sale-2026', name: 'Spring sale', starts_on: cadd(-60), ends_on: cadd(-30), channels: [], spend: 80, occasion: null, created_by: 'Test Manager', removed: false }]);
+        var crole = window.__role || 'manager', cmgr = crole === 'manager' || crole === 'admin';
+        var cok = function (d) { return Promise.resolve({ data: Object.assign({ ok: true }, d) }); }, cno = function (m, f) { return Promise.resolve({ data: { ok: false, message: m, field: f } }); };
+        var pub = function (c) { var o = Object.assign({}, c); delete o.removed; return o; }, live = function (c) { return !c.removed; };
+        if (fn === 'campaign_list') {
+          if (window.__campFail) return Promise.resolve({ error: { message: 'Failed to fetch' } });
+          if (!cmgr && crole !== 'finance' && crole !== 'marketing') return cno('Your login does not have access to campaigns.');
+          return cok({ today: CT, can_edit: cmgr, campaigns: CP.filter(live).map(pub), removed: CP.filter(function (c) { return c.removed; }).map(function (c) { return { code: c.code, name: c.name }; }) });
+        }
+        if (fn === 'campaigns_active') {
+          if (crole === 'kitchen') return cno('Your login cannot create orders.');
+          return cok({ campaigns: CP.filter(function (c) { return live(c) && c.starts_on <= CT && c.ends_on >= CT; }).map(function (c) { return { code: c.code, name: c.name }; }) });
+        }
+        if (fn === 'campaign_save') {
+          if (!cmgr) return cno('Only managers can add or change campaigns.');
+          var cpv = args.p || {};
+          if (!cpv.name || cpv.name.trim().length < 2) return cno('Give the campaign a name (2 to 80 characters).', 'name');
+          if (!cpv.starts_on || !cpv.ends_on) return cno('Choose when the campaign starts and ends.', 'dates');
+          if (cpv.ends_on < cpv.starts_on) return cno('The end date cannot be before the start date.', 'dates');
+          if (cpv.spend != null && cpv.spend !== '' && !/^\d+(\.\d+)?$/.test(String(cpv.spend))) return cno('Enter the spend as a number of Fiji dollars, or leave it empty.', 'spend');
+          var cspend = cpv.spend == null || cpv.spend === '' ? null : Math.round(Number(cpv.spend) * 100) / 100;
+          if (cpv.id) {
+            var ce = CP.filter(function (c) { return c.id === cpv.id && live(c); })[0];
+            if (!ce) return cno('That campaign no longer exists.');
+            Object.assign(ce, { name: cpv.name.trim(), starts_on: cpv.starts_on, ends_on: cpv.ends_on, channels: cpv.channels || [], spend: cspend, occasion: cpv.occasion || null });
+            return cok({ campaign: pub(ce) });
+          }
+          var cbase = cpv.name.toLowerCase().replace(/['’]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+          if (!/(^|-)20\d\d(-|$)/.test(cbase)) cbase += '-' + cpv.starts_on.slice(0, 4);
+          var ccode = cbase, ck = 1; while (CP.some(function (c) { return c.code === ccode; })) ccode = cbase + '-' + (++ck);
+          var cnew = { id: 'cp' + (CP.length + 1), code: ccode, name: cpv.name.trim(), starts_on: cpv.starts_on, ends_on: cpv.ends_on, channels: cpv.channels || [], spend: cspend, occasion: cpv.occasion || null, created_by: 'Test Manager', removed: false };
+          CP.push(cnew); return cok({ campaign: pub(cnew) });
+        }
+        if (fn === 'campaign_remove') {
+          if (!cmgr) return cno('Only managers can remove campaigns.');
+          var crm = CP.filter(function (c) { return c.id === args.p_id && live(c); })[0];
+          if (!crm) return cok({});
+          var cused = (window.__regLast || []).filter(function (o) { return o.cmp === crm.code; }).length;
+          if (cused) return cno(cused + (cused === 1 ? ' order came' : ' orders came') + ' from this campaign, so it is kept. To stop it, change its end date.');
+          crm.removed = true; return cok({});
+        }
+        window.__campTagged = (window.__campTagged || []).concat([args]);
+        if (!CP.some(function (c) { return c.code === args.p_code && live(c); })) return cno('That campaign no longer exists.');
+        return cok({});
+      }
       if (fn === 'dashboard_data') { calls.push(['rpc', fn, args]); return Promise.resolve({ data: dashFeed() }); }
       if (fn === 'dashboard_register') { calls.push(['rpc', fn, args]); return Promise.resolve({ data: regFeed() }); }
       if (fn === 'register_review_list') { calls.push(['rpc', fn, args]); var rl = window.__role || 'manager'; if (rl !== 'manager' && rl !== 'admin') return Promise.resolve({ data: { ok: false, message: 'Only managers can review register records.' } }); var rf = regFeed(); return Promise.resolve({ data: { ok: true, sync: Object.assign({}, rf.sync, { needs_review: regCards.length }), records: regCards.slice(), recent: regDecisions.slice() } }); }
@@ -449,7 +502,7 @@
         return Promise.resolve({ data: { ok: true, notes: HO } });
       }
       if (fn === 'kitchen_board') { if (window.__photoUrls) kitchenRows[0].photos = ['incoming/a/1.png', 'incoming/a/2.png']; return Promise.resolve({ data: { ok: true, today: T, orders: kitchenRows } }); }
-      if (fn === 'staff_print_brief') { var o = orders.filter(function (x) { return x.id === args.p_order; })[0]; window.__briefCalls = (window.__briefCalls || 0) + 1; window.__briefArgs = args; return Promise.resolve({ data: { ok: true, version: 2, new_version: true, changes: ['message', 'design'], first_printed_at: '2026-10-14T03:00:00Z', paper: 'A5', email: args.p_email === false ? { state: 'skipped', to: 'roneel@jacksfiji.com', cc: 'cornercafe@jacksfiji.com' } : window.__briefEmail || { state: 'queued', to: 'roneel@jacksfiji.com', cc: 'cornercafe@jacksfiji.com' }, snapshot: Object.assign(snap(o), window.__candles ? { candles: window.__candles } : {}), slip: { name: 'Mere Tavola', phone: '+679 912 3456', price: window.__slipNoPrice ? null : 68, paid: window.__slipNoPrice ? 0 : 20, source: 'phone', method: o.fulfilment_method, address: o.fulfilment_method === 'delivery' ? 'Room 214, Sheraton Denarau' : null, receiver: o.fulfilment_method === 'delivery' ? 'Front desk' : null, taken_by: 'Ana Manager', ordered_at: '2026-10-12T22:15:00Z' } } }); }
+      if (fn === 'staff_print_brief') { var o = orders.filter(function (x) { return x.id === args.p_order; })[0]; window.__briefCalls = (window.__briefCalls || 0) + 1; window.__briefArgs = args; return Promise.resolve({ data: { ok: true, version: 2, new_version: true, changes: ['message', 'design'], first_printed_at: '2026-10-14T03:00:00Z', paper: (window.__pr && window.__pr.paper) || 'A5', email: args.p_email === false ? { state: 'skipped', to: 'roneel@jacksfiji.com', cc: 'cornercafe@jacksfiji.com' } : window.__briefEmail || { state: 'queued', to: 'roneel@jacksfiji.com', cc: 'cornercafe@jacksfiji.com' }, snapshot: Object.assign(snap(o), window.__candles ? { candles: window.__candles } : {}), slip: { name: 'Mere Tavola', phone: '+679 912 3456', price: window.__slipNoPrice ? null : 68, paid: window.__slipNoPrice ? 0 : 20, source: 'phone', method: o.fulfilment_method, address: o.fulfilment_method === 'delivery' ? 'Room 214, Sheraton Denarau' : null, receiver: o.fulfilment_method === 'delivery' ? 'Front desk' : null, taken_by: 'Ana Manager', ordered_at: '2026-10-12T22:15:00Z' } } }); }
       if (fn === 'staff_reminders_due') { if (window.__remFail) return Promise.resolve({ error: { message: 'Failed to fetch' } }); return Promise.resolve({ data: { ok: true, rows: (window.__remDone ? [] : [{ id: 'c1', name: 'Test Customer A', phone: '912 0001', date: summary[0].next_occasion_date, reason: 'Birthday for Mia', cake: 'Mudcake', reconfirm: false }, { id: 'c2', name: 'Test Customer B', phone: '912 0002', date: summary[0].next_occasion_date, reason: 'Anniversary', cake: null, reconfirm: true }]) } }); }
       if (fn === 'staff_mark_reminded') { window.__remMarked = args; window.__remDone = true; return Promise.resolve({ data: { ok: true } }); }
       if (fn === 'staff_save_product') { window.__menuSaved = args.p; if (window.__menuFail) return Promise.reject(new Error('Failed to fetch')); return Promise.resolve({ data: { ok: true, id: args.p.id || 'p9', created: !args.p.id, changed: true } }); }

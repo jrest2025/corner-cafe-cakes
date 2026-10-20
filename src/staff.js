@@ -1591,7 +1591,7 @@
     var el = document.getElementById('ccs-print'); if (!el) { el = document.createElement('div'); el.id = 'ccs-print'; document.body.appendChild(el); }
     el.innerHTML = '<div class="ccs-fit">' + briefHtml(b, urls, size) + '</div>';
     var ps = document.getElementById('ccs-page'); if (!ps) { ps = document.createElement('style'); ps.id = 'ccs-page'; document.head.appendChild(ps); }
-    ps.textContent = '@page{size:' + (size === 'DL' ? '99mm 210mm' : size + ' portrait') + ';margin:' + (size === 'A5' ? '8mm' : size === 'DL' ? '6mm' : '12mm') + '}';
+    ps.textContent = '@page{size:' + (size === 'DL' ? '110mm 220mm' : size + ' portrait') + ';margin:' + (size === 'A5' ? '8mm' : size === 'DL' ? '6mm' : '12mm') + '}';
     var imgs = Array.prototype.slice.call(el.querySelectorAll('img')), started = false;
     var fire = function () { if (started) return; started = true; fitBrief(el, size); printNamed(briefFileName(b)); document.body.classList.add('ccs-printing'); setTimeout(function () { window.print(); }, 50); };
     var left = imgs.length; if (!left) return fire();
@@ -1600,7 +1600,7 @@
   }
   // The brief always prints on one page: if it is too long, it is scaled down to fit. Nothing is cut off.
   function fitBrief(el, size) {
-    var mm = 96 / 25.4, W = (size === 'A5' ? 132 : size === 'DL' ? 87 : 186) * mm, H = (size === 'A5' ? 191 : size === 'DL' ? 196 : 270) * mm, f = el.firstChild, sc = 1;
+    var mm = 96 / 25.4, W = (size === 'A5' ? 132 : size === 'DL' ? 98 : 186) * mm, H = (size === 'A5' ? 191 : size === 'DL' ? 206 : 270) * mm, f = el.firstChild, sc = 1;
     el.style.cssText = 'display:block;position:absolute;left:-10000px;top:0;visibility:hidden;width:' + W + 'px';
     f.style.transform = ''; f.style.width = W + 'px';
     for (var i = 0; i < 8; i++) {
@@ -4248,7 +4248,7 @@
       else if (pr.verified_note) h += '<p class="ccs-hint">Printer last checked: ' + esc(pr.verified_note) + '.</p>';
       h += '<div class="ccs-row">' + sf('pr-pri', 'Admin inbox (every slip is emailed here to print)', pr.primary, 'email') + sf('pr-bak', 'Counter inbox (gets the same email)', pr.backup, 'email') + '</div>' +
         '<div class="ccs-row"><div class="ccs-field"><label class="ccs-label" for="pr-paper">Paper size</label><select class="ccs-input" id="pr-paper">' +
-        [['A5', 'A5 (148 x 210 mm)'], ['DL', 'DL (99 x 210 mm)']].map(function (o) { return '<option value="' + o[0] + '"' + (pr.paper === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></div></div>' +
+        [['A5', 'A5 (148 x 210 mm)'], ['DL', 'DL (110 x 220 mm)']].map(function (o) { return '<option value="' + o[0] + '"' + (pr.paper === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></div></div>' +
         '<label class="ccs-check"><input type="checkbox" id="pr-on"' + (pr.on_new ? ' checked' : '') + '> Email the slip each time Print kitchen slip is pressed</label>' +
         (st.prFormErr ? '<p class="ccs-err" role="alert">' + esc(st.prFormErr) + '</p>' : '') +
         '<div class="ccs-actions-row"><button type="button" class="ccs-btn" data-act="pr-save">Save printing settings</button><button type="button" class="ccs-btn ccs-ghost" data-act="pr-test">Send test slip</button>' +

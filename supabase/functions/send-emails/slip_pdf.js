@@ -28,14 +28,14 @@ export function slipFileName(s, slip, version) {
   return parts.filter(Boolean).join(" ").replace(/[\\/:*?"<>|]+/g, " ").replace(/\s+/g, " ").trim();
 }
 
-// Paper sizes: A5 (148 x 210 mm) or DL (99 x 210 mm). On DL, or when an order has a lot of text,
-// the type is made smaller step by step until the whole slip fits on one page.
-export const SLIP_PAPER = { A5: [148, 210], DL: [99, 210] };
+// Paper sizes: A5 (148 x 210 mm) or DL (110 x 220 mm, the café's DL paper; was 99 x 210 until 20 October 2026).
+// On DL, or when an order has a lot of text, the type is made smaller step by step until the whole slip fits on one page.
+export const SLIP_PAPER = { A5: [148, 210], DL: [110, 220] };
 export async function buildSlipPdf(PDFLib, opts) {
   const s = opts.snapshot;
   if (!s || !SLIP_REF.test(String(s.reference || "").trim())) throw new Error("No valid order number: kitchen slip not made");
   const paper = SLIP_PAPER[opts.paper] ? opts.paper : "A5";
-  const steps = paper === "DL" ? [0.86, 0.78, 0.7, 0.62] : [1, 0.9, 0.8, 0.7];
+  const steps = paper === "DL" ? [0.96, 0.87, 0.78, 0.69, 0.62] : [1, 0.9, 0.8, 0.7];
   let last;
   for (const z of steps) { last = await renderSlip(PDFLib, opts, paper, z); if (last.fits) break; }
   return last.bytes;
