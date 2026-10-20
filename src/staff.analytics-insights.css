@@ -1,0 +1,91 @@
+/* Corner Cafe Analytics: insight engine and layout (20 October 2026). Presentation only. */
+
+/* The Cake Heartbeat leads the dashboard: the live rhythm first, then insights, key figures, panels and seasons.
+   Positions only; the protected Daily cake demand module itself is not changed. If the newer modules are missing,
+   whichever demand chart is showing still takes the first place. */
+#cc-staff #cc-heartbeat .hb-v2{display:flex;flex-direction:column;gap:18px}
+#cc-staff #cc-heartbeat .hb-v2>*,
+#cc-staff #cc-heartbeat #cc-seasonal-demand-staging>*{order:20;margin-top:0!important;margin-bottom:0!important}
+#cc-staff #cc-heartbeat .hb-v2>#cc-seasonal-demand-staging{display:contents}
+#cc-staff #cc-heartbeat .hb-v2>.hb-v2-head{order:0}
+#cc-staff #cc-heartbeat #cc-seasonal-demand-staging>#cc-demand-scroll-rail,
+#cc-staff #cc-heartbeat #cc-seasonal-demand-staging>.ccsd-daily,
+#cc-staff #cc-heartbeat .hb-v2>.hb-v2-tools,
+#cc-staff #cc-heartbeat .hb-v2>.hb-v2-scrollbar,
+#cc-staff #cc-heartbeat .hb-v2>.hb-v2-scroller,
+#cc-staff #cc-heartbeat .hb-v2>.hb-v2-key{order:1}
+#cc-staff #cc-heartbeat .hb-v2>#cc-insights{order:2}
+#cc-staff #cc-heartbeat .hb-v2>.hb-k-heading{order:3;padding-top:16px;border-top:1px solid #e6ece8}
+#cc-staff #cc-heartbeat .hb-v2>.hb-k-kpis,
+#cc-staff #cc-heartbeat .hb-v2>.ccsd-manager-kpis{order:4}
+#cc-staff #cc-heartbeat .hb-v2>.hb-k-panels,
+#cc-staff #cc-heartbeat .hb-v2>.ccsd-manager-panels{order:5}
+#cc-staff #cc-heartbeat .hb-v2>.hb-k-notices{order:6}
+#cc-staff #cc-heartbeat #cc-seasonal-demand-staging>.ccsd-season{order:7}
+#cc-staff #cc-heartbeat .hb-v2>.hb-m-details{order:8}
+
+/* Today's insights */
+#cc-staff #cc-insights{min-width:0;--cci-c:#5b6b78;--cci-w:#eef1f3}
+#cc-staff #cc-insights .cci-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin:0 0 12px}
+#cc-staff #cc-insights .cci-head h3{margin:0;font-size:17px;line-height:1.3;font-weight:750;color:#294333}
+#cc-staff #cc-insights .cci-head p{margin:3px 0 0;font-size:13px;line-height:1.4;color:#6a7b70}
+#cc-staff #cc-insights .cci-more{min-height:42px;padding:0 15px;border:1px solid #d3ddd6;border-radius:9px;background:#fff;color:#2f5d46;font:inherit;font-size:14px;font-weight:700;cursor:pointer}
+#cc-staff #cc-insights .cci-more:hover{background:#f2f7f3}
+#cc-staff #cc-insights .cci-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+#cc-staff #cc-insights .cci-card{display:flex;flex-direction:column;gap:7px;min-width:0;padding:14px 16px 14px 17px;background:#fff;border:1px solid #e1e7e3;border-left:4px solid var(--cci-c);border-radius:12px}
+#cc-staff #cc-insights .cci-act{--cci-c:#c2410c;--cci-w:#fdeee6}
+#cc-staff #cc-insights .cci-warn{--cci-c:#b45309;--cci-w:#fdf3e1}
+#cc-staff #cc-insights .cci-plan{--cci-c:#2f6db5;--cci-w:#e8f0fa}
+#cc-staff #cc-insights .cci-trend{--cci-c:#7a5aa6;--cci-w:#f1ecf7}
+#cc-staff #cc-insights .cci-good{--cci-c:#3b7d4f;--cci-w:#e9f4ec}
+#cc-staff #cc-insights .cci-chance{--cci-c:#2b7a78;--cci-w:#e4f2f1}
+#cc-staff #cc-insights .cci-note{--cci-c:#6b7a86;--cci-w:#eef1f3}
+#cc-staff #cc-insights .cci-tag{align-self:flex-start;padding:3px 9px;border-radius:99px;background:var(--cci-w);color:var(--cci-c);font-size:12px;font-weight:700;line-height:1.35}
+#cc-staff #cc-insights .cci-line{margin:0;font-size:15px;line-height:1.38;color:#243247}
+#cc-staff #cc-insights .cci-big{margin-right:3px;font-size:24px;font-weight:800;color:#1d2b3a;font-variant-numeric:tabular-nums;white-space:nowrap}
+#cc-staff #cc-insights .cci-title{font-weight:600}
+#cc-staff #cc-insights .cci-why{margin:0;font-size:13px;line-height:1.45;color:#5b6370;overflow-wrap:anywhere}
+#cc-staff #cc-insights .cci-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:auto;padding-top:4px}
+#cc-staff #cc-insights .cci-do{font-size:14px;font-weight:700;line-height:1.4;color:var(--cci-c)}
+#cc-staff #cc-insights .cci-do::before{content:"\2192\00a0"}
+#cc-staff #cc-insights .cci-go{flex:none;min-height:42px;padding:0 13px;border:1px solid var(--cci-c);border-radius:9px;background:#fff;color:var(--cci-c);font:inherit;font-size:14px;font-weight:700;white-space:nowrap;cursor:pointer}
+#cc-staff #cc-insights .cci-go:hover{background:var(--cci-w)}
+#cc-staff #cc-insights :is(.cci-more,.cci-go):focus-visible{outline:3px solid rgba(61,112,155,.45);outline-offset:2px}
+
+/* Small charts inside insight cards */
+#cc-staff #cc-insights .cci-bars{display:flex;align-items:stretch;gap:4px;height:62px;margin:2px 0}
+#cc-staff #cc-insights .cci-bar{flex:1;min-width:0;display:grid;grid-template-rows:minmax(0,1fr) 15px;align-items:end;justify-items:center}
+#cc-staff #cc-insights .cci-bar i{display:block;width:100%;max-width:28px;min-height:2px;border-radius:4px 4px 2px 2px;background:#dfe6e2}
+#cc-staff #cc-insights .cci-bar.is-on i{background:var(--cci-c)}
+#cc-staff #cc-insights .cci-bar em{font-style:normal;font-size:11px;line-height:15px;color:#6f7d74;white-space:nowrap;overflow:visible}
+#cc-staff #cc-insights .cci-split-bar{display:flex;height:10px;border-radius:99px;overflow:hidden;background:#eef1f3}
+#cc-staff #cc-insights .cci-split-bar i{display:block;height:100%}
+#cc-staff #cc-insights .cci-s0{background:var(--cci-c)}
+#cc-staff #cc-insights .cci-s1{background:#9fb1c3}
+#cc-staff #cc-insights .cci-s2{background:#c9d3dc}
+#cc-staff #cc-insights .cci-s3{background:#e2e7ec}
+#cc-staff #cc-insights .cci-split-key{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:6px;font-size:12px;line-height:1.4;color:#5b6370}
+#cc-staff #cc-insights .cci-split-key b{display:inline-block;width:9px;height:9px;margin-right:5px;border-radius:3px;vertical-align:-1px}
+#cc-staff #cc-insights .cci-compare{display:grid;gap:6px;margin:2px 0}
+#cc-staff #cc-insights .cci-crow{display:grid;grid-template-columns:minmax(92px,auto) minmax(40px,1fr) 32px;align-items:center;gap:8px;font-size:12.5px;color:#4d5a66}
+#cc-staff #cc-insights .cci-crow span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#cc-staff #cc-insights .cci-ctrack{height:8px;overflow:hidden;border-radius:99px;background:#eef1f3}
+#cc-staff #cc-insights .cci-ctrack i{display:block;height:100%;border-radius:99px;background:#a8b6c3}
+#cc-staff #cc-insights .cci-ctrack i[class]{background:var(--cci-c)}
+#cc-staff #cc-insights .cci-crow b{text-align:right;color:#243247;font-variant-numeric:tabular-nums}
+@media (max-width:700px){
+  #cc-staff #cc-insights .cci-grid{grid-template-columns:minmax(0,1fr)}
+  #cc-staff #cc-insights .cci-big{font-size:22px}
+}
+
+/* Analytics tidy-ups outside the Heartbeat */
+/* The start-up box belongs to Overview only; other Analytics tabs no longer show it for 8 seconds. */
+#cc-staff #ccs-main[data-screen="dash"]:not(:has(.an-mods .an-mod[data-v="ov"][aria-current="page"]))::before{display:none!important;content:none!important}
+/* Overview's filters change nothing there (the Heartbeat has its own 7, 30 and 90 day switch); other tabs keep them. */
+#cc-staff #ccs-main[data-screen="dash"]:has(>#cc-heartbeat.hb-m-ready)>:is(.dx-ftoggle,.dx-filters,.dx-period){display:none!important}
+/* Modules waiting for their first upload stay out of the tab row until data arrives (the Data tab lists them). */
+#cc-staff #ccs-main .an-mods .an-mod.is-need:not([aria-current="page"]){display:none!important}
+/* Cake orders: every section name visible on tablets and computers. */
+@media (min-width:760px){
+  #cc-staff #ccs-main[data-screen="dash"] .dx-secs .ccs-secbar{flex-wrap:wrap!important;overflow:visible!important;row-gap:6px;-webkit-mask-image:none!important;mask-image:none!important}
+}
