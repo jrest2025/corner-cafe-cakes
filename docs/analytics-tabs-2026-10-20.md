@@ -1,7 +1,9 @@
 # Analytics: one page per tab (20 October 2026)
 
-Status: candidate, waiting for Roneel's approval to publish. Roneel approved the layout ("Yes, build it") and the use of
-older sheet orders in pattern charts ("Patterns use all years").
+Published to cornercafefiji.com and www.cornercafefiji.com on 20 October 2026, about 3:15 PM Fiji. Roneel approved the
+layout ("Yes, build it"), the use of older sheet orders in pattern charts ("Patterns use all years") and the release
+after seeing the preview ("Yes, publish"). The footer saved in Webflow was read back after publishing and is identical
+to `test/fixtures/staff-footer.html`; only its staff app loader line changed.
 
 ## What changed
 
@@ -57,7 +59,7 @@ All-years charts on real orders (read-only check, before corrections): 388 custo
 
 ## Release
 
-- Bundle `dist/app/staff-app.2d9f219405.js`, SRI `sha384-jR/0mQbmRyqTcViIvREhvshR61cVsJEW2Xcl/Kh1geJf3DMQ0HBdttgJXz7V4Zav`.
+- Bundle `dist/app/staff-app.2d9f219405.js` at commit `fe30348e315721b8271362d9d40bbee8200c3304`, SRI `sha384-jR/0mQbmRyqTcViIvREhvshR61cVsJEW2Xcl/Kh1geJf3DMQ0HBdttgJXz7V4Zav`.
 - Only the staff app loader line of the page footer changes.
 
 ## Rollback

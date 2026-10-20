@@ -8,8 +8,10 @@ const fs = require('fs'), path = require('path'), { execFileSync } = require('ch
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const repo = path.resolve(__dirname, '..');
 const head = fs.readFileSync(process.env.HEAD || path.join(repo, 'test/fixtures/staff-head.html'), 'utf8');
-const bundle = process.env.BUNDLE || 'dist/app/staff-app.3e258cb148.js';
-const foot = fs.readFileSync(process.env.FOOTER || path.join(repo, 'test/fixtures/staff-footer.html'), 'utf8')
+const footRaw = fs.readFileSync(process.env.FOOTER || path.join(repo, 'test/fixtures/staff-footer.html'), 'utf8');
+// The staff bundle the footer loads, served from the working tree (or BUNDLE env for a candidate)
+const bundle = process.env.BUNDLE || (footRaw.match(/dist\/app\/staff-app\.[0-9a-f]+\.js/) || ['dist/app/staff-app.3e258cb148.js'])[0];
+const foot = footRaw
   .replace(/<script src="https:\/\/cdn.jsdelivr.net\/npm\/@supabase[^<]*<\/script>/, '')
   .replace(/@[0-9a-f]{40}\/dist\/app\/staff-app\.[0-9a-f]+\.js/, '@LOCAL/' + bundle);
 const mock = fs.readFileSync(path.join(repo, 'test/mock.js'), 'utf8');
