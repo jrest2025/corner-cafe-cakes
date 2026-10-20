@@ -68,16 +68,28 @@ function orderRows(d: any): Row[] {
   rows.push(isDelivery(o) ? ["Delivery to", [o.delivery_address, o.delivery_zone].filter(Boolean).join(", ")] : ["Collect from", `${d.location.name}, ${d.location.address}`]);
   return rows.filter((r) => r[1]);
 }
+// Delivery orders show the cake and the delivery fee on their own lines, then the total, so the fee is
+// visibly part of the total (Roneel, 20 Oct 2026: "Delivery $15, Total $67" read as the fee being missing).
+// The cake line is the total less the fee, so it stays right when staff change a price or the fee.
+function feeOf(d: any): number { const o = d.order; return isDelivery(o) && Number(o.delivery_fee) > 0 ? Number(o.delivery_fee) : 0; }
+function deliveryLabel(o: any) { return o.delivery_zone ? `Delivery (${o.delivery_zone})` : "Delivery"; }
+function splitRows(d: any, total: number, cakeLabel = "Cake price"): Row[] {
+  const fee = feeOf(d);
+  return fee ? [[cakeLabel, money(Math.max(total - fee, 0))], [deliveryLabel(d.order), money(fee)]] : [];
+}
 function moneyRows(d: any, confirmed: boolean): Row[] {
-  const o = d.order, i = d.item ?? {}, paid = Number(d.paid_total ?? 0);
+  const o = d.order, i = d.item ?? {}, paid = Number(d.paid_total ?? 0), fee = feeOf(d);
   const total = Number(o.final_total ?? o.estimate_total ?? 0);
   if (!confirmed) {
-    if (isRequest(i)) return [["Price", "We'll send you the price"]];
-    if (o.order_type === "custom") return [["Starting price", `${money(o.estimate_total)} before your custom design`]];
-    return [["Price", money(total)]];
+    if (isRequest(i)) return fee ? [["Cake price", "We'll send you the price"], [deliveryLabel(o), money(fee)]] : [["Price", "We'll send you the price"]];
+    if (o.order_type === "custom") {
+      const est = Number(o.estimate_total ?? 0);
+      return fee ? [...splitRows(d, est, "Cake, starting price"), ["Starting total", `${money(est)} before your custom design`]]
+        : [["Starting price", `${money(est)} before your custom design`]];
+    }
+    return fee ? [...splitRows(d, total), ["Total", money(total)]] : [["Price", money(total)]];
   }
-  const rows: Row[] = [];
-  if (isDelivery(o) && Number(o.delivery_fee) > 0) rows.push(["Delivery", money(o.delivery_fee)]);
+  const rows: Row[] = [...splitRows(d, total)];
   rows.push(["Total", money(total)]);
   if (paid > 0) rows.push(["Paid", money(paid)]);
   const due = Math.max(total - paid, 0);
@@ -85,15 +97,21 @@ function moneyRows(d: any, confirmed: boolean): Row[] {
   return rows;
 }
 
-// ---------- cross-selling: one or two approved cards, chosen the same way every time for an order ----------
+// ---------- cross-selling: approved cards, chosen the same way every time for an order ----------
+// Order of cards (Roneel, 20 Oct 2026: sell our spaces for booking and our catering with every cake):
+// 1. "always" cards (occasions include "*"): a group booking space and catering, every email that carries cards
+// 2. cards matched to the cake's occasion
+// 3. one sister restaurant, rotated by order number
 function pickCards(d: any): any[] {
   const cards: any[] = (d.promo_cards ?? []).filter((c: any) => c && c.is_active !== false && c.title && c.link_url);
   const occ = String(d.item?.occasion || "").toLowerCase();
-  const special = cards.filter((c) => (c.occasions || []).some((x: string) => occ && occ.includes(String(x).toLowerCase())));
+  const always = cards.filter((c) => (c.occasions || []).includes("*"));
+  const special = cards.filter((c) => !always.includes(c) && (c.occasions || []).some((x: string) => occ && occ.includes(String(x).toLowerCase())));
   const venues = cards.filter((c) => !(c.occasions || []).length);
   const n = Number(String(d.order.reference || "").replace(/\D/g, "")) || 0;
   const rotated = venues.length ? venues.map((_, k) => venues[(k + n) % venues.length]) : [];
-  return [...special, ...rotated].slice(0, 2);
+  const picked = [...always, ...special].slice(0, 2);
+  return [...picked, ...rotated.slice(0, 1)].slice(0, 3);
 }
 function tagged(url: string, kind: string) {
   try { const u = new URL(url); if (!u.searchParams.has("utm_source")) { u.searchParams.set("utm_source", "cornercafe_cakes_email"); u.searchParams.set("utm_medium", "email"); u.searchParams.set("utm_campaign", kind); } return u.toString(); }
@@ -111,7 +129,7 @@ function promoHtml(cards: any[], kind: string) {
     </td></tr></table></td></tr>`;
   return `<tr><td style="padding:4px 28px 14px"><div style="border-top:1px solid ${LINE};padding-top:22px">
     <div style="font:bold 19px/1.3 ${FONT};color:${INK};margin:0 0 4px">More to enjoy from Jack's Restaurants</div>
-    <div style="font:14px/1.6 ${FONT};color:${MUTED};margin:0 0 14px">Our sister restaurants around Nadi and Denarau.</div></div>
+    <div style="font:14px/1.6 ${FONT};color:${MUTED};margin:0 0 14px">Parties, group bookings and catering from our family of restaurants.</div></div>
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${cards.map(card).join("")}</table></td></tr>`;
 }
 function promoText(cards: any[], kind: string) {
@@ -217,7 +235,7 @@ export function buildGuest(kind: string, d: any): { subject: string; html: strin
         preheader: "Here's your price. Let us know to go ahead.",
         chip: ["Your price is ready", "wait"], heading: `Bula ${name}, here's your price`, hero: true, tagline: "Let us know and we'll book it in.",
         lines: [`Thanks for your patience. Here are the details and the price.`],
-        rows: orderRows(d), money: [["Price", money(o.final_total ?? o.estimate_total)]],
+        rows: orderRows(d), money: feeOf(d) ? [...splitRows(d, Number(o.final_total ?? o.estimate_total ?? 0)), ["Total", money(o.final_total ?? o.estimate_total)]] : [["Price", money(o.final_total ?? o.estimate_total)]],
         after: [`<strong>Your cake isn't booked yet.</strong> To go ahead, reply to this email or call <a href="tel:${esc(tel)}" style="color:${GREEN}">${esc(loc.phone)}</a>. We'll confirm it once we hear back.`,
           `Want to change something? Just tell us and we'll update the details and the price.`] });
     case "guest_deposit_needed":
@@ -226,7 +244,7 @@ export function buildGuest(kind: string, d: any): { subject: string; html: strin
         chip: ["Deposit needed", "wait"], heading: `Good news, ${name}. We can make your cake.`,
         lines: [`To lock it in, we need a deposit of <strong>${money(o.deposit_required)}</strong>. You can pay at the café counter by cash, EFTPOS or M-PAiSA. For a bank transfer, reply to this email and we'll send the details.`,
           `Your order is confirmed once the deposit is received.`],
-        rows: orderRows(d), money: [["Total", money(o.final_total ?? o.estimate_total)], ["Deposit", money(o.deposit_required)]], after: [reply] });
+        rows: orderRows(d), money: [...splitRows(d, Number(o.final_total ?? o.estimate_total ?? 0)), ["Total", money(o.final_total ?? o.estimate_total)], ["Deposit", money(o.deposit_required)]], after: [reply] });
     case "guest_confirmed":
     case "guest_updated": {
       const upd = kind === "guest_updated";

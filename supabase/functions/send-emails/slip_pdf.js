@@ -10,12 +10,14 @@ function longDate(d) { return d ? new Date(d + "T00:00:00Z").toLocaleDateString(
 function weekday(d) { return d ? new Date(d + "T12:00:00Z").toLocaleDateString("en-GB", { weekday: "long", timeZone: "UTC" }) : ""; }
 function dayMonth(d) { return d ? new Date(d + "T12:00:00Z").toLocaleDateString("en-GB", { day: "numeric", month: "long", timeZone: "UTC" }) : ""; }
 // One plain payment line: paid in full, deposit paid with the balance, or nothing paid yet
-export function payLine(price, paid) {
-  if (price == null || price === "") return "To be priced";
-  const p = Number(price), d = Math.max(Number(paid || 0), 0);
-  if (d >= p - 0.005) return `Paid in full (${cents(p)})`;
-  if (d > 0.005) return `Deposit paid ${cents(d)} · Balance ${cents(p - d)} to pay`;
-  return `Full payment pending · ${cents(p)} to pay`;
+// fee: the delivery fee inside the price, shown so nobody reads the total as the cake price only
+export function payLine(price, paid, fee) {
+  if (price == null || price === "") return Number(fee) > 0 ? `Cake to be priced · Delivery ${cents(fee)}` : "To be priced";
+  const p = Number(price), d = Math.max(Number(paid || 0), 0), f = Number(fee) > 0 ? Number(fee) : 0;
+  const split = f ? ` · Cake ${cents(Math.max(p - f, 0))} + Delivery ${cents(f)}` : "";
+  if (d >= p - 0.005) return `Paid in full (${cents(p)})${split}`;
+  if (d > 0.005) return `Deposit paid ${cents(d)} · Balance ${cents(p - d)} to pay${split}`;
+  return `Full payment pending · ${cents(p)} to pay${split}`;
 }
 function shortDate(d) { return d ? new Date(d + "T12:00:00Z").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" }).replace(",", "") : ""; }
 function cents(v) { return v == null || v === "" ? "" : "$" + Number(v).toFixed(2); }
@@ -136,7 +138,7 @@ async function renderSlip(PDFLib, { snapshot: s, slip, version, changes, printed
 
   // 5. Slip lines
   const sl = slip || {}, paid = Number(sl.paid || 0);
-  const priceTxt = payLine(sl.price, paid);
+  const priceTxt = payLine(sl.price, paid, dl ? sl.delivery_fee : 0);
   const remarks = [s.finish === "custom" && s.design ? "Design: " + s.design : "", s.order_notes ? "Order notes: " + s.order_notes : "", s.kitchen_notes ? "Kitchen notes: " + s.kitchen_notes : ""].filter(Boolean).join(" · ") + (!s.has_dietary ? " · No dietary needs or allergies given." : "");
   const SRC = { online: "Website", walk_in: "Walk-in", phone: "Phone", whatsapp: "WhatsApp", social: "Social media", corporate: "Corporate" };
   const at = sl.ordered_at ? new Date(sl.ordered_at) : null;

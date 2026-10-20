@@ -131,9 +131,14 @@ function staffNewOrder(d: any): { subject: string; html: string } {
     kv("Name", esc(name)) + kv("History", c.past_orders > 0 ? `Returning, ${c.past_orders} earlier order${c.past_orders > 1 ? "s" : ""}` : "New customer") +
     kv("Mobile", phone ? esc(phoneShow(phone)) + (c.preferred_contact === "whatsapp" ? ` <span style="font-weight:normal;color:${MUTED}">(WhatsApp)</span>` : "") : "") +
     kv("Email", email ? `<a href="mailto:${esc(email)}" style="color:${GREEN}">${esc(email)}</a>` : "")));
+  // A custom request has no cake price until staff price it, so its estimate is only the delivery fee:
+  // show the fee on its own and the cake as "To be priced", never a $0 cake or a fee-only total
+  const fee = delivery && Number(o.delivery_fee) > 0 ? Number(o.delivery_fee) : 0;
+  const unpriced = isRequest(i) && o.final_total == null;
   b += section("04", "Money", grid(
-    kv(custom ? "Estimate" : "Price", isRequest(i) && !total ? "To be priced" : esc(money(total))) + kv("Paid", paid > 0 ? esc(money(paid)) : "Nothing yet") +
-    kv("To pay", isRequest(i) && !total ? "" : esc(money(Math.max(total - paid, 0))))));
+    (fee ? kv("Cake price", unpriced ? "To be priced" : esc(money(Math.max(total - fee, 0)))) + kv("Delivery", esc(money(fee))) : "") +
+    kv(custom ? (fee ? "Estimate total" : "Estimate") : fee ? "Total" : "Price", unpriced ? (fee ? "" : "To be priced") : esc(money(total))) + kv("Paid", paid > 0 ? esc(money(paid)) : "Nothing yet") +
+    kv("To pay", unpriced ? "" : esc(money(Math.max(total - paid, 0))))));
 
   b += `<div style="margin:18px 0 0">` + (cfg.staff_app_url ? smallBtn(cfg.staff_app_url, custom ? "Quote it in the staff app" : "Review in the staff app", true) : "") +
     (phone ? smallBtn(waLink(phone), "WhatsApp") + smallBtn(telLink(phone), "Call") : "") + `</div>`;
@@ -310,7 +315,7 @@ async function kitchenSlip(m: any, d: any) {
   const givenBy = String(o.taken_by_name || "").trim();
   let takenBy = o.source === "online" ? "Website order" : givenBy || "Staff";
   if (o.source !== "online" && !givenBy && o.created_by) { const [sp] = await db(`staff_profiles?user_id=eq.${o.created_by}&select=full_name`); if (sp?.full_name) takenBy = sp.full_name; }
-  const slip = { name: (o.contact_name || "").trim() || c.full_name, phone: (o.contact_phone || "").trim() || c.phone, price: o.final_total ?? o.estimate_total, paid: d.paid_total ?? 0,
+  const slip = { name: (o.contact_name || "").trim() || c.full_name, phone: (o.contact_phone || "").trim() || c.phone, price: isRequest(d.item ?? {}) && o.final_total == null ? null : o.final_total ?? o.estimate_total, delivery_fee: o.fulfilment_method === "delivery" ? o.delivery_fee : 0, paid: d.paid_total ?? 0,
     taken_by: takenBy, ordered_at: o.created_at, source: o.source, method: o.fulfilment_method,
     address: o.fulfilment_method === "delivery" ? o.delivery_address : null, receiver: o.fulfilment_method === "delivery" ? o.delivery_contact : null };
   const PDFLib = await import("npm:pdf-lib@1.17.1");
