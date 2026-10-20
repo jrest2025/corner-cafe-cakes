@@ -15,7 +15,7 @@ async function open(b,withPicker){const p=await b.newPage({viewport:{width:1024,
 const js=async(p,s)=>{const ok=await p.evaluate(s=>{const e=document.querySelector(s);if(e)e.click();return !!e},s);await p.waitForTimeout(250);return ok};
 // Customer, cake and occasion steps; the order was taken nine days ago (so a past collection date is allowed).
 async function toCollection(p){await p.evaluate(()=>{const e=[...document.querySelectorAll('[data-tab=new]')].pop();e&&e.click()});await p.waitForTimeout(500);
- await p.fill('#n-phone','912 3456');await p.waitForTimeout(450);await p.fill('#n-name','Invented Guest');await js(p,'[data-act="sl-opt"][data-v="no"]');
+ await p.fill('#n-phone','912 3456');await p.waitForTimeout(450);await p.fill('#n-name','Invented Guest');await js(p,'[data-of-name]');await js(p,'[data-act="sl-opt"][data-v="no"]');
  await js(p,'[data-act="n-source"][data-v="walk_in"]');await js(p,'[data-act="n-taken"][data-v="other"]');await p.evaluate(v=>{const e=document.getElementById('n-takedate');e.value=v;e.dispatchEvent(new Event('input',{bubbles:true}));e.dispatchEvent(new Event('change',{bubbles:true}))},fiji(-9));await p.waitForTimeout(150);
  await js(p,'[data-act="sl-next"]');await js(p,'[data-act="n-cell"][data-v="cheesecake|8"]');await js(p,'[data-act="sl-next"]');
  await js(p,'[data-act="n-diet"][data-v="no"]');await js(p,'[data-act="n-occ"][data-v="Birthday"]');await js(p,'[data-act="sl-next"]')}
@@ -41,7 +41,7 @@ const state=p=>p.evaluate(()=>{const e=document.getElementById('n-date');return 
   check('no script errors (typing)'+(errors.length?' '+errors.join('|'):''),errors.length===0);await p.close()}
  // 1b. Editing the day of a date that is already filled in (from a quick date button).
  {const {p,errors}=await open(b,false);await p.evaluate(()=>{const e=[...document.querySelectorAll('[data-tab=new]')].pop();e&&e.click()});await p.waitForTimeout(500);
-  await p.fill('#n-phone','912 3456');await p.waitForTimeout(450);await p.fill('#n-name','Invented Guest');await js(p,'[data-act="sl-opt"][data-v="no"]');
+  await p.fill('#n-phone','912 3456');await p.waitForTimeout(450);await p.fill('#n-name','Invented Guest');await js(p,'[data-of-name]');await js(p,'[data-act="sl-opt"][data-v="no"]');
   await js(p,'[data-act="n-source"][data-v="walk_in"]');await js(p,'[data-act="n-taken"][data-v="now"]');
   await js(p,'[data-act="sl-next"]');await js(p,'[data-act="n-cell"][data-v="cheesecake|8"]');await js(p,'[data-act="sl-next"]');
   await js(p,'[data-act="n-diet"][data-v="no"]');await js(p,'[data-act="n-occ"][data-v="Birthday"]');await js(p,'[data-act="sl-next"]');

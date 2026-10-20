@@ -306,8 +306,10 @@ async function kitchenSlip(m: any, d: any) {
   if (!br) throw new NoRetry(`Slip v${v} not found for ${o.reference}.`);
   const s = br.snapshot;
   if (s.reference !== o.reference) throw new NoRetry(`Slip order number ${s.reference} does not match ${o.reference}: not sent.`);
-  let takenBy = o.source === "online" ? "Website order" : "Staff";
-  if (o.source !== "online" && o.created_by) { const [sp] = await db(`staff_profiles?user_id=eq.${o.created_by}&select=full_name`); if (sp?.full_name) takenBy = sp.full_name; }
+  // Who took the order: the name given on New order (the counter tablet has one shared login), else the login's name
+  const givenBy = String(o.taken_by_name || "").trim();
+  let takenBy = o.source === "online" ? "Website order" : givenBy || "Staff";
+  if (o.source !== "online" && !givenBy && o.created_by) { const [sp] = await db(`staff_profiles?user_id=eq.${o.created_by}&select=full_name`); if (sp?.full_name) takenBy = sp.full_name; }
   const slip = { name: (o.contact_name || "").trim() || c.full_name, phone: (o.contact_phone || "").trim() || c.phone, price: o.final_total ?? o.estimate_total, paid: d.paid_total ?? 0,
     taken_by: takenBy, ordered_at: o.created_at, source: o.source, method: o.fulfilment_method,
     address: o.fulfilment_method === "delivery" ? o.delivery_address : null, receiver: o.fulfilment_method === "delivery" ? o.delivery_contact : null };

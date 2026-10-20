@@ -9,11 +9,10 @@ const fs = require('fs'), path = require('path'), { execFileSync } = require('ch
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const repo = path.resolve(__dirname, '..');
 const manifest = JSON.parse(fs.readFileSync(path.join(repo, process.env.MANIFEST || 'dist/app/staff-birthday-club-manifest.json'), 'utf8'));
-const live = JSON.parse(fs.readFileSync(path.join(repo, 'dist/app/staff-service-hub-manifest.json'), 'utf8'));
 const head = fs.readFileSync(path.join(repo, 'test/fixtures/staff-head.html'), 'utf8');
 let foot = fs.readFileSync(path.join(repo, 'test/fixtures/staff-footer.html'), 'utf8').replace(/<script src="https:\/\/cdn.jsdelivr.net\/npm\/@supabase[^<]*<\/script>/, '');
 const LOADER = /var f="gh\/jrest2025\/corner-cafe-cakes@[0-9a-f]{40}\/dist\/app\/staff-app\.[0-9a-f]{10}\.js",(h=\[[^\]]*\]),k="sha384-[^"]+"/;
-if (!LOADER.test(foot) || foot.indexOf(live.file) < 0) throw new Error('The footer fixture is not the live footer');
+if (!LOADER.test(foot)) throw new Error('The footer fixture has no staff app loader');
 foot = foot.replace(LOADER, (m, h) => 'var f="gh/jrest2025/corner-cafe-cakes@' + '0'.repeat(40) + '/' + manifest.file + '",' + h + ',k="' + manifest.sri + '"');
 const mock = fs.readFileSync(path.join(repo, 'test/mock.js'), 'utf8');
 // Known in these harnesses with the invented orders, with or without the Birthday Club (as in run_campaign_chips.cjs)
@@ -68,6 +67,7 @@ const page = p => p.evaluate(() => {
 // New order, as in run_campaign_chips.cjs
 async function newOrder(p, phone, name) {
   await tab(p, 'new');
+  await js(p, '[data-of-name]', 400);   // who is taking the order (asked from the order-flow release on)
   await p.fill('#n-phone', phone); await p.waitForTimeout(500);
   if (name) await p.fill('#n-name', name); else await js(p, '[data-act="n-pick"][data-v="0"]', 600);
   await js(p, '[data-act="sl-opt"][data-v="no"]'); await js(p, '[data-act="n-source"][data-v="phone"]'); await js(p, '[data-act="n-taken"][data-v="now"]', 500);

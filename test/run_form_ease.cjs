@@ -27,6 +27,7 @@ const js=async(p,q)=>{const ok=await p.evaluate(q=>{const e=document.querySelect
    check(label+': step labels stay on one line',await p.evaluate(()=>[...document.querySelectorAll('.sl-dots>li')].every(li=>getComputedStyle(li,'::after').whiteSpace==='nowrap')))}
   await js(p,'.sl-stephead .sl-restart');check(label+': Start over still asks before clearing',/Clear this order/.test(await p.evaluate(()=>document.getElementById('ccs-sheet').innerText)));
   await js(p,'[data-act="new-keep"]');check(label+': Keep going keeps what was typed',await p.inputValue('#n-phone')==='912 3456');
+  await js(p,'[data-of-name]'); // who is taking the order (asked from the order-flow release on)
   await js(p,'[data-act="sl-opt"][data-v="no"]');await js(p,'[data-act="n-source"][data-v="walk_in"]');await js(p,'[data-act="n-taken"][data-v="now"]');
   await p.screenshot({path:shots+'/ease-'+label+'-customer.png'});
   // Cake
