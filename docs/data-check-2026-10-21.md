@@ -71,3 +71,6 @@ Roneel approved: "Yes, fix the 12".
 - The 45 sheet records awaiting review.
 - The locks: refusing impossible dates, tablets updating themselves, duplicate and test guards, and dating payments for
   orders entered later.
+  - Since covered by the old orders release (21 October, 11:08 AM, `docs/old-orders-2026-10-21.md`): impossible years
+    are refused, every order is checked for one already in the system, and old orders are saved with the payment on the
+    day it was paid. Still open: tablets updating themselves, and a test-order guard.
