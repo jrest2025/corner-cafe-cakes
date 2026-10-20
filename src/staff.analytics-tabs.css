@@ -244,3 +244,18 @@
 #cc-staff .cat-li span{grid-column:1/-1;grid-row:2;white-space:normal}
 }
 @media (prefers-reduced-motion:reduce){#cc-staff .cat-more>summary::after,#cc-staff .cat-sub>summary::after{transition:none}}
+
+/* Purpose-led reading order; scoped to the detail tabs, never the Heartbeat. */
+#cc-staff .cat-purpose{margin:16px 0 0;padding:12px 0 0;border-top:1px solid #e2e8e4;font-size:13px;line-height:1.5;color:#526457}
+#cc-staff .cat-purpose b{color:#2f513c;font-weight:700}
+#cc-staff .cat-money{display:grid;gap:0}
+#cc-staff .cat-money-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid #edf0ee;width:100%;min-width:0}
+#cc-staff .cat-money-row:last-child{border-bottom:0}
+#cc-staff .cat-money-row span{display:grid;gap:4px;min-width:0}
+#cc-staff .cat-money-row b{font-size:14px;font-weight:650}
+#cc-staff .cat-money-row small{font-size:12px;line-height:1.45;color:#66776c}
+#cc-staff .cat-money-row strong{font-size:17px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+#cc-staff button.cat-money-row:hover{background:#f3f7f4}
+#cc-staff .cat-money-row:focus-visible{outline:3px solid #548fc0;outline-offset:2px}
+#cc-staff .cat-todo-h{flex-wrap:wrap}
+#cc-staff .cat-todo-h span{line-height:1.5}
