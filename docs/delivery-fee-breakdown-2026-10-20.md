@@ -26,3 +26,9 @@ Rollback:
   sha384-j8PV9u3KTAAat+/t1U5oKKA56zCsV5lyy+Apb+RFRsiaieIFqezRARGArZwhzAHk, then publish both domains.
 - Cards: delete cantina_groups and restore chefs_catering_events from promo_cards_backup_20261020.
 - The unused test function send-emails-candidate can be deleted in the Supabase dashboard.
+
+## Update 11:13 PM: Corner Café private dining and buyout card (approved by Roneel)
+- New promo_cards row corner_cafe_pdr (occasions {"*"}, sort 3): private dining room up to 28 guests or the whole café, with catering;
+  links to /private-dining. Cards now: Corner Café, Chefs Catering, then one rotating restaurant.
+- cantina_groups moved into the restaurant rotation (occasions null); the plain cantina card is set inactive so Cantina is not shown twice.
+- Previous cards saved in promo_cards_backup_20261020b. Sample confirmed email for CC-1092 checked in Roneel's inbox.
