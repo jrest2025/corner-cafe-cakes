@@ -110,7 +110,7 @@ async function quick(p, o) {
       check(label + ': New order opens on the Customer step', l.step === 'sl-st-1', l);
       check(label + ': "Who is taking this order?" is the first question, required', await p.evaluate(() => {
         const w = document.querySelector('#sl-st-1 .sl-stepbody [data-of-who]'); if (!w) return false;
-        const k = w.querySelector('.of-who-k').textContent, others = [...document.querySelectorAll('#sl-st-1 .sl-stepbody > *')].filter(e => e !== w && e.getClientRects().length);
+        const k = w.querySelector('.of-who-k').textContent, others = [...document.querySelectorAll('#sl-st-1 .sl-stepbody > *')].filter(e => e !== w && e.getClientRects().length && !e.matches('.oo-mode, .oo-note'));   // (21 Oct: the New order / Old order choice sits above it)
         return /Who is taking this order\?/.test(k) && /Required/.test(k) && others.every(e => e.getBoundingClientRect().top >= w.getBoundingClientRect().bottom - 1);
       }));
       check(label + ': the login is offered as a name, with + Add my name, and nobody is picked', JSON.stringify(await whoChips(p)) === JSON.stringify(['Test Manager', '+ Add my name']), await whoChips(p));
