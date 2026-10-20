@@ -15,7 +15,7 @@
 (function (global) {
   'use strict';
   if (global.CCAnalyticsTabs) return;
-  var VERSION = '2026-10-20-tabs-v2';
+  var VERSION = '2026-10-20-purpose-v1';
   var INFO = {
     sl: ['Cake sales', 'What did we sell, and what is it worth?'],
     pd: ['Cakes', 'What are people buying?'],
@@ -70,10 +70,29 @@
     return tap(x, list, title, '<span class="cat-k-top"><span>' + esc(label) + '</span><i></i></span><strong' + (words ? ' class="is-words" title="' + esc(value) + '"' : '') + '>' + esc(value) + '</strong>' +
       (d ? '<span class="cat-k-d is-' + d.c + '">' + esc(d.t) + '</span>' : '') + '<span class="cat-k-cap">' + esc(cap) + '</span>', 'cat-k cat-' + tone);
   }
+  // Each instrument states the decision it supports; definitions stay beside the figures.
+  var PURPOSE = {
+    'Sales by channel': 'See which ordering channels contribute sales before choosing where to focus promotion.',
+    'Busiest pickup days': 'Use the historical pattern to plan staffing; check upcoming bookings before committing.',
+    'Money': 'Follow up unpaid orders, starting with balances past the pickup date.',
+    'Cakes ranked': 'Use demand to guide cake range and production planning.',
+    'Sizes': 'Plan cake sizes and packaging around recorded demand.',
+    'Flavours': 'See which flavours customers choose when planning the range.',
+    'Favourite cake by occasion': 'Use past occasion preferences to shape the next offer.',
+    'How often customers come back': 'Understand repeat buying before planning customer follow-ups.',
+    'New and returning': 'Check whether sales are bringing in new buyers or previous customers.',
+    'How they ordered': 'Choose where to make ordering easier for customers.',
+    'Top customers': 'Identify customer relationships worth reviewing for personal follow-up.',
+    'Cakes per week': 'Plan ingredients and staffing around booked demand, not a forecast.',
+    'Largest orders': 'Review larger orders early for preparation and coordination.',
+    'Order stages': 'See which orders need confirmation or progress checks.',
+    'When cakes are collected': 'Use pickup patterns to plan counter cover.'
+  };
   function card(title, note, body, cls, allYears) {
     return '<section class="cat-card' + (cls ? ' ' + cls : '') + '" aria-label="' + esc(title) + '"><header><h3>' + esc(title) + '</h3>' +
       (allYears ? '<span class="cat-all">All years</span>' : note ? '<span>' + esc(note) + '</span>' : '') + '</header>' + body +
-      (allYears && note ? '<p class="cat-foot">' + esc(note) + '</p>' : '') + '</section>';
+      (allYears && note ? '<p class="cat-foot">' + esc(note) + '</p>' : '') +
+      (PURPOSE[title] || /^Sales by (day|week|month)$/.test(title) ? '<p class="cat-purpose"><b>Use this to</b> ' + esc(PURPOSE[title] || 'Track completed sales over time; compare equivalent periods before judging performance.') + '</p>' : '') + '</section>';
   }
   function none(t) { return '<p class="cat-none">' + esc(t) + '</p>'; }
   // Columns: rows {l, sub, v, v2, list, t}; v2 is a lighter second part stacked on top (for example "not confirmed")
@@ -160,10 +179,10 @@
     return '<section class="cat-page" data-cat="' + mod + '"><header class="cat-title"><h2>' + esc(INFO[mod][0]) + '</h2><p>' + esc(INFO[mod][1]) + '</p></header>' +
       (p.tools || '') + (p.note || '') +
       (p.kpis ? '<div class="cat-kpis">' + p.kpis.join('') + '</div>' : '') + (p.after || '') +
+      (p.todo ? '<section class="cat-todo" data-cat-todo="' + p.todo.join(',') + '" aria-label="What to do" hidden></section>' : '') + (p.todoHtml || '') +
       (p.main || '') +
       (p.side && p.side.filter(Boolean).length ? '<div class="cat-row cat-n' + p.side.filter(Boolean).length + '">' + p.side.filter(Boolean).join('') + '</div>' : '') +
       (p.body || '') +
-      (p.todo ? '<section class="cat-todo" data-cat-todo="' + p.todo.join(',') + '" aria-label="What to do" hidden></section>' : '') + (p.todoHtml || '') +
       (p.moreHtml != null ? p.moreHtml : details(mod, x, p.details || [])) + '</section>';
   }
 
@@ -217,11 +236,11 @@
       if (g) { paid += g; paidList.push(o); }
     });
     var late = owing.filter(function (o) { return o.pd && o.pd < t; });
-    var money = bars(x, [
-      { l: 'Collected', v: paid, list: paidList, t: 'Payments taken in this period' },
-      { l: 'Still owed', v: owed, list: owing, t: 'Orders with money still owed' },
-      { l: 'Past pickup', v: x.owed(late), list: late, t: 'Still owed after the pickup date' }
-    ], x.money, 'amber');
+    var money = '<div class="cat-money">' + [
+      { l: 'Payments collected', v: paid, list: paidList, t: 'Payments taken in this period', note: 'Selected period · before refunds' },
+      { l: 'Total still owed', v: owed, list: owing, t: 'Orders with money still owed', note: 'Outstanding as of today' },
+      { l: 'Of that, past pickup', v: x.owed(late), list: late, t: 'Still owed after the pickup date', note: 'Included in total still owed' }
+    ].map(function (r) { return tap(x, r.list, r.t, '<span><b>' + esc(r.l) + '</b><small>' + esc(r.note) + '</small></span><strong>' + esc(x.money(r.v)) + '</strong>', 'cat-money-row'); }).join('') + '</div>';
     var side = [
       card('Sales by channel', 'Completed sales', ch || none('No completed sales in this period yet.')),
       card('Busiest pickup days', 'Cakes collected by day of the week, including sheet orders.', cols(x, wk, x.num, 'Busiest') || none('No pickups on record yet.'), '', true),
@@ -247,7 +266,7 @@
       kpi(x, 'green', 'Cakes sold', x.num(total), x.num(x.cs.n) + pl(x.cs.n, ' completed order', ' completed orders'), cur, 'Completed sales'),
       kpi(x, 'purple', 'Top cake', top ? top.l : 'None yet', top ? Math.round(top.q / total * 100) + '% of cakes · ' + x.num(top.q) + pl(top.q, ' cake', ' cakes') : 'No completed sales yet', top ? top.list : null, top ? top.l + ' sales' : ''),
       kpi(x, 'blue', 'Most popular size', tz ? tz.l : 'None yet', tz ? x.num(tz.q) + ' of ' + x.num(total) + ' cakes' : 'No sizes recorded yet', tz ? tz.list : null, tz ? tz.l + ' cakes' : ''),
-      kpi(x, 'amber', 'Slow sellers', menu.length ? x.num(slow.length) : '—', !menu.length ? 'Menu list not available' : slow.length ? 'Under 8% of cakes: ' + slow.slice(0, 2).map(function (p) { return p.l; }).join(', ') + (slow.length > 2 ? ' and ' + (slow.length - 2) + ' more' : '') : 'Every cake on sale took 8% or more', null, '')
+      kpi(x, 'amber', 'Low sales share', menu.length && total ? x.num(slow.length) : '—', !menu.length ? 'Menu list not available' : !total ? 'No completed sales in this period to assess' : slow.length ? 'Under 8% of cakes: ' + slow.slice(0, 2).map(function (p) { return p.l; }).join(', ') + (slow.length > 2 ? ' and ' + (slow.length - 2) + ' more' : '') : 'Every cake on sale took 8% or more', null, '')
     ];
     var rank = ck.slice(0, 10).map(function (g) { return { l: g.l, v: g.q, list: g.list, t: g.l + ' sales', txt: x.num(g.q) + ' · ' + x.money(g.v) }; });
     var main = card('Cakes ranked', 'Cakes sold, with their sales value', rank.length ? bars(x, rank, x.num, 'green') : none('No completed sales in this period yet.'), 'cat-main');
@@ -260,7 +279,7 @@
       return g[0] && list.length >= 5 ? { o: x.occName(k), c: g[0].l, p: Math.round(g[0].q / n * 100), list: g[0].list, n: list.length } : null;
     }).filter(Boolean).sort(function (a, b) { return b.n - a.n; }).slice(0, 6);
     var favList = '<div class="cat-fav">' + fav.map(function (f) {
-      return tap(x, f.list, f.o + ' orders with ' + f.c, '<span class="cat-fo"><b>' + esc(f.o) + '</b><span>' + esc(f.c) + '</span></span><span class="cat-fp"><b>' + f.p + '%</b><em>of ' + x.num(f.n) + ' orders</em></span>', 'cat-fr');
+      return tap(x, f.list, f.o + ' orders with ' + f.c, '<span class="cat-fo"><b>' + esc(f.o) + '</b><span>' + esc(f.c) + '</span></span><span class="cat-fp"><b>' + f.p + '%</b><em>of cakes · ' + x.num(f.n) + ' orders</em></span>', 'cat-fr');
     }).join('') + '</div>';
     var side = [
       card('Sizes', 'Cakes sold', donut(x, 'Sizes', sz.map(function (g) { return { l: g.l, v: g.q, list: g.list }; }), x.num, 'cakes') || none('No completed sales in this period yet.')),
@@ -383,7 +402,7 @@
       var ids = host.getAttribute('data-cat-todo').split(','), x = last.x;
       var found = E.analyse(x.data.allOrders || x.data.orders || [], x.today()).filter(function (f) { return ids.indexOf(f.id) > -1; }).slice(0, 2);
       if (!found.length) { host.remove(); return; }
-      host.innerHTML = '<header class="cat-todo-h"><h3>What to do</h3><span>From live orders</span></header><div class="cat-todo-g">' + found.map(todoCard).join('') + '</div>';
+      host.innerHTML = '<header class="cat-todo-h"><h3>What to do</h3><span>Current business signals · uses its own dates, not the filters above</span></header><div class="cat-todo-g">' + found.map(todoCard).join('') + '</div>';
       host.hidden = false;
     } catch (e) { host.remove(); console.warn('[Analytics tabs] What to do not shown', e); }
   }
