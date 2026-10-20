@@ -1,4 +1,4 @@
-# New order that leads the way, and who took the order: candidate, 20 October 2026 (not published)
+# New order that leads the way, and who took the order: published 20 October 2026, 10:11 PM Fiji
 
 Roneel, 8:14 PM: "in the order form the person filling the cake order form must enter their name. its a requirement.
 because the counter tablet has no specific login." He chose: ask on every New order, on every device; names used before on
@@ -7,7 +7,7 @@ that device are one-tap buttons, none picked in advance.
 Roneel, 8:34 PM: "refine refine refine.. the order form will powerful should feel fun and easy to fill .. and very very
 intuitive .. like if they are taking the order with a customer they should not be looking for buttons and what to press
 etc etc .. the flow has to be there". He approved "No hidden menus", "Screen leads the way", "Date and time together",
-"Clear finish screen", and "Start on Today" for the order date.
+"Clear finish screen", and "Start on Today" for the order date. He then approved the preview (after.png): "Yes, publish it".
 
 ## What staff see
 
@@ -41,14 +41,30 @@ etc etc .. the flow has to be there". He approved "No hidden menus", "Screen lea
 - Also fixed: the Next bar now sits at the very bottom of the order form (the edge of the next question no longer shows
   underneath it), and Start over no longer turns an order into a calendar order.
 
-## What changes
+## What changed
 
-| Where | Change |
-|---|---|
-| Staff bundle | `build/staff_order_flow.py` on the live release (`staff-app.0840d32bed.js`): add-on `src/staff.order-flow.js` + `.css`, and small asserted patches (listed in the build script) |
-| Staff page footer | Two lines (`build/footer_order_flow.py`): the staff app loader, and the compact-entry list emptied (the add-on still hides its repeated hints) |
-| Database | Already applied, nothing changes until the app sends a name: migration `taken_by_20261020` (`orders.taken_by_name`, `order_set_taken_by`, the kitchen slip's "Order Taken by") |
-| Emails | `send-emails`: the emailed kitchen slip uses the name given, then the login's name as before (deploy with the release) |
+| Where | Before | After |
+|---|---|---|
+| Staff page footer, app loader | `@11d3c84544583bd289fcd7e7daf93e10d61846ef/dist/app/staff-app.0840d32bed.js` | `@c9d45cfdccf02045808e04a68044b2e73083ec9d/dist/app/staff-app.d5068266f8.js` (sha384-zrSbZjN5MfyMC0D+I9ZsypTW5v72BdMVW7XsMWbA0L+AytZqvk9b2jpZ/QyO2Idn) |
+| Staff page footer, compact-entry add-on | folds marketing permission, order source and order date into "Select · Required" menus | its list is empty (`[].forEach(...)`); it still hides its repeated hints |
+| `send-emails` Edge Function | version 24 | version 25: the emailed kitchen slip says who took the order (the name given, else the login's name) |
+| Database | | nothing new: migration `taken_by_20261020` (applied before the release) is now used |
+
+Build: `build/staff_order_flow.py` on the previous live release (staff-app.0840d32bed.js), with the add-on
+`src/staff.order-flow.js` and `src/staff.order-flow.css` and small asserted patches listed in the build script.
+Footer: `build/footer_order_flow.py` (exactly those two lines change).
+
+Verified at release:
+- Footer read back after saving: identical to the prepared file (md5 53750c6aa88aa94038db86334ad8f8e8, 49,491
+  characters). Before writing, the live footer was still the one recorded at the Birthday Club release (md5
+  671287e409e83b7d5c4fe89b94306aba).
+- The release file is identical on cdn.jsdelivr.net, fastly.jsdelivr.net and raw.githubusercontent.com
+  (md5 ad7fa8290410b261cdab8a49f05f82f7).
+- Published to cornercafefiji.com and www.cornercafefiji.com at 10:11 PM (not to the Webflow subdomain). The public order
+  page still loads its own app; the staff page is password protected, so it was checked through the saved footer.
+- `send-emails` version 25: all four deployed files identical to the repo, and it answers requests.
+- `order_set_taken_by`, tried on a real order as the Counter login inside a transaction that was then undone: saves the
+  name, adds 1 to the version, writes the history line, refuses a one-letter name.
 
 ## Checks
 
@@ -61,16 +77,18 @@ etc etc .. the flow has to be there". He approved "No hidden menus", "Screen lea
   - the name on the order, in its history and on the slip (which waits for it);
   - a failed save and Try again; unfinished orders keeping the name; Start over; Take another order;
   - a returning customer, delivery, short notice and no payment yet; the Counter login in tablet mode.
-- Same results as on the live release:
-  - Heartbeat guard 80/80, side logo 39/39, kitchen slip 16/16, analytics tabs 42/42;
+- Same results as on the previous release:
+  - Heartbeat guard 80/80, side logo 39/39, kitchen slip 16/16, analytics tabs 42/42, Birthday Club 109/109;
   - form ease 46/46, date typing 26/26, order list 24/24, urgent pop 85/85;
   - screen fit 43/43, fit 220/220, calendar occasions 70/70, customer delete 34/34.
-  The New order tests now pick a name first; on the live release they do exactly what they did before.
+  - Flow polish and calendar quiet stop at the same place on both releases (their calendar step depends on the time of
+    day).
+  The New order tests now pick a name first; on the previous release they do exactly what they did before.
 
 ## Rollback
 
 1. Staff page footer: put back `docs/rollback/staff-footer-before-order-flow-2026-10-20.html` (the live footer before
    this release; md5 671287e409e83b7d5c4fe89b94306aba). Read it back, then publish to both custom domains.
-2. `send-emails`: redeploy the previous `index.ts` (git history). Older orders have no name, so it makes no difference
-   to them either way.
+2. `send-emails`: redeploy version 24's `index.ts` (git history, commit 611f03b) with the other three files unchanged.
+   Orders saved without a name show the login's name either way.
 3. The database change can stay: with the previous app, nothing sends a name, and slips show the login's name as before.
