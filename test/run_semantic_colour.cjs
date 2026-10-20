@@ -25,6 +25,9 @@ check('reminders and follow-ups share purple', css.includes('.ws-fu') && css.inc
 check('customer rainbow cards are neutralised', css.includes('#cc-staff #ccs-main.cv-crm .crm-kpi') && css.includes('--cv-bg: var(--sc-surface) !important'));
 check('forced-colour mode keeps visible boundaries', css.includes('@media (forced-colors: active)'));
 check('kitchen slip markup is not targeted', !/slip|print-slip|kitchen-slip/i.test(css.replace(/\/\*[\s\S]*?\*\//g, '')));
+check('the charcoal side menu (the top bar on phones and on the kitchen screen) uses the white logo, with the name under it in light grey',
+  /#cc-staff \.ccs-side \.ccs-brand \{ background-image: url\(data:image\/png;base64,iVBORw0KGgo[A-Za-z0-9+\/=]+\) !important; \}/.test(css) &&
+  css.includes('#cc-staff .ccs-side .ccs-brand small { color: rgba(255,255,255,.72) !important; }'));
 
 [['blue','blue-bg'],['green','green-bg'],['amber','amber-bg'],['red','red-bg'],['purple','purple-bg']].forEach(([fg,bg]) => {
   check(fg + ' text contrast is at least 4.5:1', contrast(token('sc-' + fg), token('sc-' + bg)) >= 4.5);
