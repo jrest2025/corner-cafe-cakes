@@ -88,15 +88,23 @@ function check(s, v, d) { if (v) { n++; console.log('PASS ' + s); } else { fails
       check(label + ': the empty follow-ups box is gone', !v.followups);
       check(label + ': Overview has no unused filters and no empty-module tabs', !v.filters && v.needTabs === 0, v);
       check(label + ': no sideways scroll', v.sx <= 1, v.sx);
-      // Other tabs: no stuck loading box; Cake orders sections visible on tablets; Occasions booking curve kept.
-      await p.evaluate(() => document.querySelector('#ccs-main [data-act="secgo"][data-v="ck"]').click());
-      await p.waitForTimeout(800);
-      const ck = await p.evaluate(() => {
-        const m = document.getElementById('ccs-main'), bar = document.querySelector('#ccs-main .dx-secs .ccs-secbar');
-        return { before: getComputedStyle(m, '::before').content, fits: bar ? bar.scrollWidth <= bar.clientWidth + 1 : null };
-      });
-      check(label + ': Cake orders opens without the loading box', ck.before === 'none' || ck.before === 'normal', ck);
-      if (w >= 760) check(label + ': every Cake orders section name is visible', ck.fits === true, ck);
+      // Every other tab opens cleanly: no stuck loading box, nothing undefined, 12-hour times, no sideways scroll, and
+      // (older layout with sub-tabs) every section name visible on tablets. The tab pages share one shape.
+      const tabs = await p.evaluate(() => [...document.querySelectorAll('#ccs-main .an-mods .an-mod')].filter(e => getComputedStyle(e).display !== 'none').map(e => e.dataset.v).filter(v => v !== 'ov'));
+      check(label + ': Analytics shows its other tabs', tabs.length >= 4, tabs);
+      for (const t of tabs) {
+        await p.evaluate(v => document.querySelector('#ccs-main [data-act="secgo"][data-g="anm"][data-v="' + v + '"]').click(), t);
+        await p.waitForTimeout(700);
+        const o = await p.evaluate(() => {
+          const m = document.getElementById('ccs-main'), bar = document.querySelector('#ccs-main .dx-secs .ccs-secbar'), txt = m.innerText, pg = m.querySelector('.cat-page');
+          return { before: getComputedStyle(m, '::before').content, fits: bar ? bar.scrollWidth <= bar.clientWidth + 1 : true,
+            bad: (txt.match(/undefined|NaN|\[object/g) || []).length, h24: (txt.match(/\b([01]?\d|2[0-3]):[0-5]\d\b(?!\s?(AM|PM))/g) || []).slice(0, 3),
+            sx: document.documentElement.scrollWidth - innerWidth, page: !!pg, kpis: pg ? pg.querySelectorAll(':scope > .cat-kpis > .cat-k').length : 0,
+            main: pg ? !!pg.querySelector(':scope > .cat-main') : false, details: pg ? [...pg.querySelectorAll(':scope > .cat-more')].map(d => d.open) : [] };
+        });
+        check(label + ': the ' + t + ' tab opens cleanly', (o.before === 'none' || o.before === 'normal') && o.bad === 0 && o.h24.length === 0 && o.sx <= 1 && (w < 760 || o.fits), o);
+        if (['sl', 'pd', 'cu', 'pl'].includes(t)) check(label + ': the ' + t + ' tab has four headline figures, one main chart and closed details', o.page && o.kpis === 4 && o.main && o.details.length === 1 && o.details[0] === false, o);
+      }
       await p.evaluate(() => document.querySelector('#ccs-main [data-act="secgo"][data-v="sd"]').click());
       await p.waitForTimeout(900);
       const sd = await p.evaluate(() => {
@@ -116,6 +124,18 @@ function check(s, v, d) { if (v) { n++; console.log('PASS ' + s); } else { fails
       });
       check(label + ': after visiting other tabs the Heartbeat still shows this week, not January 2024', live.today, live);
       check(label + ': no script errors' + (errors.length ? ' ' + errors.join(' | ') : ''), errors.length === 0);
+      if (w === 1366) {
+        // If the tab pages ever fail, the app still shows that tab's earlier sections instead of an empty screen.
+        const fallback = await p.evaluate(async () => {
+          if (!window.CCAnalyticsTabs) return { skipped: true };
+          const keep = window.CCAnalyticsTabs.page; window.CCAnalyticsTabs.page = function () { throw Error('guard: simulated failure'); };
+          const first = document.querySelector('#ccs-main .an-mods .an-mod:not([data-v="ov"])'); first.click();
+          await new Promise(r => setTimeout(r, 600));
+          const r = { secs: !!document.querySelector('#ccs-main .dx-secs .ccs-secbar'), body: !!document.querySelector('#ccs-main .dx-secbody,#ccs-main .dx-card') };
+          window.CCAnalyticsTabs.page = keep; return r;
+        });
+        check(label + ': if the tab pages fail, the earlier sections still show', fallback.skipped || (fallback.secs && fallback.body), fallback);
+      }
       if (process.env.SHOTS) await p.screenshot({ path: path.join(process.env.SHOTS, 'guard-' + w + '.png') });
       await ctx.close();
     }

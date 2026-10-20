@@ -11,7 +11,8 @@ deleted. It is the live rhythm of the cake business and sits at the top of Analy
 - The **Cake Heartbeat** section around it (live refresh, daily breakdown) from the approved core
   `dist/analytics/approved-dashboard-stable.js` at commit `3fb6a2e`.
 - **Seasonal booking buildup** (`src/seasonal-demand-staging.js`).
-- The **Booking curve** chart on Analytics, Occasions (in the staff app bundle).
+- The **Booking curve** chart on Analytics, Occasions, All occasions (in the staff app bundle; since 20 October 2026 the
+  Occasions tab page places this view unchanged).
 
 ## Rules
 
@@ -29,7 +30,8 @@ deleted. It is the live rhythm of the cake business and sits at the top of Analy
 
    The guard checks on a tablet in landscape and upright, and on a phone, that the Heartbeat loads, that Daily cake
    demand is present with both lines and comes first under the Heartbeat header, that Seasonal booking buildup and the
-   daily breakdown are there, that the Occasions booking curve is there, and that after visiting other tabs the
-   Heartbeat still shows the current week.
+   daily breakdown are there, that every other Analytics tab opens cleanly (and the tab pages keep their shape), that
+   the Occasions booking curve is there, that the tab pages fall back to the earlier sections if they fail, and that
+   after visiting other tabs the Heartbeat still shows the current week.
 4. Keep `test/fixtures/staff-head.html` and `staff-footer.html` equal to the live page after each release, so the
    guard always tests what is live.
