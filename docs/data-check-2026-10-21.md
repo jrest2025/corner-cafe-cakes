@@ -41,6 +41,29 @@ Of the $1,927 shown as collected since launch, $874 came from normal orders.
 - Effect on Analytics: "Collected" falls by $190, "Still owed" by $121, and orders and cakes by 2.
 - Undo: set `is_test` back to false on those three orders and add an "unmarked_test" history line.
 
+## Backdated orders: 12 pickup dates fixed (21 October, about 7:20 AM)
+
+Roneel: "we entering backdated data at the moment. orers from previous months..".
+- A run of the old app showed that typing a date loses the month as well as the year: it saves "January, year 2"
+  whatever month was typed, and only the day number survives. So the 15 orders are not January orders.
+- An earlier message here suggested January 2026. That was wrong, and nothing was changed on that basis.
+- Most of the orders also carry a "Date of the birthday" that staff entered separately. It saved correctly, in October
+  2026 on the same day number.
+
+Roneel approved: "Yes, fix the 12".
+- CC-1078, 1079, 1080, 1081, 1082, 1084, 1085, 1086, 1088, 1089, 1090 and 1093 now have their pickup date set to the
+  birthday date on the order (4 to 20 October 2026).
+  - Only orders whose day number matched were changed.
+  - Each order's version went up by 1, and each has a `date_corrected` history line giving the old and new date.
+  - No emails were sent and no kitchen slips changed.
+- Still impossible, waiting for the paper slips: CC-1076, CC-1077, CC-1083 and CC-1087.
+- Still to be decided by staff:
+  - Naz: CC-1086 (11 October) and CC-1071 (18 October) are the same cake.
+  - Poonam: CC-1089 and CC-1090 may be one order entered twice.
+- CC-1093 (Alvin) arrived at 6:24 AM on 21 October with no "taken by" name, so the counter tablet was still running a
+  version from before 20 October. It needs a refresh.
+- Undo: set `required_date` back to the `from` value in each `date_corrected` history line.
+
 ## Not changed (not chosen)
 
 - The 15 dates.
