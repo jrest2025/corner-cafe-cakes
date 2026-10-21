@@ -5,7 +5,7 @@ Live only when Roneel says "deploy" (see docs/sidebar-contract-2026-10-21.md).
 
 Base: dist/app/staff-touch-manifest.json (the live bundle, 21 October 2026) unless BASE names another manifest; OUT names
 the manifest written (default dist/app/staff-sidebar-contract-manifest.json).
-The bundle becomes: the base, unchanged, then
+The bundle becomes: the base with only the brand line under the logo renamed (Service Hub -> Marketing Central), then
   - src/staff.sidebar-contract.js (outline icons on each side menu item, the fold control's icon and tooltip);
   - the style element ccs-sidebar-contract (src/staff.sidebar-contract.css). Its rules carry one id more than the touch
     standard's prefix, so they win although staff.touch.js keeps the touch styles last on the page.
@@ -27,6 +27,12 @@ def sri(text):
 assert sri(s) == bm['sri'], 'Base does not match its manifest'
 assert 'CCTouch' in s, 'Base has no touch standard'
 assert 'CCSidebarContract' not in s and 'ccs-sidebar-contract' not in s, 'Base already has the sidebar contract'
+# Brand line under the logo (Roneel, 21 October 2026, with "deploy"): "Service Hub" becomes "Marketing Central" in the side
+# menu and the top bar only. The sign-in screen, the page title and the app's other wording are not changed.
+for old, new in (('<div class="ccs-brand">Corner Café<small>Service Hub</small></div>', '<div class="ccs-brand">Corner Café<small>Marketing Central</small></div>'),
+                 ('<span class="ccs-topbrand">Corner Café <small>Service Hub</small></span>', '<span class="ccs-topbrand">Corner Café <small>Marketing Central</small></span>')):
+    assert s.count(old) == 1, 'brand anchor not unique: ' + old[:60]
+    s = s.replace(old, new)
 js = (ROOT / 'src/staff.sidebar-contract.js').read_text()
 css = (ROOT / 'src/staff.sidebar-contract.css').read_text()
 for part in (js, css):

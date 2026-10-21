@@ -93,6 +93,27 @@
   html:not(#cc-t1):not(#csc-a) body:not(#cc-t2) #cc-staff .ccs-app.is-mini .ccs-nav.csc-grouped .csc-h { display: none !important; }
 }
 
+/* ---------- Brand line "Marketing Central" (21 October 2026): one line, centred under the logo, allowed wider than
+   the logo but never wider than the menu ---------- */
+@media (min-width: 1280px), (hover: none) and (pointer: coarse) and (min-width: 760px) {
+  html:not(#cc-t1):not(#csc-a) body:not(#cc-t2) #cc-staff .ccs-app:not(.is-single) .ccs-side .ccs-brand { overflow: visible !important; }
+  html:not(#cc-t1):not(#csc-a) body:not(#cc-t2) #cc-staff .ccs-app:not(.is-single) .ccs-side .ccs-brand small {
+    position: relative !important; left: 50% !important; width: max-content !important; max-width: none !important; transform: translateX(-50%) !important;
+    white-space: nowrap !important; overflow: visible !important; text-overflow: clip !important;
+  }
+}
+@media (hover: none) and (pointer: coarse) and (min-width: 760px) {
+  html:not(#cc-t1):not(#csc-a) body:not(#cc-t2) #cc-staff .ccs-app:not(.is-single) .ccs-side .ccs-brand small { letter-spacing: .04em !important; padding-left: .04em !important; }
+}
+/* The 96px rail on computers (760 to 1279px): the brand line on two centred lines, never cut */
+@media (hover: hover) and (min-width: 760px) and (max-width: 1279px) {
+  html:not(#cc-t1):not(#csc-a) body:not(#cc-t2) #cc-staff .ccs-app:not(.is-single) .ccs-side .ccs-brand { overflow: visible !important; }
+  html:not(#cc-t1):not(#csc-a) body:not(#cc-t2) #cc-staff .ccs-app:not(.is-single) .ccs-side .ccs-brand small {
+    position: relative !important; left: 50% !important; transform: translateX(-50%) !important; width: 80px !important; max-width: 80px !important;
+    font-size: 11px !important; letter-spacing: .04em !important; line-height: 1.25 !important; white-space: normal !important; overflow: visible !important; text-align: center !important;
+  }
+}
+
 /* ---------- Touch tablets: logo and Service Hub line centred (touch standard sizes kept; no fold button there) ---------- */
 @media (hover: none) and (pointer: coarse) and (min-width: 760px) {
   html:not(#cc-t1):not(#csc-a) body:not(#cc-t2) #cc-staff .ccs-app:not(.is-single) .ccs-brandrow { justify-content: center !important; align-items: center !important; }

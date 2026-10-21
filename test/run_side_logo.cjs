@@ -52,10 +52,12 @@ async function open(b, w, h, role, out) {
       check(label + ': the colour layer loaded and the side is charcoal', st.colour && st.side === 'rgb(41, 45, 51)', st.side);
       const white = await p.evaluate(src => new Promise(ok => { const m = /^url\("?(data:image\/png;base64,[^")]+)"?\)$/.exec(src); if (!m) return ok(null); const i = new Image(); i.onload = () => { const c = document.createElement('canvas'); c.width = i.width; c.height = i.height; const g = c.getContext('2d'); g.drawImage(i, 0, 0); const d = g.getImageData(0, 0, c.width, c.height).data; let sum = 0, k = 0; for (let j = 0; j < d.length; j += 4) if (d[j + 3] > 200) { sum += (d[j] + d[j + 1] + d[j + 2]) / 3; k++; } ok({ mean: k ? sum / k : 0, solid: k }); }; i.onerror = () => ok(null); i.src = m[1]; }), st.img);
       check(label + ': the logo is the white one', white && white.solid > 5000 && white.mean > 250, white);
-      check(label + ': the app is named Corner Café Service Hub', st.name === 'Corner CaféService Hub' || st.name === 'Corner Café Service Hub', st.name);
+      // 21 October 2026: the brand line under the logo reads Marketing Central (Roneel); the sign-in screen keeps Service Hub
+      check(label + ': the brand line reads Corner Café Marketing Central', st.name === 'Corner CaféMarketing Central' || st.name === 'Corner Café Marketing Central', st.name);
       if (st.smallShown) {
-        check(label + ': SERVICE HUB under the logo is light grey', st.text === 'Service Hub' && st.small === 'rgba(255, 255, 255, 0.72)', [st.text, st.small]);
-        check(label + ': SERVICE HUB is not cut off', st.fits, st);
+        // Light grey on the charcoal bar: 72% (colour layer), 80% (sidebar contract) or 86% (touch standard)
+        check(label + ': MARKETING CENTRAL under the logo is light grey', st.text === 'Marketing Central' && ['rgba(255, 255, 255, 0.72)', 'rgba(255, 255, 255, 0.8)', 'rgba(255, 255, 255, 0.86)'].includes(st.small), [st.text, st.small]);
+        check(label + ': MARKETING CENTRAL is not cut off', st.fits, st);
       }
       const shot = await p.screenshot({ clip: { x: Math.max(0, st.box.x), y: Math.max(0, st.box.y), width: Math.max(1, st.box.w), height: Math.max(1, st.box.h) } });
       const lum = await p.evaluate(async b64 => { const i = new Image(); await new Promise(r => { i.onload = r; i.src = 'data:image/png;base64,' + b64; }); const c = document.createElement('canvas'); c.width = i.width; c.height = i.height; const g = c.getContext('2d'); g.drawImage(i, 0, 0); const d = g.getImageData(0, 0, c.width, c.height).data; let bright = 0; for (let j = 0; j < d.length; j += 4) if ((d[j] + d[j + 1] + d[j + 2]) / 3 > 200) bright++; return { bright, px: d.length / 4 }; }, shot.toString('base64'));
