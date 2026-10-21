@@ -1,7 +1,7 @@
 {
-  "file": "dist/app/staff-app.2c361091a1.js",
-  "sri": "sha384-1efWXHzAflHNxFBWu4JhK1+kDmIaBFuFpzDyRNbgEXCUoSaoTWbyG+jfhuaRlwgk",
-  "bytes": 2035134,
-  "base": "dist/app/staff-app.f9f4853c95.js",
-  "base_sri": "sha384-S8xmIAgSh2Yp+9dZwdnPDg08jZtnbt1A5rCfRMZkcHreDGfivF0nugNqO4D0c7J5"
+  "file": "dist/app/staff-app.efbea59dfe.js",
+  "sri": "sha384-y4Tpu58/46mvOlv2T/VfHRSf3oIahcHYva0VV/G5vpmEzYN/ZRhi+5l/aO+l6YS/",
+  "bytes": 2070877,
+  "base": "dist/app/staff-app.4e62b67276.js",
+  "base_sri": "sha384-lgvtqNQotRKoCRXq1vf3iVhfPMaJzQrXfFdo9GhaD051ius27ShG1FgH4A/5ydme"
 }

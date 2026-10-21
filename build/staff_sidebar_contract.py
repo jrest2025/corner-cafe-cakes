@@ -3,7 +3,7 @@
 Visual only: no route, tab key, permission, sign-out, Practice mode, Heartbeat, phone bar or data change.
 Live only when Roneel says "deploy" (see docs/sidebar-contract-2026-10-21.md).
 
-Base: dist/app/staff-touch-manifest.json (the live bundle, 21 October 2026) unless BASE names another manifest; OUT names
+Base: dist/app/staff-category-colours-manifest.json (the live bundle at 10:44 PM, 21 October 2026; earlier previews used staff-touch-manifest.json) unless BASE names another manifest; OUT names
 the manifest written (default dist/app/staff-sidebar-contract-manifest.json).
 The bundle becomes: the base with only the brand line under the logo renamed (Service Hub -> Marketing Central), then
   - src/staff.sidebar-contract.js (outline icons on each side menu item, the fold control's icon and tooltip);
@@ -14,7 +14,7 @@ import base64, hashlib, json, os, subprocess, tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-BASE = os.environ.get('BASE', 'dist/app/staff-touch-manifest.json')
+BASE = os.environ.get('BASE', 'dist/app/staff-category-colours-manifest.json')
 OUT = os.environ.get('OUT', 'dist/app/staff-sidebar-contract-manifest.json')
 bm = json.loads((ROOT / BASE).read_text())
 s = (ROOT / bm['file']).read_text()

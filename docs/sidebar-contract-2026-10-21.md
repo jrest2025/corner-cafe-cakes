@@ -1,4 +1,4 @@
-# Shared sidebar contract, version 1, on the Corner Café Service Hub (21 October 2026): PREVIEW, NOT LIVE
+# Shared sidebar contract on the Corner Café staff app (21 October 2026)
 
 This applies the Jack's Restaurants shared sidebar contract, version 1, to the staff app's side menu. Visual only.
 Routes, tab keys, permissions, sign-out, Practice mode, the Heartbeat and Daily Cake Demand, and the phone bars do not change.
@@ -75,6 +75,22 @@ Roles checked at 1440 × 900 with the test mock:
 | Marketing | Overview, Operations (Orders, Handover), Planning, Customers, Insights (Analytics) |
 | Kitchen | the kitchen-only screen, unchanged; no sections |
 
+
+## Release (21 October 2026)
+
+- Roneel said "deploy" at 10:44 PM Fiji time.
+- Brand line under the logo: "Service Hub" became "Marketing Central" (shown uppercase). This applies to the side menu
+  and the phone top bar only; the sign-in screen and the page title are unchanged.
+- The line is one line in the 256px menu and on iPad (17px). It is two lines on the 96px rail and on phones.
+- Rebuilt on the live bundle at release time, `dist/app/staff-app.4e62b67276.js` (category colours,
+  `dist/app/staff-category-colours-manifest.json`), after merging `main` into this branch.
+- Tests on the candidate footer (live footer with only the loader line changed): Heartbeat guard 80/80, demand rail
+  PASS, side logo 39/39 (updated for Marketing Central), fit 220/220, touch 76/76, practice 75/75, practice guide
+  100/100, brief 22/22.
+- Rollback files saved from Webflow before any change:
+  `docs/rollback/staff-footer-before-sidebar-contract-2026-10-21.html` (md5 9f1a7b44eaf431744dabd9b9de674eb5) and
+  `docs/rollback/staff-head-before-sidebar-contract-2026-10-21.html` (unchanged by this release).
+
 ## Files
 
 **`src/staff.sidebar-contract.css`**
@@ -134,6 +150,10 @@ The page head does not change.
 
 ## Rollback
 
-Paste the saved footer back (or set the loader line to commit `7103cd832bedf3751dd0ca98be04e9116424baba`, file
-`dist/app/staff-app.f9f4853c95.js`, SRI `sha384-S8xmIAgSh2Yp+9dZwdnPDg08jZtnbt1A5rCfRMZkcHreDGfivF0nugNqO4D0c7J5`),
-then publish. There are no database changes.
+1. Put back `docs/rollback/staff-footer-before-sidebar-contract-2026-10-21.html` as the staff page footer
+   (md5 9f1a7b44eaf431744dabd9b9de674eb5). Its loader line pins commit `67831981bef7dff20b4b3898de1852ed6ae4ad30`,
+   file `dist/app/staff-app.4e62b67276.js`.
+2. Read it back.
+3. Publish to cornercafefiji.com and www.cornercafefiji.com.
+
+There are no database changes.
