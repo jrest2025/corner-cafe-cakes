@@ -1,0 +1,13 @@
+/* Phase 1b (21 October 2026): donut legends keep their names in narrow cards. Styles only.
+   In a narrow card the donut sits above its legend, and names wrap to a second line instead of disappearing. */
+#cc-staff #ccs-main .cat-lr span,#cc-staff #ccs-main .an-lrow span{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;line-height:1.3}
+#cc-staff #ccs-main .cat-lr{min-height:40px}
+@container (max-width:460px){
+  #cc-staff #ccs-main .cat-donut{grid-template-columns:minmax(0,1fr);justify-items:center;gap:12px}
+  #cc-staff #ccs-main .cat-donut>.cat-leg{width:100%}
+}
+#cc-staff #ccs-main .an-chart:has(>.an-pie){container-type:inline-size}
+@container (max-width:460px){
+  #cc-staff #ccs-main .an-pie{flex-direction:column;align-items:stretch;gap:12px}
+  #cc-staff #ccs-main .an-pie>.an-donut{align-self:center}
+}
