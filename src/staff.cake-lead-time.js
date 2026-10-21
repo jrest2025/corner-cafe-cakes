@@ -63,9 +63,9 @@
   function mount(host,raw,opts){
     opts=opts||{};var today=iso(opts.today)||new Date().toISOString().slice(0,10);
     var ix=index(raw,today),state={range:RANGES[0],selected:today};
-    var root=document.createElement('section');root.className='cclt';root.id='cc-cake-lead-time';
+    var root=opts.root||document.createElement('section');root.className='cclt';root.id='cc-cake-lead-time';
     root.setAttribute('aria-label','Cakes by pickup day and how far ahead they were booked');
-    host.appendChild(root);
+    if(!root.parentNode)host.appendChild(root);
 
     function render(){
       var w=windowFor(state.range,today,ix.first),s=summary(ix,w.start,today);
@@ -85,7 +85,7 @@
           return '<button type="button" data-r="'+r.k+'" aria-pressed="'+(r===state.range)+'">'+esc(r.label)+'</button>';}).join('')+'</div>'+
         '<div class="cclt-habit"><p>'+headline+'</p><div class="cclt-strip" aria-hidden="true">'+strip+'</div>'+
         '<ul class="cclt-key">'+key+'</ul><p class="cclt-note">'+s.all+' cakes picked up '+esc(state.range.label.toLowerCase())+
-        '. “Booking date not known” is paper slips and older records with no order date.</p></div>'+
+        '. “Booking date not known” is paper slips and older records with no order date. Amber outline: busiest day. Light orange days: Fiji public holidays.</p></div>'+
         '<div class="cclt-chart"><div class="cclt-scroll" tabindex="0" aria-label="Scroll to see more days"></div></div>'+
         '<div class="cclt-detail" aria-live="polite"></div>';
       root.querySelectorAll('[data-r]').forEach(function(btn){btn.onclick=function(){
@@ -93,36 +93,42 @@
       drawChart(w);showDay(state.selected);
     }
 
+    function hols(d){var R=global.CCCakeDemandRail;try{return R&&typeof R.holidaysOn==='function'?R.holidaysOn(d)||[]:[];}catch(e){return [];}}
     function drawChart(w){
-      var sc=root.querySelector('.cclt-scroll'),n=gap(w.start,w.end)+1;
-      var bw=root.clientWidth>=900?30:root.clientWidth>=600?36:32,H=230,top=26,bottom=52,plot=H-top-bottom;
+      var sc=root.querySelector('.cclt-scroll'),n=gap(w.start,w.end)+1,avail=Math.max(280,(sc.clientWidth||root.clientWidth)-44);
+      var big=root.clientWidth>=600,minBw=big?12:10,maxBw=big?36:32;
+      var bw=Math.max(minBw,Math.min(maxBw,Math.floor(avail/n))),showN=bw>=22,showD=bw>=20;
+      var H=236,top=28,bottom=54,plot=H-top-bottom;
       var max=1,busy=null;
       for(var d=w.start;d<=w.end;d=add(d,1)){var x=ix.days[d];if(x){if(x.total>max)max=x.total;if(d<=today&&(!busy||x.total>ix.days[busy].total))busy=d;}}
       max=Math.max(4,Math.ceil(max/2)*2);
-      var W=n*bw+40,svg='';
+      var W=n*bw+44,svg='';
       [0,.5,1].forEach(function(f){var y=top+plot-plot*f;
         svg+='<line x1="34" x2="'+W+'" y1="'+y+'" y2="'+y+'" stroke="#e6ece8"/>'+
           '<text x="28" y="'+(y+5)+'" text-anchor="end" class="cclt-ax">'+Math.round(max*f)+'</text>';});
-      var i=0;
+      var i=0,lastMonth='';
       for(d=w.start;d<=w.end;d=add(d,1),i++){
-        var x0=40+i*bw,dd=ix.days[d],future=d>today,y=top+plot;
+        var x0=40+i*bw,dd=ix.days[d],future=d>today,y=top+plot,mid=x0+bw/2;
+        var fj=hols(d).filter(function(e){return e.g==='fj'&&e.k==='h';});
         if(future)svg+='<rect x="'+x0+'" y="'+(top-4)+'" width="'+bw+'" height="'+(plot+4)+'" fill="#f5f7fb"/>';
-        if(d===today)svg+='<rect x="'+(x0-2)+'" y="'+(top-22)+'" width="'+bw+'" height="'+(plot+24)+'" rx="6" fill="#eef3fb"/>';
+        if(fj.length)svg+='<rect x="'+x0+'" y="'+(top-4)+'" width="'+bw+'" height="'+(plot+4)+'" fill="#fdf1dc"><title>'+esc(fj.map(function(e){return e.name;}).join(', '))+'</title></rect>';
+        if(d===today)svg+='<rect x="'+x0+'" y="'+(top-22)+'" width="'+bw+'" height="'+(plot+22)+'" rx="5" fill="#eef3fb"/>';
         if(dd){
+          var gapPx=bw>=20?4:bw>=14?2:1;
           BUCKETS.slice().reverse().forEach(function(b){var v=dd.b[b.k]||0;if(!v)return;var h=plot*v/max;y-=h;
-            svg+='<rect x="'+(x0+3)+'" y="'+y+'" width="'+(bw-8)+'" height="'+h+'" fill="'+b.color+'"/>';});
-          svg+='<text x="'+(x0+bw/2-1)+'" y="'+(y-6)+'" text-anchor="middle" class="cclt-n'+(d===busy?' cclt-busy-n':'')+'">'+dd.total+'</text>';
-          if(d===busy)svg+='<rect x="'+(x0+1)+'" y="'+(y-1)+'" width="'+(bw-4)+'" height="'+(top+plot-y+2)+'" fill="none" stroke="#d98b19" stroke-width="2.5" rx="3"/>';
+            svg+='<rect x="'+(x0+gapPx)+'" y="'+y+'" width="'+(bw-gapPx*2)+'" height="'+h+'" fill="'+b.color+'"/>';});
+          if(showN||d===busy)svg+='<text x="'+mid+'" y="'+(y-6)+'" text-anchor="middle" class="cclt-n'+(d===busy?' cclt-busy-n':'')+'">'+dd.total+'</text>';
+          if(d===busy)svg+='<rect x="'+(x0+1)+'" y="'+(y-1)+'" width="'+(bw-2)+'" height="'+(top+plot-y+2)+'" fill="none" stroke="#d98b19" stroke-width="2.5" rx="3"/>';
         }
-        var dt=new Date(t(d)),wd='SMTWTFS'[dt.getUTCDay()];
-        svg+='<text x="'+(x0+bw/2-1)+'" y="'+(top+plot+19)+'" text-anchor="middle" class="cclt-d'+(d===today?' cclt-on':'')+'">'+dt.getUTCDate()+'</text>'+
-          '<text x="'+(x0+bw/2-1)+'" y="'+(top+plot+36)+'" text-anchor="middle" class="cclt-w">'+wd+'</text>';
-        if(dt.getUTCDate()===1||i===0)svg+='<text x="'+x0+'" y="12" class="cclt-m">'+pretty(d,{weekday:undefined,day:undefined,month:'long',year:'numeric'})+'</text>';
-        svg+='<rect x="'+x0+'" y="0" width="'+bw+'" height="'+H+'" fill="transparent" class="cclt-hit" data-d="'+d+'" tabindex="-1">'+
-          '<title>'+esc(pretty(d)+': '+(dd?dd.total:0)+' cakes')+'</title></rect>';
-        if(d===state.selected)svg+='<rect x="'+(x0+1)+'" y="'+(top+plot+4)+'" width="'+(bw-4)+'" height="40" rx="6" fill="none" stroke="#2f4a7a" stroke-width="2"/>';
+        var dt=new Date(t(d)),day=dt.getUTCDate(),wd='SMTWTFS'[dt.getUTCDay()],mon=d.slice(0,7);
+        var tick=showD||d===today||(gap(d,today)%7===0&&Math.abs(gap(d,today))>=4);if(tick)svg+='<text x="'+mid+'" y="'+(top+plot+19)+'" text-anchor="middle" class="cclt-d'+(d===today?' cclt-on':'')+'">'+day+'</text>';
+        if(showD)svg+='<text x="'+mid+'" y="'+(top+plot+36)+'" text-anchor="middle" class="cclt-w">'+wd+'</text>';
+        if(mon!==lastMonth){lastMonth=mon;svg+='<text x="'+x0+'" y="12" class="cclt-m">'+esc(new Date(t(d)).toLocaleDateString('en-GB',{month:bw<20?'short':'long',year:'numeric',timeZone:'UTC'}))+'</text>';
+          if(i)svg+='<line x1="'+x0+'" x2="'+x0+'" y1="16" y2="'+(top+plot)+'" stroke="#d6dde3" stroke-dasharray="3 3"/>';}
+        if(d===state.selected)svg+='<rect x="'+(x0+1)+'" y="'+(top+plot+3)+'" width="'+(bw-2)+'" height="'+(showD?42:24)+'" rx="5" fill="none" stroke="#2f4a7a" stroke-width="2"/>';
+        svg+='<rect x="'+x0+'" y="0" width="'+bw+'" height="'+H+'" fill="transparent" class="cclt-hit" data-d="'+d+'">'+
+          '<title>'+esc(pretty(d)+': '+(dd?dd.total:0)+' cake'+((dd&&dd.total===1)?'':'s')+(fj.length?' · '+fj.map(function(e){return e.name;}).join(', '):''))+'</title></rect>';
       }
-      svg+='<text x="'+(40+(gap(w.start,today)+1)*bw+4)+'" y="'+(top-8)+'" class="cclt-fut">Upcoming: booked so far</text>';
       sc.innerHTML='<svg width="'+W+'" height="'+H+'" role="img" aria-label="Cakes due each day, split by how far ahead they were booked">'+svg+'</svg>';
       sc.querySelectorAll('.cclt-hit').forEach(function(r){r.onclick=function(){state.selected=r.dataset.d;drawChart(w);showDay(state.selected);};});
       var todayX=40+gap(w.start,today)*bw;sc.scrollLeft=Math.max(0,todayX-sc.clientWidth+bw*(sc.clientWidth>=900?15:4));
@@ -130,12 +136,13 @@
 
     function showDay(d){
       var x=ix.days[d],el=root.querySelector('.cclt-detail');
-      if(!x){el.innerHTML='<h4>'+esc(pretty(d,{year:'numeric'}))+'</h4><p>No cakes for pickup.</p>';return;}
+      if(!x){var h0=hols(d).map(function(e){return e.name;});el.innerHTML='<h4>'+esc(pretty(d,{year:'numeric'}))+(h0.length?' <small class="cclt-hol">'+esc(h0.join(', '))+'</small>':'')+'</h4><p>No cakes for pickup.</p>';return;}
       var parts=BUCKETS.filter(function(b){return x.b[b.k];}).map(function(b){
         return '<li><i style="background:'+b.color+'"></i>'+x.b[b.k]+' booked '+esc(b.label.toLowerCase())+'</li>';}).join('');
       var cakes=Object.keys(x.cakes).sort(function(a,b){return x.cakes[b]-x.cakes[a]||a.localeCompare(b);}).map(function(n){
         return '<li><span>'+esc(n)+'</span><b>'+x.cakes[n]+'</b></li>';}).join('');
-      el.innerHTML='<h4>'+esc(pretty(d,{year:'numeric'}))+(d>today?' <small>upcoming, booked so far</small>':d===today?' <small>today</small>':'')+'</h4>'+
+      var hn=hols(d).map(function(e){return e.name;});
+      el.innerHTML='<h4>'+esc(pretty(d,{year:'numeric'}))+(hn.length?' <small class="cclt-hol">'+esc(hn.join(', '))+'</small>':'')+(d>today?' <small>upcoming, booked so far</small>':d===today?' <small>today</small>':'')+'</h4>'+
         '<p class="cclt-big"><b>'+x.total+'</b> cake'+(x.total===1?'':'s')+' for pickup · '+x.orders+' order'+(x.orders===1?'':'s')+'</p>'+
         '<div class="cclt-cols"><div><h5>When they were booked</h5><ul class="cclt-parts">'+parts+'</ul></div>'+
         '<div><h5>Cakes</h5><ul class="cclt-cakes">'+cakes+'</ul></div></div>';
@@ -143,5 +150,35 @@
     render();
     return {root:root,refresh:render};
   }
-  global[NAME]={version:VERSION,mount:mount,_index:index};
+  /* Alternative view beside the protected Daily Cake Demand chart. The protected chart is not changed:
+     this only adds a switch above it and hides it (display only) while "By booking time" is chosen. */
+  var VIEWK='cc_demand_view';
+  function getView(){try{return global.localStorage.getItem(VIEWK)==='lead'?'lead':'due';}catch(e){return 'due';}}
+  function setView(v){try{global.localStorage.setItem(VIEWK,v);}catch(e){}}
+  function attach(parent,raw,opts){
+    var rail=parent&&parent.querySelector&&parent.querySelector('#cc-demand-scroll-rail');
+    if(!rail)return false;
+    var doc=rail.ownerDocument,sw=doc.getElementById('cc-demand-views'),box=doc.getElementById('cc-cake-lead-time');
+    if(!sw||sw.nextElementSibling!==box||!box||box.nextElementSibling!==rail){
+      if(sw)sw.remove();if(box)box.remove();
+      sw=doc.createElement('div');sw.id='cc-demand-views';sw.className='ccdv';sw.setAttribute('role','group');
+      sw.setAttribute('aria-label','Choose how to show daily cake demand');
+      sw.innerHTML='<span class="ccdv-lbl">View</span>'+
+        '<button type="button" data-view="due">Booked and due</button>'+
+        '<button type="button" data-view="lead">By booking time</button>';
+      box=doc.createElement('section');
+      rail.parentNode.insertBefore(sw,rail);rail.parentNode.insertBefore(box,rail);
+      sw.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('[data-view]');if(!b)return;setView(b.getAttribute('data-view'));apply();});
+    }
+    var made=null;
+    function apply(){
+      var v=getView();
+      sw.querySelectorAll('[data-view]').forEach(function(b){b.setAttribute('aria-pressed',String(b.getAttribute('data-view')===v));});
+      rail.classList.toggle('ccdv-off',v==='lead');box.hidden=v!=='lead';
+      if(v==='lead'&&!made)made=mount(null,raw,{today:opts&&opts.today,root:box});
+    }
+    apply();
+    return true;
+  }
+  global[NAME]={version:VERSION,mount:mount,attach:attach,_index:index};
 })(typeof window!=='undefined'?window:globalThis);
