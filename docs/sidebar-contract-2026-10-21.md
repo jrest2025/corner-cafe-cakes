@@ -22,7 +22,7 @@ Live only when Roneel says "deploy".
 - The fold control uses the panel-left-close / panel-left-open icons, with the tooltip "Collapse sidebar" / "Expand sidebar".
 - Rows are 44px with 15px names.
 - In shorter windows the logo shrinks first.
-- Rows go to 40px at 880px tall or less, and to 36px at 800px tall or less.
+- Rows go to 38px at 880px tall or less, and to 36px at 800px tall or less.
 - The text stays 15px.
 - The footer is pinned and only the sections scroll. At 1366 × 768, 1440 × 900, 1512 × 862 and 1920 × 1080 everything fits without scrolling.
 
@@ -31,6 +31,49 @@ Live only when Roneel says "deploy".
 - The footer on tablets is now pinned, with the sections scrolling.
 - The 96px rail at 760 to 1279px on computers.
 - Phones: the top bar, the bottom bar (Today, Orders, New order, More), the original icons and the More sheet.
+
+## Version 2: universal navigation taxonomy (contract section 7)
+
+On screens 760px and wider, the menu shows six sections in this order: Overview, Operations, Planning, Customers,
+Insights, System.
+- `src/staff.sidebar-contract.js` moves the existing buttons; it never recreates them. Tab keys, handlers, titles and
+  aria labels stay as they are.
+- Each section is a `div role="group"` named by its own heading. Headings are sentence case in the markup and shown
+  uppercase through CSS.
+- A section with no visible item (after permissions) is hidden, heading included.
+- The app's own headings and the page footer's added headings ("Planning", "Quick service") are hidden, not removed,
+  so the footer script stays settled. The observer is guarded: a pass that changes nothing ends the chain, and the
+  menu shows 0 mutations while idle for every role and size checked.
+- Practice mode stays just above the account footer. Needs attention stays hidden. More stays phone-only.
+- Phones put the app's own flat order back, so the bottom bar is unchanged.
+- Section headings on computers: 11px, weight 600, letter spacing 0.08em, 12px above, 2px below. In windows 880px tall or less: 8px above, and rows 38px (36px at 800px tall or less).
+  Tablets keep the touch standard's 17px headings.
+
+| Old section | New section | Label | Tab key | Shown when (unchanged) | Unchanged |
+|---|---|---|---|---|---|
+| Service | Overview | Today | `today` | always | yes |
+| Service | Overview | Needs attention | `attn` | always, hidden by the page footer | yes (still hidden) |
+| Service | Operations | Orders | `orders` | always | yes |
+| Quick service | Operations | Service view | `tablet` | `ord.create` | yes (label set by the footer before; now also by the contract) |
+| Quick service | Operations | Kitchen | `kitchen` | `kit.view` | yes |
+| Quick service | Operations | Handover | `handover` | `ord.view` or `kit.view` | yes |
+| Planning | Planning | Calendar | `calendar` | always | yes |
+| Customers | Customers | Customers | `customers` | `nav.customers` and `cust.view` | yes |
+| Business | Insights | Analytics | `dash` | `mgmt.analytics` or `mgmt.reports` | yes |
+| Business | Insights | Register | `register` | `mgmt.reports` | yes |
+| Set-up | System | Settings | `settings` | `canSettings()` | yes |
+| (no section) | (no section) | More | `more` | phones only | yes |
+| (above footer) | (above footer) | Practice mode | (`data-ccp-go`) | always | yes |
+
+Roles checked at 1440 × 900 with the test mock:
+
+| Role | Sections shown |
+|---|---|
+| Admin and manager | all six |
+| Counter (`front_of_house`) | Overview, Operations (Orders, Service view, Kitchen, Handover), Planning |
+| Finance | Overview, Operations (Orders, Handover), Planning, Customers |
+| Marketing | Overview, Operations (Orders, Handover), Planning, Customers, Insights (Analytics) |
+| Kitchen | the kitchen-only screen, unchanged; no sections |
 
 ## Files
 
@@ -69,7 +112,7 @@ Live only when Roneel says "deploy".
 - The test expects the "Service Hub" line at 72% white on phones and upright tablets; the touch standard made it 86%.
 
 **Rows and screens**
-- Rows: 44px at 1920 × 1080 and 1440 × 900. 40px when the window is 880px tall or less (1512 × 862). 36px when 800px tall or less (1366 × 768).
+- Rows: 44px at 1920 × 1080 and 1440 × 900. 38px when the window is 880px tall or less (1512 × 862). 36px when 800px tall or less (1366 × 768).
 - Nothing in the menu scrolls at 1366 × 768, 1440 × 900, 1512 × 862 or 1920 × 1080.
 - At 1280 × 720 only the sections scroll; the footer stays pinned.
 

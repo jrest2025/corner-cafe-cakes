@@ -4,6 +4,12 @@
      bottom bar is unchanged. Labels, aria and title attributes are not touched.
    - The fold button gets panel-left-close / panel-left-open and the tooltip "Collapse sidebar" / "Expand sidebar".
    - Re-applied after every re-render of the menu (MutationObserver). Idempotent: nothing is added twice.
+   - Version 2 (universal taxonomy, section 7): on screens 760px and wider the existing item buttons are MOVED (never
+     recreated) into six groups, in this order: Overview, Operations, Planning, Customers, Insights, System. Each group is
+     <div role="group" aria-labelledby> with a sentence-case heading (uppercase through CSS). Groups with no visible item
+     (after permissions) are hidden, heading included. The app's own headings and the page footer's added headings are
+     hidden, not removed, so the footer script stays settled. More stays the last direct child (phones only), and on
+     phones the original flat order is put back, so the bottom bar is unchanged.
    Nothing here saves, changes or decides anything about orders, routes or permissions. */
 (function (global) {
   'use strict';
@@ -27,6 +33,68 @@
   var PANEL_CLOSE = A + '<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/><path d="m16 15-3-3 3-3"/>' + Z;
   var PANEL_OPEN = A + '<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/><path d="m14 9 3 3-3 3"/>' + Z;
 
+  var GROUPS = [
+    ['overview', 'Overview', ['today', 'attn']],
+    ['operations', 'Operations', ['orders', 'tablet', 'kitchen', 'handover']],
+    ['planning', 'Planning', ['calendar']],
+    ['customers', 'Customers', ['customers']],
+    ['insights', 'Insights', ['dash', 'register']],
+    ['system', 'System', ['settings']]
+  ];
+  var WIDE = '(min-width: 760px)';
+  function mq(q) { try { return !!(global.matchMedia && global.matchMedia(q).matches); } catch (e) { return false; } }
+  function kids(el, sel) { var out = []; for (var c = el.firstElementChild; c; c = c.nextElementSibling) if (c.matches(sel)) out.push(c); return out; }
+  function visible(b) { return getComputedStyle(b).display !== 'none'; }
+  // Put the buttons into the six groups. Only DOM moves of existing nodes; each pass changes nothing once settled.
+  function group(nav) {
+    var i, g, b, wrap, head, want, have, tabs = {};
+    var all = nav.querySelectorAll('.ccs-nav-item[data-tab]');
+    for (i = 0; i < all.length; i++) { b = all[i]; if (!b.hasAttribute('data-csc-i')) b.setAttribute('data-csc-i', String(i)); tabs[b.getAttribute('data-tab')] = b; }
+    var anchor = kids(nav, '.ccs-nav-phone, .cc-t-new')[0] || null, prev = null;
+    for (i = 0; i < GROUPS.length; i++) {
+      g = GROUPS[i];
+      wrap = kids(nav, '.csc-group[data-csc-g="' + g[0] + '"]')[0];
+      if (!wrap) {
+        wrap = doc.createElement('div');
+        wrap.className = 'csc-group'; wrap.setAttribute('data-csc-g', g[0]); wrap.setAttribute('role', 'group');
+        wrap.setAttribute('aria-labelledby', 'csc-h-' + g[0]);
+        wrap.innerHTML = '<p class="ccs-navh csc-h" id="csc-h-' + g[0] + '">' + g[1] + '</p>';
+      }
+      // groups in order, before More / the phone New order
+      var at = prev ? prev.nextElementSibling : nav.firstElementChild;
+      if (at !== wrap) nav.insertBefore(wrap, prev ? prev.nextElementSibling : nav.firstElementChild);
+      prev = wrap;
+      head = kids(wrap, '.csc-h')[0];
+      if (head && head !== wrap.firstElementChild) wrap.insertBefore(head, wrap.firstElementChild);
+      want = g[2].map(function (k) { return tabs[k]; }).filter(Boolean);
+      have = kids(wrap, '.ccs-nav-item[data-tab]');
+      var same = want.length === have.length && want.every(function (x, j) { return x === have[j]; });
+      if (!same) for (var j = 0; j < want.length; j++) wrap.appendChild(want[j]);
+    }
+    if (anchor && anchor.parentNode === nav && prev && prev.nextElementSibling !== anchor && kids(nav, '.csc-group').indexOf(anchor) < 0) nav.insertBefore(anchor, prev.nextElementSibling);
+    if (!nav.classList.contains('csc-grouped')) nav.classList.add('csc-grouped');
+    // hide a group with no visible item, heading included
+    var ws = kids(nav, '.csc-group');
+    for (i = 0; i < ws.length; i++) {
+      var on = kids(ws[i], '.ccs-nav-item[data-tab]').some(visible);
+      if (ws[i].hidden === on) ws[i].hidden = !on;
+    }
+  }
+  // Phones: back to the app's own flat order (wrappers removed), so the bottom bar is exactly as before
+  function ungroup(nav) {
+    var ws = kids(nav, '.csc-group'); if (!ws.length) { if (nav.classList.contains('csc-grouped')) nav.classList.remove('csc-grouped'); return; }
+    var items = [].slice.call(nav.querySelectorAll('.csc-group .ccs-nav-item[data-tab]'));
+    var flat = kids(nav, '.ccs-nav-item[data-tab]');
+    items = items.concat(flat).sort(function (a, b) { return (+a.getAttribute('data-csc-i') || 0) - (+b.getAttribute('data-csc-i') || 0); });
+    var anchor = kids(nav, '.ccs-nav-phone, .cc-t-new')[0] || null;
+    items.forEach(function (b) { if (!b.classList.contains('ccs-nav-phone')) nav.insertBefore(b, anchor); });
+    ws.forEach(function (w) { [].slice.call(w.children).forEach(function (c) { if (!c.classList.contains('csc-h')) nav.insertBefore(c, anchor); }); nav.removeChild(w); });
+    nav.classList.remove('csc-grouped');
+  }
+  function label(nav) {
+    var t = nav.querySelector('.ccs-nav-item[data-tab="tablet"] > span:not(.ccs-count)');
+    if (t && t.textContent !== 'Service view') t.textContent = 'Service view';
+  }
   function icons(side) {
     var items = side.querySelectorAll('.ccs-nav-item[data-tab]');
     for (var i = 0; i < items.length; i++) {
@@ -60,14 +128,28 @@
     queued = false;
     var side = doc.querySelector('#cc-staff .ccs-side'); if (!side) return;
     icons(side); fold(side);
+    var nav = side.querySelector('.ccs-nav'), app = side.closest('.ccs-app');
+    if (nav) {
+      if (mq(WIDE) && app && !app.classList.contains('is-single')) { label(nav); group(nav); } else ungroup(nav);
+    }
+  }
+  // Run straight from the observer (before paint), guarded: a pass that changes nothing ends the chain; a runaway is capped.
+  var running = false, passes = 0, windowStart = 0;
+  function now() { return Date.now ? Date.now() : +new Date(); }
+  function observed() {
+    if (running) return;
+    var t = now(); if (t - windowStart > 1000) { windowStart = t; passes = 0; }
+    if (++passes > 40) { schedule(); return; }
+    running = true; try { tick(); } finally { running = false; }
   }
   var queued = false;
   function schedule() { if (!queued) { queued = true; (global.requestAnimationFrame || setTimeout)(tick); } }
   function start() {
     tick();
     var root = doc.getElementById('cc-staff');
-    if (root && global.MutationObserver) new MutationObserver(schedule).observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+    if (root && global.MutationObserver) new MutationObserver(observed).observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+    global.addEventListener('resize', schedule);
   }
   if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', start); else start();
-  global.CCSidebarContract = { version: '2026-10-21-sidebar-contract-v1', apply: tick };
+  global.CCSidebarContract = { version: '2026-10-21-sidebar-contract-v2', apply: tick };
 })(window);
