@@ -162,7 +162,10 @@ const sizeOf = (p, s) => p.evaluate(s => { const e = [...document.querySelectorA
       const c = await p.evaluate(() => { const side = document.querySelector('#cc-staff .ccs-side'), it = document.querySelector('#cc-staff .ccs-nav-item');
         return { token: getComputedStyle(document.documentElement).getPropertyValue('--cc-fs-body').trim(), side: Math.round(side.getBoundingClientRect().width), nav: getComputedStyle(it).fontSize,
           newbar: !!(document.querySelector('.cc-t-new') || {}).getClientRects && !!document.querySelector('.cc-t-new').getClientRects().length, smooth: getComputedStyle(document.documentElement).scrollBehavior }; });
-      check(w + 'x' + h + ' computer: the touch sizes are not used, the menu is as before, no extra buttons', c.token === '' && c.side === 248 && c.nav === '16px' && !c.newbar, c);
+      // Since the shared sidebar contract (src/staff.sidebar-contract.css) computers have a 256px menu with 15px names;
+      // before it, 248px with 16px names. Either way the touch sizes are not used on computers.
+      const contract = await p.evaluate(() => !!document.getElementById('ccs-sidebar-contract'));
+      check(w + 'x' + h + ' computer: the touch sizes are not used, the menu is as expected, no extra buttons', c.token === '' && (contract ? c.side === 256 && c.nav === '15px' : c.side === 248 && c.nav === '16px') && !c.newbar, c);
       check(w + 'x' + h + ' computer: no script errors', !errors.length, errors);
       await ctx.close();
     }
