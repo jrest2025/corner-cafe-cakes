@@ -8,8 +8,8 @@ const normalize=(source,today)=>source.filter(o=>o.st!=='cancelled').map(o=>({pd
 const w={CCCakeSeasonalStage:{normalize},setTimeout:(f)=>f(),requestAnimationFrame:(f)=>f()};
 vm.runInNewContext(script,{window:w,Date,Math,Number,Array,Object,String,Intl,console}, {filename:'rail.js'});
 const api=w.CCCakeDemandRail;
-assert.equal(api.version,'1.0.1');
-assert.equal(api.rangeEnd,'2027-12-31');
+assert.equal(api.version,'1.1.0');
+assert.equal(api.rangeEnd,'2028-12-31');
 assert.equal(api.rangeStart,'2024-01-01');
 assert.ok(api.maxRenderedDays<=62);
 const orders=[
@@ -23,4 +23,10 @@ assert.equal(api.dayStat(data,'2027-12-25','2026-10-19').due,4);
 assert.equal(api.dayStat(data,'2027-12-25','2026-10-19').booked,null);
 assert.equal(api.dayStat(data,'2026-10-21','2026-10-19').due,0);
 assert.equal(api.dayStat(data,'2024-01-01','2026-10-19').booked,null);
+// v1.1.0: the order counting is unchanged (the checks above are the v1.0.1 checks); holidays are display only
+assert.ok(api.holidays().length>130);
+assert.ok(!api.holidays().some(h=>/Golden Week|Japan/.test(h.name)),'no Japanese holidays in the Cake Heartbeat');
+assert.ok(api.holidaysOn('2026-10-10').some(h=>h.name==='Fiji Day'));
+assert.ok(api.holidaysOn('2028-12-25').some(h=>/Christmas/.test(h.name)));
+assert.equal(api.dayStat(api.indexOrders([{od:'2026-10-18',pd:'2028-06-01',odok:true,st:'confirmed',qty:3}],'2026-10-19',normalize),'2028-06-01','2026-10-19').due,3);
 console.log('Protected Daily Cake Demand contract: PASS');
