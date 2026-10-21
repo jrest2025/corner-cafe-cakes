@@ -1,6 +1,6 @@
-# Universal colour and chart-weight tokens, phase 1: Cake CRM Analytics (candidate, 21 October 2026)
+# Universal colour and chart-weight tokens, phase 1: Cake CRM Analytics (live 21 October 2026)
 
-Not live. Waiting for Roneel to say "deploy".
+Live from about 8:55 PM Fiji time, 21 October 2026. Roneel said "deploy" at 8:48 PM after seeing the before and after pictures. Published to cornercafefiji.com and www.cornercafefiji.com (not the Webflow subdomain).
 
 ## What it is
 - One token library (`--jr-*` on `#cc-staff`) for all Jack's Restaurants apps: the brief's identity, accent and neutral colours, semantic states (success, warning, error, info, neutral), a ranked categorical order (teal, amber, violet, blue, coral, sage), fixed meanings (New = Royal Blue, Returning = Ocean Teal, pending = light amber) and chart weights.
@@ -40,5 +40,13 @@ Not live. Waiting for Roneel to say "deploy".
 - Amber, coral and sage fills are below 3:1 against white; every slice and bar keeps its label and value, so colour is never the only cue.
 - The app has no dark mode, so no dark variants were needed.
 
-## Release when approved
-Change the staff page footer's app loader line to the candidate commit and file, read it back, publish to both custom domains. Rollback: put back the current live footer (`test/fixtures/staff-footer.html`).
+## Release
+- App loader now points at commit `1796348b9c9d5a5cd37a9a5e077af3a9588fba4d`, file `dist/app/staff-app.8d2db54212.js` (md5 `f7ecfb9eebf78f5e3c67ccc42a66b21d`, identical on raw.githubusercontent.com).
+- Footer built by `build/page_release_colour_harmony_20261021.py`: 49,491 characters, md5 `3d89bb33139af52ac9318b4f5f2bbe60`. Only the app loader line changed. Head unchanged.
+- Before writing, the live footer was still the 7:52 PM release (md5 `be57f4389162c01c9d1c6e75f9bbbf75`). Read back after saving: identical to the built file. It is now `test/fixtures/staff-footer.html`.
+- Heartbeat guard on the exact published footer: 80/80.
+
+## Rollback
+Put back `docs/rollback/staff-footer-before-colour-harmony-2026-10-21.html` as the staff page footer (md5 `be57f4389162c01c9d1c6e75f9bbbf75`), read it back, then publish to both custom domains.
+
+Staff need to refresh the counter tablet once to get the new version.
