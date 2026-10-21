@@ -18,4 +18,13 @@ Tests: `test/run_pickup_guard.cjs` 10/10 (the live build fails the two new check
 Release footer: `dist/staff.footer.pickup-guard.html` = the live footer of 21 Oct 11:37 PM with only the app loader line
 changed. Before writing it, read the live footer and confirm it is still `dist/staff.footer.sidebar-contract.html`.
 Rollback: put `dist/staff.footer.sidebar-contract.html` back as the staff page footer and publish.
-Not live. Waiting for Roneel's "deploy".
+Live since 22 October 2026, 7:54 AM Fiji (approved by Roneel). See "Released live" below.
+
+## Released live, 22 October 2026, 7:54 AM Fiji (approved by Roneel)
+
+- Before writing, the live staff page footer was read and matched `dist/staff.footer.sidebar-contract.html` exactly (49,491 characters).
+- Staff page `/cake-orders-staff` footer: only the app loader line changed, to `staff-app.61d3858119.js` at commit 30fbce0 with SRI `sha384-heG0BJKRxx0VZEXg5u0XpSFS2jPA9jFoB04oiYU33l7mmFg0XgUHtqYKveIG9P0U`.
+- Checks on that exact footer: pickup guard 10 of 10, Heartbeat guard 80 of 80, protected Daily Cake Demand contract passed.
+- Written through the Webflow API, read back and compared character for character (identical, 49,491 characters).
+- Published to cornercafefiji.com and www.cornercafefiji.com only (not the webflow.io address).
+- Rollback: paste `docs/rollback/staff-footer-before-pickup-guard-2026-10-22.html` (md5 167702eb04703db23bb3a94f46f55f2d) into the staff page footer, read it back, and publish to the same two domains. No database changes.
