@@ -1,0 +1,55 @@
+/* Corner Café Service Hub: the greeting and daily briefing on Today (21 October 2026). Readable and restrained: dark
+   text on white, colour only on what can be tapped (the briefing lines). Sizes follow the touch standard's tokens on
+   tablets and phones, with comfortable defaults on computers. */
+#cc-staff .tq-head .ccb-hello { overflow-wrap: anywhere; }
+#cc-staff .tq-head .ccb-sum {
+  margin: 6px 0 2px; max-width: 64ch; color: var(--cc-ink, #1D2939);
+  font-size: var(--cc-fs-body, 18px); font-weight: 600; line-height: 1.4;
+}
+#cc-staff .tq-head p.ccb-date { margin: 2px 0 0; color: var(--cc-ink-2, #344054); font-size: var(--cc-fs-label, 16px); line-height: 1.4; }
+#cc-staff .tq-head .ccs-fresh .ccb-date { color: inherit; }
+/* the briefing is the head's last, full-width row */
+#cc-staff .tq-head.ccs-dash-head:has(> .ccb-list) { flex-wrap: wrap; }
+#cc-staff .tq-head > .ccb-list { flex: 1 1 100%; order: 9; width: 100%; }
+#cc-staff .ccb-list {
+  list-style: none; margin: 4px 0 4px; padding: 0;
+  display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+}
+#cc-staff .ccb-list > li { margin: 0; padding: 0; min-width: 0; }
+#cc-staff .ccb-item {
+  appearance: none; -webkit-appearance: none; width: 100%; height: 100%;
+  display: flex; align-items: center; gap: 12px; min-height: var(--cc-btn-h, 52px); padding: 10px 12px 10px 14px;
+  border: 1px solid #D0D5DD; border-radius: 12px; background: #fff; color: var(--cc-ink, #1D2939);
+  font: inherit; font-size: var(--cc-fs-label, 16px); line-height: 1.35; text-align: left; cursor: pointer;
+  -webkit-tap-highlight-color: transparent; transition: border-color .15s ease, background-color .15s ease;
+}
+#cc-staff .ccb-item > span { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+#cc-staff .ccb-item b { font-weight: 700; }
+#cc-staff .ccb-item svg {
+  flex: none; width: 24px; height: 24px; fill: none; stroke: #1F4E79; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round;
+}
+#cc-staff .ccb-item svg:last-child { width: 20px; height: 20px; stroke: #475467; }
+#cc-staff .ccb-item:hover { border-color: #1F4E79; }
+#cc-staff .ccb-item:focus-visible { outline: 3px solid #1F4E79; outline-offset: 2px; }
+#cc-staff .ccb-item.is-urgent { border-color: #D92D20; border-left-width: 4px; }
+#cc-staff .ccb-item.is-urgent svg:first-child { stroke: #B42318; }
+#cc-staff .ccb-item.is-new { border-color: #1F4E79; background: #F2F6FB; }
+/* Computers: Today fits the screen with everything on it, so the greeting block keeps the buttons beside it, the
+   briefing lines sit on one compact row, and on screens too short to fit them (most laptops) they are left out: the
+   sentence under the greeting still says what matters, and all the detail is on the same screen below. */
+@media (hover: hover) and (pointer: fine) and (min-width: 1000px) {
+  #cc-staff .tq-head.ccs-dash-head > div:first-child { flex: 1 1 0; min-width: 0; }
+  #cc-staff .tq-head.ccs-dash-head > .tq-tools { flex: none; }
+  #cc-staff .tq-head .ccb-sum { margin-top: 4px; }
+  #cc-staff .tq-head > .ccb-list { grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 6px 0 0; }
+  #cc-staff .ccb-item { min-height: 44px; padding-top: 6px; padding-bottom: 6px; }
+  #cc-staff .ccb-item > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+}
+@media (hover: hover) and (pointer: fine) and (min-width: 1000px) and (max-height: 899px) {
+  #cc-staff .tq-head > .ccb-list { display: none; }
+}
+@media (max-width: 700px) {
+  #cc-staff .ccb-list { grid-template-columns: 1fr; margin-bottom: 12px; }
+  #cc-staff .tq-head .ccb-sum { margin-top: 4px; }
+}
+@media print { #cc-staff .ccb-list { display: none !important; } }

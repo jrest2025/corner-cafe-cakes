@@ -1,0 +1,153 @@
+/* Jack's Restaurants universal colour and chart-weight tokens: phase 1, Corner Café Cake CRM Analytics (21 October 2026)
+   Styles only. No data, calculation, chart type, axis or behaviour changes.
+   Not touched on purpose (protected): the Cake Heartbeat (#cc-heartbeat), Daily cake demand rail, Seasonal booking buildup,
+   the Occasions Booking curve (svg.oi-curve and its key table .oi-ctab), and the Heartbeat's own insight cards.
+   Scope: two ids, so this wins over the app, charcoal and semantic-colour layers whatever order they load in. */
+
+/* ---------- 1. Tokens (shared by every Jack's Restaurants app; Corner Café accent is Ocean Teal) ---------- */
+#cc-staff{
+  /* identity */
+  --jr-navy:#183153;--jr-blue:#2878B5;--jr-teal:#168F91;--jr-cyan:#49B8CF;
+  /* accents */
+  --jr-amber:#E9A23B;--jr-coral:#E17A65;--jr-violet:#8567B6;--jr-sage:#74A58B;
+  /* neutrals */
+  --jr-bg:#F5F7FA;--jr-card:#FFFFFF;--jr-border:#DCE3EB;--jr-text:#25364A;--jr-text-2:#596B7C;
+  --jr-track:#EEF2F6;--jr-grid:#E6EBF0;--jr-axis:#C5CED9;--jr-other:#C3CCD6;--jr-prev:#7D8D9C;
+  /* app accent: Corner Café = Ocean Teal, with a light and a deep step */
+  --jr-accent:var(--jr-teal);--jr-accent-700:#0F7375;--jr-accent-400:#4FAFB0;--jr-accent-200:#BFE1E1;--jr-accent-50:#EEF7F7;
+  /* semantic states (text versions pass WCAG AA on white and on their washes) */
+  --jr-success:#1E7F4F;--jr-success-bg:#E6F4EC;
+  --jr-warning:#9A5B06;--jr-warning-mark:#E9A23B;--jr-warning-bg:#FDF3E2;
+  --jr-error:#B42318;--jr-error-bg:#FDECEA;
+  --jr-info:#1F639A;--jr-info-bg:#EAF2FA;
+  --jr-neutral:#596B7C;--jr-neutral-bg:#EEF2F6;
+  /* categorical order for ranked charts: teal, amber, violet, blue, coral, sage */
+  --jr-cat-1:var(--jr-teal);--jr-cat-2:var(--jr-amber);--jr-cat-3:var(--jr-violet);--jr-cat-4:var(--jr-blue);--jr-cat-5:var(--jr-coral);--jr-cat-6:var(--jr-sage);
+  /* fixed meanings */
+  --jr-new:var(--jr-blue);--jr-returning:var(--jr-teal);--jr-pending:#F2CB86;
+  /* chart weights */
+  --jr-stroke-primary:2.25px;--jr-stroke-secondary:1.75px;--jr-stroke-axis:1px;--jr-stroke-grid:1px;--jr-stroke-spark:1.75px;
+  --jr-marker:3px;--jr-marker-hover:5px;--jr-radius-bar:4px;--jr-donut-ring:14px;
+}
+
+/* ---------- 2. Headline tiles: white surface, one 4px accent edge and pip ---------- */
+#cc-staff #ccs-main .cat-k{--accent:var(--jr-teal);background:var(--jr-card);border-color:var(--jr-border)}
+#cc-staff #ccs-main .cat-k.cat-purple{--accent:var(--jr-violet);background:var(--jr-card);border-color:var(--jr-border)}
+#cc-staff #ccs-main .cat-k.cat-blue{--accent:var(--jr-blue);background:var(--jr-card);border-color:var(--jr-border)}
+#cc-staff #ccs-main .cat-k.cat-amber{--accent:var(--jr-amber);background:var(--jr-card);border-color:var(--jr-border)}
+#cc-staff #ccs-main .cat-k.cat-pink{--accent:var(--jr-coral);background:var(--jr-card);border-color:var(--jr-border)}
+#cc-staff #ccs-main .cat-k::before{width:4px}
+#cc-staff #ccs-main .cat-k strong{color:var(--ccs-ink,#15171c)}
+#cc-staff #ccs-main .cat-k-d.is-up{background:var(--jr-success-bg);color:var(--jr-success)}
+#cc-staff #ccs-main .cat-k-d.is-down{background:var(--jr-error-bg);color:var(--jr-error)}
+
+/* ---------- 3. Cards ---------- */
+#cc-staff #ccs-main .cat-card{border-color:var(--jr-border)}
+#cc-staff #ccs-main .cat-card>header{border-bottom-color:var(--jr-grid)}
+#cc-staff #ccs-main .cat-card>header h3{color:var(--ccs-ink,#15171c)}
+#cc-staff #ccs-main .cat-card>header>.cat-all{background:var(--jr-neutral-bg);color:var(--jr-text)}
+
+/* ---------- 4. Single-series columns and bars: one colour, the peak in the deep step ---------- */
+/* Tab pages: Sales by day, Busiest pickup days, Cakes due */
+#cc-staff #ccs-main .cat-ct{background:var(--jr-track);border-radius:var(--jr-radius-bar)}
+#cc-staff #ccs-main .cat-cb{background:var(--jr-accent-400);border-radius:var(--jr-radius-bar) var(--jr-radius-bar) 0 0}
+#cc-staff #ccs-main .cat-col.is-top .cat-cb{background:var(--jr-accent-700)}
+#cc-staff #ccs-main .cat-cb>i.cat-c2,#cc-staff #ccs-main .cat-key i.cat-k2{background:var(--jr-pending)}
+#cc-staff #ccs-main .cat-key i.cat-k1{background:var(--jr-accent-400)}
+#cc-staff #ccs-main .cat-col.is-now .cat-ct{box-shadow:inset 0 0 0 1.5px var(--jr-accent-200)}
+#cc-staff #ccs-main .cat-peak i{background:var(--jr-accent-700);border-radius:2px}
+/* Overview and Occasion report columns, horizontal bars */
+#cc-staff #ccs-main .dx-colbar{background:var(--jr-track);border-radius:var(--jr-radius-bar)}
+#cc-staff #ccs-main .dx-colbar>i{background:var(--jr-accent-400);border-radius:var(--jr-radius-bar) var(--jr-radius-bar) 0 0}
+#cc-staff #ccs-main .dx-col.is-top .dx-colbar>i{background:var(--jr-accent-700)}
+#cc-staff #ccs-main .dx-col.is-dim .dx-colbar>i{background:var(--jr-accent-200)}
+#cc-staff #ccs-main .dx-peak i{background:var(--jr-accent-700)}
+#cc-staff #ccs-main .dx-bt{background:var(--jr-track);border-radius:var(--jr-radius-bar)}
+#cc-staff #ccs-main .dx-bt>i{background:var(--jr-accent-400);border-radius:var(--jr-radius-bar)}
+#cc-staff #ccs-main .dx-brow.is-top .dx-bt>i{background:var(--jr-accent-700)}
+/* Ranked bars: the tone stays the measure's colour, now from the shared palette */
+#cc-staff #ccs-main .cat-bt{background:var(--jr-track);border-radius:var(--jr-radius-bar)}
+#cc-staff #ccs-main .cat-bt>i{background:var(--jr-teal);border-radius:var(--jr-radius-bar)}
+#cc-staff #ccs-main .cat-bars.cat-t-blue .cat-bt>i{background:var(--jr-blue)}
+#cc-staff #ccs-main .cat-bars.cat-t-purple .cat-bt>i{background:var(--jr-violet)}
+#cc-staff #ccs-main .cat-bars.cat-t-amber .cat-bt>i{background:var(--jr-amber)}
+/* Occasions: distribution bars and lead-time cells */
+#cc-staff #ccs-main .oi-dt{background:var(--jr-track);border-radius:var(--jr-radius-bar)}
+#cc-staff #ccs-main .oi-drow .oi-dt i{background:var(--jr-accent-400);border-radius:var(--jr-radius-bar)}
+#cc-staff #ccs-main .oi-drow.is-on .oi-dt i{background:var(--jr-accent-700)}
+#cc-staff #ccs-main .oi-drow.is-on{background:var(--jr-accent-50)}
+#cc-staff #ccs-main .lt-bar{background:var(--jr-accent-200);border-radius:2px}
+#cc-staff #ccs-main td.lt-c.is-top{background:var(--jr-accent-50);color:var(--jr-accent-700)}
+/* Year on year: one hue, older years lighter, the latest year strongest (was three unrelated colours) */
+#cc-staff #ccs-main .oi-yg>.oi-yrow .oi-dt i{background:var(--jr-accent-200)!important;border-radius:var(--jr-radius-bar)}
+#cc-staff #ccs-main .oi-yg>.oi-yrow:nth-last-child(2) .oi-dt i{background:var(--jr-accent-400)!important}
+#cc-staff #ccs-main .oi-yg>.oi-yrow:last-child .oi-dt i{background:var(--jr-accent)!important}
+#cc-staff #ccs-main .oi-ch.is-up{color:var(--jr-success)}
+#cc-staff #ccs-main .oi-ch.is-down{color:var(--jr-error)}
+/* Year overview (workspace) columns */
+#cc-staff #ccs-main .aw-month-track>i{background:var(--jr-accent);border-radius:var(--jr-radius-bar) var(--jr-radius-bar) 0 0}
+
+/* ---------- 5. Heatmap: one ordered teal scale, darker means more (was the old green) ---------- */
+#cc-staff #ccs-main .oi-cell[style*="rgba(75,99,57,0.1"]{background:#E8F3F3!important;color:var(--ccs-ink,#15171c)!important}
+#cc-staff #ccs-main .oi-cell[style*="rgba(75,99,57,0.2"]{background:#D2E8E8!important;color:var(--ccs-ink,#15171c)!important}
+#cc-staff #ccs-main .oi-cell[style*="rgba(75,99,57,0.3"]{background:#B9DBDC!important;color:var(--ccs-ink,#15171c)!important}
+#cc-staff #ccs-main .oi-cell[style*="rgba(75,99,57,0.4"]{background:#9DCCCD!important;color:var(--ccs-ink,#15171c)!important}
+#cc-staff #ccs-main .oi-cell[style*="rgba(75,99,57,0.5"]{background:#7FBCBD!important;color:var(--ccs-ink,#15171c)!important}
+#cc-staff #ccs-main .oi-cell[style*="rgba(75,99,57,0.6"]{background:#5FAAAC!important;color:var(--ccs-ink,#15171c)!important}
+#cc-staff #ccs-main .oi-cell[style*="rgba(75,99,57,0.7"]{background:#3E9799!important;color:var(--ccs-ink,#15171c)!important}
+#cc-staff #ccs-main .oi-cell[style*="rgba(75,99,57,0.8"]{background:#1D7F81!important;color:#fff!important}
+#cc-staff #ccs-main .oi-cell[style*="rgba(75,99,57,0.9"]{background:#0F6668!important;color:#fff!important}
+#cc-staff #ccs-main .oi-cell.is-on{outline:2px solid var(--jr-navy);outline-offset:1px}
+
+/* ---------- 6. Donuts: one ring width, the shared ranked palette, Other always grey ---------- */
+#cc-staff #ccs-main .an-donut circle,#cc-staff #ccs-main .cat-donut svg circle{stroke-width:var(--jr-donut-ring)}
+#cc-staff #ccs-main .an-donut g>circle:nth-of-type(1),#cc-staff #ccs-main .cat-donut g>circle:nth-of-type(1){stroke:var(--jr-cat-1)}
+#cc-staff #ccs-main .an-donut g>circle:nth-of-type(2),#cc-staff #ccs-main .cat-donut g>circle:nth-of-type(2){stroke:var(--jr-cat-2)}
+#cc-staff #ccs-main .an-donut g>circle:nth-of-type(3),#cc-staff #ccs-main .cat-donut g>circle:nth-of-type(3){stroke:var(--jr-cat-3)}
+#cc-staff #ccs-main .an-donut g>circle:nth-of-type(4),#cc-staff #ccs-main .cat-donut g>circle:nth-of-type(4){stroke:var(--jr-cat-4)}
+#cc-staff #ccs-main .an-donut g>circle:nth-of-type(5),#cc-staff #ccs-main .cat-donut g>circle:nth-of-type(5){stroke:var(--jr-cat-5)}
+#cc-staff #ccs-main .an-donut g>circle:nth-of-type(6){stroke:var(--jr-cat-6)}
+#cc-staff #ccs-main .an-donut g>circle[stroke="#b5bac1"],#cc-staff #ccs-main .cat-donut g>circle[stroke="#b5bac1"]{stroke:var(--jr-other)}
+#cc-staff #ccs-main .an-leg>li:nth-child(1) i,#cc-staff #ccs-main .cat-donut .cat-leg>.cat-lr:nth-child(1)>i{background:var(--jr-cat-1)!important}
+#cc-staff #ccs-main .an-leg>li:nth-child(2) i,#cc-staff #ccs-main .cat-donut .cat-leg>.cat-lr:nth-child(2)>i{background:var(--jr-cat-2)!important}
+#cc-staff #ccs-main .an-leg>li:nth-child(3) i,#cc-staff #ccs-main .cat-donut .cat-leg>.cat-lr:nth-child(3)>i{background:var(--jr-cat-3)!important}
+#cc-staff #ccs-main .an-leg>li:nth-child(4) i,#cc-staff #ccs-main .cat-donut .cat-leg>.cat-lr:nth-child(4)>i{background:var(--jr-cat-4)!important}
+#cc-staff #ccs-main .an-leg>li:nth-child(5) i,#cc-staff #ccs-main .cat-donut .cat-leg>.cat-lr:nth-child(5)>i{background:var(--jr-cat-5)!important}
+#cc-staff #ccs-main .an-leg>li:nth-child(6) i{background:var(--jr-cat-6)!important}
+#cc-staff #ccs-main .an-leg i[style*="#b5bac1"],#cc-staff #ccs-main .cat-donut .cat-leg i[style*="#b5bac1"]{background:var(--jr-other)!important}
+#cc-staff #ccs-main .an-leg i,#cc-staff #ccs-main .cat-leg i{border-radius:3px}
+/* New and returning customers: fixed colours, the same wherever they appear */
+#cc-staff #ccs-main .cat-split .cat-sb>i:nth-child(1),#cc-staff #ccs-main .cat-split .cat-leg>.cat-lr:nth-child(1)>i{background:var(--jr-new)!important}
+#cc-staff #ccs-main .cat-split .cat-sb>i:nth-child(2),#cc-staff #ccs-main .cat-split .cat-leg>.cat-lr:nth-child(2)>i{background:var(--jr-returning)!important}
+#cc-staff #ccs-main .cat-sb{border-radius:var(--jr-radius-bar)}
+
+/* ---------- 7. Line charts: primary 2.25px, comparison 1.75px dashed, light 1px grid, small markers ---------- */
+#cc-staff #ccs-main .or-chart .or-grid,#cc-staff #ccs-main .ov-svg .ov-grid{stroke:var(--jr-grid);stroke-width:var(--jr-stroke-grid)}
+#cc-staff #ccs-main .ov-svg .ov-base{stroke:var(--jr-axis);stroke-width:var(--jr-stroke-axis)}
+#cc-staff #ccs-main .or-chart .or-ax{fill:var(--jr-text-2)}
+#cc-staff #ccs-main .or-chart polyline.or-cur,#cc-staff #ccs-main .ov-svg .ov-line{stroke:var(--jr-accent);stroke-width:var(--jr-stroke-primary);stroke-linecap:round;stroke-linejoin:round}
+#cc-staff #ccs-main .or-chart polyline.or-prev,#cc-staff #ccs-main .ov-svg .ov-prev{stroke:var(--jr-prev);stroke-width:var(--jr-stroke-secondary);stroke-dasharray:5 4;stroke-linecap:round;stroke-linejoin:round}
+#cc-staff #ccs-main .or-chart circle.or-cur{fill:var(--jr-accent);stroke:#fff;stroke-width:1.5px;r:var(--jr-marker);transition:r .12s ease}
+#cc-staff #ccs-main .or-chart circle.or-prev{fill:var(--jr-prev);stroke:#fff;stroke-width:1.5px;r:var(--jr-marker);transition:r .12s ease}
+#cc-staff #ccs-main .or-chart circle:hover{r:var(--jr-marker-hover)}
+#cc-staff #ccs-main .or-k.or-k-cur{background:var(--jr-accent)}
+#cc-staff #ccs-main .or-k.or-k-prev{background:repeating-linear-gradient(90deg,var(--jr-prev) 0 5px,transparent 5px 9px)}
+#cc-staff #ccs-main .ov-svg .ov-area{fill:rgba(22,143,145,.08)}
+#cc-staff #ccs-main .ov-dot{background:var(--jr-accent)}
+#cc-staff #ccs-main .ov-key-line{background:var(--jr-accent)}
+#cc-staff #ccs-main .dx-spark polyline,#cc-staff #ccs-main .ov-kpi .dx-spark polyline{stroke:var(--jr-accent);stroke-width:var(--jr-stroke-spark);stroke-linecap:round;stroke-linejoin:round}
+/* Waiting-for-data outlines: lighter so they never read as real data */
+#cc-staff #ccs-main .an-gh path,#cc-staff #ccs-main .an-gh polyline{stroke:var(--jr-border);stroke-width:var(--jr-stroke-secondary)}
+#cc-staff #ccs-main .an-gh circle{stroke:var(--jr-track);stroke-width:var(--jr-donut-ring)}
+#cc-staff #ccs-main .an-gh rect{fill:var(--jr-track)}
+
+/* ---------- 8. "What to do" cards on the tab pages (the Heartbeat's own cards are not touched) ---------- */
+#cc-staff #ccs-main .cat-todo .cci-card.cci-act{--cci-c:var(--jr-error);--cci-w:var(--jr-error-bg)}
+#cc-staff #ccs-main .cat-todo .cci-card.cci-warn{--cci-c:var(--jr-warning);--cci-w:var(--jr-warning-bg)}
+#cc-staff #ccs-main .cat-todo .cci-card.cci-plan{--cci-c:var(--jr-info);--cci-w:var(--jr-info-bg)}
+#cc-staff #ccs-main .cat-todo .cci-card.cci-good{--cci-c:var(--jr-success);--cci-w:var(--jr-success-bg)}
+#cc-staff #ccs-main .cat-todo .cci-card.cci-trend{--cci-c:#6E52A0;--cci-w:#F1EDF8}
+#cc-staff #ccs-main .cat-todo .cci-card.cci-chance{--cci-c:var(--jr-accent-700);--cci-w:var(--jr-accent-50)}
+#cc-staff #ccs-main .cat-todo .cci-card.cci-note{--cci-c:var(--jr-neutral);--cci-w:var(--jr-neutral-bg)}
+
+@media (forced-colors:active){#cc-staff #ccs-main .cat-cb,#cc-staff #ccs-main .dx-colbar>i,#cc-staff #ccs-main .cat-bt>i,#cc-staff #ccs-main .oi-dt i{forced-color-adjust:none}}
