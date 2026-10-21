@@ -79,6 +79,18 @@ Roles checked at 1440 × 900 with the test mock:
 ## Release (21 October 2026)
 
 - Roneel said "deploy" at 10:44 PM Fiji time.
+- STATUS: merged to `main` (d798dfd) and ready, but NOT LIVE yet. The Webflow footer was not changed and nothing was published.
+  The footer write takes the whole 49,491-character footer typed into one tool call, and an exact copy could not be
+  guaranteed. Whether the site had other unpublished changes could not be confirmed either (see below).
+- Footer to paste: `dist/staff.footer.sidebar-contract.html` (md5 5b06c8238a5cc5baeb9f3e7befb02aa5). It is the live
+  footer with only line 2 (the staff app loader) changed to commit `d798dfdbfe33ac851845491493c29b7498057331`, file
+  `dist/app/staff-app.efbea59dfe.js`, SRI `sha384-y4Tpu58/46mvOlv2T/VfHRSf3oIahcHYva0VV/G5vpmEzYN/ZRhi+5l/aO+l6YS/`.
+  GitHub serves the file at that commit byte for byte equal to the build.
+- Pending-change check before publishing:
+  - No page was updated after the last publish (9:40:55 PM).
+  - No CMS item is staged; the draft pages and draft festive items stay drafts.
+  - The site's last update (9:41:04 PM) is 9 seconds after that publish. The API cannot show designer-only changes
+    (styles, components), so the check is not conclusive. Confirm in the Designer's publish dialog before publishing.
 - Brand line under the logo: "Service Hub" became "Marketing Central" (shown uppercase). This applies to the side menu
   and the phone top bar only; the sign-in screen and the page title are unchanged.
 - The line is one line in the 256px menu and on iPad (17px). It is two lines on the 96px rail and on phones.
