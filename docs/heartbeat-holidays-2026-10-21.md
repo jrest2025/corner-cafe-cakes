@@ -26,3 +26,10 @@ rail (docs/HEARTBEAT_PROTECTED.md, rule 1).
 2. In the staff page footer, pin `staff.demand-rail.locked.js` and `.css` to the new commit (nothing else changes).
 3. Run the guard (docs/HEARTBEAT_PROTECTED.md, rule 3), publish, then update test/fixtures/staff-footer.html.
 Rollback: pin the two files back to commit 71758a893197746fcca5a1027e4d40450c3dcb26. The database part can stay.
+
+## Released 21 October 2026, about 11:30 PM Fiji time (Roneel: "deploy")
+- Database: supabase/sql/timeline_events_v1.sql applied (timeline_events 114 entries; calendar_events 12 to 33).
+- Staff page footer: only the two rail pins changed, 71758a8 to fd6e6fa612a29ece7e14005dcf1885819c63607a. 49,491 characters, md5 77c2e1bee1f40da5405787f37da8c151, read back from Webflow and identical. Now test/fixtures/staff-footer.html.
+- Heartbeat guard on the new footer: 80 passed, 0 failed. Contract test: pass.
+- Before publishing, no other page had changes waiting. Published to cornercafefiji.com and www.cornercafefiji.com.
+- Rollback: paste docs/rollback/staff-footer-before-heartbeat-holidays-2026-10-21.html (md5 9f1a7b44eaf431744dabd9b9de674eb5) as the footer and publish.
