@@ -1,0 +1,47 @@
+/* Corner Café Service Hub: practice mode (21 October 2026). The same gold frame and practice card as the Kazumi
+   Service Hub's practice mode, so the group's apps practise alike. */
+@media screen {
+  /* Practising: a gold frame round the whole screen (it never blocks a tap) */
+  .ccp-frame { position: fixed; inset: 0; border: 5px solid #E0A526; pointer-events: none; z-index: 2147483000; }
+  /* The card at the top of each page */
+  #cc-staff .ccp-card {
+    grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 0 0 16px; padding: 10px 14px;
+    border-radius: 14px; background: #2a2f37; color: #fff; border: 2px solid #E0A526; font-size: 15px; line-height: 1.35;
+  }
+  #cc-staff .ccp-card .ccp-ic { display: inline-grid; place-items: center; flex: none; width: 36px; height: 36px; border-radius: 10px; background: rgba(224, 165, 38, .16); color: #F5C451; }
+  #cc-staff .ccp-card p { flex: 1 1 220px; display: grid; gap: 1px; margin: 0; min-width: 0; }
+  #cc-staff .ccp-card b { color: #F5C451; font-size: 16px; }
+  #cc-staff .ccp-card p span { color: #e8ebef; }
+  #cc-staff .ccp-acts { display: flex; flex-wrap: wrap; gap: 8px; }
+  #cc-staff .ccp-b {
+    min-height: 44px; padding: 0 16px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, .35); background: transparent;
+    color: #fff; font: inherit; font-weight: 650; cursor: pointer; -webkit-tap-highlight-color: transparent;
+  }
+  #cc-staff .ccp-b.ccp-x { background: #E0A526; border-color: #E0A526; color: #1f1300; }
+  #cc-staff .ccp-b:focus-visible { outline: 3px solid #F5C451; outline-offset: 2px; }
+  /* A "Practice" tag on every window */
+  #cc-staff .ccp-tag {
+    display: inline-flex; align-items: center; flex: none; margin: 0 8px; padding: 3px 10px; border-radius: 999px;
+    border: 1px solid #E0A526; background: #FDF3D7; color: #6b4a00; font-size: 13px; font-weight: 750; line-height: 1.3;
+  }
+  /* Icons in the practice buttons */
+  #cc-staff .ccp-card svg, #cc-staff .ccp-nav svg, #cc-staff .ccp-go svg, #cc-staff .ccp-more svg {
+    width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
+  }
+  /* The side menu: Practice mode under the sections; Exit practice in gold while practising */
+  #cc-staff .ccs-side .ccp-nav { margin-top: auto; }
+  #cc-staff .ccs-side .ccp-nav.is-on { background: #E0A526; color: #1f1300; border-radius: 12px; }
+  #cc-staff .ccs-side .ccp-nav.is-on svg { color: #1f1300; }
+  /* The sign-in screen */
+  #cc-staff .ccp-in { margin-top: 18px; padding-top: 16px; border-top: 1px solid #dce3eb; text-align: center; }
+  #cc-staff .ccp-in p { margin: 0 0 10px; color: #4b5c6a; font-size: 15px; line-height: 1.45; }
+  #cc-staff .ccp-in .ccp-go, #cc-staff .ccp-more { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; }
+  /* Phones: the side menu is the top bar there; practice is in More and on the card */
+  @media (max-width: 759px) { #cc-staff .ccs-side .ccp-nav { display: none !important; } }
+  @media (max-width: 600px) {
+    #cc-staff .ccp-card { font-size: 14px; }
+    #cc-staff .ccp-acts { flex: 1 1 100%; }
+    #cc-staff .ccp-acts .ccp-b { flex: 1 1 0; }
+  }
+}
+@media print { .ccp-frame, #cc-staff .ccp-card, #cc-staff .ccp-tag { display: none !important; } }
