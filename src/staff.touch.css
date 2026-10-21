@@ -1,0 +1,224 @@
+/* Corner Café Service Hub: the Jack's Restaurants touch-friendly interface standard (21 October 2026).
+   Roneel, 3:18 PM. Visual only: no data, business rules or steps change. Computers stay exactly as they are.
+   Tablets: (hover: none) and (pointer: coarse) and (min-width: 701px). Phones: (max-width: 700px).
+   Size tokens below; every text size of the app follows them through src/staff.touch-text.css (generated); this file
+   sizes the controls, the iPad side menu, pop-ups and step screens, phones, and keeps the website's own page code off
+   the app. Rules start with html:not(#cc-t1) body:not(#cc-t2) so they win over the app's older rules. No zoom or scale:
+   layouts reflow instead (names wrap, buttons stack, fewer columns), and text never gets smaller to make things fit.
+   Buttons the app already makes taller keep their height (--cc-keep-h, set by the generated rules). */
+
+/* ---------- 1. Tokens ---------- */
+@media (hover: none) and (pointer: coarse) and (min-width: 701px) {
+  :root {
+    --cc-fs-small: 17px; --cc-fs-label: 18px; --cc-fs-body: 20px; --cc-fs-h: 24px; --cc-fs-title: 32px; --cc-fs-num: 34px;
+    --cc-lh: 1.4; --cc-ink: #1D2939; --cc-ink-2: #344054;
+    --cc-btn-h: 56px; --cc-btn-sm-h: 52px; --cc-icon: 54px; --cc-chip-h: 52px; --cc-in-h: 56px; --cc-in-fs: 19px; --cc-btn-fs: 18px;
+    --cc-gap: 8px; --cc-menu-w: 230px; --cc-menu-fs: 19px;
+  }
+}
+@media (hover: none) and (pointer: coarse) and (min-width: 701px) and (orientation: landscape) { :root { --cc-menu-w: 256px; } }
+@media (max-width: 700px) {
+  :root {
+    --cc-fs-small: 16px; --cc-fs-label: 17px; --cc-fs-body: 18px; --cc-fs-h: 21px; --cc-fs-title: 26px; --cc-fs-num: 30px;
+    --cc-lh: 1.4; --cc-ink: #1D2939; --cc-ink-2: #344054;
+    --cc-btn-h: 48px; --cc-btn-sm-h: 48px; --cc-icon: 48px; --cc-chip-h: 48px; --cc-in-h: 52px; --cc-in-fs: 17px; --cc-btn-fs: 17px;
+    --cc-gap: 8px;
+  }
+}
+
+/* ---------- 2. Text: base size, line height and dark text; the app's own grey colour settings made dark ---------- */
+@media (hover: none) and (pointer: coarse) and (min-width: 701px), (max-width: 700px) {
+  html:not(#cc-t1) body:not(#cc-t2) #cc-staff, html:not(#cc-t1) body:not(#cc-t2) #ccs-sheet, html:not(#cc-t1) body:not(#cc-t2) #cc-date-picker-layer {
+    font-size: var(--cc-fs-body); line-height: var(--cc-lh); -webkit-text-size-adjust: 100%;
+  }
+  html:not(#cc-t1) body:not(#cc-t2) #cc-staff, html:not(#cc-t1) body:not(#cc-t2) #ccs-sheet, html:not(#cc-t1) body:not(#cc-t2) #cc-staff #ccs-main,
+  html:not(#cc-t1) body:not(#cc-t2) #ccs-sheet.rm-profile {
+    --sc-ink: #1D2939 !important; --u-ink: #1D2939 !important; --ccv-ink: #1D2939 !important; --rm-ink: #1D2939 !important; --ccs-text: #1D2939 !important;
+    --ccs-muted: #344054 !important; --ds-muted: #344054 !important; --sc-muted: #344054 !important;
+    --u-ink2: #344054 !important; --cdir-quiet: #344054 !important; --rm-muted: #344054 !important;
+  }
+  /* The Cake Heartbeat (Analytics) is protected and stays exactly as it is: its own text settings, as before */
+  html:not(#cc-t1) body:not(#cc-t2) #cc-staff #cc-heartbeat {
+    font-size: 18px; line-height: 1.45; color: rgb(41, 50, 61);
+    --ccs-ink: #15171c; --ds-text: #15171c; --sc-ink: #29323d; --u-ink: #253247; --ccv-ink: #273443; --ccs-text: #343942;
+    --ccs-muted: #596069; --ds-muted: #596069; --ds-text-2: #343942; --sc-muted: #596574; --u-ink2: #64748B;
+  }
+  html:not(#cc-t1) body:not(#cc-t2) #cc-staff ::placeholder, html:not(#cc-t1) body:not(#cc-t2) #ccs-sheet ::placeholder { color: #475467 !important; opacity: 1 !important; }
+  /* Long names and numbers wrap instead of running off the screen */
+  html:not(#cc-t1) body:not(#cc-t2) #cc-staff :is(.vr-customer, .ccs-what b, .ccs-mini b, .ccs-mini-l, .tq-w b, .os-cust, .ccs-title),
+  html:not(#cc-t1) body:not(#cc-t2) #ccs-sheet :is(.ccs-title, .os-cust, b, td) { overflow-wrap: anywhere; }
+  html:not(#cc-t1) body:not(#cc-t2) #cc-staff :is(.tx-islands, .ap-col) .wd-p { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; }
+}
+
+/* ---------- 3. Controls (tablets and phones, sizes from the tokens) ---------- */
+@media (hover: none) and (pointer: coarse) and (min-width: 701px), (max-width: 700px) {
+  html:not(#cc-t1) body:not(#cc-t2) :is(#cc-staff, #ccs-sheet, #cc-date-picker-layer) .ccs-btn:not(#cc-heartbeat *) {
+    min-height: max(var(--cc-btn-h), var(--cc-keep-h, 0px)) !important; height: auto !important; font-size: var(--cc-btn-fs) !important; line-height: 1.25 !important;
+    padding-top: 8px !important; padding-bottom: 8px !important;
+  }
+  html:not(#cc-t1) body:not(#cc-t2) :is(#cc-staff, #ccs-sheet) .ccs-btn.ccs-small:not(#cc-heartbeat *) { min-height: max(var(--cc-btn-sm-h), var(--cc-keep-h, 0px)) !important; }
+  html:not(#cc-t1) body:not(#cc-t2) :is(#cc-staff, #ccs-sheet) :is(.ccs-chip, .ccs-tab, .ccs-secbtn, .or-chip, .cat-chip, .rq-chip, .oo-mode-b, .tq-new, .tq-find, .tq-more, .ccg-b, .ccp-b, .cdir-segment, .cdir-page-btn, .tp-urg, .ccs-signout):not(#cc-heartbeat *) {
+    min-height: max(var(--cc-chip-h), var(--cc-keep-h, 0px)) !important; height: auto !important; font-size: var(--cc-btn-fs) !important; line-height: 1.25 !important;
+  }
+  html:not(#cc-t1) body:not(#cc-t2) :is(#cc-staff, #ccs-sheet) :is(.ccs-chips, .ccs-actions-row, .ccs-row-btns, .ccs-secbar, .ccs-btnrow) { gap: var(--cc-gap) !important; }
+  html:not(#cc-t1) body:not(#cc-t2) :is(#cc-staff, #ccs-sheet) summary:not(#cc-heartbeat *) { min-height: var(--cc-chip-h) !important; display: flex; align-items: center; }
+  html:not(#cc-t1) body:not(#cc-t2) :is(#cc-staff, #ccs-sheet) .ccs-link:not(#cc-heartbeat *) {
+    display: inline-flex !important; align-items: center; min-height: max(var(--cc-chip-h), var(--cc-keep-h, 0px)) !important; font-size: inherit;
+  }
+  /* Icon-only buttons */
+  html:not(#cc-t1) body:not(#cc-t2) :is(#cc-staff, #ccs-sheet, #cc-date-picker-layer) :is(.ccs-x, .ccs-refresh, .ccs-ph-x, .ap-close, .ccs-calarrow, .kc-arrow, .cc-dp-close, .bcm-x, .cc-dp-nav button, .cdir-open-profile):not(#cc-heartbeat *) {
+    min-width: var(--cc-icon) !important; min-height: var(--cc-icon) !important; display: inline-grid !important; place-items: center;
+  }
+  /* Text boxes and dropdowns */
+  html:not(#cc-t1) body:not(#cc-t2) :is(#cc-staff, #ccs-sheet, #cc-date-picker-layer) :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="hidden"]):not([type="file"]):not([type="color"]):not(.cc-dp-native), select, .ccs-input):not(#cc-heartbeat *) {
+    min-height: var(--cc-in-h) !important; height: auto !important; font-size: var(--cc-in-fs) !important; line-height: 1.3 !important;
+    padding-top: 10px !important; padding-bottom: 10px !important; color: var(--cc-ink);
+  }
+  html:not(#cc-t1) body:not(#cc-t2) :is(#cc-staff, #ccs-sheet) textarea:not(#cc-heartbeat *) {
+    min-height: calc(var(--cc-in-h) * 1.8) !important; font-size: var(--cc-in-fs) !important; line-height: var(--cc-lh) !important; color: var(--cc-ink);
+  }
+  html:not(#cc-t1) body:not(#cc-t2) :is(#cc-staff, #ccs-sheet) :is(input[type="checkbox"], input[type="radio"]) { width: 24px !important; height: 24px !important; }
+  html:not(#cc-t1) body:not(#cc-t2) :is(#cc-staff, #ccs-sheet) :is(label.ccs-check, .ccs-slipopt, label:has(> input[type="checkbox"]), label:has(> input[type="radio"])) {
+    min-height: var(--cc-chip-h) !important; display: flex; align-items: center; gap: 10px;
+  }
+  /* Buttons that cannot be pressed yet still read clearly */
+  html:not(#cc-t1) body:not(#cc-t2) :is(#cc-staff, #ccs-sheet) .ccs-btn:is([disabled], [aria-disabled="true"], .is-disabled) { color: #344054 !important; }
+  /* New order steps: number above the name, names wrap rather than being cut off */
+  html:not(#cc-t1) body:not(#cc-t2) #cc-staff .ccs-nprog li {
+    flex-direction: column !important; justify-content: center; gap: 4px !important; padding: 8px 4px !important; min-height: var(--cc-chip-h);
+    text-align: center !important; white-space: normal !important; overflow: visible !important; text-overflow: clip !important; line-height: 1.2 !important;
+  }
+  /* The logo's "Service Hub" line on the dark menu and the phone's dark top bar */
+  html:not(#cc-t1) body:not(#cc-t2) #cc-staff .ccs-side .ccs-brand small { color: rgba(255, 255, 255, .86) !important; }
+}
+
+/* ---------- 4. iPad side menu: always open, names showing ---------- */
+@media (hover: none) and (pointer: coarse) and (min-width: 760px) {
+  html:not(#cc-t1) body:not(#cc-t2) #cc-staff .ccs-app:not(.is-single) { grid-template-columns: var(--cc-menu-w) minmax(0, 1fr) !important; grid-template-rows: none !important; }
+  html:not(#cc-t1) body:not(#cc-t2) #cc-staff .ccs-app:not(.is-single) .ccs-side {
+    position: sticky !important; top: 0 !important; left: auto !important; bottom: auto !important; width: auto !important;
+    height: 100dvh !important; max-height: 100dvh !important; transform: none !important; visibility: visible !important; box-shadow: none !important;
+    padding: 18px 12px 20px !important; gap: 6px !important; overflow-y: auto !important; z-index: 5 !important;
+  }
+  html:not(#cc-t1) body:not(#cc-t2) #cc-staff .ccs-app:not(.is-single) .ccs-brandrow {
+    flex-direction: row !important; justify-content: flex-start !important; align-items: flex-start !important; padding: 2px 8px 12px !important; gap: 0 !important;
+  }
+  html:not(#cc-t1) body:not(#cc-t2) #cc-staff .ccs-app:not(.is-single) .ccs-side .ccs-brand {
+    width: 156px !important; margin: 0 !important; background-size: 156px auto !important; background-position: left top !important;
+    padding: 60px 0 0 !important; text-align: left !important;
+  }
+  html:not(#cc-t1) body:not(#cc-t2) #cc-staff .ccs-app:not(.is-single) .ccs-side .ccs-brand small {
+    margin-top: 6px !important; font-size: var(--cc-fs-small) !important; line-height: 1.3 !important; letter-spacing: .08em !important; text-align: left !important;
+  }
+  html:not(#cc-t1) body:not(#cc-t2) #cc-staff .ccs-app .ccs-collapse { display: none !important; }
+  html:not(#cc-t1) body:not(#cc-t2) #cc-staff .ccs-app:not(.is-single) .ccs-nav { gap: 2px !important; }
+  html:not(#cc-t1) body:not(#cc-t2) #cc-staff .ccs-app:not(.is-single) .ccs-navh {
+    margin: 16px 12px 4px !important; font-size: var(--cc-fs-small) !important; line-height: 1.3 !important; text-align: left !important;
+    letter-spacing: .06em !important; color: rgba(255, 255, 255, .82) !important;
+  }
+  html:not(#cc-t1) body:not(#cc-t2) #cc-staff .ccs-app:not(.is-single) .ccs-nav-item,
+  html:not(#cc-t1) body:not(#cc-t2) #cc-staff .ccs-app:not(.is-single) .ccs-nav-item:not(.ccs-nav-new) {
+    flex-direction: row !important; justify-content: flex-start !important; align-items: center !important; gap: 10px !important;
+    min-height: 60px !important; padding: 0 10px !important; font-size: var(--cc-menu-fs) !important; line-height: 1.25 !important;
+    text-align: left !important; border-radius: 12px !important;
+  }
+  html:not(#cc-t1) body:not(#cc-t2) #cc-staff .ccs-app:not(.is-single) .ccs-nav-item > svg {
+    width: 26px !important; height: 26px !important; padding: 7px !important; box-sizing: content-box !important; flex: 0 0 auto !important;
+  }
+  html:not(#cc-t1) body:not(#cc-t2) #cc-staff .ccs-app:not(.is-single) .ccs-nav-item > span:not(.ccs-count) {
+    white-space: normal !important; overflow: visible !important; text-align: left !important;
+  }
+  html:not(#cc-t1) body:not(#cc-t2) #cc-staff .ccs-app:not(.is-single) .ccs-nav-item .ccs-count {
+    position: static !important; margin: 0 0 0 auto !important; min-width: 30px; padding: 1px 9px !important; font-size: var(--cc-fs-small) !important; line-height: 1.4 !important; text-align: center;
+  }
+  html:not(#cc-t1) body:not(#cc-t2) #cc-staff .ccs-app:not(.is-single) .ccs-nav-item[aria-current="page"]::before { left: -12px !important; }
+  html:not(#cc-t1) body:not(#cc-t2) #cc-staff .ccs-app:not(.is-single) .ccs-who { display: flex !important; flex-wrap: wrap !important; gap: 8px !important; }
+  html:not(#cc-t1) body:not(#cc-t2) #cc-staff .ccs-app:not(.is-single) .ccs-who :is(button, .ccs-link, .ccs-btn) { white-space: nowrap !important; }
+  html:not(#cc-t1) body:not(#cc-t2) #cc-staff .ccs-app:not(.is-single) .ccs-who :is(b, span, small) { font-size: var(--cc-fs-small) !important; }
+}
+
+/* ---------- 5. Pop-ups, side panels and step screens ---------- */
+/* Fades only, about 0.2 seconds, no sliding (tablets and phones) */
+@media (hover: none) and (pointer: coarse) and (min-width: 701px), (max-width: 700px) {
+  html:not(#cc-t1) body:not(#cc-t2) .ccs-sheet:not(.is-review) {
+    transform: none !important; opacity: 0; transition: opacity .2s ease, visibility 0s linear .2s !important;
+  }
+  html:not(#cc-t1) body:not(#cc-t2) .ccs-sheet.ccs-open:not(.is-review) { opacity: 1; transition: opacity .2s ease !important; }
+  html:not(#cc-t1) body:not(#cc-t2) #ccs-sheet .ccs-sheet-head .ccs-title { font-size: var(--cc-fs-h) !important; line-height: 1.25 !important; }
+}
+@media (hover: none) and (pointer: coarse) and (min-width: 701px) and (max-width: 1279px), (max-width: 700px) {
+  html:not(#cc-t1) body:not(#cc-t2) #ccs-sheet.is-review { transform: none !important; opacity: 0; transition: opacity .2s ease, visibility 0s linear .2s !important; }
+  html:not(#cc-t1) body:not(#cc-t2) #ccs-sheet.is-review.ccs-open { opacity: 1; transition: opacity .2s ease !important; }
+}
+@media (hover: none) and (pointer: coarse) and (min-width: 1280px) {
+  html:not(#cc-t1) body:not(#cc-t2) #ccs-sheet.is-review { transform: translate(-50%, -50%) !important; opacity: 0; transition: opacity .2s ease, visibility 0s linear .2s !important; }
+  html:not(#cc-t1) body:not(#cc-t2) #ccs-sheet.is-review.ccs-open { opacity: 1; transition: opacity .2s ease !important; }
+}
+/* Tablets: 20px text, 24px titles, Close always at the top, 16px from the screen edges */
+@media (hover: none) and (pointer: coarse) and (min-width: 701px) {
+  /* New order step guide: number above the step name, names wrap rather than being cut off */
+  html:not(#cc-t1) body:not(#cc-t2) #cc-staff .sl-wrap.is-stepper .sl-dots > li {
+    flex-direction: column !important; justify-content: center !important; text-align: center !important; gap: 4px !important; padding: 6px 3px !important;
+  }
+  html:not(#cc-t1) body:not(#cc-t2) #cc-staff .sl-wrap.is-stepper .sl-dots > li::after {
+    white-space: normal !important; overflow: visible !important; text-overflow: clip !important; max-width: 100%; line-height: 1.15 !important;
+  }
+  html:not(#cc-t1) body:not(#cc-t2) #ccs-sheet .ccs-sheet-head { position: relative; z-index: 2; flex-shrink: 0; }
+  html:not(#cc-t1) body:not(#cc-t2) #cc-staff .ap-pop { max-width: calc(100vw - 32px) !important; }
+}
+/* Phones: bottom sheets. Full width, rounded top corners and a drag handle; only the middle scrolls; the buttons stay at
+   the bottom, above the keyboard (the page's screen-edges script tracks the visible screen) */
+@media (max-width: 700px) {
+  html:not(#cc-t1) body:not(#cc-t2) #ccs-sheet.ccs-sheet {
+    top: calc(max(var(--cc-edge-top, 0px), var(--cc-edge-off, 0px)) + 10px) !important; bottom: auto !important; left: 0 !important; right: 0 !important;
+    width: 100% !important; max-width: 100% !important; height: calc(var(--cc-edge-height, 100dvh) - var(--cc-edge-off, 0px) - 10px) !important;
+    max-height: none !important; min-height: 0 !important; border-radius: 20px 20px 0 0 !important; overflow: hidden !important;
+  }
+  html:not(#cc-t1) body:not(#cc-t2) #ccs-sheet.ccs-sheet::before {
+    content: ""; position: absolute; z-index: 4; top: 7px; left: 50%; width: 44px; height: 5px; margin-left: -22px; border-radius: 3px;
+    background: #98A2B3; pointer-events: none;
+  }
+  html:not(#cc-t1) body:not(#cc-t2) #ccs-sheet .ccs-sheet-head { padding-top: 22px !important; padding-left: 16px !important; padding-right: 12px !important; }
+  html:not(#cc-t1) body:not(#cc-t2) #ccs-sheet .ccs-sheet-body { padding-left: 16px !important; padding-right: 16px !important; }
+  html:not(#cc-t1) body:not(#cc-t2) #ccs-sheet .os-pin { padding-left: 16px !important; padding-right: 16px !important; }
+  html:not(#cc-t1) body:not(#cc-t2) #ccs-sheet .os-pin .ccs-btn, html:not(#cc-t1) body:not(#cc-t2) #ccs-sheet .sl-stepbar .ccs-btn { flex: 1 1 auto; }
+  /* The date picker and the Needs attention window: bottom sheets too */
+  html:not(#cc-t1) body:not(#cc-t2) #cc-date-picker-layer.cc-dp-layer, html:not(#cc-t1) body:not(#cc-t2) .cc-dp-layer { align-items: end !important; padding: 0 !important; }
+  html:not(#cc-t1) body:not(#cc-t2) .cc-dp-layer .cc-dp-dialog {
+    width: 100% !important; max-height: calc(var(--cc-edge-height, 100dvh) - 10px) !important; border-radius: 20px 20px 0 0 !important; padding-top: 24px !important; position: relative;
+  }
+  html:not(#cc-t1) body:not(#cc-t2) .cc-dp-layer .cc-dp-dialog::before {
+    content: ""; position: absolute; top: 7px; left: 50%; width: 44px; height: 5px; margin-left: -22px; border-radius: 3px; background: #98A2B3; pointer-events: none;
+  }
+  html:not(#cc-t1) body:not(#cc-t2) #cc-staff .ap-pop {
+    top: auto !important; bottom: 0 !important; left: 0 !important; translate: none !important; width: 100% !important;
+    max-height: calc(var(--cc-edge-height, 100dvh) - 10px) !important; border-radius: 20px 20px 0 0 !important;
+  }
+}
+
+/* ---------- 6. Phones: thumb reach, no sideways scrolling ---------- */
+.cc-t-new { display: none; }
+@media (max-width: 700px) {
+  html:not(#cc-t1) body:not(#cc-t2) #cc-staff .ccs-nav { gap: 6px !important; padding-left: 8px !important; padding-right: 8px !important; align-items: center; }
+  html:not(#cc-t1) body:not(#cc-t2) #cc-staff .ccs-nav > .ccs-nav-item { min-height: 56px !important; min-width: 48px !important; font-size: var(--cc-fs-small) !important; line-height: 1.2 !important; }
+  /* New order: the big middle button in the bottom menu (Today, Orders, New order, More) */
+  html:not(#cc-t1) body:not(#cc-t2) #cc-staff .ccs-nav > .cc-t-new {
+    display: flex; flex: 1.35 1 0; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 58px; min-width: 96px;
+    margin: 0 2px; padding: 4px 8px; border: 0; border-radius: 16px; background: var(--ds-primary, #2c5a8c); color: #fff;
+    font: inherit; font-size: var(--cc-fs-small); font-weight: 700; line-height: 1.15; cursor: pointer; -webkit-tap-highlight-color: transparent;
+  }
+  html:not(#cc-t1) body:not(#cc-t2) #cc-staff .ccs-nav > .cc-t-new svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; }
+  html:not(#cc-t1) body:not(#cc-t2) #cc-staff .ccs-nav > .cc-t-new:focus-visible { outline: 3px solid #1D2939; outline-offset: 2px; }
+  html.cc-t-newbar:not(#cc-t1) body:not(#cc-t2) #cc-staff .ccs-side .ccs-topnew { display: none !important; }
+  html:not(#cc-t1) body:not(#cc-t2) #cc-staff, html:not(#cc-t1) body:not(#cc-t2) #ccs-sheet { max-width: 100vw; overflow-wrap: break-word; }
+}
+
+/* ---------- 7. The website's own page code stays off the app (lessons from the Reservations Hub) ---------- */
+@media (hover: none) and (pointer: coarse), (max-width: 700px) {
+  html { scroll-behavior: auto !important; overflow: visible; }
+  html body { overflow: visible; }
+  :is(.ccm-motion, .ccm-image, .ccm-group, .ccm-decision, .ccm-hero-title, .ccm-hero-copy, .ccm-hero-action):is(:has(#cc-staff), #cc-staff *) {
+    opacity: 1 !important; transform: none !important; transition: none !important;
+  }
+}
+@media print { .cc-t-new { display: none !important; } }

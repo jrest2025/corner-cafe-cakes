@@ -16,7 +16,7 @@ if(e.querySelector('#cc-f-review'))return;
 var body=e.querySelector('.sl-stepbody');if(!body)return;
 change(e.querySelector('.sl-steptitle'),'Finish order');
 var old=body.querySelector(':scope > .ccs-hint');if(old&&/Read the slip back|Check the guest/.test(old.textContent))old.classList.add('cc-f-hide');
-var r=make('section','cc-f-review');r.id='cc-f-review';r.append(make('h3','','Quick check with the customer'),make('p','','Check these details. Choose Change only if something is wrong.'));
+var r=make('section','cc-f-review');r.id='cc-f-review';r.append(make('h3','','Read it back to the customer'),make('p','','Go through these with them. Tap Change only if something is wrong.'));
 var grid=make('div','cc-f-grid');[['Guest',1],['Cake',0],['Pickup or delivery',3],['Allergies',4]].forEach(function(p){grid.appendChild(item(p[0],p[1]))});r.appendChild(grid);body.prepend(r);
 var pay=body.querySelector('.sl-payplan .sl-k');if(pay)pay.innerHTML='What payment did we receive? <em class="sl-req">Required</em>';
 body.querySelectorAll('.sl-payplan [data-act="n-plan"]').forEach(function(b){var m={full:'Paid in full',deposit:'Deposit received',later:'No payment yet'};if(m[b.dataset.v])change(b,m[b.dataset.v])});
@@ -37,14 +37,14 @@ var p=e.querySelector('.sl-payplan [data-act="n-plan"][aria-pressed="true"]')?.d
 var totalText=e.querySelector('.ccs-total b')?.textContent||'',amount=/\$\s*([\d,]+(?:\.\d+)?)/.exec(totalText),total=amount?Number(amount[1].replace(/,/g,'')):null;
 var paid=null,status='',next='',invalid=false,quote=!e.querySelector('.sl-payplan');
 if(quote){var text=[...e.querySelectorAll('.ccs-note')].map(n=>n.textContent).join(' ');status=/Needs a price/i.test(text)?'Needs a price':/Waiting for customer/i.test(text)?'Waiting for customer':'Needs a quote';next='Do not send to kitchen. '+(status==='Needs a price'?'Add the price next.':status==='Waiting for customer'?'Obtain customer approval next.':'Prepare and approve the quote next.')}
-else if(!p){status='Choose the payment option';next='Select what happened with payment.';invalid=true}
+else if(!p){status='Tap what they paid today';next='Paid in full, a deposit, or nothing yet.';invalid=true}
 else if(p==='full'||p==='deposit'){
 paid=p==='full'?total:Number(e.querySelector('#n-pay')?.value);
-if(total===null||!Number.isFinite(paid)||paid<=0||paid>total||(p==='deposit'&&paid>=total)){status='Check payment amount';next='Correct the amount before saving.';invalid=true}
-else if(!methodChosen){status='Choose the actual payment method';next='Tap Cash, Card or the method used.';invalid=true}
+if(total===null||!Number.isFinite(paid)||paid<=0||paid>total||(p==='deposit'&&paid>=total)){status='Check the amount';next='It does not look right. Please fix it before you save.';invalid=true}
+else if(!methodChosen){status='How did they pay?';next='Tap Cash, card or the way they paid.';invalid=true}
 else{status='Confirmed';next=(p==='full'?'Paid in full. ':'Deposit recorded. ')+'Next: make the kitchen slip after saving.'}
 }
-else{paid=0;if(agree==='yes'){status='Confirmed';next='Customer agreed; payment can be collected later. Next: make kitchen slip.'}else if(agree==='no'){status='Received — awaiting review';next='Not agreed yet. Follow up; do not send to kitchen.'}else{status='Choose customer agreement';next='Select Yes or Not yet.';invalid=true}}
+else{paid=0;if(agree==='yes'){status='Confirmed';next='They agreed, and can pay later. Next: make the kitchen slip.'}else if(agree==='no'){status='Received — awaiting review';next='Not agreed yet. Follow up with them, and do not send it to the kitchen yet.'}else{status='Did they agree?';next='Tap Yes or Not yet.';invalid=true}}
 e.querySelectorAll('[data-cc-agree]').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.ccAgree===agree))});
 var out=e.querySelector('#cc-f-outcome');if(!out)return;out.classList.toggle('cc-f-incomplete',invalid);
 change(out.querySelector('.cc-f-status'),status);change(out.querySelector('.cc-f-next'),next);
@@ -57,7 +57,7 @@ root.addEventListener('click',function(e){var b=e.target.closest?.('button,[data
 if(b.dataset.ccAgree&&step()){e.preventDefault();e.stopImmediatePropagation();agree=b.dataset.ccAgree;var box=step().querySelector('input[data-nc="confirmNow"]');if(box&&box.checked!==(agree==='yes'))box.click();schedule();return}
 if(b.dataset.act==='n-plan'){agree=null;methodChosen=false;return}
 if(b.dataset.act==='n-paym'&&step()){methodChosen=true;return}
-if(b.dataset.act==='n-submit'&&step()){var p=step().querySelector('.sl-payplan [data-act="n-plan"][aria-pressed="true"]')?.dataset.v;if(p==='later'&&agree===null)return err(e,'Choose whether the customer agreed to the price.','.cc-f-agreement');if((p==='full'||p==='deposit')&&!methodChosen)return err(e,'Choose the payment method used.','[aria-label="Paid by"]')}
+if(b.dataset.act==='n-submit'&&step()){var p=step().querySelector('.sl-payplan [data-act="n-plan"][aria-pressed="true"]')?.dataset.v;if(p==='later'&&agree===null)return err(e,'Did the customer agree to the cake and price? Tap Yes or Not yet.','.cc-f-agreement');if((p==='full'||p==='deposit')&&!methodChosen)return err(e,'How did they pay? Tap Cash, card or the way they paid.','[aria-label="Paid by"]')}
 },true);
 root.addEventListener('input',function(e){if(e.target?.id==='n-pay'&&step())schedule()},true);
 new MutationObserver(schedule).observe(root,{childList:true,subtree:true});schedule();

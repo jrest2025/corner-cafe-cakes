@@ -17,7 +17,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const repo = path.resolve(__dirname, '..');
 const manifest = JSON.parse(fs.readFileSync(path.join(repo, process.env.MANIFEST || 'dist/app/staff-old-orders-manifest.json'), 'utf8'));
 const head = fs.readFileSync(path.join(repo, 'test/fixtures/staff-head.html'), 'utf8');
-let foot = fs.readFileSync(path.join(repo, 'test/fixtures/staff-footer.html'), 'utf8').replace(/<script src="https:\/\/cdn.jsdelivr.net\/npm\/@supabase[^<]*<\/script>/, '');
+let foot = fs.readFileSync(process.env.FOOTER || path.join(repo, 'test/fixtures/staff-footer.html'), 'utf8').replace(/<script src="https:\/\/cdn.jsdelivr.net\/npm\/@supabase[^<]*<\/script>/, '');
 const LOADER = /var f="gh\/jrest2025\/corner-cafe-cakes@[0-9a-f]{40}\/dist\/app\/staff-app\.[0-9a-f]{10}\.js",(h=\[[^\]]*\]),k="sha384-[^"]+"/;
 if (!LOADER.test(foot)) throw new Error('The footer fixture has no staff app loader');
 foot = foot.replace(LOADER, (m, h) => 'var f="gh/jrest2025/corner-cafe-cakes@' + '0'.repeat(40) + '/' + manifest.file + '",' + h + ',k="' + manifest.sri + '"');
@@ -121,7 +121,7 @@ async function oldOrder(p, o) {
       // ---------- Old order: the Customer step ----------
       await tap(p, '[data-oo-mode="old"]', 400);
       check(label + ': Old order is chosen, with a note saying what happens', await p.evaluate(() => document.querySelector('[data-oo-mode="old"]').getAttribute('aria-pressed') === 'true') &&
-        /saved as already picked up, with the payment on the day it was paid\. No kitchen slip and no messages to the customer/.test(await text(p, '.oo-note')));
+        /We save it as already picked up, with the payment on the day it was paid\. No kitchen slip, and nothing is sent to the customer/.test(await text(p, '.oo-note')));
       check(label + ': the sheet title says Old order from a paper slip', /Old order from a paper slip/.test(await text(p, '#ccs-sheet') || ''));
       check(label + ': "Who took this order?" (not "is taking")', /Who took this order\?/.test(await text(p, '[data-of-who]')) && /The name on the slip/.test(await text(p, '[data-of-who]')));
       check(label + ': + Add a name (not "my name")', /\+ Add a name/.test(await text(p, '[data-of-who]')));
@@ -135,16 +135,16 @@ async function oldOrder(p, o) {
       check(label + ': no Birthday Club box', !(await shown(p, '#sl-st-1 .bc-join, #sl-st-1 [data-bc-join]')));
       // Next with nothing filled in
       await tap(p, '[data-act="sl-next"]', 500); let l = await look(p);
-      check(label + ': Next without a name or slip date says so', l.step === 'sl-st-1' && l.errs.some(t => /Choose who took this order/.test(t)) && l.errs.some(t => /date on the slip/.test(t)), l);
+      check(label + ': Next without a name or slip date says so', l.step === 'sl-st-1' && l.errs.some(t => /whoever took the order/.test(t)) && l.errs.some(t => /date written on the slip/.test(t)), l);
       await tap(p, '[data-of-name]');
       await p.fill('#n-phone', '912 3456'); await p.waitForTimeout(450); await p.fill('#n-name', 'Invented Guest');
       await tap(p, '[data-act="n-source"][data-v="walk_in"]');
       await fillDate(p, '#n-takedate', fiji(0));
       await tap(p, '[data-act="sl-next"]', 500); l = await look(p);
-      check(label + ': a slip date of today is stopped', l.step === 'sl-st-1' && l.errs.some(t => /must be before today/.test(t)), l);
+      check(label + ': a slip date of today is stopped', l.step === 'sl-st-1' && l.errs.some(t => /should be before today/.test(t)), l);
       await fillDate(p, '#n-takedate', '0002-10-12');
       await tap(p, '[data-act="sl-next"]', 500); l = await look(p);
-      check(label + ': a slip date in year 2 is stopped', l.step === 'sl-st-1' && l.errs.some(t => /date on the slip/.test(t)), l);
+      check(label + ': a slip date in year 2 is stopped', l.step === 'sl-st-1' && l.errs.some(t => /date written on the slip/.test(t)), l);
       await fillDate(p, '#n-takedate', fiji(-9));
       check(label + ': once the date is chosen, the message asking for it goes', !(await look(p)).errs.length, await look(p));
       check(label + ': the slip shows the date on the slip, with its year', (await slipLine(p, 'Date')) === long(fiji(-9)) + 'Date on the slip', await slipLine(p, 'Date'));
@@ -161,11 +161,11 @@ async function oldOrder(p, o) {
         /Pickup date \(on the slip\)/.test(await dateLabel(p, 'n-date')) && (await p.evaluate(() => document.getElementById('n-date').max)) === fiji(-1), l);
       await fillDate(p, '#n-date', fiji(0)); await tap(p, '#sl-st-3 [data-act="n-time"][data-v="20:00"]', 700); await tap(p, '[data-act="sl-next"]', 500);
       l = await look(p);
-      check(label + ': a pickup date of today is stopped (that is a New order)', l.step === 'sl-st-3' && l.errs.some(t => /An old order was picked up before today/.test(t)), l);
+      check(label + ': a pickup date of today is stopped (that is a New order)', l.step === 'sl-st-3' && l.errs.some(t => /already picked up, so its date is before today/.test(t)), l);
       await fillDate(p, '#n-date', '0002-10-15'); await tap(p, '[data-act="sl-next"]', 500); l = await look(p);
-      check(label + ': a pickup date in year 2 is stopped', l.step === 'sl-st-3' && l.errs.some(t => /Check the year of the pickup date/.test(t)), l);
+      check(label + ': a pickup date in year 2 is stopped', l.step === 'sl-st-3' && l.errs.some(t => /Check the year on the pickup date/.test(t)), l);
       await fillDate(p, '#n-date', fiji(-12)); await tap(p, '#sl-st-3 [data-act="n-time"][data-v="15:00"]', 700); await tap(p, '[data-act="sl-next"]', 500); l = await look(p);
-      check(label + ': a pickup date before the slip date is stopped', l.errs.some(t => /must not be after the collection date/.test(t)), l);
+      check(label + ': a pickup date before the slip date is stopped', l.errs.some(t => /can't be after the pickup day/.test(t)), l);
       if (l.step !== 'sl-st-3') await tap(p, '#ccs-slipform [data-act="sl-goto"][data-v="3"]', 500);
       await fillDate(p, '#n-date', fiji(-6)); await shot(p, label + '-03-old-pickup');
       await tap(p, '#sl-st-3 [data-act="n-time"][data-v="15:00"]', 1100);
@@ -179,7 +179,7 @@ async function oldOrder(p, o) {
       check(label + ': the check card says "Check it against the slip"', /Check it against the slip/.test(await text(p, '#cc-f-review') || ''), await text(p, '#cc-f-review'));
       check(label + ': the Save button says Save old order', /^Save old order$/.test(await text(p, '#ccs-slipform [data-act="n-submit"]')), await text(p, '#ccs-slipform [data-act="n-submit"]'));
       await tap(p, '#ccs-slipform [data-act="n-submit"]', 600); l = await look(p);
-      check(label + ': Save without the payment answer says so, and saves nothing', l.errs.some(t => /Choose whether it was paid/.test(t)) && !(await calls(p, 'staff_enter_old_order')).length, l);
+      check(label + ': Save without the payment answer says so, and saves nothing', l.errs.some(t => /tap whether it was paid/.test(t)) && !(await calls(p, 'staff_enter_old_order')).length, l);
       await tap(p, '[data-oo-paid="part"]');
       check(label + ': Part paid asks for the amount, how and the day', await shown(p, '#oo-amount') && await shown(p, '[data-oo-meth]') && (await p.evaluate(() => document.getElementById('oo-paidon').value)) === fiji(-6));
       await p.fill('#oo-amount', '95'); await tap(p, '[data-oo-meth="cash"]'); await tap(p, '#ccs-slipform [data-act="n-submit"]', 600); l = await look(p);
@@ -236,7 +236,7 @@ async function oldOrder(p, o) {
       check('custom design: the price box sits under the price line, above "Was it paid?"', await p.evaluate(() => { const t = document.querySelector('.oo-total').getBoundingClientRect(), i = document.getElementById('oo-price').getBoundingClientRect(), q = document.querySelector('.oo-paid').getBoundingClientRect(); return t.bottom <= i.top + 1 && i.bottom <= q.top + 1; }));
       await tap(p, '[data-oo-paid="full"]'); await tap(p, '[data-oo-meth="eftpos"]');
       await tap(p, '#ccs-slipform [data-act="n-submit"]', 600);
-      check('custom design: Save without the price says so', (await look(p)).errs.some(t => /Enter the cake price from the slip/.test(t)) && !(await calls(p, 'staff_enter_old_order')).length, await look(p));
+      check('custom design: Save without the price says so', (await look(p)).errs.some(t => /Type the cake price from the slip/.test(t)) && !(await calls(p, 'staff_enter_old_order')).length, await look(p));
       await p.click('#oo-price'); await p.keyboard.type('120'); await p.waitForTimeout(200);
       check('custom design: the price shows as it is typed', /\$120/.test(await text(p, '.oo-total')), await text(p, '.oo-total'));
       check('custom design: and the message asking for it goes', !(await look(p)).errs.some(t => /cake price/.test(t)), await look(p));

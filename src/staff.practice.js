@@ -169,7 +169,14 @@
         estimate_total: 52, final_total: 52, has_dietary: true, customer_id: 'c24', customers: person('c24', 'Sera Lomani', '912 0024'),
         order_items: [item('red-velvet', null, 8, 1, { occasion: 'Birthday', cake_message: 'Happy 40th Sera', dietary: ['Nut allergy'], dietary_note: 'No nuts anywhere: severe allergy', requirements: ['eggless'] })],
         payments: [{ id: 'pp4', kind: 'deposit', method: 'cash', amount: 25, recorded_at: ago }],
-        order_events: [{ id: 4006, at: ago, kind: 'created', actor_label: 'Mere', detail: { source: 'walk_in', status: 'confirmed' } }, { id: 4007, at: ago, kind: 'payment_recorded', actor_label: 'Mere', detail: { kind: 'deposit', method: 'cash', amount: 25, paid_total: 25 } }] }
+        order_events: [{ id: 4006, at: ago, kind: 'created', actor_label: 'Mere', detail: { source: 'walk_in', status: 'confirmed' } }, { id: 4007, at: ago, kind: 'payment_recorded', actor_label: 'Mere', detail: { kind: 'deposit', method: 'cash', amount: 25, paid_total: 25 } }] },
+      // Guided practice 3 (src/staff.practice-guide.js): ready today, $38 still to pay, collected within the hour
+      { id: 'p5', reference: 'CC-1044', order_status: 'confirmed', payment_status: 'deposit_paid', production_status: 'ready', qc_by: 'Josefa', ready_at: NOW(), brief_version: 1, order_type: 'standard', source: 'phone', created_at: ago, required_date: T,
+        required_time: (function () { var h = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Pacific/Fiji', hour: '2-digit', hour12: false }).format(new Date())) + 1; return String(Math.min(Math.max(h, 9), 19)).padStart(2, '0') + ':00:00'; })(),
+        estimate_total: 68, final_total: 68, has_dietary: false, customer_id: 'c25', customers: person('c25', 'Jone Rokotui', '912 7003'),
+        order_items: [item('chocolate-mudcake-mocha', 'Chocolate', 8, 1, { occasion: 'Birthday', cake_message: 'Happy Birthday Jone' })],
+        payments: [{ id: 'pp5', kind: 'deposit', method: 'cash', amount: 30, recorded_at: ago }],
+        order_events: [{ id: 4008, at: ago, kind: 'created', actor_label: 'Mere', detail: { source: 'phone', status: 'confirmed' } }, { id: 4009, at: ago, kind: 'payment_recorded', actor_label: 'Mere', detail: { kind: 'deposit', method: 'cash', amount: 30, paid_total: 30 } }] }
     );
     orders.forEach(shapeOrder);
   })();

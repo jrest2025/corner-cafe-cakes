@@ -12,7 +12,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const repo = path.resolve(__dirname, '..');
 const manifest = JSON.parse(fs.readFileSync(path.join(repo, process.env.MANIFEST || 'dist/app/staff-order-flow-manifest.json'), 'utf8'));
 const head = fs.readFileSync(path.join(repo, 'test/fixtures/staff-head.html'), 'utf8');
-let foot = fs.readFileSync(path.join(repo, 'test/fixtures/staff-footer.html'), 'utf8').replace(/<script src="https:\/\/cdn.jsdelivr.net\/npm\/@supabase[^<]*<\/script>/, '');
+let foot = fs.readFileSync(process.env.FOOTER || path.join(repo, 'test/fixtures/staff-footer.html'), 'utf8').replace(/<script src="https:\/\/cdn.jsdelivr.net\/npm\/@supabase[^<]*<\/script>/, '');
 const LOADER = /var f="gh\/jrest2025\/corner-cafe-cakes@[0-9a-f]{40}\/dist\/app\/staff-app\.[0-9a-f]{10}\.js",(h=\[[^\]]*\]),k="sha384-[^"]+"/;
 if (!LOADER.test(foot)) throw new Error('The footer fixture has no staff app loader');
 foot = foot.replace(LOADER, (m, h) => 'var f="gh/jrest2025/corner-cafe-cakes@' + '0'.repeat(40) + '/' + manifest.file + '",' + h + ',k="' + manifest.sri + '"');
@@ -125,7 +125,7 @@ async function quick(p, o) {
       await shot(p, label + '-01-open');
       // Next with nobody picked
       await tap(p, '[data-act="sl-next"]', 500); l = await look(p);
-      check(label + ': Next without a name says so', l.step === 'sl-st-1' && l.errs.some(t => /Choose who is taking this order/.test(t)), l);
+      check(label + ': Next without a name says so', l.step === 'sl-st-1' && l.errs.some(t => /Tap your name first/.test(t)), l);   // (21 Oct: the colleague voice)
       check(label + ': ... and outlines the names in red', !!(l.lit && l.lit.miss && /of-who-chips/.test(l.lit.cls)), l.lit);
       // + Add my name
       await tap(p, '[data-of-other]', 400);

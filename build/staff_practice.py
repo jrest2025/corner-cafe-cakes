@@ -4,7 +4,8 @@ Roneel, 11:05 AM: "build a pracitcie mode like you did for kaxumi". Approved pla
 login, on a pretend café day; a gold frame and a practice card; Start over and Exit practice; never connects to the real
 system.
 
-Base: the live release (dist/app/staff-old-orders-manifest.json) unless BASE names another manifest.
+Base: the order labels build (dist/app/staff-channel-manifest.json: live old orders + colleague voice + order labels)
+unless BASE names another manifest.
 OUT names the manifest written (default dist/app/staff-practice-manifest.json).
 
 The bundle becomes:
@@ -14,13 +15,14 @@ The bundle becomes:
      - PRACTICE_SETUP: the real menu, prices and delivery areas (src/practice/setup-20261021.json).
      Outside practice mode this part only defines CCPractice and returns.
   2. The live release, unchanged.
-  3. Last: src/staff.practice-ui.js and src/staff.practice.css (the ways in, the frame and card, Start over, Exit).
+  3. Last: src/staff.practice-ui.js and src/staff.practice.css (the ways in, the frame and card, Start over, Exit), then
+     src/staff.practice-guide.js and .css (3 guided jobs: a new order, an old order from a slip, a handover).
 """
 import base64, hashlib, json, os, re, subprocess, tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-BASE = os.environ.get('BASE', 'dist/app/staff-old-orders-manifest.json')
+BASE = os.environ.get('BASE', 'dist/app/staff-channel-manifest.json')
 OUT = os.environ.get('OUT', 'dist/app/staff-practice-manifest.json')
 bm = json.loads((ROOT / BASE).read_text())
 app = (ROOT / bm['file']).read_text()
@@ -76,10 +78,12 @@ prelude = ('/* Corner Café practice mode: the pretend day (outside practice mod
 
 # ---------- the ways in, the frame and the card ----------
 ui = (ROOT / 'src/staff.practice-ui.js').read_text()
-css = (ROOT / 'src/staff.practice.css').read_text()
-for part in (ui, css):
+guide = (ROOT / 'src/staff.practice-guide.js').read_text()
+css = (ROOT / 'src/staff.practice.css').read_text() + '\n' + (ROOT / 'src/staff.practice-guide.css').read_text()
+for part in (ui, guide, css):
     assert '</script' not in part.lower()
-s = prelude + app + '\n' + ui + '\n(function(){var s=document.createElement("style");s.id="ccs-practice";s.textContent=' + json.dumps(css) + ';document.head.appendChild(s)})();\n'
+s = (prelude + app + '\n' + ui + '\n' + guide + '\n(function(){var s=document.createElement("style");s.id="ccs-practice";s.textContent=' + json.dumps(css) +
+     ';document.head.appendChild(s)})();\n')
 
 with tempfile.NamedTemporaryFile('w', suffix='.js', delete=False) as tmp:
     tmp.write(s)

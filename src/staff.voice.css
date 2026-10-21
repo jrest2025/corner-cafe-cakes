@@ -1,0 +1,13 @@
+/* Corner Café Service Hub: the colleague voice (21 October 2026). The line under each New order step title says what
+   to ask the customer next. (It replaces the lines from staff.new-order-clarity.css; this file is loaded with the app,
+   so the extra "html body" makes it win whichever loads last.) Old orders get lines about the paper slip. */
+html body #cc-staff .sl-wrap.is-stepper #sl-st-1 .sl-steptitle::after { content: "Start with the customer. Type their mobile number first: if they've ordered before, their details come up."; }
+html body #cc-staff .sl-wrap.is-stepper #sl-st-0 .sl-steptitle::after { content: "Ask which cake and size they'd like, then tap its price in the table."; }
+html body #cc-staff .sl-wrap.is-stepper #sl-st-4 .sl-steptitle::after { content: "Ask about allergies and what they're celebrating. Add any words for the cake."; }
+html body #cc-staff .sl-wrap.is-stepper #sl-st-3 .sl-steptitle::after { content: "Ask when they need it, and whether they'll collect it or want it delivered."; }
+html body #cc-staff .sl-wrap.is-stepper #sl-st-7 .sl-steptitle::after { content: "Read the order back to them, then record any payment and save."; }
+html body #cc-staff .sl-wrap.is-stepper #ccs-slipform.is-old #sl-st-1 .sl-steptitle::after { content: "Copy the customer's details from the slip."; }
+html body #cc-staff .sl-wrap.is-stepper #ccs-slipform.is-old #sl-st-0 .sl-steptitle::after { content: "Tap the cake and size written on the slip."; }
+html body #cc-staff .sl-wrap.is-stepper #ccs-slipform.is-old #sl-st-4 .sl-steptitle::after { content: "Copy the cake words, allergies and occasion from the slip."; }
+html body #cc-staff .sl-wrap.is-stepper #ccs-slipform.is-old #sl-st-3 .sl-steptitle::after { content: "Add the pickup date and time from the slip."; }
+html body #cc-staff .sl-wrap.is-stepper #ccs-slipform.is-old #sl-st-7 .sl-steptitle::after { content: "Check it against the slip, then say whether it was paid."; }

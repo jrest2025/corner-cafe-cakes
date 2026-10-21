@@ -11,7 +11,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const repo = path.resolve(__dirname, '..');
 const manifest = JSON.parse(fs.readFileSync(path.join(repo, process.env.MANIFEST || 'dist/app/staff-practice-manifest.json'), 'utf8'));
 const head = fs.readFileSync(path.join(repo, 'test/fixtures/staff-head.html'), 'utf8');
-let foot = fs.readFileSync(path.join(repo, 'test/fixtures/staff-footer.html'), 'utf8').replace(/<script src="https:\/\/cdn.jsdelivr.net\/npm\/@supabase[^<]*<\/script>/, '');
+let foot = fs.readFileSync(process.env.FOOTER || path.join(repo, 'test/fixtures/staff-footer.html'), 'utf8').replace(/<script src="https:\/\/cdn.jsdelivr.net\/npm\/@supabase[^<]*<\/script>/, '');
 const LOADER = /var f="gh\/jrest2025\/corner-cafe-cakes@[0-9a-f]{40}\/dist\/app\/staff-app\.[0-9a-f]{10}\.js",(h=\[[^\]]*\]),k="sha384-[^"]+"/;
 if (!LOADER.test(foot)) throw new Error('The footer fixture has no staff app loader');
 foot = foot.replace(LOADER, (m, h) => 'var f="gh/jrest2025/corner-cafe-cakes@' + '0'.repeat(40) + '/' + manifest.file + '",' + h + ',k="' + manifest.sri + '"');
@@ -137,7 +137,8 @@ async function newOrder(p, o) {
       check(label + ': a Counter login\'s menus (no Customers, Analytics, Register or Settings)', ['today', 'orders', 'calendar', 'kitchen', 'handover'].every(t => navs.includes(t)) && !['customers', 'dash', 'register', 'settings'].some(t => navs.includes(t)), navs);
       check(label + ': Exit practice in the side menu', await p.evaluate(() => !!document.querySelector('.ccs-side .ccp-nav[data-ccp-exit]')));
       const today = await p.evaluate(() => document.getElementById('ccs-main').textContent.replace(/\s+/g, ' '));
-      check(label + ': Today shows the pretend day\'s cakes (invented names, today)', /CC-1041/.test(today) && /CC-1042/.test(today) && /CC-1004/.test(today) && !/Test Customer/.test(today), today.slice(0, 400));
+      check(label + ': Today shows the pretend day\'s cakes (invented names, today)', ['CC-1041', 'CC-1042', 'CC-1004', 'CC-1044'].filter(r => today.includes(r)).length >= 3 && !/Test Customer/.test(today),
+        { shown: ['CC-1041', 'CC-1042', 'CC-1004', 'CC-1044'].filter(r => today.includes(r)), test: (today.match(/.{60}Test Customer.{20}/) || [''])[0] });   // (phones list fewer)
       check(label + ': the real sign-in is never read in practice', (await p.evaluate(() => localStorage.getItem('cc-cakes-staff'))) === null);
       await shot(p, label + '-p-02-today');
 
