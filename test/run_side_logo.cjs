@@ -6,7 +6,7 @@
 const fs = require('fs'), path = require('path'), { execFileSync } = require('child_process');
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const repo = path.resolve(__dirname, '..');
-const head = fs.readFileSync(path.join(repo, 'test/fixtures/staff-head.html'), 'utf8');
+const head = fs.readFileSync(process.env.HEAD || path.join(repo, 'test/fixtures/staff-head.html'), 'utf8');
 const foot = fs.readFileSync(process.env.FOOTER || path.join(repo, 'test/fixtures/staff-footer.html'), 'utf8')
   .replace(/<script src="https:\/\/cdn.jsdelivr.net\/npm\/@supabase[^<]*<\/script>/, '');
 const mock = fs.readFileSync(path.join(repo, 'test/mock.js'), 'utf8');

@@ -103,10 +103,9 @@ Computers are not changed. This was checked element by element at 1366 × 768 an
 | Touch standard | `build/staff_touch.py` | `f9f4853c95` (`dist/app/staff-touch-manifest.json`) |
 
 - The builds are deterministic.
-- The footer is made by `build/footer_practice.py`:
-  - it puts the practice guard and `src/staff.touch-host.html` first;
-  - it repoints the app loader;
-  - it repoints the finish-step add-on (`src/staff.finish-flow.js`, colleague voice).
+- The page code is made by `build/page_release_20261021.py`:
+  - **head:** the practice guard, then `src/staff.touch-host.html`, then the live head unchanged. Webflow keeps each custom code block under 50,000 characters, and the live footer was already 49,491, so these early pieces go in the head, which also runs earlier;
+  - **footer:** it repoints the app loader and the finish-step add-on (`src/staff.finish-flow.js`, colleague voice), with nothing else changed.
 
 ## Tests (on the release footer with 40-zero pins)
 

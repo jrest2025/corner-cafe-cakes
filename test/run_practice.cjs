@@ -10,7 +10,7 @@ const fs = require('fs'), path = require('path'), { execFileSync } = require('ch
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const repo = path.resolve(__dirname, '..');
 const manifest = JSON.parse(fs.readFileSync(path.join(repo, process.env.MANIFEST || 'dist/app/staff-practice-manifest.json'), 'utf8'));
-const head = fs.readFileSync(path.join(repo, 'test/fixtures/staff-head.html'), 'utf8');
+const head = fs.readFileSync(process.env.HEAD || path.join(repo, 'test/fixtures/staff-head.html'), 'utf8');
 let foot = fs.readFileSync(process.env.FOOTER || path.join(repo, 'test/fixtures/staff-footer.html'), 'utf8').replace(/<script src="https:\/\/cdn.jsdelivr.net\/npm\/@supabase[^<]*<\/script>/, '');
 const LOADER = /var f="gh\/jrest2025\/corner-cafe-cakes@[0-9a-f]{40}\/dist\/app\/staff-app\.[0-9a-f]{10}\.js",(h=\[[^\]]*\]),k="sha384-[^"]+"/;
 if (!LOADER.test(foot)) throw new Error('The footer fixture has no staff app loader');
@@ -26,7 +26,7 @@ const REAL = "window.__realClients=0;window.supabase={createClient:function(url)
   "var q=function(t){var b={};['select','eq','neq','gte','lte','gt','lt','in','is','ilike','or','not','order','limit','range','single','maybeSingle','update','insert','upsert','delete'].forEach(function(k){b[k]=function(){return b}});b.then=function(ok,bad){return F('/rest/v1/'+t).then(ok,bad)};return b};" +
   "return{rpc:function(fn,a){return F('/rest/v1/rpc/'+fn,a)},from:q,auth:{getSession:function(){return F('/auth/v1/session')},signOut:function(){return F('/auth/v1/logout')},onAuthStateChange:function(){return{data:{subscription:{unsubscribe:function(){}}}}}},storage:{from:function(){return{createSignedUrls:function(){return F('/storage/v1/sign')},upload:function(){return F('/storage/v1/upload')}}}},functions:{invoke:function(n){return F('/functions/v1/'+n)}}}}};";
 const GUARD = fs.readFileSync(path.join(repo, 'src/staff.practice-guard.html'), 'utf8').trim();
-if (!foot.includes('id="ccs-practice-guard"')) foot = GUARD + '\n' + foot;      // as the practice release footer has it (build/footer_practice.py)
+if (!(head + foot).includes('id="ccs-practice-guard"')) foot = GUARD + '\n' + foot;      // released in the page head (build/page_release_20261021.py)
 
 // practice: true = the tab is practising; signedOut: the normal app shows the sign-in screen
 async function open(b, w, h, o) {

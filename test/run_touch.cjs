@@ -18,7 +18,7 @@ if (process.env.MANIFEST) {
 }
 const mock = fx('../mock.js');
 const html = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
-  '<style id="host-site-css">' + fx('host-site.css') + '</style>' + fx('host-site-head.html') + fx('staff-head.html') +
+  '<style id="host-site-css">' + fx('host-site.css') + '</style>' + fx('host-site-head.html') + (process.env.HEAD ? fs.readFileSync(process.env.HEAD, 'utf8') : fx('staff-head.html')) +
   '<script>window.__role="manager";' + mock + 'window.supabase={createClient:function(){return window.__ccsMock}};</script></head><body><div id="cc-staff"></div>' +
   foot + fx('host-site-footer.html') + '</body></html>';
 const KNOWN = ["Cannot read properties of undefined (reading 'length')", "Cannot read properties of undefined (reading 'filter')"];
