@@ -169,3 +169,11 @@ The page head does not change.
 3. Publish to cornercafefiji.com and www.cornercafefiji.com.
 
 There are no database changes.
+
+## Released live, 21 October 2026, 11:37 PM Fiji (approved by Roneel)
+
+- Staff page `/cake-orders-staff` footer: only the app loader line changed, to `staff-app.efbea59dfe.js` at commit d798dfd. Every other line is the live footer as it stood at 11:31 PM, including the Cake Heartbeat holidays release (fd6e6fa).
+- Written through the Webflow API, read back and compared character for character with the prepared file (identical, 49,491 characters) before publishing.
+- Heartbeat guard on that exact footer: 80 of 80 passed.
+- Published to cornercafefiji.com and www.cornercafefiji.com only (not the webflow.io address). Only the staff page had changed since the previous publish; draft and test pages stayed drafts.
+- Rollback: paste `docs/rollback/staff-footer-before-sidebar-contract-live-2026-10-21-2337.html` into the staff page footer and publish.
