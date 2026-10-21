@@ -3,11 +3,25 @@
 // Previews and tests use made-up order details (sampleData), never a real customer's, and are built by the same code
 // as the real emails (send-emails/guest_emails.ts), so what staff see is what customers get.
 // Test emails go only to the signed-in staff member's own login email, with [TEST] in the subject.
-import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 import { buildGuest, sampleData, TEMPLATE_KINDS, FIELDS, DEFAULTS, unknownFields, cleanRich } from "../send-emails/guest_emails.ts";
 
 const ORIGINS = ["https://www.cornercafefiji.com", "https://cornercafefiji.com"];
 const RESEND_KEY = Deno.env.get("RESEND_API_KEY") ?? "";
+const SB_URL = Deno.env.get("SUPABASE_URL")!, SB_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+// Plain requests with the service key on the server (as send-emails does), no client library
+async function rest(path: string, init: RequestInit = {}) {
+  const r = await fetch(`${SB_URL}/rest/v1/${path}`, { ...init, headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, "Content-Type": "application/json", ...(init.headers ?? {}) } });
+  const t = await r.text();
+  if (!r.ok) throw new Error(`${path}: ${r.status}`);
+  return t ? JSON.parse(t) : null;
+}
+async function signedIn(token: string): Promise<{ id: string; email: string | null } | null> {
+  if (!token) return null;
+  const r = await fetch(`${SB_URL}/auth/v1/user`, { headers: { apikey: SB_KEY, Authorization: `Bearer ${token}` } });
+  if (!r.ok) return null;
+  const u = await r.json();
+  return u && u.id ? { id: u.id, email: u.email || null } : null;
+}
 const KINDS = new Set(TEMPLATE_KINDS.map((k) => k.kind));
 const TEXT = ["subject", "preheader", "label", "heading", "tagline"], RICH = ["intro", "closing"];
 const LIMIT: Record<string, number> = { subject: 200, preheader: 250, label: 60, heading: 160, tagline: 160, intro: 8000, closing: 8000 };
@@ -36,13 +50,12 @@ Deno.serve(async (req) => {
   const out = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { ...h, "Content-Type": "application/json" } });
   if (req.method === "OPTIONS") return new Response("ok", { headers: h });
   if (req.method !== "POST") return out({ ok: false, message: "POST only" }, 405);
-  const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false, autoRefreshToken: false } });
-
   const token = (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
-  const { data: who } = await db.auth.getUser(token);
-  if (!who?.user) return out({ ok: false, message: "Sign in again." }, 401);
-  const { data: allowed } = await db.rpc("_perm_of", { p_user: who.user.id, p_key: "mgmt.settings" });
-  if (allowed !== true) return out({ ok: false, message: "Only someone with the Settings switch can manage email templates." }, 403);
+  const user = await signedIn(token);
+  if (!user) return out({ ok: false, message: "Sign in again." }, 401);
+  let allowed = false;
+  try { allowed = (await rest("rpc/_perm_of", { method: "POST", body: JSON.stringify({ p_user: user.id, p_key: "mgmt.settings" }) })) === true; } catch (_e) { allowed = false; }
+  if (!allowed) return out({ ok: false, message: "Only someone with the Settings switch can manage email templates." }, 403);
 
   let b: any = {};
   try { b = await req.json(); } catch { return out({ ok: false, message: "Bad request." }, 400); }
@@ -53,11 +66,15 @@ Deno.serve(async (req) => {
   if (!KINDS.has(kind)) return out({ ok: false, message: "Unknown email." }, 400);
 
   // The café's own details, settings and cross-sell cards; the order and customer are made up
-  const [{ data: loc }, { data: cfgRows }, { data: cards }] = await Promise.all([
-    db.from("locations").select("name, address, phone, email, order_page_url").limit(1).maybeSingle(),
-    db.from("app_config").select("key, value").in("key", ["review_link", "from_email", "reply_to", "test_mode", "test_email"]),
-    db.from("promo_cards").select("*").eq("is_active", true).order("sort_order"),
-  ]);
+  let locRows: any[] = [], cfgRows: any[] = [], cards: any[] = [];
+  try {
+    [locRows, cfgRows, cards] = await Promise.all([
+      rest("locations?select=name,address,phone,email,order_page_url&order=created_at.asc&limit=1"),
+      rest("app_config?key=in.(review_link,from_email,reply_to)&select=key,value"),
+      rest("promo_cards?is_active=eq.true&select=*&order=sort_order.asc"),
+    ]);
+  } catch (_e) { return out({ ok: false, message: "The café details could not be loaded. Try again." }, 500); }
+  const loc = locRows?.[0] ?? null;
   const cfg = Object.fromEntries((cfgRows || []).map((r: any) => [r.key, r.value]));
   const d = sampleData(kind, { location: loc, config: { review_link: cfg.review_link }, promo_cards: cards || [] });
   const t = b.fields ? tidy(b.fields) : null;
@@ -70,7 +87,7 @@ Deno.serve(async (req) => {
   if (b.op === "test") {
     if (t && (t.unknown.length || t.problems.length)) return out({ ok: false, message: "Fix the highlighted problems before sending a test." });
     if (!RESEND_KEY) return out({ ok: false, message: "Email is not set up, so the test could not be sent." });
-    const to = who.user.email;
+    const to = user.email;
     if (!to) return out({ ok: false, message: "Your login has no email address." });
     const r = await fetch("https://api.resend.com/emails", {
       method: "POST", headers: { Authorization: `Bearer ${RESEND_KEY}`, "Content-Type": "application/json" },
