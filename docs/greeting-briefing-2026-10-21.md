@@ -1,6 +1,6 @@
 # Greeting and daily briefing on Today (21 October 2026)
 
-Roneel, 6:44 PM, sent his brief "Personalised conversational UX and context-aware dashboard intelligence". He chose "Deploy it now, greeting next" and "No name on the counter login". He approved the preview with "deploy" at 7:41 PM.
+Roneel, 6:44 PM, sent his brief "Personalised conversational UX and context-aware dashboard intelligence". He chose "Deploy it now, greeting next" and "No name on the counter login". He approved the preview with "deploy" at 7:41 PM, and it went live at 7:52 PM (docs/release-2026-10-21-greeting-briefing.md).
 
 ## What it shows
 **Greeting, by Fiji time**
