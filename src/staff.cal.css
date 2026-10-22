@@ -2486,22 +2486,22 @@ body.ccs-is-off #cc-staff .ccs-side { top: var(--ccs-offh, 44px); }
   #cc-staff #ccs-main .tp-stats .ccs-kpis-row { margin: 0; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: stretch; }
   #cc-staff #ccs-main .tp-stats .ccs-kpis-row .ccs-kpi { flex-direction: column; flex-wrap: nowrap; align-items: flex-start; justify-content: center; padding: 8px 12px; }
   #cc-staff #ccs-main .tp-stats .ccs-kpis-row .ccs-kpi-n { font-size: 22px; }
-  #cc-staff #ccs-main .ccs-today { flex: 1 1 auto; min-height: 220px; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.15fr) minmax(0, .8fr); gap: 10px; }
+  #cc-staff #ccs-main .ccs-today { flex: 0 0 auto; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; gap: 18px; }
   /* nothing important is cut short: the lines in the lists wrap instead */
   #cc-staff #ccs-main .ccs-today .ccs-mini-m > span, #cc-staff #ccs-main .ccs-today .ccs-mini-m b, #cc-staff #ccs-main .ccs-today .ccs-next { white-space: normal; overflow: visible; text-overflow: clip; display: block; -webkit-line-clamp: unset; }
   #cc-staff #ccs-main .ccs-mirnote { padding: 8px 14px; font-size: 15px; }
   #cc-staff #ccs-main .ccs-mirnote .ccs-link { min-height: 0; }
   #cc-staff #ccs-main .ccs-today .tp-barP { display: none; }
-  #cc-staff #ccs-main .ccs-today .tp-top { display: contents; }
+  #cc-staff #ccs-main .ccs-today .tp-top { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 18px; align-items: start; }
   #cc-staff #ccs-main .ccs-today .tp-top > .tp { display: block; min-height: 0; }
-  #cc-staff #ccs-main .ccs-today .tp-lower { margin: 0; min-height: 0; display: flex; flex-direction: column; }
+  #cc-staff #ccs-main .ccs-today .tp-lower { margin: 0; min-height: 0; display: flex; flex-direction: column; gap: 12px; }
   #cc-staff #ccs-main .ccs-today .tp-lower .tp.curB { flex: 1 1 auto; min-height: 0; }
   #cc-staff #ccs-main .ccs-today .tp-barB .ccs-secbar { margin: 0 0 6px; }
-  #cc-staff #ccs-main .ccs-today .tp > .ccs-panel-card { height: 100%; min-height: 0; margin: 0; display: flex; flex-direction: column; overflow: hidden; padding: 10px 12px; }
+  #cc-staff #ccs-main .ccs-today .tp > .ccs-panel-card { height: auto; min-height: 0; margin: 0; display: flex; flex-direction: column; overflow: visible; padding: 20px; gap: 12px; border-radius: 14px; }
   #cc-staff #ccs-main .ccs-today .tp .ccs-card-head { flex: none; margin-bottom: 6px; }
   #cc-staff #ccs-main .ccs-today .tp .ccs-card-head h2 { font-size: 16px; }
-  #cc-staff #ccs-main .ccs-today .tp .ccs-minis { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
-  #cc-staff #ccs-main .ccs-today .tp-lower .ccs-panel-card { overflow-y: auto; overscroll-behavior: contain; }
+  #cc-staff #ccs-main .ccs-today .tp .ccs-minis { flex: 0 0 auto; min-height: 0; overflow: visible; }
+  #cc-staff #ccs-main .ccs-today .tp-lower .ccs-panel-card { overflow: visible; }
   #cc-staff #ccs-main .ccs-today .tp-week .ccs-week { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; }
   #cc-staff #ccs-main .ccs-today .tp-week .ccs-daycell { display: grid; grid-template-columns: 64px 32px minmax(0, 1fr); align-items: center; text-align: left; min-height: 38px; padding: 4px 10px; gap: 6px; }
   #cc-staff #ccs-main .ccs-today .tp-week .ccs-daycell b { font-size: 16px; }
@@ -2750,3 +2750,6 @@ body.ccs-is-off #cc-staff .ccs-side { top: var(--ccs-offh, 44px); }
 #cc-staff .at-island-close{width:42px;height:42px;border:1px solid #d1d5db;background:#fff;border-radius:12px;font-size:18px;cursor:pointer;color:#374151}
 @media(max-width:640px){#cc-staff .at-islands{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}#cc-staff .at-island{min-height:92px;padding:12px 10px;gap:8px;border-radius:16px}#cc-staff .at-island-icon{width:34px;height:34px;font-size:18px}#cc-staff .at-island-body>span{font-size:13px}#cc-staff .at-island-body strong{font-size:23px}}
 @media(prefers-reduced-motion:reduce){#cc-staff .at-island{transition:none}#cc-staff .at-island:hover{transform:none}}
+
+/* Today: content-first layout, responsive without clipped operational items. */
+@media(max-width:1050px){#cc-staff #ccs-main .ccs-today .tp-top{grid-template-columns:minmax(0,1fr)}#cc-staff #ccs-main .ccs-today .tp>.ccs-panel-card{padding:16px}}
