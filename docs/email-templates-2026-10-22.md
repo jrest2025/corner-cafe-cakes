@@ -56,3 +56,11 @@ the Birthday Club is phone-only by design), and duplicating a template into anot
    `72fcd30e8cab5297f6ba29c0258301fadf9d6d1a` (version 26).
 3. Staff page footer: change only the app loader line to the file and SRI in `dist/app/staff-email-templates-manifest.json`,
    pinned at the release commit. Save the current footer to `docs/rollback/` first, read back, then publish.
+
+## Released live, 22 October 2026, about 12:05 PM Fiji (Roneel: "deploy")
+- `send-emails` version 27: the one import line now pins commit `7e1aa73b2cd7aa3e894a019d5f38dfc11eccf5b5`.
+  Customer emails have no cake photo from now on. Wording unchanged (no template can be published yet).
+- Checked: an empty run (the same call the 5-minute job makes) answered 200 `{"ok":true,"claimed":0,...}` on the new version.
+- Rollback: redeploy `send-emails` with the import pinned at `72fcd30e8cab5297f6ba29c0258301fadf9d6d1a` (version 26).
+- NOT released: the database file (stopped at the approval prompt three times, 22 Oct) and the staff page footer.
+  The Email templates screen needs the database first; without it the screen hides itself, so the footer was left unchanged.
