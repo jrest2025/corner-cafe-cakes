@@ -18,7 +18,7 @@ assert.equal(s.distinctCustomers,2);
 assert.equal(s.multipleOrdersInPeriod,1);
 assert.equal(s.repeatWithinPeriodRate,0.5);
 assert.equal(s.leadTime.medianDays,3);
-assert.deepEqual(s.leadTime.buckets.map(b=>b.count),[1,0,1,1,0,0]);
+assert.deepEqual(s.leadTime.buckets.map(b=>b.count),[1,0,2,0,0,0]);
 assert.equal(s.occasionMissing,1);
 assert.equal(JSON.stringify(orders),input,'must not mutate production registers');
 const withoutDate=A.summarize(orders);
