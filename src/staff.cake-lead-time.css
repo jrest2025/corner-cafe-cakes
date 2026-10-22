@@ -84,3 +84,7 @@
 
 #cc-staff #cc-cake-lead-time .cclt-detail>p{font-size:inherit!important;color:var(--muted);margin:6px 0 0}
 #cc-staff #cc-cake-lead-time .cclt-habit>p{color:#1d2939!important}
+
+/* 0.2.0: the Analytics layout places sections with CSS order; keep the View switch and this view with the chart. */
+#cc-staff #cc-demand-views,#cc-staff #cc-cake-lead-time{order:1!important}
+#cc-staff #cc-demand-views.ccdv-inhead{margin:0 0 0 auto!important}

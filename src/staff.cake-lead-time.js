@@ -1,4 +1,4 @@
-/* Corner Cafe Cake CRM — Cakes by pickup day and booking time (PREVIEW, not live).
+/* Corner Cafe Cake CRM — Cakes by pickup day and booking time (live 22 Oct 2026; 0.2.0 calmer text).
  * One bar per pickup day. The bar height is the cakes due that day (the same count as
  * the protected Daily Cake Demand green line). The bar is split by how far ahead the
  * cakes were booked. Order counting rules match CCCakeSeasonalStage.normalize:
@@ -8,7 +8,7 @@
  */
 (function(global){
   'use strict';
-  var NAME='CCCakeLeadTime',VERSION='0.1.0-preview',DAY=86400000;
+  var NAME='CCCakeLeadTime',VERSION='0.2.0',DAY=86400000;
   var BUCKETS=[
     {k:'weeks',label:'8 or more days ahead',short:'8+ days',color:'#1f5f3f'},
     {k:'week',label:'3 to 7 days ahead',short:'3–7 days',color:'#3f8a5f'},
@@ -78,14 +78,13 @@
       var key=BUCKETS.map(function(b){var v=s.tot[b.k]||0;
         return '<li><i style="background:'+b.color+'"></i><span>'+esc(b.label)+'</span><b>'+pct(v)+'%</b><small>'+v+' cakes</small></li>';}).join('');
       root.innerHTML=
-        '<div class="cclt-head"><div><h3>Cakes by pickup day</h3>'+
-        '<p>Each bar is the cakes picked up that day. The colours show how far ahead they were booked.</p></div>'+
+        '<div class="cclt-head"><div><h3>Cakes by pickup day</h3></div>'+
         '<div class="cclt-today"><small>Orders taken today</small><b>'+ix.takenToday+'</b><small>cake'+(ix.takenToday===1?'':'s')+'</small></div></div>'+
         '<div class="cclt-ranges" role="group" aria-label="Period">'+RANGES.map(function(r){
           return '<button type="button" data-r="'+r.k+'" aria-pressed="'+(r===state.range)+'">'+esc(r.label)+'</button>';}).join('')+'</div>'+
         '<div class="cclt-habit"><p>'+headline+'</p><div class="cclt-strip" aria-hidden="true">'+strip+'</div>'+
-        '<ul class="cclt-key">'+key+'</ul><p class="cclt-note">'+s.all+' cakes picked up '+esc(state.range.label.toLowerCase())+
-        '. “Booking date not known” is paper slips and older records with no order date. Amber outline: busiest day. Light orange days: Fiji public holidays.</p></div>'+
+        '<ul class="cclt-key">'+key+'</ul><p class="cclt-note">'+s.all+' cakes picked up '+esc(state.range.label.toLowerCase())+'.</p>'+
+        '<details class="cc-why"><summary>About this chart</summary><p class="cclt-note">Grey, booking date not known: paper slips and older records with no order date. Amber outline: busiest day. Light orange days: Fiji public holidays.</p></details></div>'+
         '<div class="cclt-chart"><div class="cclt-scroll" tabindex="0" aria-label="Scroll to see more days"></div></div>'+
         '<div class="cclt-detail" aria-live="polite"></div>';
       root.querySelectorAll('[data-r]').forEach(function(btn){btn.onclick=function(){
@@ -159,7 +158,8 @@
     var rail=parent&&parent.querySelector&&parent.querySelector('#cc-demand-scroll-rail');
     if(!rail)return false;
     var doc=rail.ownerDocument,sw=doc.getElementById('cc-demand-views'),box=doc.getElementById('cc-cake-lead-time');
-    if(!sw||sw.nextElementSibling!==box||!box||box.nextElementSibling!==rail){
+    var head=rail.closest&&rail.closest('.hb-v2');head=head&&head.querySelector('.hb-v2-head');
+    if(!sw||!box||box.nextElementSibling!==rail||(head&&sw.parentNode!==head)){
       if(sw)sw.remove();if(box)box.remove();
       sw=doc.createElement('div');sw.id='cc-demand-views';sw.className='ccdv';sw.setAttribute('role','group');
       sw.setAttribute('aria-label','Choose how to show daily cake demand');
@@ -167,7 +167,9 @@
         '<button type="button" data-view="due">Booked and due</button>'+
         '<button type="button" data-view="lead">By booking time</button>';
       box=doc.createElement('section');
-      rail.parentNode.insertBefore(sw,rail);rail.parentNode.insertBefore(box,rail);
+      /* the View switch sits in the Cake Heartbeat header, so the chart stays straight under it */
+      if(head){sw.classList.add('ccdv-inhead');head.appendChild(sw);}else rail.parentNode.insertBefore(sw,rail);
+      rail.parentNode.insertBefore(box,rail);
       sw.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('[data-view]');if(!b)return;setView(b.getAttribute('data-view'));apply();});
     }
     var made=null;
