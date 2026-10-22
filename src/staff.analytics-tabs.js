@@ -406,12 +406,44 @@
     });
   }
 
+  // Optional intelligence add-on: informational only, after existing charts.
+  // Never changes the protected Overview, Daily Cake Demand, lead-time KPIs or booking curve.
+  function extraIntelligence(mod, x) {
+    var E=global.CCCakeAnalyticsExpansion;
+    if (!E || typeof E.summarize!=='function' || ['sl','cu','pl'].indexOf(mod)<0) return '';
+    try {
+      var s=E.summarize(x.cur||[],{from:x.r.from,to:x.r.to});
+      var cards=[];
+      if(mod==='sl') {
+        cards.push(['Occasion data coverage',s.completedOrders?Math.round((s.completedOrders-s.occasionMissing)/s.completedOrders*100)+'%':'—',
+          'Share of completed orders with a recorded occasion.']);
+        cards.push(['Cakes per completed order',s.completedOrders?(s.cakesSold/s.completedOrders).toFixed(2):'—',
+          'From recorded order item quantities.']);
+      }
+      if(mod==='cu') {
+        cards.push(['Multiple orders this period',s.repeatWithinPeriodRate==null?'—':Math.round(s.repeatWithinPeriodRate*100)+'%',
+          'Customers with 2 or more completed orders in the selected period; not lifetime retention.']);
+        cards.push(['Customer matching coverage',s.completedOrders?Math.round((s.completedOrders-s.quality.ordersWithoutCustomer)/s.completedOrders*100)+'%':'—',
+          'Completed orders with a customer identifier.']);
+      }
+      if(mod==='pl') {
+        cards.push(['Verified lead-time coverage',s.leadTime.validOrders+'/'+s.completedOrders,
+          'Advance-order analysis is only shown when the real order creation date is provided.']);
+        cards.push(['Occasion information missing',String(s.occasionMissing),
+          'Completed orders without a recorded occasion in this period.']);
+      }
+      return '<section class="cat-card cat-expansion" aria-label="Additional business intelligence"><header><h3>Additional business intelligence</h3><span>Selected period · supporting metrics</span></header><div class="cat-kpis">'+cards.map(function(c){
+        return '<div class="cat-k cat-blue"><span class="cat-k-top"><span>'+esc(c[0])+'</span></span><strong>'+esc(c[1])+'</strong><span class="cat-k-cap">'+esc(c[2])+'</span></div>';
+      }).join('')+'</div></section>';
+    } catch(e) { console.warn('[Cake analytics] Extra intelligence unavailable',e); return ''; }
+  }
+
   // ---------- entry point, called by the app for every Analytics tab except Overview ----------
   function page(mod, x) {
     var fn = PAGES[mod];
     if (!fn) return null;
     last = { mod: mod, x: x };
-    var html = x.head + modBar(mod, x) + fn(x);
+    var html = x.head + modBar(mod, x) + fn(x) + extraIntelligence(mod, x);
     setTimeout(fillTodo, 0);
     return html;
   }
