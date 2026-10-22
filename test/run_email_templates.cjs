@@ -12,6 +12,8 @@ let foot = fs.readFileSync(process.env.FOOTER || path.join(repo, 'test/fixtures/
 const LOADER = /var f="gh\/jrest2025\/corner-cafe-cakes@[0-9a-f]{40}\/dist\/app\/staff-app\.[0-9a-f]{10}\.js",(h=\[[^\]]*\]),k="sha384-[^"]+"/;
 foot = foot.replace(LOADER, (m, h) => 'var f="gh/jrest2025/corner-cafe-cakes@' + '0'.repeat(40) + '/' + manifest.file + '",' + h + ',k="' + manifest.sri + '"');
 const mock = fs.readFileSync(path.join(repo, 'test/mock.js'), 'utf8');
+// ADDON: a standalone add-on script loaded after the live footer (the release route that leaves the app bundle as it is)
+const ADDON = process.env.ADDON ? '<script src="https://cdn.jsdelivr.net/gh/jrest2025/corner-cafe-cakes@' + '0'.repeat(40) + '/' + process.env.ADDON + '" crossorigin="anonymous"></script>' : '';
 const KNOWN = ["Cannot read properties of undefined (reading 'length')", "Cannot read properties of undefined (reading 'filter')"];
 let n = 0, fails = 0;
 function check(s, v, d) { if (v) { n++; console.log('PASS ' + s); } else { fails++; console.log('FAIL ' + s + (d !== undefined ? ' -> ' + JSON.stringify(d).slice(0, 500) : '')); } }
@@ -59,19 +61,28 @@ async function main() {
     check('changed heading only: delivery wording still automatic', /We'll deliver it on/.test(m.text) && /Great news Mere/.test(m.html), m.text.slice(0, 300));
     const w = g.buildGuest('guest_received', { ...g.sampleData('guest_received', { location: LOC }), customer: { full_name: 'Mere T', preferred_contact: 'whatsapp' }, template: { id: 'x', heading: 'Hi {{customer_name}}' } });
     check('changed heading only: WhatsApp wording still automatic', /WhatsApp/.test(w.text)); }
+  const window_calls = [];
   const b = await chromium.launch();
   async function open(w, h, role, touch) {
     const html = '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' + head +
       '<script>window.__role=' + JSON.stringify(role) + ';' + mock + 'window.supabase={createClient:function(){return window.__ccsMock}};' + DB + '</script></head>' +
-      '<body style="margin:0"><div id="cc-staff"></div>' + foot + '</body></html>';
+      '<body style="margin:0"><div id="cc-staff"></div>' + foot + ADDON + '</body></html>';
     const ctx = await b.newContext({ viewport: { width: w, height: h }, hasTouch: touch === undefined ? w < 1100 : touch, isMobile: w < 760 });
     const p = await ctx.newPage(), errors = [];
     p.on('pageerror', e => { if (!KNOWN.includes(e.message)) errors.push(e.message); });
     await p.exposeFunction('__etServerNode', (body) => JSON.stringify(server(JSON.parse(body))));
-    await p.addInitScript(() => { window.__etServer = (body) => window.__etServerNode(JSON.stringify(body)).then(JSON.parse); });
+    await p.addInitScript(() => { window.__etServer = (body) => window.__etServerNode(JSON.stringify(body)).then(JSON.parse); try { localStorage.setItem('cc-cakes-staff', JSON.stringify({ access_token: 'test-token' })); } catch (e) {} });
     await ctx.route('**/*', r => {
       const u = r.request().url();
       if (u.startsWith('https://www.cornercafefiji.com/')) return r.fulfill({ body: html, contentType: 'text/html' });
+      if (u === 'https://ilbrfwxblhidtlsjgxlh.supabase.co/functions/v1/email-templates') {
+        const hdr = { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'authorization, apikey, content-type' };
+        if (r.request().method() === 'OPTIONS') return r.fulfill({ status: 200, headers: hdr, body: 'ok' });
+        if (!/Bearer test-token/.test(r.request().headers()['authorization'] || '')) return r.fulfill({ status: 401, headers: hdr, body: '{}' });
+        if (!['admin', 'manager'].includes(role)) return r.fulfill({ status: 403, headers: hdr, contentType: 'application/json', body: JSON.stringify({ ok: false, message: 'Only someone with the Settings switch can manage email templates.' }) });
+        window_calls.push(JSON.parse(r.request().postData()));
+        return r.fulfill({ status: 200, headers: hdr, contentType: 'application/json', body: JSON.stringify(server(JSON.parse(r.request().postData()))) });
+      }
       const m = u.match(/^https:\/\/(?:cdn|fastly)\.jsdelivr\.net\/gh\/jrest2025\/corner-cafe-cakes@([0-9a-f]{7,40})\/([^?]+)/);
       if (m) {
         const type = /\.css$/.test(m[2]) ? 'text/css' : /\.png$/.test(m[2]) ? 'image/png' : 'application/javascript', hdr = { 'access-control-allow-origin': '*' };

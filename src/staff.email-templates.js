@@ -34,9 +34,17 @@
   function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function bc() { return global.__ccsBc || null; }
   function rpc(fn, args) { var b = bc(); if (!b || !b.rpc) return Promise.reject(new Error('no client')); return b.rpc(fn, args || {}).then(function (r) { if (r.error) throw r.error; return r.data; }); }
+  // The app's own signed-in call when it lends one; otherwise the same call with the app's saved sign-in
+  var FN = 'https://ilbrfwxblhidtlsjgxlh.supabase.co/functions/v1/email-templates', PUB = 'sb_publishable_4c9NdubC5PYevEOSMYH0ag_mv1LJ76E';
+  function callFn(body) {
+    var b = bc(); if (b && b.invoke) return b.invoke('email-templates', body);
+    var tok = null; try { var ss = JSON.parse(global.localStorage.getItem('cc-cakes-staff') || 'null'); tok = ss && (ss.access_token || (ss.currentSession && ss.currentSession.access_token)); } catch (e) { tok = null; }
+    if (!tok) return Promise.resolve({ error: { message: 'signed out', context: { status: 401 } } });
+    return fetch(FN, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: PUB, Authorization: 'Bearer ' + tok }, body: JSON.stringify(body) })
+      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { return r.ok ? { data: d } : (r.status === 401 || r.status === 403 ? { error: { message: String(r.status), context: { status: r.status } } } : { data: d }); }); });
+  }
   function invoke(body) {
-    var b = bc(); if (!b || !b.invoke) return Promise.reject(new Error('no client'));
-    return b.invoke('email-templates', body).then(function (r) {
+    return callFn(body).then(function (r) {
       if (r.error) { var st = r.error.context && r.error.context.status; if (st === 401) throw new Error('Sign in again, then try once more.'); if (st === 403) throw new Error('Only someone with the Settings switch can do this.'); throw r.error; }
       return r.data || {};
     });
