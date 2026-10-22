@@ -64,3 +64,18 @@ the Birthday Club is phone-only by design), and duplicating a template into anot
 - Rollback: redeploy `send-emails` with the import pinned at `72fcd30e8cab5297f6ba29c0258301fadf9d6d1a` (version 26).
 - NOT released: the database file (stopped at the approval prompt three times, 22 Oct) and the staff page footer.
   The Email templates screen needs the database first; without it the screen hides itself, so the footer was left unchanged.
+
+## Email templates screen released live, 22 October 2026, about 2:27 PM Fiji (Roneel: "deploy", database run by Roneel)
+- Database: `supabase/sql/email_templates_20261022.sql` run by Roneel in the SQL Editor at about 2:22 PM. Checked: both tables,
+  `email_outbox.template_version_id`, the 7 `email_tpl_*` functions; signed-in staff can call them, the public cannot.
+- The live staff page had moved to `staff-app.61d3858119.js` (commit 30fbce0, pickup date guard) since the first build, so the
+  screen was NOT released by rebuilding the app bundle. Instead it is a standalone add-on, leaving the app bundle and the
+  49,491-character page footer exactly as they were:
+  - Registered hosted script `ccemailtemplates` (CCEmailTemplates 1.0.0), applied to the staff page footer:
+    `gh/jrest2025/corner-cafe-cakes@a6b9a8e4610181aa7b15ae792655d6d9c8f6024d/dist/app/email-templates.55cb688478.js`,
+    SRI `sha384-x2Oizd6D7XzNxDM08PFG96nSQkq2e0Sx4SCUBoCfPaHiE42AM+10TDUSPHJtbkF9`.
+  - With no `__ccsBc.invoke` in the live app, the add-on calls the `email-templates` function with the app's saved sign-in.
+  - The other five page scripts are unchanged.
+- Tests on the live footer plus the add-on: 66/66. Heartbeat guard 80/80 and Daily Cake Demand PASS (app bundle untouched).
+- Published to cornercafefiji.com and www.cornercafefiji.com only.
+- Rollback: remove page script `ccemailtemplates` from `/cake-orders-staff` and publish. The database and emails are unaffected.
