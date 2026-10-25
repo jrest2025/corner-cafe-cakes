@@ -22,3 +22,6 @@
 ## Rollback
 1. Remove `ccOrderToolsLoader2` from the Cake Orders – Staff page and publish. The app goes back to exactly what it was.
 2. The database column can stay. The old screen ignores it, and typed cancellations are saved as `other`.
+
+## Live
+Published on 26 October 2026 at 11:47 AM Fiji time (cornercafefiji.com and www.cornercafefiji.com, not webflow.io), after Roneel said "deploy". Festive and test pages stayed in draft.
