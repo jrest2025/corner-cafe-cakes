@@ -86,6 +86,8 @@ const shot = async (p, name) => { if (SHOTS) await p.screenshot({ path: SHOTS + 
     }
     // ---------- Analytics ----------
     await go(p, 'dash');
+    { await p.waitForTimeout(1500); const pn = await p.evaluate(() => { const hb = document.getElementById('cc-heartbeat'), h = hb && hb.querySelector('.hb-v2-head h2'), a = hb && hb.querySelector('[aria-label*="daily performance"]'); return { t: h && h.textContent, a: a && a.getAttribute('aria-label'), left: /Cake Heartbeat/.test(hb ? hb.innerText : '') }; });
+      check(t + ' Analytics: chart is named Cake Pulse (name only)', pn.t === 'Cake Pulse' && !pn.left && (!pn.a || /Cake Pulse/.test(pn.a)), pn); }
     await p.evaluate(() => { const b = document.querySelector('#ccs-main [data-g="anm"][data-v="sl"]'); if (b) b.click(); }); await p.waitForTimeout(1500);
     const an = await p.evaluate(() => ({ btn: (document.querySelector('.cat-page[data-cat="sl"] .ccdd-btn') || {}).getAttribute && document.querySelector('.cat-page[data-cat="sl"] .ccdd-btn').getAttribute('aria-label'), chips: !!(document.querySelector('.cat-page[data-cat="sl"] .cat-chips') || {}).getClientRects().length }));
     check(t + ' Analytics: Period dropdown instead of pills', /^Period: Since launch/.test(an.btn || '') && !an.chips, an);

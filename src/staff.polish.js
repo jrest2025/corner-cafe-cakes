@@ -285,6 +285,13 @@
       k.insertAdjacentHTML('afterbegin', '<span class="cl-tile ccp-kic ccp-fixed" data-ccp-tone="' + (zero ? 'grey' : 'navy') + '">' + svg(ic) + '</span>'); k.classList.add('ccp-okpi'); k.classList.toggle('ccp-zero', zero);
     });
   }
+  // Name only: "Cake Heartbeat" is now "Cake Pulse" (title, screen-reader label, loading and error lines). The chart itself is untouched.
+  function pulseName() {
+    var hb = doc.getElementById('cc-heartbeat'); if (!hb) return;
+    var h2 = hb.querySelector('.hb-v2-head h2'); if (h2 && h2.textContent === 'Cake Heartbeat') h2.textContent = 'Cake Pulse';
+    [hb].concat([].slice.call(hb.querySelectorAll('[aria-label*="Heartbeat"]'))).forEach(function (e) { var a = e.getAttribute('aria-label'); if (a && /Cake Heartbeat/.test(a)) e.setAttribute('aria-label', a.replace(/Cake Heartbeat/g, 'Cake Pulse')); });
+    var w = doc.createTreeWalker(hb, 4), n; while ((n = w.nextNode())) if (n.nodeValue.indexOf('Cake Heartbeat') > -1) n.nodeValue = n.nodeValue.replace(/Cake Heartbeat/g, 'Cake Pulse');
+  }
   function kitchenCounts(main) {
     [].forEach.call(main.querySelectorAll('.kw-counts > .kw-count'), function (c) { var em = c.querySelector('em'); c.classList.toggle('ccp-zero', !!em && !/^[1-9]/.test(txt(em))); });
   }
@@ -767,7 +774,7 @@
       if (/^orders/.test(scr) || main.querySelector('.ccs-list .ccs-card')) orders(main);
       if (main.querySelector('.ccs-setnav')) settings(main);
       if (main.querySelector('.cat-page, .dx-filters')) analytics(main);
-      refine(main); sheet();
+      refine(main); sheet(); pulseName();
       seasonal(); treatBoard();
     } catch (e) { warn('update', e); }
   }
