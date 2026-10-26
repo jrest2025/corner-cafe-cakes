@@ -59,3 +59,9 @@ Create staff UI, implement Meta template approval and outbound queue for order c
 - The UI does not support setting the business number yet; manager configuration is available only through the protected API. A proper Settings section is still required.
 - No customer notifications, templates, automated sending, or image handling have been implemented.
 - Not deployed and not runtime-tested. Schema remains unapplied and connection disabled pending Meta verification. Do not merge this PR until browser, backend, data protection and role tests pass.
+
+## Follow-on preview refinement (26 October)
+- Single-business-number **Settings → WhatsApp Business** preview now shows connection state, manager-only E.164 number and Meta IDs, and a manual **Disable sending** control. The number is verified server-side against Meta; the UI never asks for or stores an access token.
+- In-order WhatsApp button uses the CRM's exact sheet ID via the existing optional Birthday Club bridge when available. Where that bridge is unavailable, it uses the most recently clicked order's explicit UUID; when no reliable ID can be found, the button is intentionally omitted rather than risking a wrong customer/order. **A first-party order-sheet integration is still required before release to guarantee access from calendar, search, and other entry points.**
+- The UI remains an **early preview**, not published or end-to-end verified. This branch does not include the Meta credentials, a verified phone number, or production Edge Function deployment.
+- Before rollout, add a role/permission-aware first-party integration with full order navigation, complete connection testing, consent checks, templates and approved customer messaging policies.
