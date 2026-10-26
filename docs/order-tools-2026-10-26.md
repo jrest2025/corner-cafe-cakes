@@ -71,7 +71,7 @@ Roneel: "humanise as much as possible".
 - Loading: the page head still loads 0.2.0 (unchanged). `ccOrderToolsLoader7` (commit ace873bd) also loads 0.3.0, which takes over before Analytics opens. The page code was not edited. Rollback: put `ccOrderToolsLoader6` back and publish.
 - Checks: `test/order-tools/test_leadview.cjs` passes 30 of 30 on phone, tablet and desktop, with the live page code and the file check on. Daily cake demand ("Booked and due") is compared with the live version and is unchanged.
 
-## Seasonal items, step 1 (staged 26 Oct 2026, not live until Roneel says "deploy")
+## Seasonal items, step 1 (live 26 Oct 2026, 8:23 PM, after Roneel said "deploy")
 Roneel: "special limited time items we punch in and upload in the back end and it automatically appears on the website order form", set up manually by him. Wine is a staff-only add-on at the counter. Treats-only orders are step 2.
 - Settings > Seasonal items (managers): add, change, switch On or Off, reorder, remove, photo upload; price, size or pack, heading, website and counter or counter only, on-sale dates, pickup dates, days' notice, daily limit, most per order, blocked pickup days. Heading settings (name, website message, how customers pay), Add a heading, Copy for next year. "What's booked" by pickup day and "Sold so far".
 - Counter order, Finish order: Festive treats row and picker; the save button shows the total with treats; Paid in full covers the treats.
@@ -81,6 +81,7 @@ Roneel: "special limited time items we punch in and upload in the back end and i
 - Database (applied 26 Oct 2026, every item Off, so nothing shows yet): `supabase/sql/seasonal_items_20261026.sql` and the `email_payload` treats key. A cake order and its treats save together or not at all. The daily cake limit and the protected Daily Cake Demand chart are unchanged (treats never make an order of their own). Rolled-back test: all 592 existing slips unchanged; website, sold out, notice, counter-only and paid-in-full rules checked.
 - Files: `src/staff.seasonal.js`, `src/guest.seasonal.js` (commit 75b32c53), also `src/staff.service-tools.js` (Cake is ready, online orders waiting).
 - Webflow: `ccOrderToolsLoader8` replaces `ccOrderToolsLoader7` (staff page). Website order page footer: one script line added before the form loader (with an integrity hash).
-- Still to deploy on "deploy": the `send-emails` function (Treats line in emails), then publish.
+- `send-emails` version 28 (commit d447eafb): the live 22 Oct emails (7e1aa73b) plus the Treats line. Rollback: point the function at 7e1aa73b (version 27).
+- Published to cornercafefiji.com and www.cornercafefiji.com (not webflow.io). Festive and test pages stayed in draft.
 - Checks: `test/order-tools/test_seasonal.cjs` 102 of 102, `test_guest_seasonal.cjs` 39 of 39, `test_service.cjs` 39 of 39, on phone, tablet and computer; loader 8 loads all five files with the live file check and no warnings.
 - Rollback: put `ccOrderToolsLoader7` back on the staff page, remove the guest.seasonal.js line from the order page footer, and publish. Switching every item Off hides treats everywhere straight away without a publish.
