@@ -65,3 +65,8 @@ Create staff UI, implement Meta template approval and outbound queue for order c
 - In-order WhatsApp button uses the CRM's exact sheet ID via the existing optional Birthday Club bridge when available. Where that bridge is unavailable, it uses the most recently clicked order's explicit UUID; when no reliable ID can be found, the button is intentionally omitted rather than risking a wrong customer/order. **A first-party order-sheet integration is still required before release to guarantee access from calendar, search, and other entry points.**
 - The UI remains an **early preview**, not published or end-to-end verified. This branch does not include the Meta credentials, a verified phone number, or production Edge Function deployment.
 - Before rollout, add a role/permission-aware first-party integration with full order navigation, complete connection testing, consent checks, templates and approved customer messaging policies.
+
+## Order entry-point fix
+- The CRM's `orders.reference` is unique in the current Supabase schema. The protected `whatsapp-admin` function now accepts a reference as an alternative to the order UUID and resolves the canonical UUID on the server.
+- The preview Messages button uses the rendered order reference when no precise sheet ID is available. This allows the button to appear for order sheets opened from calendar, search and other routes rather than relying on matching a list item. The server responds with the canonical `order_id` for subsequent association.
+- This improves the draft source code but **does not establish real browser/runtime behavior**. Browser tests, per-order permissions, and safe processing of ambiguous or older order data remain required before merge/release.
