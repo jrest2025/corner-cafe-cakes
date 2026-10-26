@@ -32,17 +32,23 @@ create table if not exists public.wa_messages (
   status text not null check (status in ('received','sending','sent','delivered','read','failed')),
   client_request_id uuid unique,
   staff_id uuid,
+  -- Explicit order association, never inferred from phone alone.
+  order_id uuid references public.orders(id) on delete set null,
+  linked_by uuid,
+  linked_at timestamptz,
   error_note text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 create index if not exists wa_messages_peer_recent on public.wa_messages(peer_number,created_at desc);
+create index if not exists wa_messages_order_recent on public.wa_messages(order_id,created_at desc) where order_id is not null;
+create index if not exists wa_messages_unlinked on public.wa_messages(created_at desc) where order_id is null and direction = 'inbound';
 create index if not exists wa_messages_num_recent on public.wa_messages(number_id,created_at desc);
 alter table public.wa_messages enable row level security;
 revoke all on public.wa_messages from public, anon, authenticated;
 
 comment on table public.wa_connection is 'Exactly one Corner Cafe WhatsApp business number. Meta token and webhook secrets live only in Supabase secrets, never in this table.';
-comment on table public.wa_messages is 'Minimal WhatsApp communication log. Ambiguous shared customer numbers are intentionally not auto-attached to CRM profiles.';
+comment on table public.wa_messages is 'Minimal WhatsApp communication log. Messages belong to the business phone number and are explicitly associated to one order only after the correct contact and order are checked. Shared numbers are never auto-attached.';
 
 -- Staff permissions, number verification, and all reads/writes are implemented
 -- in the authenticated whatsapp-admin and signed whatsapp-webhook functions.
