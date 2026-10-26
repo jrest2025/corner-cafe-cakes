@@ -41,3 +41,12 @@
 
 ## What remains
 Create staff UI, implement Meta template approval and outbound queue for order confirmations / ready-to-collect / pickup reminders, determine correct order lifecycle events, and add observability/alerting and human inbox assignment before switching on automated customer messages.
+
+## Order-level messaging (approved design clarification)
+- The order page should contain a **Messages** tab with a chat transcript and reply composer. Staff must not need to leave the CRM.
+- The customer's phone number is the WhatsApp identity; an order is a separate business record. Show the same conversation with explicit order links, not duplicated chats.
+- Support an optional `wa_messages.order_id` for messages that are confidently linked to the relevant cake order. Never automatically assign based solely on a mobile number; a customer may have multiple open orders and families/offices share numbers.
+- Outbound replies launched from an order must be linked to that order **after** validating the order and recipient contact; adding `order_id` to the admin API is still pending.
+- For inbound messages with no reliable order reference, show **Needs linking** in a shared inbox; staff can pick the order after reviewing the reference and content. The order assignment UI and authenticated assignment endpoint are still pending.
+- An order page should show only explicitly linked messages, plus a clear link to the broader phone-number conversation; do not misrepresent an unlinked conversation as belonging to the order.
+- Stage order association separately from production. No messages have been sent.
