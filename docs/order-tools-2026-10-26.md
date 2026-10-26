@@ -48,7 +48,7 @@ Roneel: "humanise as much as possible".
 - Webflow: `ccOrderToolsLoader5` (commit 6f8d7ba8) replaces `ccOrderToolsLoader4`. Rollback: put `ccOrderToolsLoader4` back and publish.
 - Checks: `test/order-tools/test_order_tools.cjs` passes 74 of 74. In `test/run_old_orders.cjs` (128 of 144) and `test/run_order_flow.cjs` (119 of 123), every failure is a check for the old wording, plus the 2 that were already failing. Saving, payments and dates all pass.
 
-## Analytics: Birthday comeback list (staged 26 Oct 2026, 3:20 PM, not live)
+## Analytics: Birthday comeback list (live 26 Oct 2026, 3:14 PM, after Roneel said "deploy")
 - New card in Analytics > Customers, placed before "What to do":
   - customers whose last birthday cake was about a year ago, with the day coming round in the next 30, 60 or 90 days, who haven't ordered since
   - three numbers: how many, how many can be messaged, and the value of their last cakes
