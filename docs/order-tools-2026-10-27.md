@@ -82,3 +82,11 @@ Roneel: "the same philosophy applied across the board"; "proceed and deploy" (ph
 - Holds through 7 / 30 / 90 day switches (re-applied after each chart render).
 - Reservations Hub and Kazumi Service Hub still say "Heartbeat"; to rename separately in those apps.
 - Rollback: remove ccOrderToolsLoader24, add ccOrderToolsLoader23 (footer, 1.0.23), publish.
+
+## Channel badge fix (loader 25, commit 5c2d3a99) — staged
+
+- Channel icons (walk-in, website, WhatsApp...) centred in their circle everywhere, including the Today pop-ups (To do, Due today).
+- In Today pop-up rows the badge sits on the right of the row instead of on its own line.
+- Badges are soft navy (plain information), WhatsApp keeps its green; slightly bolder strokes so they never blend in.
+- "Collect balance first" tag is amber (money owed) instead of blue.
+- Rollback: remove ccOrderToolsLoader25, add ccOrderToolsLoader24 (footer, 1.0.24), publish.
