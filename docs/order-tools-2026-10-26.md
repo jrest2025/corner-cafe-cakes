@@ -25,3 +25,12 @@
 
 ## Live
 Published on 26 October 2026 at 11:47 AM Fiji time (cornercafefiji.com and www.cornercafefiji.com, not webflow.io), after Roneel said "deploy". Festive and test pages stayed in draft.
+
+## Version 2: easier for untrained staff (staged 26 Oct 2026, 12:47 PM, not live)
+Roneel: "make it as user friendly as possible without destroying the underlying logic".
+- The order types now read "Cake still to come" (ordering now, or a paper slip for a later pickup) and "Cake already picked up" (typing in an old paper slip). The sheet title, finish screen and the past-date message use the same words.
+- Date step: the next 7 days and the two short-notice buttons stay. "Other date" becomes **Later date** and opens the calendar in one tap. The date field is labelled "Pickup date". The extra "Pickup in 2 weeks" and calendar buttons (`src/staff.future-pickup.js`) are no longer loaded, and the date step now fits the tablet screen without scrolling.
+- Help text is 17px on tablets and 16px on phones, in the app's own touch-screen text colour. Computers are unchanged. Tap sizes follow the app's touch standard.
+- No rule, check or saved field changes.
+- Webflow: `ccOrderToolsLoader3` (commit 6f4b57f4) replaces `ccOrderToolsLoader2` in the staff page footer. Rollback: put `ccOrderToolsLoader2` back, or remove the loader entirely, then publish.
+- Checks: `test/order-tools/test_order_tools.cjs` passes 74 of 74, with the tablet emulated as a real touch tablet. `test/run_old_orders.cjs` passes 138 of 144; the 6 differences are its checks for the old wording ("New order", "Old order", "Old order from a paper slip", "Old order saved"), which were changed on purpose. `test/run_order_flow.cjs` has the same 2 failures that were already there.
