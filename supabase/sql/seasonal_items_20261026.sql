@@ -131,7 +131,7 @@ begin
       end if;
       if p_date = any (it.blocked_days) then return public._err('treats', it.name || ' is not available on ' || v_day || '.', 'treats'); end if;
       if p_date < v_today + it.lead_days and not (p_staff and p_rush) then
-        return public._err('treats', it.name || ' needs ' || it.lead_days || ' day' || case when it.lead_days = 1 then '' else 's' end || ' notice. The earliest pickup is ' || to_char(v_today + it.lead_days, 'FMDay FMDD FMMonth') || '.', 'treats');
+        return public._err('treats', it.name || ' needs ' || it.lead_days || case when it.lead_days = 1 then ' day''s' else ' days''' end || ' notice. The earliest pickup is ' || to_char(v_today + it.lead_days, 'FMDay FMDD FMMonth') || '.', 'treats');
       end if;
       if it.daily_limit is not null then
         v_left := it.daily_limit - public._treats_booked(it.id, p_date, p_skip);
@@ -370,7 +370,7 @@ begin
   perform public._treats_apply(o.id, v_chk->'lines', auth.uid(), v_label);
   select * into o from public.orders where id = p_order;
   return jsonb_build_object('ok', true, 'treats_total', public._treats_total(o.id), 'total', coalesce(o.final_total, o.estimate_total),
-    'printed', o.brief_version is not null);
+    'printed', o.brief_version is not null, 'paid', (select coalesce(sum(amount), 0) from public.payments where order_id = o.id));
 end $$;
 
 grant execute on function public.get_seasonal_menu(text) to anon, authenticated;
