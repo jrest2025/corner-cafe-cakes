@@ -19,17 +19,18 @@ function page(o) {
     method: 'collection', zone: null, address: '', receiver: '', candOpen: false, candles: '', noteOpen: false, notes: '', diet: 'no', diets: [], dietNote: '', reqs: [], reqNote: '', reqAlg: null,
     date: o.date || D10, time: '12:00', name: 'Ana Guest', phone: '912 3456', whatsapp: true, emailOpen: false, email: '', updates: false, detailsOk: true, know: true, sending: false, howOpen: false, dateNote: '' } };
   return '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0;background:#fff;font-family:Arial,sans-serif;padding:24px 16px}</style></head><body><div class="cco-page"><div id="cc-cake-order"></div></div>' +
-    '<script>try{localStorage.setItem("cco-draft-v2",' + JSON.stringify(JSON.stringify(draft)) + ')}catch(e){}</script>' +
+    (o.nodraft ? '' : '<script>try{localStorage.setItem("cco-draft-v2",' + JSON.stringify(JSON.stringify(draft)) + ')}catch(e){}</script>') +
     '<script>' + mock + '</script><script>window.__sent=[];window.__ccoMock={rpc:function(fn,a){if(fn==="get_order_setup")return window.__ccsMock.rpc(fn,a);if(fn==="get_seasonal_menu"){window.__menuAsked=a;return Promise.resolve({data:' + JSON.stringify(menu) + '})}' +
     'if(fn==="submit_online_order"){window.__sent.push(a.p);' + (o.reject ? 'if(window.__sent.length===1)return Promise.resolve({data:{ok:false,error:"treats",field:"treats",message:"Gingerbread House is sold out for ' + 'that day."}});' : '') + 'return Promise.resolve({data:{ok:true,reference:"CC-1201",status:"awaiting_review",estimate:154}})}return Promise.resolve({data:null})},storage:{from:function(){return{upload:function(){return Promise.resolve({data:{}})}}}}};</script>' +
     '<script>' + addon + '</script><script>' + bundle + '</script></body></html>';
 }
 let n = 0, fails = 0; const check = (s, v, d) => { if (v) { n++; console.log('PASS ' + s); } else { fails++; console.log('FAIL ' + s + (d !== undefined ? ' -> ' + JSON.stringify(d).slice(0, 500) : '')); } };
 async function go(b, w, h, o) {
+  o = o || {};
   const ctx = await b.newContext({ viewport: { width: w, height: h }, hasTouch: w < 1100, isMobile: w < 760 });
   const p = await ctx.newPage(), errors = [], logs = [];
   p.on('pageerror', e => errors.push(e.message)); p.on('console', m => { if (m.type() === 'warning' || m.type() === 'error') logs.push(m.text()); });
-  await ctx.route('**/*', r => r.request().url().startsWith('https://www.cornercafefiji.com/') ? r.fulfill({ body: page(o || {}), contentType: 'text/html' }) : r.abort());
+  await ctx.route('**/*', r => r.request().url().startsWith('https://www.cornercafefiji.com/') ? r.fulfill({ body: page(o), contentType: 'text/html' }) : r.abort());
   await p.goto('https://www.cornercafefiji.com/cake-order'); await p.waitForTimeout(1500);
   return { p, ctx, errors, logs };
 }
@@ -60,6 +61,28 @@ const tap = async (p, s, wait) => { await p.evaluate(s => { const e = document.q
     if (SHOTS) await p.screenshot({ path: SHOTS + '/web-' + t + '-done.png', fullPage: true });
     check(t + ' no horizontal scroll', await p.evaluate(() => document.documentElement.scrollWidth - innerWidth <= 1));
     check(t + ' no page errors or add-on warnings', !errors.length && !logs.filter(x => /Seasonal treats/.test(x)).length, errors.concat(logs));
+    await ctx.close();
+  }
+  // first screen: treats up front, carried to the last step
+  for (const [w, h, t] of [[1366, 900, 'desktop'], [820, 1180, 'tablet'], [390, 844, 'phone']]) {
+    const o = { nodraft: true };
+    const { p, ctx, errors } = await go(b, w, h, o);
+    const hero = await p.evaluate(() => { const s = document.querySelector('#cco-step-0.cco-open .cco-trh'); if (!s) return null; const cakes = document.querySelector('#cco-step-0 .cco-cakes'); return { h: s.querySelector('h3').textContent, cards: s.querySelectorAll('.cco-trh-card').length, imgs: s.querySelectorAll('img.cco-trh-ph').length, alone: s.querySelector('.cco-trh-alone').textContent, wa: s.querySelector('.cco-trh-alone a').href, before: cakes ? !!(s.compareDocumentPosition(cakes) & 4) : null }; });
+    check(t + ' first screen shows Festive treats above the cakes', hero && hero.h === 'Festive treats' && hero.cards === 4 && hero.before === true, hero);
+    check(t + ' treats-without-a-cake line with WhatsApp and phone', hero && /Want treats without a cake\?/.test(hero.alone) && /wa\.me\/679/.test(hero.wa), hero);
+    const addH = await p.evaluate(() => Math.min(...[...document.querySelectorAll('.cco-trh-add')].map(x => x.getBoundingClientRect().height)));
+    check(t + ' Add buttons are 48px (' + Math.round(addH) + ')', addH >= 48, addH);
+    await tap(p, '.cco-trh [data-cco-tr-plus="i1"]', 400); await tap(p, '.cco-trh [data-cco-tr-plus="i2"]', 300); await tap(p, '.cco-trh [data-cco-tr-plus="i2"]', 300);
+    const sum = await p.evaluate(() => (document.querySelector('.cco-trh-sum') || {}).textContent || '');
+    check(t + ' first screen confirms what was added', /3 treats added · \$59/.test(sum), sum);
+    if (SHOTS) await p.screenshot({ path: SHOTS + '/web-' + t + '-first.png' });
+    check(t + ' no horizontal scroll on the first screen', await p.evaluate(() => document.documentElement.scrollWidth - innerWidth <= 1));
+    // the customer finishes the cake steps (simulated by the saved form), then reaches the last step
+    o.nodraft = false; await p.reload(); await p.waitForTimeout(1500);
+    const rv = await p.evaluate(() => [...document.querySelectorAll('.cco-tr .cco-tr-st output')].map(x => x.textContent));
+    check(t + ' picks carried to the last step', JSON.stringify(rv) === JSON.stringify(['1', '2', '0', '0']), rv);
+    check(t + ' first-screen panel not repeated on the last step', await p.evaluate(() => !document.querySelector('.cco-trh')));
+    check(t + ' no page errors', !errors.length, errors);
     await ctx.close();
   }
   // nothing on sale: the form is exactly as before

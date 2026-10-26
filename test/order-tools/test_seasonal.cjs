@@ -14,7 +14,7 @@ const post = '(' + function (D10, T0) {
     { id: 'i3', name: 'White Chocolate House', detail: '11cm', price: 35, lead_days: 2, sold_out: [D10], blocked: [] },
     { id: 'i4', name: 'Chocolate Pralines', detail: 'Pack of 6', price: 12, lead_days: 2, pickup_from: '2099-12-01', sold_out: [], blocked: [] },
     { id: 'i8', name: 'Bottle of wine', detail: 'Red or white', price: 30, lead_days: 0, counter_only: true, sold_out: [], blocked: [] }] }] };
-  window.__szList = { ok: true, today: T0, can_edit: true, groups: [{ id: 'g1', name: 'Festive treats', web_message: 'A little festive joy', payment: 'pickup', sort: 1 }],
+  window.__szList = { ok: true, today: T0, can_edit: true, groups: [{ id: 'g1', name: 'Festive treats', web_message: 'A little festive joy', payment: 'pickup', sort: 1, active: true }],
     items: [{ id: 'i1', group_id: 'g1', name: 'Gingerbread House', detail: '15cm', price: 35, channel: 'website', active: true, sale_from: T0, sale_to: '2099-12-20', pickup_from: null, pickup_to: '2099-12-24', lead_days: 2, daily_limit: 10, max_per_order: null, blocked_days: [], sold: 7 },
       { id: 'i8', group_id: 'g1', name: 'Bottle of wine', detail: 'Red or white', price: 30, channel: 'counter', active: false, lead_days: 0, blocked_days: [], sold: 0 }],
     booked: [{ day: D10, item: 'i1', name: 'Gingerbread House', quantity: 7 }, { day: D10, item: 'i2', name: 'Mince Pies', quantity: 4 }] };
@@ -28,6 +28,10 @@ const post = '(' + function (D10, T0) {
     if (fn === 'staff_seasonal_save_item') { seq.push(fn + ':' + JSON.stringify(a.p)); if (a.p.price === '') return Promise.resolve({ data: { ok: false, message: 'Enter the price, for example 35.', field: 'price' } });
       if (a.p.active !== undefined && Object.keys(a.p).length === 2) window.__szList.items.forEach(function (i) { if (i.id === a.p.id) i.active = a.p.active; });
       return Promise.resolve({ data: { ok: true } }); }
+    if (fn === 'crm_seasonal_sales') { seq.push(fn); return Promise.resolve({ data: { ok: true, today: T0, summary: { items: 41, value: 812, collected_value: 300, booked_value: 512, orders: 18, cake_orders: 60 },
+      items: [{ name: 'Gingerbread House', quantity: 12, value: 420 }, { name: 'Mince Pies', quantity: 20, value: 240 }, { name: 'Chocolate Pralines', quantity: 9, value: 108 }],
+      weeks: [{ week: '2026-11-30', collected: 300, booked: 100 }, { week: '2026-12-07', collected: null, booked: 260 }, { week: '2026-12-14', collected: null, booked: 152 }], sources: { website: 512, counter: 300 } } }); }
+    if (fn === 'staff_seasonal_save_group' && a.p && a.p.active !== undefined && Object.keys(a.p).length === 2) { seq.push('group_switch:' + a.p.active); window.__szList.groups.forEach(function (g) { if (g.id === a.p.id) g.active = a.p.active; }); return Promise.resolve({ data: { ok: true } }); }
     if (fn === 'staff_seasonal_copy_year') { seq.push(fn); return Promise.resolve({ data: { ok: true, copied: 2 } }); }
     if (fn === 'staff_seasonal_save_group') { seq.push(fn + ':' + JSON.stringify(a.p)); return Promise.resolve({ data: { ok: true } }); }
     if (fn === 'staff_seasonal_move') { seq.push(fn + ':' + a.p_dir); return Promise.resolve({ data: { ok: true } }); }
@@ -128,7 +132,7 @@ const shot = async (p, name) => { if (SHOTS) await p.screenshot({ path: SHOTS + 
     }
     await p.evaluate(() => { const d = document.querySelector('details.cc-szm-entry'); d.open = true; d.querySelector('[data-cc-szm="open"]').click(); });
     await p.waitForTimeout(900);
-    const ml = await p.evaluate(() => { const l = document.getElementById('cc-szm'); return l ? { items: [...l.querySelectorAll('.cc-szm-it .cc-sz-txt b')].map(x => x.textContent), pills: [...l.querySelectorAll('.cc-szm-pill')].map(x => x.textContent), sw: [...l.querySelectorAll('.cc-szm-sw')].map(x => x.textContent) } : null; });
+    const ml = await p.evaluate(() => { const l = document.getElementById('cc-szm'); return l ? { items: [...l.querySelectorAll('.cc-szm-it .cc-sz-txt b')].map(x => x.textContent), pills: [...l.querySelectorAll('.cc-szm-pill')].map(x => x.textContent), sw: [...l.querySelectorAll('.cc-szm-it .cc-szm-sw')].map(x => x.textContent) } : null; });
     check(t + ' manager list with status and switches', ml && ml.items[0] === 'Gingerbread House · $35' && ml.pills.indexOf('On sale now') > -1 && ml.pills.indexOf('Counter only') > -1 && ml.pills.indexOf('Switched off') > -1 && ml.sw.join() === 'On,Off', ml);
     await shot(p, 'sz-' + t + '-manager');
     await tap(p, '#cc-szm [data-cc-szm="toggle"][data-id="i8"]', 900);
@@ -151,12 +155,26 @@ const shot = async (p, name) => { if (SHOTS) await p.screenshot({ path: SHOTS + 
     const bk = await p.evaluate(() => [...document.querySelectorAll('#cc-szm .cc-szm-day')].map(x => x.textContent.replace(/\s+/g, ' ').trim()));
     check(t + " What's booked by pickup day, and sold so far", bk.length === 2 && /Gingerbread House ?7/.test(bk[0]) && /Mince Pies ?4/.test(bk[0]) && /\$245/.test(bk[1]), bk);
     await tap(p, '#cc-szm [data-cc-szm="tab"][data-v="items"]', 400);
+    // the section master switch (like a specials module)
+    check(t + ' section switch shows On', await p.evaluate(() => (document.querySelector('#cc-szm [data-cc-szm="gtoggle"]') || {}).textContent === 'Section On'));
+    await tap(p, '#cc-szm [data-cc-szm="gtoggle"]', 900);
+    check(t + ' section switched Off in one tap, items keep their own setting', await p.evaluate(() => window.__seq.indexOf('group_switch:false') > -1 && /Section Off/.test(document.querySelector('#cc-szm [data-cc-szm="gtoggle"]').textContent) && /On, but the section is Off/.test(document.querySelector('#cc-szm').textContent) && /is switched Off/.test((document.querySelector('#cc-szm .cc-szm-ok') || {}).textContent || '')));
+    if (SHOTS) await p.screenshot({ path: SHOTS + '/sz-' + t + '-section-off.png' });
+    await tap(p, '#cc-szm [data-cc-szm="gtoggle"]', 900);
+    check(t + ' and back On', await p.evaluate(() => window.__seq.indexOf('group_switch:true') > -1 && /Section On/.test(document.querySelector('#cc-szm [data-cc-szm="gtoggle"]').textContent)));
     await tap(p, '#cc-szm [data-cc-szm="copy-year"]', 300);
     await tap(p, '#cc-szm [data-cc-szm="copy-yes"]', 800);
     check(t + ' copy for next year (after a confirm)', await p.evaluate(() => /2 items copied for next year/.test((document.querySelector('#cc-szm .cc-szm-ok') || {}).textContent || '')));
     check(t + ' no horizontal scroll', (await overflow(p)) <= 1, await overflow(p));
     await tap(p, '#cc-szm [data-cc-szm="close"]', 400);
     check(t + ' close', await p.evaluate(() => !document.getElementById('cc-szm')));
+    // ---------- Analytics > Cake sales: Seasonal sales ----------
+    await tap(p, '#cc-staff [data-tab="dash"]', 4000);
+    await p.evaluate(() => { const b = document.querySelector('#ccs-main [data-g="anm"][data-v="sl"]'); if (b) b.click(); }); await p.waitForTimeout(1800);
+    const an = await p.evaluate(() => { const c = document.querySelector('#ccs-main .cat-page[data-cat="sl"] .cc-ss'); return c ? { k: [...c.querySelectorAll('.cc-ss-kpi b')].map(x => x.textContent), bars: c.querySelectorAll('.cc-ss-bar').length, cols: c.querySelectorAll('.cc-ss-col').length, leg: c.querySelector('.cc-ss-leg').textContent } : null; });
+    check(t + ' Analytics > Cake sales shows Seasonal sales', an && JSON.stringify(an.k) === JSON.stringify(['$812', '41', '30%', '$45.11']) && an.bars === 3 && an.cols === 3 && /Website \$512 \(63%\)/.test(an.leg), an);
+    if (SHOTS) { await p.evaluate(() => document.querySelector('.cc-ss').scrollIntoView()); await p.waitForTimeout(300); await p.screenshot({ path: SHOTS + '/sz-' + t + '-analytics.png' }); }
+    check(t + ' no horizontal scroll in Analytics', (await overflow(p)) <= 1, await overflow(p));
     check(t + ' no page errors (the mock\'s known two aside)', !errors.filter(m => !/reading 'length'|reading 'filter'/.test(m)).length, errors);
     check(t + ' no add-on warnings', !logs.filter(m => /\[Seasonal items\]|asset check/.test(m)).length, logs.filter(m => /Seasonal|asset/.test(m)));
     await ctx.close();

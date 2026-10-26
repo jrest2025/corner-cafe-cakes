@@ -22,7 +22,7 @@
   function pickDate() { var d = draft(); return d && /^\d{4}-\d{2}-\d{2}$/.test(d.s.date || '') ? d.s.date : null; }
   function draftKey() { var d = draft(); return d ? d.key : null; }
   function saveCart() { try { win.localStorage.setItem(CART, JSON.stringify({ key: draftKey(), at: Date.now(), qty: cart })); } catch (_) {} }
-  function loadCart() { try { var c = JSON.parse(win.localStorage.getItem(CART) || 'null'); if (c && c.qty && Date.now() - c.at < 864e5 && c.key && c.key === draftKey()) cart = c.qty; } catch (_) {} }
+  function loadCart() { try { var c = JSON.parse(win.localStorage.getItem(CART) || 'null'); if (c && c.qty && Date.now() - c.at < 864e5 && (!c.key || c.key === draftKey())) cart = c.qty; } catch (_) {} }
   function clearCart() { cart = {}; try { win.localStorage.removeItem(CART); } catch (_) {} }
   function items() { var out = []; ((menu && menu.groups) || []).forEach(function (g) { (g.items || []).forEach(function (i) { out.push(i); }); }); return out; }
   function byId(id) { return items().filter(function (i) { return i.id === id; })[0] || null; }
@@ -64,8 +64,10 @@
   function db() { return win.__ccoMock || own; }
 
   // ---------- the treats on the last step ----------
+  var PHONE = '+679 892 2760';
   function load() {
     var c = db(); if (!c) return;
+    c.rpc('get_order_setup', { p_location: 'corner-cafe' }).then(function (r) { var ph = r && r.data && r.data.location && r.data.location.phone; if (ph) { PHONE = ph; schedule(); } }, function () {});
     c.rpc('get_seasonal_menu', { p_channel: 'website' }).then(function (r) {
       if (r && !r.error && r.data && r.data.ok) { menu = r.data; loadCart(); schedule(); }
     }, function (e) { warn('menu', e); });
@@ -96,6 +98,22 @@
       '#cc-cake-order .cco-tr-sum b{color:#282720}',
       '#cc-cake-order .cco-tr-note{color:#9a4b12;font-weight:600;font-size:14px;margin:6px 0}',
       '#cc-cake-order .cco-tr-done{border:1px solid #cad7c1;background:#f4f7f1;border-radius:14px;padding:14px 16px;margin:14px 0;color:#3f5d34}',
+      '#cc-cake-order .cco-trh{border:1px solid #cad7c1;background:#f8faf6;border-radius:16px;padding:16px 16px 12px;margin:0 0 18px;min-width:0;max-width:100%;box-sizing:border-box;overflow:hidden}',
+      '#cc-cake-order .cco-trh-grid{min-width:0}',
+      '#cc-cake-order .cco-trh-k{margin:0;font:700 12px/1.4 Causten,"Figtree",Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#526f43}',
+      '#cc-cake-order .cco-trh h3{margin:2px 0 0;font:700 20px/1.25 Causten,"Figtree",Arial,sans-serif;color:#282720}',
+      '#cc-cake-order .cco-trh-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:10px}',
+      '#cc-cake-order .cco-trh-card{display:flex;flex-direction:column;gap:8px;background:#fff;border:1px solid #e4e0da;border-radius:14px;padding:8px 8px 10px;min-width:0}',
+      '#cc-cake-order .cco-trh-card.is-on{border-color:#526f43;box-shadow:0 0 0 1px #526f43}',
+      '#cc-cake-order .cco-trh-ph{display:block;width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:10px;background:#f1eee9}',
+      '#cc-cake-order .cco-trh-tx b{display:block;color:#282720;font-size:15px;line-height:1.3}#cc-cake-order .cco-trh-tx small{display:block;color:#69635b;font-size:13px;line-height:1.35}',
+      '#cc-cake-order .cco-trh-tx .cco-tr-pr{display:block;margin-top:4px}',
+      '#cc-cake-order .cco-trh-add{min-height:48px;border-radius:12px;border:1px solid #526f43;background:#fff;color:#3f5d34;font:700 15px Causten,"Figtree",Arial,sans-serif;cursor:pointer;margin-top:auto}',
+      '#cc-cake-order .cco-trh-add:hover{background:#f4f7f1}#cc-cake-order .cco-trh-add:focus-visible{outline:3px solid #526f43;outline-offset:2px}',
+      '#cc-cake-order .cco-trh-card .cco-tr-st{justify-content:space-between;margin-top:auto}',
+      '#cc-cake-order .cco-trh-foot p{margin:10px 0 0;font-size:14px;line-height:1.5;color:#46403a}#cc-cake-order .cco-trh-sum b{color:#3f5d34}',
+      '#cc-cake-order .cco-trh-alone a{color:#3f5d34;font-weight:700}',
+      '@media(max-width:520px){#cc-cake-order .cco-trh{padding:14px 12px 10px}#cc-cake-order .cco-trh-grid{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:10px;padding-bottom:6px;max-width:100%}#cc-cake-order .cco-trh-card{flex:0 0 168px;scroll-snap-align:start}#cc-cake-order .cco-trh-card .cco-tr-st{gap:4px}}',
       '@media(max-width:520px){#cc-cake-order .cco-tr{padding:14px 14px 6px}#cc-cake-order .cco-tr-it{flex-wrap:wrap}#cc-cake-order .cco-tr-ph{width:56px;height:56px}#cc-cake-order .cco-tr-tx{flex-basis:calc(100% - 70px)}#cc-cake-order .cco-tr-st{margin-left:auto}}',
       '@media(prefers-reduced-motion:reduce){#cc-cake-order .cco-tr *{transition:none!important}}'
     ].join('\n');
@@ -121,6 +139,41 @@
     var t = total();
     h += '<div class="cco-tr-sum"><span>' + (t ? 'Treats added' : 'No treats added') + '</span><b>' + money(t) + '</b></div>';
     return h;
+  }
+  // First screen ("Which cake would you like?"): the treats up front, so festive shoppers see them straight away
+  function waLink() { var d = String(PHONE).replace(/\D/g, ''); if (d.length === 7) d = '679' + d; return 'https://wa.me/' + d + '?text=' + encodeURIComponent('Bula, I would like to order festive treats without a cake.'); }
+  function heroHtml() {
+    var groups = (menu && menu.groups) || [], h = '';
+    groups.forEach(function (g) {
+      h += '<div class="cco-trh-top"><div><p class="cco-trh-k">Now available</p><h3>' + esc(g.name) + '</h3>' + (g.message ? '<p class="cco-tr-sub">' + esc(g.message) + ' Add them to your cake order.</p>' : '<p class="cco-tr-sub">Add them to your cake order.</p>') + '</div></div><div class="cco-trh-grid">';
+      (g.items || []).forEach(function (it) {
+        var q = cart[it.id] || 0, mx = it.max || 20;
+        h += '<div class="cco-trh-card' + (q ? ' is-on' : '') + '">' + (it.image ? '<img class="cco-trh-ph" src="' + esc(it.image) + '" alt="' + esc(it.name) + '" loading="lazy">' : '<span class="cco-trh-ph" aria-hidden="true"></span>') +
+          '<div class="cco-trh-tx"><b>' + esc(it.name) + '</b>' + (it.detail ? '<small>' + esc(it.detail) + '</small>' : '') + '<span class="cco-tr-pr">' + money(it.price) + '</span></div>' +
+          (q ? '<div class="cco-tr-st"><button type="button" data-cco-tr-minus="' + esc(it.id) + '" aria-label="Remove one ' + esc(it.name) + '">−</button><output aria-live="polite" aria-label="' + esc(it.name) + ' quantity">' + q + '</output><button type="button" data-cco-tr-plus="' + esc(it.id) + '" aria-label="Add one ' + esc(it.name) + '"' + (q >= mx ? ' disabled' : '') + '>+</button></div>'
+            : '<button type="button" class="cco-trh-add" data-cco-tr-plus="' + esc(it.id) + '" aria-label="Add ' + esc(it.name) + '">Add</button>') + '</div>';
+      });
+      h += '</div>';
+    });
+    var t = total(), n = lines().reduce(function (a, l) { return a + l.quantity; }, 0);
+    h += '<div class="cco-trh-foot">' + (n ? '<p class="cco-trh-sum"><b>' + n + ' treat' + (n > 1 ? 's' : '') + ' added · ' + money(t) + '.</b> Now choose your cake below. You can change your treats again before you send.</p>' : '') +
+      '<p class="cco-trh-alone">Want treats without a cake? <a href="' + esc(waLink()) + '" target="_blank" rel="noopener">WhatsApp us</a> or call <a href="tel:' + esc(String(PHONE).replace(/[^\d+]/g, '')) + '">' + esc(PHONE) + '</a>.</p></div>';
+    return h;
+  }
+  function heroUi(root) {
+    var step = root.querySelector('#cco-step-0.cco-open .cco-body'), sec = root.querySelector('.cco-trh');
+    if (!step || root.classList.contains('cco-at-review')) { if (sec) sec.remove(); return; }
+    var h = heroHtml();
+    if (!sec) {
+      sec = doc.createElement('section'); sec.className = 'cco-trh'; sec.setAttribute('aria-label', 'Seasonal treats');
+      var after = step.querySelector('.cco-qsub') || step.querySelector('.cco-head');
+      if (after && after.parentNode === step) step.insertBefore(sec, after.nextSibling); else step.insertBefore(sec, step.firstChild);
+    }
+    if (sec.getAttribute('data-h') !== h) {
+      var a = doc.activeElement, keep = a && sec.contains(a) ? (a.getAttribute('data-cco-tr-plus') || a.getAttribute('data-cco-tr-minus')) : null;
+      sec.innerHTML = h; sec.setAttribute('data-h', h);
+      if (keep) { var f = sec.querySelector('[data-cco-tr-plus="' + keep + '"]:not(:disabled)') || sec.querySelector('[data-cco-tr-minus="' + keep + '"]'); if (f) f.focus({ preventScroll: true }); }
+    }
   }
   // Keep only treats that can still be collected on the chosen day
   function tidy() {
@@ -150,7 +203,9 @@
       }
       return;
     }
-    if (!menu || !items().length || !root.classList.contains('cco-at-review')) return;
+    if (!menu || !items().length) return;
+    heroUi(root);
+    if (!root.classList.contains('cco-at-review')) return;
     var send = root.querySelector('[data-act="send"]'); if (!send) return;
     var sec = root.querySelector('.cco-tr');
     tidy();

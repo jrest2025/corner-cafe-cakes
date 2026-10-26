@@ -90,6 +90,31 @@
       '#ccs-sheet .cc-sz-order{border:1px solid #DCE3EB;border-radius:12px;background:#fff;padding:12px 14px;margin:10px 0;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}',
       '#ccs-sheet .cc-sz-order b{display:block;color:#1D2939}#ccs-sheet .cc-sz-order span{color:#344054;line-height:1.4}',
       '#ccs-sheet .cc-sz-note{flex-basis:100%;margin:6px 0 0;color:#B54708;font-weight:600}',
+      '#ccs-main .cc-ss{border:1px solid #E4E7EC;border-radius:14px;background:#fff;padding:18px 20px;margin:0 0 18px}',
+      '#ccs-main .cc-ss h3{margin:0;font-size:20px;color:#1D2939}#ccs-main .cc-ss-head p{margin:4px 0 14px;color:#475467;font-size:14px}',
+      '#ccs-main .cc-ss h4{margin:0 0 10px;font-size:15px;color:#344054}',
+      '#ccs-main .cc-ss-empty{color:#475467;margin:0}',
+      '#ccs-main .cc-ss-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0 0 16px}',
+      '#ccs-main .cc-ss-kpi{border:1px solid #E4E7EC;border-radius:12px;padding:12px 14px}',
+      '#ccs-main .cc-ss-kpi span{display:block;font-size:13px;color:#475467}#ccs-main .cc-ss-kpi b{display:block;font-size:26px;line-height:1.2;color:#1D2939;font-variant-numeric:tabular-nums}',
+      '#ccs-main .cc-ss-kpi small{display:block;font-size:12px;color:#475467;margin-top:2px}',
+      '#ccs-main .cc-ss-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:14px}',
+      '#ccs-main .cc-ss-box{border:1px solid #E4E7EC;border-radius:12px;padding:14px 16px}',
+      '#ccs-main .cc-ss-bar{display:grid;grid-template-columns:minmax(0,9em) minmax(0,1fr) auto;gap:10px;align-items:center;padding:5px 0;font-size:14px;color:#344054}',
+      '#ccs-main .cc-ss-bn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#ccs-main .cc-ss-bt{background:#F2F4F7;border-radius:4px;height:12px}',
+      '#ccs-main .cc-ss-bt i{display:block;height:100%;border-radius:4px;background:#15803D}#ccs-main .cc-ss-bv{font-variant-numeric:tabular-nums;white-space:nowrap}#ccs-main .cc-ss-bv b{color:#1D2939}',
+      '#ccs-main .cc-ss-split{display:flex;height:14px;border-radius:7px;overflow:hidden;background:#F2F4F7}',
+      '#ccs-main .cc-ss i.is-web{background:#31597A}#ccs-main .cc-ss i.is-cnt{background:#C4862B}#ccs-main .cc-ss i.is-cl{background:#15803D}#ccs-main .cc-ss i.is-bk{background:#A6D9B4}',
+      '#ccs-main .cc-ss-leg{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:8px;font-size:13px;color:#475467}#ccs-main .cc-ss-leg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}',
+      '#ccs-main .cc-ss-cols{display:flex;gap:6px;align-items:flex-end;height:150px;border-bottom:1px solid #E4E7EC;padding-top:18px}',
+      '#ccs-main .cc-ss-col{flex:1 1 0;min-width:0;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;position:relative}',
+      '#ccs-main .cc-ss-col i{display:block;width:100%;max-width:34px}#ccs-main .cc-ss-col i.is-bk{border-radius:5px 5px 0 0}',
+      '#ccs-main .cc-ss-col em{position:absolute;bottom:-20px;font-style:normal;font-size:11px;color:#475467;white-space:nowrap}',
+      '#ccs-main .cc-ss-cv{font-size:11px;color:#344054;margin-bottom:2px;white-space:nowrap}',
+      '#ccs-main .cc-ss-box .cc-ss-cols{margin-bottom:24px}',
+      '@media (hover:none) and (pointer:coarse){#ccs-main .cc-ss-head p,#ccs-main .cc-ss-bar,#ccs-main .cc-ss-leg,#ccs-main .cc-ss-kpi span,#ccs-main .cc-ss-kpi small{font-size:17px}#ccs-main .cc-ss h3{font-size:24px}#ccs-main .cc-ss h4{font-size:18px}}',
+      '@media (max-width:1000px){#ccs-main .cc-ss-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}#ccs-main .cc-ss-grid{grid-template-columns:1fr}}',
+      '@media (max-width:759px){#ccs-main .cc-ss{padding:14px}#ccs-main .cc-ss-kpi b{font-size:22px}#ccs-main .cc-ss-head p,#ccs-main .cc-ss-bar,#ccs-main .cc-ss-leg,#ccs-main .cc-ss-kpi span,#ccs-main .cc-ss-kpi small{font-size:16px}#ccs-main .cc-ss h3{font-size:21px}#ccs-main .cc-ss-col em{font-size:10px}#ccs-main .cc-ss-cv{display:none}}',
       /* picker */
       '#cc-staff .cc-sz-layer{position:fixed;inset:0;z-index:2147483000;display:flex;align-items:center;justify-content:center}',
       '#cc-staff .cc-sz-shade{position:absolute;inset:0;background:rgba(16,24,40,.45)}',
@@ -132,6 +157,9 @@
       '#cc-staff .cc-szm-pill.is-wait{background:#EFF8FF;color:#175CD3}#cc-staff .cc-szm-pill.is-counter{background:#FEF6EE;color:#B93815}',
       '#cc-staff .cc-szm-sw{min-height:48px;min-width:84px;border-radius:999px;border:1px solid #98A2B3;background:#fff;color:#344054;font-weight:700;cursor:pointer;padding:0 14px}',
       '#cc-staff .cc-szm-sw[aria-checked="true"]{background:#E8EEF7;border-color:#31597A;color:#1E3A5F}',
+      '#cc-staff .cc-szm-gsw{min-width:132px}',
+      '#cc-staff .cc-szm-gst{font-weight:600;margin-top:6px!important}#cc-staff .cc-szm-gst.is-on{color:#067647!important}#cc-staff .cc-szm-gst.is-off{color:#B54708!important}',
+      '#cc-staff .cc-szm-g.is-goff .cc-szm-it{opacity:.6}',
       '#cc-staff .cc-szm-mv{display:flex;flex-direction:column;gap:4px}',
       '#cc-staff .cc-szm-mv button{width:44px;height:30px;border-radius:8px;border:1px solid #D0D5DD;background:#fff;cursor:pointer;color:#344054}',
       '#cc-staff .cc-szm-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 20px}',
@@ -390,7 +418,8 @@
       M.loading = false;
       if (!d || !d.ok) { M.err = (d && d.message) || 'Could not load seasonal items.'; return mDraw(); }
       M.data = d; mDraw();
-      var on = d.items.filter(function (i) { return status(i, d.today)[1] === 'is-on'; }).length;
+      var offG = d.groups.filter(function (g) { return g.active === false; }).map(function (g) { return g.id; });
+      var on = d.items.filter(function (i) { return offG.indexOf(i.group_id) < 0 && status(i, d.today)[1] === 'is-on'; }).length;
       summaryText = on + ' on sale now · ' + d.items.length + ' items';
       var s = doc.querySelector('.cc-szm-entry .cc-szm-sum'); if (s) s.textContent = summaryText;
       menu = null;
@@ -421,14 +450,16 @@
     d.groups.forEach(function (g) {
       var its = d.items.filter(function (i) { return i.group_id === g.id; });
       var pay = { pickup: 'Pay when they collect', deposit: 'Deposit to confirm', full: 'Full payment to confirm' }[g.payment] || '';
-      h += '<section class="cc-szm-g"><div class="cc-szm-gh"><div><h3>' + esc(g.name) + '</h3><p>' + esc([g.web_message, pay].filter(Boolean).join(' · ')) + '</p></div>' +
-        (can ? '<div class="cc-szm-acts"><button type="button" class="ccs-btn ccs-ghost" data-cc-szm="edit-group" data-id="' + g.id + '">Heading settings</button>' +
+      var gon = g.active !== false;
+      h += '<section class="cc-szm-g' + (gon ? '' : ' is-goff') + '"><div class="cc-szm-gh"><div><h3>' + esc(g.name) + '</h3><p>' + esc([g.web_message, pay].filter(Boolean).join(' · ')) + '</p>' +
+        '<p class="cc-szm-gst ' + (gon ? 'is-on' : 'is-off') + '">' + (gon ? 'Section On: items switched On show on the website and at the counter.' : 'Section Off: every item here is hidden on the website and at the counter. Each item keeps its own setting.') + '</p></div>' +
+        (can ? '<div class="cc-szm-acts"><button type="button" class="cc-szm-sw cc-szm-gsw" role="switch" aria-checked="' + gon + '" data-cc-szm="gtoggle" data-id="' + g.id + '" aria-label="' + esc(g.name) + ' section on the website and at the counter">' + (gon ? 'Section On' : 'Section Off') + '</button><button type="button" class="ccs-btn ccs-ghost" data-cc-szm="edit-group" data-id="' + g.id + '">Heading settings</button>' +
           '<button type="button" class="ccs-btn ccs-ghost" data-cc-szm="copy-year" data-id="' + g.id + '">Copy for next year</button>' +
           '<button type="button" class="ccs-btn" data-cc-szm="add-item" data-id="' + g.id + '">Add item</button></div>' : '') + '</div>';
       if (M.confirmCopy === g.id) h += '<div class="cc-szm-confirm" style="margin:12px 16px"><p>Copy all ' + its.length + ' items under ' + esc(g.name) + ' for next year? The copies keep the prices and settings, move every date on one year, and start switched Off.</p><button type="button" class="ccs-btn" data-cc-szm="copy-yes" data-id="' + g.id + '">Yes, copy them</button> <button type="button" class="ccs-btn ccs-ghost" data-cc-szm="copy-no">Cancel</button></div>';
       if (!its.length) h += '<p class="ccs-hint" style="padding:12px 16px;margin:0">No items yet. Tap Add item.</p>';
       its.forEach(function (i, n) {
-        var st = status(i, d.today), dates = [];
+        var st = gon ? status(i, d.today) : (i.active ? ['On, but the section is Off', 'is-off'] : ['Switched off', 'is-off']), dates = [];
         if (i.sale_from || i.sale_to) dates.push('On sale ' + (i.sale_from ? nice(i.sale_from) : 'now') + ' to ' + (i.sale_to ? nice(i.sale_to) : 'no end date'));
         if (i.pickup_from || i.pickup_to) dates.push('Pickup ' + (i.pickup_from ? nice(i.pickup_from) : 'any day') + ' to ' + (i.pickup_to ? nice(i.pickup_to) : 'no end date'));
         dates.push(i.lead_days ? i.lead_days + (i.lead_days === 1 ? " day's" : " days'") + ' notice' : 'No notice needed');
@@ -582,6 +613,53 @@
     });
   }
 
+
+  // ---------- Analytics > Cake sales: Seasonal sales (for managers and executives) ----------
+  // Counted on the pickup day, like cakes. Collected = order completed; Booked = still to be collected.
+  var AN = { data: null, at: 0, busy: false, denied: false };
+  function anLoad() {
+    if (AN.busy || AN.denied || (AN.data && Date.now() - AN.at < 120000)) return;
+    AN.busy = true;
+    rpc('crm_seasonal_sales').then(function (d) {
+      AN.busy = false; AN.at = Date.now();
+      if (!d || !d.ok) { AN.denied = true; return; }
+      AN.data = d; var c = doc.querySelector('#ccs-main .cc-ss'); if (c) c.remove(); schedule();
+    }, function (e) { AN.busy = false; warn('analytics', e); });
+  }
+  function weekLabel(iso) { var d = new Date(iso + 'T12:00:00Z'); return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' }); }
+  function anHtml(d) {
+    var S = d.summary, h = '<div class="cc-ss-head"><div><h3>Seasonal sales</h3><p>Festive treats and other seasonal items. Counted on the pickup day; cancelled orders left out.</p></div></div>';
+    if (!Number(S.items)) return h + '<p class="cc-ss-empty">No seasonal sales yet. They show here as soon as treats are ordered on the website or at the counter.</p>';
+    var share = S.cake_orders ? Math.round(100 * S.orders / S.cake_orders) : 0;
+    h += '<div class="cc-ss-kpis">' +
+      '<div class="cc-ss-kpi"><span>Sales value</span><b>' + money(S.value) + '</b><small>' + money(S.collected_value) + ' collected · ' + money(S.booked_value) + ' booked</small></div>' +
+      '<div class="cc-ss-kpi"><span>Items sold</span><b>' + Number(S.items) + '</b><small>across ' + S.orders + ' order' + (S.orders === 1 ? '' : 's') + '</small></div>' +
+      '<div class="cc-ss-kpi"><span>Cake orders with treats</span><b>' + share + '%</b><small>' + S.orders + ' of ' + S.cake_orders + ' since the first treat</small></div>' +
+      '<div class="cc-ss-kpi"><span>Average treats per order</span><b>' + money(S.orders ? S.value / S.orders : 0) + '</b><small>added to each order with treats</small></div></div>';
+    var top = Math.max.apply(null, d.items.map(function (i) { return Number(i.value); }).concat([1]));
+    h += '<div class="cc-ss-grid"><section class="cc-ss-box"><h4>By item</h4>' + d.items.map(function (i) {
+      return '<div class="cc-ss-bar"><span class="cc-ss-bn">' + esc(i.name) + '</span><span class="cc-ss-bt"><i style="width:' + Math.max(2, Math.round(100 * Number(i.value) / top)) + '%"></i></span><span class="cc-ss-bv"><b>' + money(i.value) + '</b> · ' + i.quantity + '</span></div>';
+    }).join('') + '</section>';
+    var src = d.sources || {}, web = Number(src.website || 0), cnt = Number(src.counter || 0), tot = web + cnt || 1;
+    h += '<section class="cc-ss-box"><h4>Website or counter</h4><div class="cc-ss-split"><i class="is-web" style="width:' + Math.round(100 * web / tot) + '%"></i><i class="is-cnt" style="width:' + Math.round(100 * cnt / tot) + '%"></i></div>' +
+      '<div class="cc-ss-leg"><span><i class="is-web"></i>Website ' + money(web) + ' (' + Math.round(100 * web / tot) + '%)</span><span><i class="is-cnt"></i>Counter ' + money(cnt) + ' (' + Math.round(100 * cnt / tot) + '%)</span></div>';
+    var wk = d.weeks.slice(-12), wtop = Math.max.apply(null, wk.map(function (w) { return Number(w.collected || 0) + Number(w.booked || 0); }).concat([1]));
+    h += '<h4 style="margin-top:18px">By pickup week</h4><div class="cc-ss-cols" role="img" aria-label="Seasonal sales by pickup week">' + wk.map(function (w) {
+      var c = Number(w.collected || 0), b = Number(w.booked || 0);
+      return '<div class="cc-ss-col" title="Week of ' + esc(weekLabel(w.week)) + ': ' + money(c + b) + '"><span class="cc-ss-cv">' + money(c + b) + '</span><i class="is-bk" style="height:' + Math.round(100 * b / wtop) + '%"></i><i class="is-cl" style="height:' + Math.round(100 * c / wtop) + '%"></i><em>' + esc(weekLabel(w.week)) + '</em></div>';
+    }).join('') + '</div><div class="cc-ss-leg"><span><i class="is-cl"></i>Collected</span><span><i class="is-bk"></i>Booked, still to collect</span></div></section></div>';
+    return h;
+  }
+  function analyticsUi() {
+    var page = doc.querySelector('#ccs-main .cat-page[data-cat="sl"]'); if (!page) return;
+    anLoad();
+    if (!AN.data || page.querySelector('.cc-ss')) return;
+    var c = doc.createElement('section'); c.className = 'cc-ss'; c.setAttribute('aria-label', 'Seasonal sales');
+    c.innerHTML = anHtml(AN.data);
+    var head = page.querySelector(':scope > h2, :scope > .cat-head, :scope > header');
+    if (head && head.nextSibling) page.insertBefore(c, head.nextSibling); else page.insertBefore(c, page.firstChild);
+  }
+
   // ---------- clicks ----------
   function onClick(e) {
     var t = e.target; if (!t || !t.closest) return;
@@ -645,6 +723,15 @@
         M.msg = ti.name + (want ? ' is switched On.' + (status(ti, d.today)[1] === 'is-on' ? ' Customers can order it now.' : '') : ' is switched Off. It is hidden everywhere.'); mLoad();
       }, function (e3) { if (!M) return; ti.active = !want; M.err = errText(e3); mDraw(); });
     }
+    if (a === 'gtoggle') {
+      var gg = d.groups.filter(function (x) { return x.id === mid; })[0]; if (!gg) return;
+      var gw = gg.active === false; gg.active = gw; M.msg = null; mDraw();
+      return rpc('staff_seasonal_save_group', { p: { id: mid, active: gw } }).then(function (r) {
+        if (!M) return;
+        if (!r || !r.ok) { gg.active = !gw; M.err = (r && r.message) || 'Not changed.'; return mDraw(); }
+        M.msg = gg.name + (gw ? ' is switched On. Items switched On now show on the website and at the counter.' : ' is switched Off. Every item in it is hidden on the website and at the counter.'); mLoad();
+      }, function (e7) { if (!M) return; gg.active = !gw; M.err = errText(e7); mDraw(); });
+    }
     if (a === 'up' || a === 'down') return rpc('staff_seasonal_move', { p_id: mid, p_dir: a === 'up' ? -1 : 1 }).then(function () { mLoad(); }, function (e4) { if (M) { M.err = errText(e4); mDraw(); } });
     if (a === 'copy-year') { M.confirmCopy = mid; return mDraw(); }
     if (a === 'copy-no') { M.confirmCopy = null; return mDraw(); }
@@ -676,6 +763,7 @@
     try { counterUi(); } catch (e) { warn('counter', e); }
     try { sheetUi(); } catch (e) { warn('sheet', e); }
     try { settingsUi(); } catch (e) { warn('settings', e); }
+    try { analyticsUi(); } catch (e) { warn('analytics', e); }
   }
   function start() {
     var r = root(); if (!r) return setTimeout(start, 300);
