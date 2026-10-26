@@ -47,7 +47,7 @@ Roneel: "the same philosophy applied across the board"; "proceed and deploy" (ph
 - Rollback: loader 17 (last published before this) back on the staff page and publish.
 - Next: phase 2 (Kitchen and order details), phase 3 (Customers and Analytics).
 
-## Phase 2: Kitchen and order details (staged 27 Oct 2026, 9:07 AM, not published)
+## Phase 2: Kitchen and order details (live 27 Oct 2026, 9:13 AM)
 - Kitchen: Next priority stays the hero; the three counts use the Today summary card (icon left, number, label under); "None left / None waiting / Nothing booked" goes grey. Empty sections were already left out by the app.
 - Order details: one warning line, the most serious (red) first; the rest behind "+1 more" (and "Show less"). The next step stays the main button.
 - WhatsApp in its own green (Roneel: "message icons, if related to WhatsApp, should have the associated colour"): the WhatsApp button in order details, the WhatsApp channel badge, and WhatsApp on the Treat orders board. Other message icons stay navy.
