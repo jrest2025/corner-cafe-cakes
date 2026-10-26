@@ -202,7 +202,18 @@
       });
     });
     [].forEach.call(doc.querySelectorAll('#ccs-sheet .ccs-sheet-head h2, #cc-staff .ccs-title, #ccs-sheet .ccs-title'), function (h) {
-      if (h.textContent.trim() === 'Old order from a paper slip') h.textContent = WORDS.titleOld;
+      var t = h.textContent.trim();
+      if (t === 'Old order from a paper slip') h.textContent = WORDS.titleOld;
+      else if (t === 'Old order saved') h.textContent = 'Paper slip saved';
+    });
+    [].forEach.call(doc.querySelectorAll('[data-oo-next]'), function (b) { if (/next old order/i.test(b.textContent)) setText(b, 'Enter the next paper slip'); });
+    // Reword one message in place (text only, so anything else in the message box stays)
+    var OLD_MSG = 'An old order was picked up before today. For today or a later date, choose New order at the top';
+    var NEW_MSG = 'This paper slip is for a cake already picked up, so the pickup date must be before today. Cake not picked up yet? Choose Cake still to come at the top';
+    [].forEach.call(doc.querySelectorAll('#ccs-slipform .ccs-err, #ccs-sheet .ccs-err'), function (e) {
+      if (e.textContent.indexOf(OLD_MSG) < 0) return;
+      var w = doc.createTreeWalker(e, 4), n;
+      while ((n = w.nextNode())) if (n.nodeValue.indexOf(OLD_MSG) > -1) n.nodeValue = n.nodeValue.replace(OLD_MSG, NEW_MSG);
     });
   }
 
