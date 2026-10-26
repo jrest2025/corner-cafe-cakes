@@ -64,6 +64,9 @@ const shot = async (p, name) => { if (SHOTS) await p.screenshot({ path: SHOTS + 
     check(t + ' Kitchen: Today and Board only, with icons', kt.modes.join('|') === 'Today|Board' && kt.icons === 2, kt);
     check(t + ' Kitchen: attention rows not cut, reason on few lines', kt.lines.length && kt.lines.every(l => !l.cut && l.lines <= 3), kt.lines);
     check(t + ' Kitchen: main button navy', kt.bg === 'rgb(36, 95, 153)', kt.bg);
+    const kc = await p.evaluate(() => [...document.querySelectorAll('#ccs-main .kw-counts > .kw-count')].map(c => { const ic = c.querySelector('.cl-tile').getBoundingClientRect(), em = c.querySelector('em').getBoundingClientRect(), lb = c.querySelector('b').getBoundingClientRect(); return { iconLeft: ic.right <= em.left + 1, numAbove: em.bottom <= lb.top + 2, zero: c.classList.contains('ccp-zero') }; }));
+    check(t + ' Kitchen counts: icon left, number above label', kc.length === 3 && kc.every(k => k.iconLeft && k.numAbove), kc);
+
     const tn = await p.evaluate(() => Object.fromEntries([...document.querySelectorAll('#ccs-main [data-ccp-tone]')].filter(x => x.getClientRects().length).map(x => [(x.closest('.kw-count,.cl-h,.kw-label') || x.parentElement).textContent.replace(/\s+/g, ' ').trim().slice(0, 20), x.getAttribute('data-ccp-tone') + ' ' + getComputedStyle(x).backgroundColor])));
     const tv = Object.entries(tn);
     check(t + ' icon tiles: tinted, coloured by meaning', tv.length >= 4 && tv.every(([k, v]) => !/rgb\((214|74|142|63|138), /.test(v)) && /^green/.test((tv.find(([k]) => /^Ready/.test(k)) || [])[1] || '') && /^amber/.test((tv.find(([k]) => /^To make/.test(k)) || [])[1] || '') && /^navy/.test((tv.find(([k]) => /^Coming up/.test(k)) || [])[1] || ''), tn);
@@ -110,6 +113,15 @@ const shot = async (p, name) => { if (SHOTS) await p.screenshot({ path: SHOTS + 
     check(t + ' details: delivery shown as a vehicle icon, word as its label', sh && sh.inStaff && sh.whenIcon && sh.whenWord, sh);
     check(t + ' details: channel as an icon badge', sh && sh.ch === 'Walk-in' && sh.chW <= 40, sh);
     check(t + ' details: call shows phone icon and number, WhatsApp icon only', sh && sh.call.length === 2 && /^912 0001$/.test(sh.call[0][0]) && sh.call[0][2] && sh.call[1][0] === 'WhatsApp' && sh.call[1][1] === 'WhatsApp' && sh.call[1][2], sh);
+    // two warnings: the most serious one shows, the rest behind "+1 more" (a second warning is added here, as the mock orders have one each)
+    await p.evaluate(() => { const box = document.querySelector('#ccs-sheet .os-warn'); const q = document.createElement('p'); q.className = 'os-w is-red'; q.textContent = 'Overdue: was due Mon 26 Oct, 2:00 PM.'; box.appendChild(q); window.__ccPolish.run(); });
+    await p.waitForTimeout(200);
+    const w1 = await p.evaluate(() => ({ shown: [...document.querySelectorAll('#ccs-sheet .os-w')].filter(x => x.getClientRects().length).map(x => x.className.includes('is-red')), more: (document.querySelector('#ccs-sheet .ccp-wmore') || {}).textContent }));
+    check(t + ' details: one warning line (red first) and +1 more', w1.shown.length === 1 && w1.shown[0] === true && w1.more === '+1 more', w1);
+    await tap(p, '#ccs-sheet .ccp-wmore', 300);
+    const w2 = await p.evaluate(() => ({ n: [...document.querySelectorAll('#ccs-sheet .os-w')].filter(x => x.getClientRects().length).length, more: (document.querySelector('#ccs-sheet .ccp-wmore') || {}).textContent }));
+    check(t + ' details: +1 more shows both, then Show less', w2.n === 2 && w2.more === 'Show less', w2);
+    await tap(p, '#ccs-sheet .ccp-wmore', 300);
     check(t + ' details: Print slip with printer, tab icons', sh && /Print slip/.test(sh.print) && sh.secIcons >= 6, sh);
     await shot(p, t + '-sheet');
     await p.evaluate(() => { const x = document.querySelector('#ccs-sheet [data-act="close"]'); if (x) x.click(); }); await p.waitForTimeout(500);
