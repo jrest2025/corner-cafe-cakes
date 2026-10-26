@@ -271,11 +271,91 @@
     doc.head.appendChild(s);
   }
 
+  // ---------- 7. Friendly wording (26 October 2026, "humanise as much as possible") ----------
+  // Text only, on the order form. Buttons keep their own data, so every rule and saved value is unchanged.
+  // Not changed on purpose: the customer permission question (its exact words are the consent), and the slip
+  // preview (it mirrors the printed kitchen slip).
+  var EXACT = {           // whole lines
+    'Guest name': 'Customer name',
+    'Guest': 'Customer',
+    'Who is taking this order?': "Who's taking this order?",
+    'This number is on WhatsApp': 'They use WhatsApp on this number',
+    'Another date': 'An earlier day',
+    'Date the order was taken': 'Day they ordered',
+    'Custom cake (not on the list)': "A cake that's not on the list",
+    'Tap the price for the cake and size': 'Tap the price under the cake and size they want',
+    'How many cakes': 'How many cakes?',
+    'Inspiration photos': 'Photos from the customer',
+    'Inscription': 'Writing on the cake',
+    '+ Add a cake requirement (eggless, gluten-free, dairy-free, vegan)': '+ Eggless, gluten-free, dairy-free or vegan?',
+    'Any allergies?': 'Does anyone eating it have an allergy?',
+    'Occasion': 'What are they celebrating?',
+    'Other notes': 'Anything else?',
+    'Collection date': 'Pickup day',
+    'Delivery date': 'Delivery day',
+    'Delivery area': 'Where are we delivering?',
+    'Who receives it (optional)': 'Who will receive it? (optional)',
+    'Reason': 'Why is it short notice?',
+    'Who approved it': 'Who said yes?',
+    'Collection time': 'Pickup time',
+    'No dietary needs': 'No allergies or dietary needs',
+    'What payment did we receive?': 'Did they pay anything today?',
+    'Deposit received': 'Paid a deposit',
+    'No payment yet': 'Nothing paid yet',
+    'Clear this order?': 'Start again?',
+    'Clear order': 'Yes, start again',
+    'Save old order': 'Save this paper slip',
+    'Amount paid (FJD)': 'How much did they pay? (FJD)'
+  };
+  var PHRASES = [         // parts of longer lines
+    ['It goes on the kitchen slip, so the team knows who to ask.', 'Your name goes on the kitchen slip, so the team knows who to ask.'],
+    ['Type the number first. If they have ordered before, their details come up.', "Start with their number. If they've ordered before, their details fill in for you."],
+    ['Ask them just like this. Only a clear yes counts, and it is saved with the order.', "Read the question out just as it's written. Only a clear yes counts, and we save their answer with the order."],
+    ['If they are ordering right now, leave it on Today.', 'Ordering right now? Leave it on Today.'],
+    ['Colours, a theme or a photo make it a custom design.', "If they want colours, a theme or a photo copied, it's a custom design."],
+    ['The kitchen prices a custom design after you save. You will add the price on the order.', "The kitchen will price the design after you save. You'll add the price to the order then."],
+    ['Up to 5 photos, 5 MB each. They go on the order and the kitchen slip.', "Add up to 5 photos. They'll show on the order and the kitchen slip."],
+    ['Up to 40 letters. The kitchen copies it exactly, so check the spelling with them.', 'Up to 40 letters. The kitchen writes it exactly as typed, so check the spelling with the customer.'],
+    ['Check with the kitchen first. Then write the reason and who said yes. Both are saved with the order.', 'Check with the kitchen first. Then note why, and who said yes.'],
+    ['Numbers show pickups already booked at that time.', 'The small numbers show how many cakes are already being picked up at that time.'],
+    ['Collection hours ', 'Pickups run from '],
+    ['The customer, cake and date you have entered will be lost.', "Everything you've typed for this order will be cleared."],
+    ['Copy the slip exactly as it is written. We save it as already picked up, with the payment on the day it was paid. No kitchen slip, and nothing is sent to the customer.', "Copy the slip exactly as written. We'll save it as already picked up, with the payment on the day it was paid. No kitchen slip is made and the customer isn't messaged."],
+    ['The name on the slip. If the slip has no name, choose who is entering it.', 'Use the name on the slip. No name on it? Choose yourself.'],
+    ['Not asked on a paper slip, so nothing is recorded and nothing is sent. Ask the customer next time they order.', "We don't ask this for paper slips, so nothing is saved or sent. Ask them next time they order."],
+    ['Usually the pickup day. The money counts on this day.', 'Usually the pickup day. Sales count the money on this day.']
+  ];
+  var HOLDERS = {
+    'Full name': "Customer's full name",
+    'For order emails': 'So we can email them about the order',
+    'Who it is for, colours, theme, toppers, writing style': "Who it's for, colours, theme, toppers, writing style",
+    'Words written on the cake': 'For example: Happy Birthday Mere',
+    'Anything else for the order': 'Anything else the team should know',
+    'Details for the kitchen': 'Tell the kitchen exactly what to avoid'
+  };
+  function friendly() {
+    var roots = doc.querySelectorAll('#ccs-slipform, #ccs-sheet .ccs-sheet-head, .oo-dup, [role="alertdialog"], .ccs-confirm');
+    [].forEach.call(roots, function (root) {
+      var w = doc.createTreeWalker(root, 4), n, list = [];
+      while ((n = w.nextNode())) list.push(n);
+      list.forEach(function (t) {
+        var el = t.parentElement; if (!el || el.closest('.sl-live, textarea, script, style, .cc-ot-reasons')) return;
+        var v = t.nodeValue, k = v.trim();
+        if (Object.prototype.hasOwnProperty.call(EXACT, k)) { t.nodeValue = v.replace(k, EXACT[k]); return; }
+        for (var i = 0; i < PHRASES.length; i++) if (v.indexOf(PHRASES[i][0]) > -1) v = v.split(PHRASES[i][0]).join(PHRASES[i][1]);
+        if (v !== t.nodeValue) t.nodeValue = v;
+      });
+      [].forEach.call(root.querySelectorAll('input[placeholder], textarea[placeholder]'), function (i) {
+        var p = i.getAttribute('placeholder'); if (Object.prototype.hasOwnProperty.call(HOLDERS, p)) i.setAttribute('placeholder', HOLDERS[p]);
+      });
+    });
+  }
+
   // ---------- keep up with the app's redraws ----------
   var queued = false;
   function run() {
     queued = false;
-    try { ensureStyle(); ensureTouchStyle(); addCancelButton(); enhancePanel(); addNotYet(); plainWords(); laterDate(); } catch (e) { warn('update', e); }
+    try { ensureStyle(); ensureTouchStyle(); addCancelButton(); enhancePanel(); addNotYet(); plainWords(); laterDate(); friendly(); } catch (e) { warn('update', e); }
   }
   function schedule() { if (queued) return; queued = true; (win.requestAnimationFrame || setTimeout)(run); }
   function boot() { run(); new MutationObserver(schedule).observe(doc.body, { childList: true, subtree: true }); }
