@@ -131,3 +131,16 @@ Roneel: "humanise the analytics section, the texts are too much. It has to be sl
 - Commit 7dc355ab. Webflow: `ccOrderToolsLoader13` replaces loader 12 (seven files, live file check passed); website order page footer points at the new guest.seasonal.js (integrity sha384-cRH5Zzjl…).
 - Checks: test_analytics_focus.cjs 75 of 75, test_treat_orders.cjs 73 of 73, test_guest_seasonal.cjs 94 of 94, on phone, tablet and computer.
 - Rollback: loader 12 back on the staff page and the guest.seasonal.js line back to commit 13bb4569 (integrity sha384-qXdOVftz…), then publish.
+
+## Polish: dropdowns, icons, calmer screens (staged 26 Oct 2026, 11:53 PM, not published)
+Roneel: "refine corner cake crm even further, use icons where appropriate"; "options should be in drop downs, not separate pills; the drop down should look expert level and neat, not generic system dropdowns". Agreed: filters only (screen switches with counts stay as tabs); Claude picks the icons; Kitchen's Calendar and Handover tabs removed.
+- New file `src/staff.polish.js`. Custom dropdown: label, current choice with icon, chevron; opens a light card list with icons, counts and a tick; bottom sheet with Cancel on phones; keyboard (Enter, arrows, Home, End, first letter, Escape). The original select or pills stay in the page (hidden) and remain what the app reads.
+- Where: Customers (Show, with all 10 groups; Sort; Per page), Analytics (Period on every tab; every filter box, including Occasions), Settings > Seasonal items (Show).
+- Icons (thin-line, the sidebar's style): Settings sections, Kitchen Today and Board, Customers tabs and Add customer, order tags (Custom, Delivery, Walk-in), the Next step arrow, Treat orders More (Call, WhatsApp, Print slip, Cancel).
+- Kitchen: Needs attention rows show the full cake name and reason (no more one word per line); Calendar and Handover tabs removed; "Baked, now cooling" navy.
+- Orders: at most two tags per card (allergy first, then channel), "+n" for the rest (the status tag that repeats the Next step is not counted); "All, 45 days back and ahead" tab reads "All".
+- Customers: repeated "Customers" heading and sentence removed; spend note behind "i"; reminders panel is one "1 reminder" button; Add customer navy.
+- Type weight by device: lighter on phones, a step heavier on tablets.
+- Commit ffdaba37. Webflow `ccOrderToolsLoader14` replaces loader 13 (eight files, live file check passed).
+- Checks: test_polish.cjs 63 of 63 on phone, tablet and computer.
+- Rollback: loader 13 back on the staff page and publish.
