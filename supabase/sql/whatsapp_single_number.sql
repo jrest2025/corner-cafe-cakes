@@ -13,7 +13,7 @@ create table if not exists public.wa_connection (
   updated_at timestamptz not null default now(),
   constraint wa_no_partial_configuration check (
     (display_number is null and phone_number_id is null and waba_id is null)
-    or (display_number ~ '^\\+[1-9][0-9]{7,14}$' and phone_number_id ~ '^[0-9]{5,25}$' and waba_id ~ '^[0-9]{5,25}$')
+    or (display_number ~ '^[+][1-9][0-9]{7,14}$' and phone_number_id ~ '^[0-9]{5,25}$' and waba_id ~ '^[0-9]{5,25}$')
   ),
   constraint wa_enable_only_verified check (not enabled or (verified_at is not null and phone_number_id is not null))
 );
@@ -25,7 +25,7 @@ create table if not exists public.wa_messages (
   id uuid primary key default gen_random_uuid(),
   meta_message_id text unique,
   number_id text not null,
-  peer_number text not null check (peer_number ~ '^\\+[1-9][0-9]{7,14}$'),
+  peer_number text not null check (peer_number ~ '^[+][1-9][0-9]{7,14}$'),
   direction text not null check (direction in ('inbound','outbound')),
   message_type text not null default 'text',
   body text,
