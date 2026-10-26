@@ -5,12 +5,14 @@ const repo = '/home/claude/corner-cafe-cakes';
 const head = fs.readFileSync(path.join(repo, 'test/fixtures/staff-head.html'), 'utf8');
 const footBase = fs.readFileSync(path.join(repo, 'test/fixtures/staff-footer.html'), 'utf8').replace(/<script src="https:\/\/cdn.jsdelivr.net\/npm\/@supabase[^<]*<\/script>/, '');
 const mock = fs.readFileSync(path.join(repo, 'test/mock.js'), 'utf8');
+// Scripts registered on the live staff page in Webflow (their sources, 27 Oct 2026). Pass { registered: false } to leave them out.
+const registered = fs.readFileSync(path.join(repo, 'test/fixtures/registered-footer.html'), 'utf8');
 const LOCAL = process.env.LOCAL_DIR || require('path').join(__dirname, '../../src');
 async function open(b, w, h, o) {
   o = o || {};
   const html = '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' + head + (o.extraHead || '') +
     '<script>window.__role=' + JSON.stringify(o.role || 'manager') + ';window.__oldOrders=true;' + (o.pre || '') + mock + (o.post || '') + 'window.supabase={createClient:function(){return window.__ccsMock}};</script></head>' +
-    '<body style="margin:0"><div id="cc-staff"></div>' + footBase + (o.extraFoot || '') + '</body></html>';
+    '<body style="margin:0"><div id="cc-staff"></div>' + footBase + (o.registered === false ? '' : registered) + (o.extraFoot || '') + '</body></html>';
   const ctx = await b.newContext({ viewport: { width: w, height: h }, hasTouch: w < 1100 || !!o.ipad, isMobile: w < 760 || !!o.ipad });
   const p = await ctx.newPage(), errors = [], logs = [];
   p.on('pageerror', e => errors.push(e.message));

@@ -61,6 +61,11 @@
     checkc: '<circle cx="12" cy="12" r="9"/><path d="m8.5 12 2.5 2.5 4.5-5"/>',
     hourglass: '<path d="M5 22h14M5 2h14M17 22v-4.2a2 2 0 0 0-.6-1.4L12 12l-4.4 4.4a2 2 0 0 0-.6 1.4V22M7 2v4.2a2 2 0 0 0 .6 1.4L12 12l4.4-4.4a2 2 0 0 0 .6-1.4V2"/>',
     coins: '<circle cx="8" cy="8" r="6"/><path d="M18.1 10.4A6 6 0 1 1 10.3 18M7 6h1v4M16.7 13.9l.7.7-2.8 2.8"/>',
+    bag: '<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/>',
+    megaphone: '<path d="m3 11 18-5v12L3 14v-3zM11.6 16.8a3 3 0 1 1-5.8-1.6"/>',
+    history: '<path d="M3 12a9 9 0 1 0 9-9 9.7 9.7 0 0 0-6.7 2.7L3 8"/><path d="M3 3v5h5M12 7v5l4 2"/>',
+    chef: '<path d="M17 21a1 1 0 0 0 1-1v-5.4a1 1 0 0 1 .6-.9 4 4 0 0 0-2.1-7.5 5 5 0 0 0-9 0 4 4 0 0 0-2.1 7.5 1 1 0 0 1 .6.9V20a1 1 0 0 0 1 1zM6 17h12"/>',
+    msg: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2z"/>',
     inbox: '<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5.1 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.8 4H7.2a2 2 0 0 0-1.7 1.1"/>'
   };
   function svg(k, cls) { return P[k] ? '<svg class="ccp-ic' + (cls ? ' ' + cls : '') + '" viewBox="0 0 24 24" aria-hidden="true" focusable="false">' + P[k] + '</svg>' : ''; }
@@ -78,8 +83,8 @@
   function ddOptions(d) {
     if (d.sel) return [].map.call(d.sel.options, function (o) { return { v: o.value, t: o.text, on: o.selected, off: o.disabled }; });
     return [].map.call(d.group.querySelectorAll(d.item || 'button'), function (b, i) {
-      var on = b.getAttribute('aria-pressed') === 'true' || b.getAttribute('aria-selected') === 'true' || b.classList.contains('is-on') || b.classList.contains('is-active') || b.classList.contains('is-cur');
-      var n = b.querySelector('.ccs-n, .ccs-count, .cc-szx-n'); return { v: String(i), t: txt(b).replace(n ? txt(n) : '\u0000', '').trim(), n: n ? txt(n) : null, on: on, el: b };
+      var on = b.getAttribute('aria-current') === 'page' || b.getAttribute('aria-pressed') === 'true' || b.getAttribute('aria-selected') === 'true' || b.classList.contains('is-on') || b.classList.contains('is-active') || b.classList.contains('is-cur');
+      var n = b.querySelector('.ccs-n, .ccs-count, .cc-szx-n'); return { v: b.getAttribute('data-v') || String(i), t: txt(b).replace(n ? txt(n) : '\u0000', '').trim(), n: n ? txt(n) : null, on: on, el: b };
     });
   }
   function ddMake(src, o) {
@@ -88,7 +93,7 @@
     btn.setAttribute('aria-haspopup', 'listbox'); btn.setAttribute('aria-expanded', 'false');
     d.btn = btn; btn.__dd = d; src.__dd = d;
     var hideEl = o.hide || src;
-    hideEl.classList.add('ccdd-src');
+    hideEl.classList.add(o.hideClass || 'ccdd-src');
     (o.place ? o.place(btn) : hideEl.parentNode.insertBefore(btn, hideEl));
     DD.push(d); ddSync(d);
     return d;
@@ -245,14 +250,52 @@
   var WALK = '<circle cx="13.5" cy="4.5" r="2"/><path d="M10 21.5l2.3-6.3 3.2 2.6v3.7M8 12.8l2.2-3.6 4.1.9 2.4 3.1M12.4 10l-1 5.4"/>';
   function channels(root) {
     [].forEach.call(root.querySelectorAll('.cc-ch'), function (c) {
-      if (c.classList.contains('ccp-chi') || c.closest('#ccs-sheet')) return;
+      if (c.classList.contains('ccp-chi')) return;
       var name = txt(c.querySelector(':scope > span')) || txt(c);
       c.classList.add('ccp-chi'); c.setAttribute('role', 'img'); c.setAttribute('aria-label', name); c.title = name;
       if (c.classList.contains('cc-ch-walk_in')) { var g = c.querySelector('svg'); if (g) g.innerHTML = WALK; }
     });
   }
+  // A tag that is clearer as an icon: the word becomes the label (hover, long-press, screen readers)
+  var ICON_ONLY = { 'Delivery': 'truck', 'Collection': 'bag', 'Pickup': 'bag', 'Custom': 'pen' };
+  function iconOnly(root) {
+    [].forEach.call(root.querySelectorAll('.ccs-pill, .ccs-tag'), function (e) {
+      if (e.classList.contains('ccp-badge') || e.closest('#cc-heartbeat')) return;
+      var w = txt(e), k = ICON_ONLY[w]; if (!k) return;
+      e.innerHTML = svg(k) + '<span class="ccp-sr">' + esc(w) + '</span>'; e.classList.add('ccp-badge', 'ccp-b-' + k); e.setAttribute('role', 'img'); e.setAttribute('aria-label', w); e.title = w;
+    });
+  }
+  var SEC_IC = { cake: 'cake', when: null, kitchen: 'chef', customer: 'users', feedback: 'msg', payment: 'coins', history: 'history' };
+  function sheet() {
+    var sh = doc.getElementById('ccs-sheet'); if (!sh || !sh.classList.contains('ccs-open')) return;
+    channels(sh); iconOnly(sh);
+    // Delivery or collection: the vehicle (or bag) next to the date
+    [].forEach.call(sh.querySelectorAll('.os-when > span:first-child'), function (l) {
+      var w = txt(l), k = /deliver/i.test(w) ? 'truck' : /collect|pick/i.test(w) ? 'bag' : null; if (!k || l.classList.contains('ccp-wl')) return;
+      l.classList.add('ccp-wl'); l.innerHTML = svg(k) + '<span class="ccp-sr">' + esc(w) + '</span>'; l.title = w;
+    });
+    // Call and WhatsApp: the icons do the talking
+    [].forEach.call(sh.querySelectorAll('.os-callrow a'), function (a) {
+      if (a.classList.contains('ccp-call')) return;
+      var w = txt(a);
+      if (/^Call\s/.test(w)) { a.innerHTML = svg('phone') + '<span>' + esc(w.replace(/^Call\s+/, '')) + '</span>'; a.setAttribute('aria-label', w); }
+      else if (/WhatsApp/i.test(w)) { a.innerHTML = svg('chat') + '<span class="ccp-sr">' + esc(w) + '</span>'; a.setAttribute('aria-label', w); a.title = w; a.classList.add('ccp-ionly'); }
+      else return;
+      a.classList.add('ccp-call');
+    });
+    var pr = sh.querySelector('[data-act="panel"][data-v="brief"]');
+    if (pr && !pr.classList.contains('ccp-hasic')) { if (/kitchen slip/i.test(txt(pr))) { pr.setAttribute('aria-label', txt(pr)); pr.textContent = 'Print slip'; } deco(pr, 'printer'); }
+    [].forEach.call(sh.querySelectorAll('.ccs-secbtn[data-g="order"]'), function (b) { var v = b.getAttribute('data-v'), k = v === 'when' ? (/deliver/i.test(txt(b)) ? 'truck' : 'bag') : SEC_IC[v]; deco(b, k); });
+  }
+  // Analytics on phones and tablets: one "Section" dropdown instead of two rows of buttons (computers keep the rows)
+  var AN_IC = { ov: 'chart', sl: 'coins', pd: 'cake', cu: 'users', sd: 'star', pl: 'cal', mk: 'megaphone', da: 'db', cs: 'store', wb: 'globe' };
+  function analyticsNav(main) {
+    var mods = main.querySelector('nav.an-mods'); if (!mods) return;
+    dd(mods, { label: 'Section', item: 'button[data-v]:not(.is-need)', icons: AN_IC, hideClass: 'ccp-navsrc', cls: 'ccp-mobonly ccdd-wide',
+      place: function (b) { var n5 = mods.previousElementSibling; (n5 && n5.classList.contains('cc-nav5') ? n5 : mods).insertAdjacentElement('beforebegin', b); } });
+  }
   function refine(main) {
-    channels(main);
+    channels(main); iconOnly(main); analyticsNav(main);
     // status tags: a small icon that says what kind of status it is
     [].forEach.call(main.querySelectorAll('.ccs-pill, .ccs-tag'), function (e) {
       if (e.closest('#cc-heartbeat') || e.querySelector('svg')) return;
@@ -375,6 +418,19 @@
       '#cc-staff #ccs-main .cc-ch.ccp-chi svg{width:18px!important;height:18px!important;stroke-width:1.75!important;margin:0!important}',
       ':root:not(#cc-t0) #cc-staff #ccs-main .cc-ch.ccp-chi.cc-ch-online:not(#cc-heartbeat *){background:#EEF3F9!important;border-color:#B7CCE3!important;color:var(--ccp-navy)!important}',
       '@media (min-width:760px) and (hover:none) and (pointer:coarse){:root:not(#cc-t0) #cc-staff #ccs-main .cc-ch.ccp-chi:not(#cc-heartbeat *){width:38px!important;height:38px!important}#cc-staff #ccs-main .cc-ch.ccp-chi svg{width:20px!important;height:20px!important}}',
+      // icon-only tags (Delivery, Collection, Custom) and the hidden-label helper
+      '#cc-staff .ccp-sr{position:absolute!important;width:1px!important;height:1px!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;white-space:nowrap!important}',
+      ':root:not(#cc-t0) #cc-staff :is(#ccs-main,#ccs-sheet) .ccp-badge:not(#cc-heartbeat *){display:inline-flex!important;align-items:center!important;justify-content:center!important;width:34px!important;height:34px!important;min-width:0!important;padding:0!important;border-radius:50%!important;gap:0!important;border:1px solid var(--ccp-line-2)!important;background:#fff!important;color:#344054!important;flex:none}',
+      '#cc-staff .ccp-badge .ccp-ic{width:18px!important;height:18px!important;stroke-width:1.75!important}#cc-staff .ccp-badge.ccp-b-pen{background:#EEF3F9!important;border-color:#B7CCE3!important;color:var(--ccp-navy)!important}',
+      // order details: the channel badge, the delivery vehicle, call and WhatsApp
+      ':root:not(#cc-t0) #cc-staff #ccs-sheet .cc-ch.ccp-chi{width:38px!important;height:38px!important;min-width:0!important;padding:0!important;border-radius:50%!important;justify-content:center!important;gap:0!important;border:1px solid var(--ccp-line-2)!important;background:#fff!important;color:#344054!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-sheet .cc-ch.ccp-chi > span{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}#cc-staff #ccs-sheet .cc-ch.ccp-chi svg{width:20px!important;height:20px!important;margin:0!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-sheet .os-when:has(.ccp-wl){display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;align-items:center!important;justify-content:flex-start!important;text-align:left!important;gap:12px!important}#cc-staff #ccs-sheet .os-when .ccp-wl{flex:none;display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:12px;background:#EEF3F9;color:var(--ccp-navy)}#cc-staff #ccs-sheet .os-when .ccp-wl .ccp-ic{width:22px;height:22px}',
+      '#cc-staff #ccs-sheet .os-callrow .ccp-call{display:inline-flex;align-items:center;justify-content:center;gap:10px}#cc-staff #ccs-sheet .os-callrow .ccp-call .ccp-ic{width:22px;height:22px}',
+      '#cc-staff #ccs-sheet .ccp-ic{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}#cc-staff #ccs-sheet .ccp-hasic{display:inline-flex;align-items:center;gap:8px}',
+      // Analytics section dropdown: phones and tablets only
+      '#cc-staff .ccp-mobonly{display:none!important}',
+      '@media (max-width:1099px),(hover:none) and (pointer:coarse){#cc-staff #ccs-main .ccp-mobonly{display:inline-flex!important;margin:8px 0 12px}#cc-staff #ccs-main .ccp-navsrc,#cc-staff #ccs-main .cc-nav5{display:none!important}}',
       // Customers number-card icons
       '#cc-staff #ccs-main .cw-metric-arrow.ccp-kpi-ic{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:10px;background:#EEF3F9;color:var(--ccp-navy)}#cc-staff #ccs-main .cw-metric-arrow .ccp-ic{width:20px;height:20px}',
       // page titles with their sidebar icon
@@ -405,7 +461,7 @@
       if (/^orders/.test(scr) || main.querySelector('.ccs-list .ccs-card')) orders(main);
       if (main.querySelector('.ccs-setnav')) settings(main);
       if (main.querySelector('.cat-page, .dx-filters')) analytics(main);
-      refine(main);
+      refine(main); sheet();
       seasonal(); treatBoard();
     } catch (e) { warn('update', e); }
   }

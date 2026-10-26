@@ -91,6 +91,32 @@ const shot = async (p, name) => { if (SHOTS) await p.screenshot({ path: SHOTS + 
     check(t + ' refined: Customers number-card icons, quiet table header', rc.kpi === 4 && (rc.th === null || rc.th === 'none rgb(249, 250, 251)'), rc);
     await shot(p, t + '-customers-refined');
     const hb = await p.evaluate(() => { const r = document.getElementById('cc-demand-scroll-rail'); return r ? 'ok' : 'none'; });
+    // ---------- icons instead of words: order details ----------
+    await go(p, 'orders'); await tap(p, '.ccs-tab[data-v="upcoming"]', 1200);
+    await p.evaluate(() => { const c = [...document.querySelectorAll('#ccs-main .ccs-card')].find(c => /Test Customer A/.test(c.textContent) && /5:00 PM/.test(c.textContent)) || document.querySelector('#ccs-main .ccs-card'); c.click(); }); await p.waitForTimeout(1500);
+    const sh = await p.evaluate(() => { const s = document.getElementById('ccs-sheet'); if (!s) return null; const when = s.querySelector('.os-when > span:first-child'), calls = [...s.querySelectorAll('.os-callrow a')];
+      return { inStaff: !!s.closest('#cc-staff'), whenIcon: !!(when && when.querySelector('svg')), whenWord: when ? when.getBoundingClientRect().width < 60 && /Delivery|Collection/.test(when.title) : false, ch: (s.querySelector('.cc-ch') || {}).getAttribute && s.querySelector('.cc-ch').getAttribute('aria-label'), chW: s.querySelector('.cc-ch') ? Math.round(s.querySelector('.cc-ch').getBoundingClientRect().width) : 0,
+        call: calls.map(a => [a.textContent.trim(), a.getAttribute('aria-label'), !!a.querySelector('svg')]), print: (s.querySelector('[data-v="brief"]') || {}).textContent, secIcons: s.querySelectorAll('.ccs-secbtn .ccp-ic').length }; });
+    check(t + ' details: delivery shown as a vehicle icon, word as its label', sh && sh.inStaff && sh.whenIcon && sh.whenWord, sh);
+    check(t + ' details: channel as an icon badge', sh && sh.ch === 'Walk-in' && sh.chW <= 40, sh);
+    check(t + ' details: call shows phone icon and number, WhatsApp icon only', sh && sh.call.length === 2 && /^912 0001$/.test(sh.call[0][0]) && sh.call[0][2] && sh.call[1][0] === 'WhatsApp' && sh.call[1][1] === 'WhatsApp' && sh.call[1][2], sh);
+    check(t + ' details: Print slip with printer, tab icons', sh && /Print slip/.test(sh.print) && sh.secIcons >= 6, sh);
+    await shot(p, t + '-sheet');
+    await p.evaluate(() => { const x = document.querySelector('#ccs-sheet [data-act="close"]'); if (x) x.click(); }); await p.waitForTimeout(500);
+    // ---------- Analytics: one Section dropdown on phones and tablets ----------
+    await go(p, 'dash');
+    const nv = await p.evaluate(() => ({ dd: [...document.querySelectorAll('#ccs-main .ccdd-btn')].filter(x => x.getClientRects().length).map(x => x.getAttribute('aria-label')), nav5: !!(document.querySelector('.cc-nav5') || {}).getClientRects().length, mods: !!(document.querySelector('nav.an-mods') || {}).getClientRects().length }));
+    if (t === 'desktop') check(t + ' Analytics: computers keep the section rows', nv.nav5 && nv.mods && !nv.dd.some(x => /^Section/.test(x)), nv);
+    else {
+      check(t + ' Analytics: one Section dropdown, rows hidden', nv.dd.some(x => /^Section: (Overview|Cake sales)$/.test(x)) && !nv.nav5 && !nv.mods, nv);
+      await tap(p, '#ccs-main .ccdd-btn[aria-label^="Section"]', 400);
+      const so = await p.evaluate(() => [...document.querySelectorAll('.ccdd-opt .ccdd-t')].map(x => x.textContent));
+      check(t + ' Section list: every section with data, none empty', so.includes('Overview') && so.includes('Cake sales') && so.includes('Occasions') && !so.some(x => /No data|Café sales|Marketing|Website/.test(x)), so);
+      await p.evaluate(() => [...document.querySelectorAll('.ccdd-opt')].find(x => x.textContent.trim() === 'Occasions').click()); await p.waitForTimeout(1500);
+      const sd = await p.evaluate(() => ({ page: !!document.querySelector('#ccs-main .cat-page[data-cat="sd"]'), lbl: (document.querySelector('#ccs-main .ccdd-btn[aria-label^="Section"]') || {}).getAttribute('aria-label') }));
+      check(t + ' Section: choosing Occasions opens it', sd.page && sd.lbl === 'Section: Occasions', sd);
+      await shot(p, t + '-analytics-section');
+    }
     check(t + ' no horizontal scroll', await p.evaluate(() => document.documentElement.scrollWidth - innerWidth <= 1));
     check(t + ' no page errors or polish warnings', !errors.filter(m => !/reading 'length'|reading 'filter'/.test(m)).length && !logs.filter(x => /Polish|Analytics focus/.test(x)).length, errors.concat(logs.filter(x => /Polish/.test(x))));
     await ctx.close();
