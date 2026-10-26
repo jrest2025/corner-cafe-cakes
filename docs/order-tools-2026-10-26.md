@@ -99,3 +99,14 @@ Roneel: treats "further ahead in the form", "like the specials module ... turn i
 - Files at commit 6ef8d4c5. Webflow: `ccOrderToolsLoader10` replaces loader 9; website order page footer points at the new guest.seasonal.js (integrity hash updated).
 - Checks: test_seasonal.cjs 125 of 125, test_guest_seasonal.cjs 63 of 63; loader 10 with the live file check, no warnings. Rolled-back database trial: 5 treats, $106, booked, website.
 - Rollback: loader 9 back on the staff page and the earlier guest.seasonal.js line (commit 2440fc07 is staff only; website line at 75b32c53), then publish.
+
+## Seasonal items, enterprise layout (staged 26 Oct 2026, not live until "deploy")
+Roneel: "make the seasonal items section enterprise level" (all eight points agreed).
+- Computers and tablets: inside Settings beside the side list (no separate screen). Phones: full screen from Settings.
+- Overview: on sale now, switched off or not on sale, sold this season, booked still to collect; a Needs attention banner.
+- Item table with filters (All, On sale, Off, Counter only, Needs attention); cards on narrow panels. Checks: no photo, no end date, dates passed while On, On while the section is Off, nearly sold out or sold out for an upcoming day.
+- Bulk: select items, Switch On, Switch Off, Set dates (empty boxes keep each item's own date). Each item is saved through the same database checks.
+- Editor in sections (Details, Photo, Availability, Limits, On sale) with a live preview (website card, counter, kitchen slip) and change history (who, what, when, 12-hour time).
+- What's booked: by pickup day against each daily limit (amber from 80%, red when full).
+- Typing in this section does not mark Settings "Not saved yet", and a half-typed item survives a Settings redraw.
+- Commit 1784e025; Webflow `ccOrderToolsLoader11` replaces loader 10. Checks: test_seasonal.cjs 158 of 158. Rollback: loader 10 back and publish.
