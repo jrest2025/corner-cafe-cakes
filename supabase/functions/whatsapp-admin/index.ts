@@ -78,7 +78,7 @@ Deno.serve(async (req: Request) => {
     const ref=String(reference||"").trim();
     if(orderId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orderId))return null;
     if(!orderId && (!ref || ref.length>60))return null;
-    let query=db.from("orders").select("id,reference,contact_phone,contact_name");
+    let query=db.from("orders").select("id,reference,contact_phone,contact_name,required_date,required_time,order_status");
     query=orderId?query.eq("id",orderId):query.eq("reference",ref);
     const {data,error}=await query.maybeSingle();
     return error?null:data;
@@ -124,7 +124,7 @@ Deno.serve(async (req: Request) => {
       unlinked=pending||[];
     }
     return respond(req,{ok:true,enabled:!!conn?.enabled,display_number:conn?.display_number||null,
-      order_id:order.id,order_reference:order.reference,peer_number:peer,linked:linked||[],unlinked});
+      order_id:order.id,order_reference:order.reference,order_customer:order.contact_name||"Customer",required_date:order.required_date,required_time:order.required_time,order_status:order.order_status,peer_number:peer,linked:linked||[],unlinked});
   }
   if (op==="link") {
     const order=await validatedOrder(body.order_id);
