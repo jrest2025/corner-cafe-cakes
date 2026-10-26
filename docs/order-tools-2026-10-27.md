@@ -64,7 +64,7 @@ Roneel: "the same philosophy applied across the board"; "proceed and deploy" (ph
 - No data, rules or workflow changes. Festive treats section stays Off.
 - Rollback: remove ccOrderToolsLoader22 from the staff page, add ccOrderToolsLoader21 (footer, 1.0.0), publish.
 
-## Analytics: charts over text (loader 23, commit 82185f1c) — staged
+## Analytics: charts over text (loader 23, commit 82185f1c) — live 27 Oct 2026, 10:38 AM
 
 - Customers: "New and returning" split bar becomes a donut; legend taps unchanged.
 - Planning: "Largest orders" shows a value bar per order (tap still opens the order); "· 2 cakes" dropped; number-card captions hidden.
