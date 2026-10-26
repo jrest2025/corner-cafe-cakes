@@ -544,6 +544,10 @@
       '#cc-staff #ccs-sheet .os-warn.ccp-wfold{display:flex!important;flex-direction:column!important;gap:8px}',
       '#cc-staff #ccs-sheet .os-warn.ccp-wfold:not(.ccp-wopen) > .ccp-wrest{display:none!important}',
       '#cc-staff #ccs-sheet .ccp-wmore{align-self:flex-start;min-height:44px;padding:0 4px;font-weight:600;color:#1E3A5F}',
+      // WhatsApp: its own green wherever it appears (order details button, channel badge, Treat orders)
+      ':root:not(#cc-t0) #cc-staff #ccs-sheet .os-callrow .ccp-call.ccp-ionly{color:#0B7A3E!important;background:#E3F6EA!important;border-color:#9FDDB6!important}',
+      ':root:not(#cc-t0) #cc-staff :is(#ccs-main,#ccs-sheet) .cc-ch.ccp-chi.cc-ch-whatsapp{color:#0B7A3E!important;background:#E3F6EA!important;border-color:#9FDDB6!important}',
+      ':root:not(#cc-t0) #cc-staff .cc-to a.ccs-btn[href*="wa.me"]{color:#0B7A3E!important;background:#E3F6EA!important;border-color:#9FDDB6!important}',
       // Orders: tabs with nothing in them go quiet
       '#cc-staff #ccs-main .ccs-tab.ccp-quiet{color:#98A2B3!important}#cc-staff #ccs-main .ccs-tab.ccp-quiet .ccs-n{display:none!important}',
       // Customers number-card icons

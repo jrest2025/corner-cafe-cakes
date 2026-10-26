@@ -122,6 +122,7 @@ const shot = async (p, name) => { if (SHOTS) await p.screenshot({ path: SHOTS + 
     const w2 = await p.evaluate(() => ({ n: [...document.querySelectorAll('#ccs-sheet .os-w')].filter(x => x.getClientRects().length).length, more: (document.querySelector('#ccs-sheet .ccp-wmore') || {}).textContent }));
     check(t + ' details: +1 more shows both, then Show less', w2.n === 2 && w2.more === 'Show less', w2);
     await tap(p, '#ccs-sheet .ccp-wmore', 300);
+    check(t + ' details: WhatsApp in its own green', await p.evaluate(() => getComputedStyle([...document.querySelectorAll('#ccs-sheet .os-callrow a')].find(a => /WhatsApp/.test(a.getAttribute('aria-label') || ''))).color === 'rgb(11, 122, 62)'));
     check(t + ' details: Print slip with printer, tab icons', sh && /Print slip/.test(sh.print) && sh.secIcons >= 6, sh);
     await shot(p, t + '-sheet');
     await p.evaluate(() => { const x = document.querySelector('#ccs-sheet [data-act="close"]'); if (x) x.click(); }); await p.waitForTimeout(500);
