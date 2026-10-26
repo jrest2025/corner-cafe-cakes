@@ -841,9 +841,9 @@
     var share = S.cake_orders ? Math.round(100 * S.orders / S.cake_orders) : 0;
     h += '<div class="cc-ss-kpis">' +
       '<div class="cc-ss-kpi"><span>Sales value</span><b>' + money(S.value) + '</b><small>' + money(S.collected_value) + ' collected · ' + money(S.booked_value) + ' booked</small></div>' +
-      '<div class="cc-ss-kpi"><span>Items sold</span><b>' + Number(S.items) + '</b><small>across ' + S.orders + ' order' + (S.orders === 1 ? '' : 's') + '</small></div>' +
+      '<div class="cc-ss-kpi"><span>Items sold</span><b>' + Number(S.items) + '</b><small>' + S.orders + ' cake order' + (S.orders === 1 ? '' : 's') + ' · ' + Number(S.treat_orders || 0) + ' treat order' + (Number(S.treat_orders) === 1 ? '' : 's') + '</small></div>' +
       '<div class="cc-ss-kpi"><span>Cake orders with treats</span><b>' + share + '%</b><small>' + S.orders + ' of ' + S.cake_orders + ' since the first treat</small></div>' +
-      '<div class="cc-ss-kpi"><span>Average treats per order</span><b>' + money(S.orders ? S.value / S.orders : 0) + '</b><small>added to each order with treats</small></div></div>';
+      '<div class="cc-ss-kpi"><span>Average per order</span><b>' + money((S.orders + Number(S.treat_orders || 0)) ? S.value / (S.orders + Number(S.treat_orders || 0)) : 0) + '</b><small>treats on each order with treats</small></div></div>';
     var top = Math.max.apply(null, d.items.map(function (i) { return Number(i.value); }).concat([1]));
     h += '<div class="cc-ss-grid"><section class="cc-ss-box"><h4>By item</h4>' + d.items.map(function (i) {
       return '<div class="cc-ss-bar"><span class="cc-ss-bn">' + esc(i.name) + '</span><span class="cc-ss-bt"><i style="width:' + Math.max(2, Math.round(100 * Number(i.value) / top)) + '%"></i></span><span class="cc-ss-bv"><b>' + money(i.value) + '</b> · ' + i.quantity + '</span></div>';
@@ -851,6 +851,9 @@
     var src = d.sources || {}, web = Number(src.website || 0), cnt = Number(src.counter || 0), tot = web + cnt || 1;
     h += '<section class="cc-ss-box"><h4>Website or counter</h4><div class="cc-ss-split"><i class="is-web" style="width:' + Math.round(100 * web / tot) + '%"></i><i class="is-cnt" style="width:' + Math.round(100 * cnt / tot) + '%"></i></div>' +
       '<div class="cc-ss-leg"><span><i class="is-web"></i>Website ' + money(web) + ' (' + Math.round(100 * web / tot) + '%)</span><span><i class="is-cnt"></i>Counter ' + money(cnt) + ' (' + Math.round(100 * cnt / tot) + '%)</span></div>';
+    var kd = d.kinds || {}, kc = Number(kd.cake || 0), kt = Number(kd.treats || 0), ktot = kc + kt || 1;
+    h += '<h4 style="margin-top:18px">With a cake or treats only</h4><div class="cc-ss-split"><i class="is-web" style="width:' + Math.round(100 * kc / ktot) + '%"></i><i class="is-cnt" style="width:' + Math.round(100 * kt / ktot) + '%"></i></div>' +
+      '<div class="cc-ss-leg"><span><i class="is-web"></i>With a cake ' + money(kc) + ' (' + Math.round(100 * kc / ktot) + '%)</span><span><i class="is-cnt"></i>Treats only ' + money(kt) + ' (' + Math.round(100 * kt / ktot) + '%)</span></div>';
     var wk = d.weeks.slice(-12), wtop = Math.max.apply(null, wk.map(function (w) { return Number(w.collected || 0) + Number(w.booked || 0); }).concat([1]));
     h += '<h4 style="margin-top:18px">By pickup week</h4><div class="cc-ss-cols" role="img" aria-label="Seasonal sales by pickup week">' + wk.map(function (w) {
       var c = Number(w.collected || 0), b = Number(w.booked || 0);

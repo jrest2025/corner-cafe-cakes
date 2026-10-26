@@ -19,9 +19,9 @@ function page(o) {
     method: 'collection', zone: null, address: '', receiver: '', candOpen: false, candles: '', noteOpen: false, notes: '', diet: 'no', diets: [], dietNote: '', reqs: [], reqNote: '', reqAlg: null,
     date: o.date || D10, time: '12:00', name: 'Ana Guest', phone: '912 3456', whatsapp: true, emailOpen: false, email: '', updates: false, detailsOk: true, know: true, sending: false, howOpen: false, dateNote: '' } };
   return '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0;background:#fff;font-family:Arial,sans-serif;padding:24px 16px}</style></head><body><div class="cco-page"><div id="cc-cake-order"></div></div>' +
-    (o.nodraft ? '' : '<script>try{localStorage.setItem("cco-draft-v2",' + JSON.stringify(JSON.stringify(draft)) + ')}catch(e){}</script>') +
+    (o.trej ? '<script>window.__trej=1</script>' : '') + (o.nodraft ? '' : '<script>try{localStorage.setItem("cco-draft-v2",' + JSON.stringify(JSON.stringify(draft)) + ')}catch(e){}</script>') +
     '<script>' + mock + '</script><script>window.__sent=[];window.__ccoMock={rpc:function(fn,a){if(fn==="get_order_setup")return window.__ccsMock.rpc(fn,a);if(fn==="get_seasonal_menu"){window.__menuAsked=a;return Promise.resolve({data:' + JSON.stringify(menu) + '})}' +
-    'if(fn==="submit_online_order"){window.__sent.push(a.p);' + (o.reject ? 'if(window.__sent.length===1)return Promise.resolve({data:{ok:false,error:"treats",field:"treats",message:"Gingerbread House is sold out for ' + 'that day."}});' : '') + 'return Promise.resolve({data:{ok:true,reference:"CC-1201",status:"awaiting_review",estimate:154}})}return Promise.resolve({data:null})},storage:{from:function(){return{upload:function(){return Promise.resolve({data:{}})}}}}};</script>' +
+    'if(fn==="submit_treat_order"){window.__tsent=(window.__tsent||[]).concat([a.p]);return Promise.resolve({data:window.__trej&&window.__tsent.length===1?{ok:false,error:"phone",field:"phone",message:"Enter a mobile number, for example 912 3456."}:{ok:true,reference:"T-1001",total:82,id:"x"}})}if(fn==="submit_online_order"){window.__sent.push(a.p);' + (o.reject ? 'if(window.__sent.length===1)return Promise.resolve({data:{ok:false,error:"treats",field:"treats",message:"Gingerbread House is sold out for ' + 'that day."}});' : '') + 'return Promise.resolve({data:{ok:true,reference:"CC-1201",status:"awaiting_review",estimate:154}})}return Promise.resolve({data:null})},storage:{from:function(){return{upload:function(){return Promise.resolve({data:{}})}}}}};</script>' +
     '<script>' + addon + '</script><script>' + bundle + '</script></body></html>';
 }
 let n = 0, fails = 0; const check = (s, v, d) => { if (v) { n++; console.log('PASS ' + s); } else { fails++; console.log('FAIL ' + s + (d !== undefined ? ' -> ' + JSON.stringify(d).slice(0, 500) : '')); } };
@@ -63,31 +63,62 @@ const tap = async (p, s, wait) => { await p.evaluate(s => { const e = document.q
     check(t + ' no page errors or add-on warnings', !errors.length && !logs.filter(x => /Seasonal treats/.test(x)).length, errors.concat(logs));
     await ctx.close();
   }
-  // first screen: treats up front, carried to the last step
+  // treats on their own: the separate module above the cake form
   for (const [w, h, t] of [[1366, 900, 'desktop'], [820, 1180, 'tablet'], [390, 844, 'phone']]) {
-    const o = { nodraft: true };
-    const { p, ctx, errors } = await go(b, w, h, o);
-    const hero = await p.evaluate(() => { const s = document.querySelector('#cco-step-0.cco-open .cco-trh'); if (!s) return null; const cakes = document.querySelector('#cco-step-0 .cco-cakes'); return { h: s.querySelector('h3').textContent, cards: s.querySelectorAll('.cco-trh-card').length, imgs: s.querySelectorAll('img.cco-trh-ph').length, alone: s.querySelector('.cco-trh-alone').textContent, wa: s.querySelector('.cco-trh-alone a').href, before: cakes ? !!(s.compareDocumentPosition(cakes) & 4) : null }; });
-    check(t + ' first screen shows Festive treats above the cakes', hero && hero.h === 'Festive treats' && hero.cards === 4 && hero.before === true, hero);
-    check(t + ' treats-without-a-cake line with WhatsApp and phone', hero && /Want treats without a cake\?/.test(hero.alone) && /wa\.me\/679/.test(hero.wa), hero);
-    const addH = await p.evaluate(() => Math.min(...[...document.querySelectorAll('.cco-trh-add')].map(x => x.getBoundingClientRect().height)));
-    check(t + ' Add buttons are 48px (' + Math.round(addH) + ')', addH >= 48, addH);
-    await tap(p, '.cco-trh [data-cco-tr-plus="i1"]', 400); await tap(p, '.cco-trh [data-cco-tr-plus="i2"]', 300); await tap(p, '.cco-trh [data-cco-tr-plus="i2"]', 300);
-    const sum = await p.evaluate(() => (document.querySelector('.cco-trh-sum') || {}).textContent || '');
-    check(t + ' first screen confirms what was added', /3 treats added · \$59/.test(sum), sum);
-    if (SHOTS) await p.screenshot({ path: SHOTS + '/web-' + t + '-first.png' });
-    check(t + ' no horizontal scroll on the first screen', await p.evaluate(() => document.documentElement.scrollWidth - innerWidth <= 1));
-    // the customer finishes the cake steps (simulated by the saved form), then reaches the last step
-    o.nodraft = false; await p.reload(); await p.waitForTimeout(1500);
-    const rv = await p.evaluate(() => [...document.querySelectorAll('.cco-tr .cco-tr-st output')].map(x => x.textContent));
-    check(t + ' picks carried to the last step', JSON.stringify(rv) === JSON.stringify(['1', '2', '0', '0']), rv);
-    check(t + ' first-screen panel not repeated on the last step', await p.evaluate(() => !document.querySelector('.cco-trh')));
+    const { p, ctx, errors } = await go(b, w, h, { nodraft: true });
+    const m = await p.evaluate(() => { const s = document.getElementById('cc-treat-order'), f = document.getElementById('cc-cake-order'); if (!s) return null; return { shown: !s.hidden, h: s.querySelector('h2').textContent, cards: s.querySelectorAll('.cct-card').length, above: !!(s.compareDocumentPosition(f) & 4), outside: !f.contains(s), oldPanel: !!document.querySelector('.cco-trh') }; });
+    check(t + ' module above the cake form, outside it', m && m.shown && m.h === 'Festive treats' && m.cards === 4 && m.above && m.outside, m);
+    check(t + ' old first-screen panel gone', m && !m.oldPanel, m);
+    const addH = await p.evaluate(() => Math.min(...[...document.querySelectorAll('.cct-add')].map(x => x.getBoundingClientRect().height)));
+    check(t + ' Add buttons at least 48px (' + Math.round(addH) + ')', addH >= 48, addH);
+    await tap(p, '.cct-add[data-cct-plus="i1"]'); await tap(p, '.cct-add[data-cct-plus="i2"]'); await tap(p, '[data-cct-plus="i2"]');
+    const bar = await p.evaluate(() => (document.querySelector('.cct-bar') || {}).textContent || '');
+    check(t + ' bar shows 3 treats and $59', /3 treats · \$59/.test(bar), bar);
+    await tap(p, '[data-cct="next"]', 500);
+    const dd = await p.evaluate(() => [...document.querySelectorAll('.cct-days .cct-chip')].map(x => x.getAttribute('data-cct-day')));
+    check(t + ' pickup days start after 2 days notice', dd.length >= 5 && dd[0] === new Intl.DateTimeFormat('en-CA', { timeZone: 'Pacific/Fiji' }).format(new Date(Date.now() + 2 * 864e5)), dd);
+    await tap(p, '[data-cct="send"]', 300);
+    check(t + ' asks for the day first', await p.evaluate(() => /Choose a pickup day/.test(document.getElementById('cc-treat-order').textContent)));
+    await tap(p, '.cct-days .cct-chip:nth-child(2)', 300);
+    const tm = await p.evaluate(() => [...document.querySelectorAll('.cct-times .cct-chip')].map(x => x.textContent));
+    check(t + ' times in 12-hour format from collection hours', tm[0] === '9:00 AM' && tm.includes('12:00 PM') && tm[tm.length - 1] === '8:00 PM', tm);
+    await tap(p, '.cct-times [data-cct-time="660"]', 300);
+    await p.fill('[data-cct-k="name"]', 'Mere Tui'); await p.fill('[data-cct-k="phone"]', '912 3456'); await p.fill('[data-cct-k="note"]', 'Gift wrap');
+    const ch = await p.evaluate(() => Math.min(...[...document.querySelectorAll('.cct-chip')].map(x => x.getBoundingClientRect().height)));
+    check(t + ' day and time chips at least 48px', ch >= 48, ch);
+    if (SHOTS) await p.screenshot({ path: SHOTS + '/web-' + t + '-treats.png', fullPage: true });
+    check(t + ' no horizontal scroll with the module', await p.evaluate(() => document.documentElement.scrollWidth - innerWidth <= 1));
+    await tap(p, '[data-cct="send"]', 800);
+    const ts = await p.evaluate(() => window.__tsent || []);
+    check(t + ' treat request sent with day, time, name, mobile, note and a resend key', ts.length === 1 && ts[0].time === '11:00' && ts[0].name === 'Mere Tui' && ts[0].phone === '912 3456' && ts[0].note === 'Gift wrap' && /^[0-9a-f-]{36}$/.test(ts[0].idempotency_key) && JSON.stringify(ts[0].treats) === '[{"id":"i1","quantity":1},{"id":"i2","quantity":2}]', ts);
+    const dn = await p.evaluate(() => (document.querySelector('.cct-done') || {}).textContent || '');
+    check(t + ' thank-you with the reference and 11:00 AM', /T-1001/.test(dn) && /Thank you, Mere/.test(dn) && /11:00 AM/.test(dn), dn);
+    if (SHOTS) await p.screenshot({ path: SHOTS + '/web-' + t + '-treats-done.png' });
+    check(t + ' cake form untouched (no cake request sent)', await p.evaluate(() => window.__sent.length === 0));
     check(t + ' no page errors', !errors.length, errors);
     await ctx.close();
   }
+  // database refusal is shown on the right field; resend uses the same key
+  { const { p, ctx } = await go(b, 1366, 900, { nodraft: true, trej: true });
+    await tap(p, '.cct-add[data-cct-plus="i1"]'); await tap(p, '[data-cct="next"]', 400); await tap(p, '.cct-days .cct-chip', 300); await tap(p, '.cct-times .cct-chip', 300);
+    await p.fill('[data-cct-k="name"]', 'Mere Tui'); await p.fill('[data-cct-k="phone"]', '9123456'); await tap(p, '[data-cct="send"]', 800);
+    const e1 = await p.evaluate(() => ({ err: (document.querySelector('#cct-e-phone') || {}).textContent, focus: document.activeElement.getAttribute('data-cct-k') }));
+    check('refusal shown under the mobile number, focused', /mobile number/.test(e1.err || '') && e1.focus === 'phone', e1);
+    await tap(p, '[data-cct="send"]', 800);
+    const ks = await p.evaluate(() => window.__tsent.map(x => x.idempotency_key));
+    check('second try uses the same key (no double order)', ks.length === 2 && ks[0] === ks[1], ks);
+    await ctx.close(); }
+  // form left midway: picks, day and details come back after a reload
+  { const { p, ctx } = await go(b, 820, 1180, { nodraft: true });
+    await tap(p, '.cct-add[data-cct-plus="i2"]'); await tap(p, '[data-cct="next"]', 400); await tap(p, '.cct-days .cct-chip', 300); await p.fill('[data-cct-k="name"]', 'Ana');
+    await p.reload(); await p.waitForTimeout(1500);
+    const r = await p.evaluate(() => ({ q: document.querySelector('[data-cct-plus="i2"]').parentNode.querySelector('output') && document.querySelector('[data-cct-plus="i2"]').parentNode.querySelector('output').textContent, day: !!document.querySelector('.cct-days .is-on'), name: (document.querySelector('[data-cct-k="name"]') || {}).value }));
+    check('resume after reload', r.q === '1' && r.day && r.name === 'Ana', r);
+    await ctx.close(); }
   // nothing on sale: the form is exactly as before
   { const { p, ctx } = await go(b, 1366, 900, { empty: true });
     check('nothing on sale: no treats section', await p.evaluate(() => !document.querySelector('.cco-tr')));
+    check('nothing on sale: treats module hidden', await p.evaluate(() => { const s = document.getElementById('cc-treat-order'); return !s || s.hidden; }));
     await tap(p, '[data-act="send"]', 1200);
     check('nothing on sale: request sent without treats', await p.evaluate(() => window.__sent.length === 1 && !('treats' in window.__sent[0])));
     await ctx.close(); }
