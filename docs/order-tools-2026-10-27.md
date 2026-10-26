@@ -29,3 +29,10 @@ Roneel (phone screenshot of Today): "are the icons properly coloured?" Answer: n
 - Today (Needs attention, number cards, section headings) and Kitchen (Next priority, counts, Needs attention, Later this week). Cake Heartbeat and Daily Cake Demand not touched.
 - Commit c862899f. Webflow `ccOrderToolsLoader17` replaces loader 16. Checks: test_polish.cjs 99 of 99 with the live page scripts.
 - Rollback: loader 16 back on the staff page and publish.
+
+## Icon tiles: deeper, balanced fills (staged 27 Oct 2026, 8:48 AM, not published)
+Roneel: "now the icons look hidden and blended in"; "needs to follow colour theory, and make the filling a little darker".
+- Deeper fills, each colour at the same depth (about 1.4:1 against white, so no colour is louder than another); a thin edge in the same colour; icon colour at least 5:1 against its fill; icons 60% of the tile and slightly bolder (2.2 line).
+- Red #F8CFC9 / icon #9E1F14; amber #F7D9A6 / #8A4504; green #BCE6CC / #05603A; navy #CADAEE / #1A4570; grey #D8DEE6 / #3E4A5C.
+- Commit d1636afe. Webflow `ccOrderToolsLoader18` replaces loader 17. Checks: test_polish.cjs 99 of 99.
+- Rollback: loader 17 back and publish.
