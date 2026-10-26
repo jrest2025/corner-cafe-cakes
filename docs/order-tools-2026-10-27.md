@@ -63,3 +63,15 @@ Roneel: "the same philosophy applied across the board"; "proceed and deploy" (ph
 - Treat orders board: status line carries an icon coloured by meaning (to confirm / to pay = amber, late = red, paid / handed over = green, cancelled = grey); summary gets a tile; selected tab is soft navy.
 - No data, rules or workflow changes. Festive treats section stays Off.
 - Rollback: remove ccOrderToolsLoader22 from the staff page, add ccOrderToolsLoader21 (footer, 1.0.0), publish.
+
+## Analytics: charts over text (loader 23, commit 82185f1c) — staged
+
+- Customers: "New and returning" split bar becomes a donut; legend taps unchanged.
+- Planning: "Largest orders" shows a value bar per order (tap still opens the order); "· 2 cakes" dropped; number-card captions hidden.
+- Cakes: "Top cake" card hidden (it repeats the first bar of Cakes ranked); number row becomes three columns.
+- Cake sales: "Gross profit appears once cake costs are added" moves behind an "i" (tap to show the note and its link).
+- Occasions: Orders, Revenue, Median lead time, Peak month use the shared card with icons; small subtitles hidden.
+- Business intelligence block: same cards and icons, captions hidden; "Occasion not recorded" is amber (to do).
+- Phones: day charts (Sales by day, Cakes due) keep readable columns and scroll sideways.
+- Untouched: data, rules, Overview, Cake Heartbeat, Daily Cake Demand, Festive treats switch (Off).
+- Rollback: remove ccOrderToolsLoader23, add ccOrderToolsLoader22 (footer, 1.0.22), publish.
