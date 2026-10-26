@@ -47,3 +47,18 @@ Roneel: "humanise as much as possible".
 - Not changed, on purpose: the customer permission question (its exact words are the consent) and the slip preview (it mirrors the printed kitchen slip).
 - Webflow: `ccOrderToolsLoader5` (commit 6f8d7ba8) replaces `ccOrderToolsLoader4`. Rollback: put `ccOrderToolsLoader4` back and publish.
 - Checks: `test/order-tools/test_order_tools.cjs` passes 74 of 74. In `test/run_old_orders.cjs` (128 of 144) and `test/run_order_flow.cjs` (119 of 123), every failure is a check for the old wording, plus the 2 that were already failing. Saving, payments and dates all pass.
+
+## Analytics: Birthday comeback list (staged 26 Oct 2026, 3:20 PM, not live)
+- New card in Analytics > Customers, placed before "What to do":
+  - customers whose last birthday cake was about a year ago, with the day coming round in the next 30, 60 or 90 days, who haven't ordered since
+  - three numbers: how many, how many can be messaged, and the value of their last cakes
+  - a 12-month outlook chart
+  - the list itself, with a WhatsApp button (friendly message ready to send) only for customers with WhatsApp permission
+- "Check first" means the permission was carried over from the old order sheets and is marked for reconfirming. "Ask first" means there's no permission on record.
+- Database: `crm_birthday_comeback(p_days)`, read only (`supabase/sql/crm_birthday_comeback_20261026.sql`, applied 26 Oct 2026). On that day it showed 6 people in the next 60 days, with the outlook rising to about 60 a month in June to August 2027.
+- Webflow: `ccOrderToolsLoader6` (commit f3b2e767) loads `staff.order-tools.js` (unchanged) and `staff.analytics-birthday.js`. It replaces `ccOrderToolsLoader5`. Rollback: put `ccOrderToolsLoader5` back and publish.
+- Checks: `test/order-tools/test_birthday.cjs` passes 39 of 39 on phone, tablet and desktop. Daily cake demand is untouched.
+
+## Data clean-up list (shown to Roneel, nothing changed)
+- 4 paper slips entered on 19–20 Oct have impossible pickup years: CC-1076 (0002-01-09), CC-1077 (0001-01-18), CC-1083 (0002-01-09) and CC-1087 (0002-01-05). The correct dates need to come from the slips. The pickup date guard released on 22 Oct now stops this from happening again.
+- 27 old-sheet orders (H-) have no usable size (0, 2, 3, 4 or 50 inch), and all of them have a $0 price. These are legacy sheet records and were not cleaned, by earlier decision. Size charts should show them as "size not recorded".
