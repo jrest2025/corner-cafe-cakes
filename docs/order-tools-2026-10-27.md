@@ -46,3 +46,9 @@ Roneel: "the same philosophy applied across the board"; "proceed and deploy" (ph
 - Checks: test_polish.cjs 105 of 105, test_service.cjs 39 of 39, with the live page scripts.
 - Rollback: loader 17 (last published before this) back on the staff page and publish.
 - Next: phase 2 (Kitchen and order details), phase 3 (Customers and Analytics).
+
+## Phase 2: Kitchen and order details (staged 27 Oct 2026, 9:07 AM, not published)
+- Kitchen: Next priority stays the hero; the three counts use the Today summary card (icon left, number, label under); "None left / None waiting / Nothing booked" goes grey. Empty sections were already left out by the app.
+- Order details: one warning line, the most serious (red) first; the rest behind "+1 more" (and "Show less"). The next step stays the main button.
+- Commit d0a4418e. Webflow `ccOrderToolsLoader20` replaces loader 19. Checks: test_polish.cjs 114 of 114, test_service.cjs 39 of 39.
+- Rollback: loader 19 back and publish.
