@@ -39,3 +39,11 @@ Roneel: "make it as user friendly as possible without destroying the underlying 
 - The order form label and placeholder "Mobile number" now read "Customer mobile number". This is a text change only.
 - Webflow: `ccOrderToolsLoader4` (commit f39c0e95) replaces `ccOrderToolsLoader3`. Rollback: put `ccOrderToolsLoader3` back and publish.
 - Checks: `test/order-tools/test_order_tools.cjs` passes 74 of 74. The new label, the Required tag and the typed number were checked on tablet and phone.
+
+## Version 3: friendly wording (staged 26 Oct 2026, 1:40 PM, not live)
+Roneel: "humanise as much as possible".
+- About 50 lines on the order form are reworded in everyday language: labels, hints, placeholders, the review step, the restart prompt and the paper slip version. For example: "Customer name", "Writing on the cake", "What are they celebrating?", "Pickup day", "Did they pay anything today?" and "Save this paper slip".
+- This is text only. Buttons keep their own data, so no rule, check or saved value changes.
+- Not changed, on purpose: the customer permission question (its exact words are the consent) and the slip preview (it mirrors the printed kitchen slip).
+- Webflow: `ccOrderToolsLoader5` (commit 6f8d7ba8) replaces `ccOrderToolsLoader4`. Rollback: put `ccOrderToolsLoader4` back and publish.
+- Checks: `test/order-tools/test_order_tools.cjs` passes 74 of 74. In `test/run_old_orders.cjs` (128 of 144) and `test/run_order_flow.cjs` (119 of 123), every failure is a check for the old wording, plus the 2 that were already failing. Saving, payments and dates all pass.
