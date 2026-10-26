@@ -21,3 +21,11 @@ Roneel (with phone screenshots): "if it's delivery then just have the vehicle ic
 - Commit 9fe660dc. Webflow `ccOrderToolsLoader16` replaces loader 15.
 - Checks: test_polish.cjs 96 of 96, test_treat_orders.cjs 73 of 73, test_service.cjs 39 of 39, test_seasonal.cjs 158 of 158, on phone, tablet and computer, with the live page scripts.
 - Rollback: loader 15 back on the staff page and publish.
+
+## Icon tiles coloured by meaning (staged 27 Oct 2026, 8:30 AM, not published)
+Roneel (phone screenshot of Today): "are the icons properly coloured?" Answer: no; seven colours (pink, red, amber, brown, blue, purple, teal) with no meaning, two near-identical oranges, colour on zero, solid blocks next to light tints.
+- One style: light tint with a thin-line icon in the same colour; no solid blocks.
+- Colour by meaning: red urgent or late; amber to do or money owed (To do and Payments to collect now the same amber); green done or ready; navy plain information (Due today, Next 7 days, Booked this week, This week, Coming up, Next priority); grey when the number is 0.
+- Today (Needs attention, number cards, section headings) and Kitchen (Next priority, counts, Needs attention, Later this week). Cake Heartbeat and Daily Cake Demand not touched.
+- Commit c862899f. Webflow `ccOrderToolsLoader17` replaces loader 16. Checks: test_polish.cjs 99 of 99 with the live page scripts.
+- Rollback: loader 16 back on the staff page and publish.
