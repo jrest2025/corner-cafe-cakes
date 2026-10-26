@@ -111,7 +111,7 @@ Roneel: "make the seasonal items section enterprise level" (all eight points agr
 - Typing in this section does not mark Settings "Not saved yet", and a half-typed item survives a Settings redraw.
 - Commit 1784e025; Webflow `ccOrderToolsLoader11` replaces loader 10. Checks: test_seasonal.cjs 158 of 158. Rollback: loader 10 back and publish.
 
-## Treat orders: festive treats without a cake (staged 26 Oct 2026, 10:10 PM, not published)
+## Treat orders: festive treats without a cake (live 26 Oct 2026, 10:27 PM)
 Roneel: "make the special items section into a separate module above the cakes section, so customers fill it and request, basic details with items. Leave the current cake form separate."
 - Website order page: a separate Festive treats module above the cake form (photos, Add and plus or minus, pickup day chips from the item notice days, pickup times from collection hours in 12-hour format, name, mobile, note). It is saved as a treat order (T-1001…) and shows a thank-you with the reference. The module is hidden while the section is Off or nothing is on sale. A half-filled request comes back after a reload. The first-screen panel is removed; the add-on at the cake form's last step stays.
 - Service Hub: a Today banner (new requests, to collect today or this week, not collected); the Treat orders board (To do, Today, All; grouped by pickup day with day totals; Confirm, Record payment, Collected with a check when money is owing, Cancel with a reason and a refund reminder, Print slip, Call, WhatsApp); New treat order for the counter (saved as confirmed, paid now or at pickup); a Treat orders button in Settings > Seasonal items.
