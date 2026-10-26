@@ -24,6 +24,11 @@ function mine(){return !!root.querySelector('.ccs-app')&&!root.querySelector('#c
 function role(){const nav=root.querySelector('.ccs-nav');return !!nav && [...nav.querySelectorAll('[data-tab]')].some(el=>el.dataset.tab==='customers');}
 // The live CRM Birthday Club bridge exposes the exact current sheet ID. Never guess from a
 // customer name/order reference: a customer can have several cake orders.
+function orderRef(){
+ const sheet=root.querySelector('#ccs-sheet.ccs-open');
+ const ref=sheet&&sheet.querySelector('.os-tref');
+ return ref?ref.textContent.trim():'';
+}
 function orderId(){
  const sheet=root.querySelector('#ccs-sheet.ccs-open');
  if(!sheet || !sheet.querySelector('.os-tref'))return '';
@@ -57,9 +62,9 @@ async function showThread(peer){
  b.innerHTML='<button type="button" class="ccs-link" data-wa="inbox">Back to inbox</button>'+list(state.thread.messages)+composer(peer);
  }catch(e){err(e);}
 }
-async function showOrder(id){
- state.mode='order';state.orderId=id;panel('Order messages');
- try{state.order=await call('order',{order_id:id});const x=state.order,b=root.querySelector('#ccwa-body');if(!b)return;
+async function showOrder(id,reference){
+ state.mode='order';state.orderId=id||'';state.orderReference=reference||'';panel('Order messages');
+ try{state.order=await call('order',id?{order_id:id}:{order_reference:reference});state.orderId=state.order.order_id;const x=state.order,b=root.querySelector('#ccwa-body');if(!b)return;
  b.innerHTML='<h3>Order '+esc(x.order_reference)+'</h3><p class="ccs-hint">Conversation: '+esc(x.peer_number||'No phone number')+'</p>'+
  (!x.enabled?'<p class="ccs-note">WhatsApp is not connected. Messaging remains disabled.</p>':'')+
  '<h4>Messages linked to this order</h4>'+list(x.linked,true)+
@@ -106,8 +111,8 @@ function enhance(){
  const sheet=root.querySelector('#ccs-sheet.ccs-open');
  if(sheet&&sheet.querySelector('.os-tref')&&!sheet.querySelector('[data-wa="order"]')&&(state.status===null || state.status.can_message)){
    const id=orderId();
-   if(id){
-     const button=document.createElement('button');button.type='button';button.className='ccs-btn ccs-ghost ccwa-order-button';button.dataset.wa='order';button.dataset.order=id;button.textContent='Messages · WhatsApp';
+   if(id||orderRef()){
+     const button=document.createElement('button');button.type='button';button.className='ccs-btn ccs-ghost ccwa-order-button';button.dataset.wa='order';button.dataset.order=id;button.dataset.reference=orderRef();button.textContent='Messages · WhatsApp';
      const target=sheet.querySelector('.ccs-sheet-body');if(target)target.prepend(button);
    }
  }
@@ -154,8 +159,8 @@ root.addEventListener('click',e=>{
  }
  if(btn.dataset.wa==='inbox')return showInbox();
  if(btn.dataset.wa==='thread')return showThread(btn.dataset.phone);
- if(btn.dataset.wa==='order')return showOrder(btn.dataset.order);
- if(btn.dataset.wa==='refresh')return state.mode==='order'?showOrder(state.orderId):state.mode==='thread'?showThread(state.peer):showInbox();
+ if(btn.dataset.wa==='order')return showOrder(btn.dataset.order,btn.dataset.reference);
+ if(btn.dataset.wa==='refresh')return state.mode==='order'?showOrder(state.orderId,state.orderReference):state.mode==='thread'?showThread(state.peer):showInbox();
  if(btn.dataset.wa==='link'&&state.orderId){
  if(!confirm('Link this message to the current cake order?'))return;
  call('link',{order_id:state.orderId,message_id:btn.dataset.message}).then(()=>showOrder(state.orderId)).catch(err);
