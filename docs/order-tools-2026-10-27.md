@@ -30,9 +30,19 @@ Roneel (phone screenshot of Today): "are the icons properly coloured?" Answer: n
 - Commit c862899f. Webflow `ccOrderToolsLoader17` replaces loader 16. Checks: test_polish.cjs 99 of 99 with the live page scripts.
 - Rollback: loader 16 back on the staff page and publish.
 
-## Icon tiles: deeper, balanced fills (staged 27 Oct 2026, 8:48 AM, not published)
+## Icon tiles: deeper, balanced fills (live 27 Oct 2026, 9:00 AM, with phase 1)
 Roneel: "now the icons look hidden and blended in"; "needs to follow colour theory, and make the filling a little darker".
 - Deeper fills, each colour at the same depth (about 1.4:1 against white, so no colour is louder than another); a thin edge in the same colour; icon colour at least 5:1 against its fill; icons 60% of the tile and slightly bolder (2.2 line).
 - Red #F8CFC9 / icon #9E1F14; amber #F7D9A6 / #8A4504; green #BCE6CC / #05603A; navy #CADAEE / #1A4570; grey #D8DEE6 / #3E4A5C.
 - Commit d1636afe. Webflow `ccOrderToolsLoader18` replaces loader 17. Checks: test_polish.cjs 99 of 99.
 - Rollback: loader 17 back and publish.
+
+## Phase 1: Today and Orders, action first (live 27 Oct 2026, 9:00 AM)
+Roneel: "the same philosophy applied across the board"; "proceed and deploy" (phase 1 of 3).
+- Rules: what needs action first; weight follows importance; say it once; one card layout (icon left, number, label); colour only means something.
+- Today: Needs attention as full-width cards, icon left, number and label on one line, the orders listed under it. Summary row of three slim tiles (Due today, Payments to collect, Next 7 days); a 0 goes grey. "Booked this week" removed from Today (it is in Analytics). An empty "Due today" panel is hidden (the 0 above says it once). Week strip: today in soft navy, empty days blank, all seven days fit (a small count on phones). Next-step labels soft navy instead of black. Customer names in full.
+- Orders: tabs with nothing in them go quiet.
+- Includes the deeper icon tiles. Commit 8d0a6439. Webflow `ccOrderToolsLoader19` replaces loader 18.
+- Checks: test_polish.cjs 105 of 105, test_service.cjs 39 of 39, with the live page scripts.
+- Rollback: loader 17 (last published before this) back on the staff page and publish.
+- Next: phase 2 (Kitchen and order details), phase 3 (Customers and Analytics).
