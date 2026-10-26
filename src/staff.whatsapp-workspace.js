@@ -132,11 +132,11 @@ root.addEventListener('click',e=>{
    const number=root.querySelector('#ccwa-number')?.value.trim();
    const phone_number_id=root.querySelector('#ccwa-pid')?.value.trim();
    const waba_id=root.querySelector('#ccwa-waba')?.value.trim();
-   if(!/^\\+[1-9][0-9]{7,14}$/.test(number||'')){
+   if(!/^[+][1-9][0-9]{7,14}$/.test(number||'')){
      alert('Enter the business number with country code, for example +679...');
      return;
    }
-   if(!/^\\d{5,25}$/.test(phone_number_id||'')||!/^\\d{5,25}$/.test(waba_id||'')){
+   if(!/^[0-9]{5,25}$/.test(phone_number_id||'')||!/^[0-9]{5,25}$/.test(waba_id||'')){
      alert('Open Meta connection details and enter the Phone Number ID and WhatsApp Business Account ID.');
      return;
    }
