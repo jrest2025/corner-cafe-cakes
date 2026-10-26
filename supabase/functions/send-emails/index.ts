@@ -292,6 +292,17 @@ async function send(to: string, subject: string, html: string, from: string, rep
 function b64(bytes: Uint8Array) { let s = ""; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000)); return btoa(s); }
 class NoRetry extends Error {}
 async function slipPaper() { try { const [r] = await db(`app_config?key=eq.kitchen_slip_paper&select=value`); return r?.value === "DL" ? "DL" : "A5"; } catch (_e) { return "A5"; } }
+// Email templates (22 Oct 2026): the published wording for a customer email, and whether an optional email is switched on.
+// If anything goes wrong reading them, the email goes out with its standard wording, as before.
+async function guestTemplate(kind: string): Promise<{ template: any | null; enabled: boolean }> {
+  try {
+    const [pub] = await db(`email_template_versions?kind=eq.${encodeURIComponent(kind)}&status=eq.published&select=id,version,subject,preheader,label,heading,tagline,intro,closing&limit=1`);
+    let enabled = true;
+    if (kind === "guest_thanks") { const [sw] = await db(`email_template_switches?kind=eq.guest_thanks&select=enabled`); if (sw && sw.enabled === false) enabled = false; }
+    return { template: pub || null, enabled };
+  } catch (_e) { return { template: null, enabled: true }; }
+}
+
 async function config() { const rows: any[] = await db(`app_config?key=in.(test_mode,test_email,from_email,reply_to)&select=key,value`); return Object.fromEntries(rows.map((r) => [r.key, r.value])); }
 
 // A sample slip with invented details, sent from Settings so the printer PC can be checked without a real order
@@ -393,6 +404,15 @@ async function processOutbox() {
       const d = await rpc("email_payload", { p_order: m.order_id });
       if (!d) throw new Error("order not found");
       if (m.kind.startsWith("guest_")) d.unsub = await unsubLinks(m.order_id, d);
+      if (m.kind.startsWith("guest_")) {
+        const tp = await guestTemplate(m.kind);
+        if (!tp.enabled) {
+          // Switched off in Settings, Communications, Email templates: logged, not sent, not retried
+          await db(`email_outbox?id=eq.${m.id}`, { method: "PATCH", body: JSON.stringify({ status: "failed", attempts: 5, last_error: "Not sent: this email is switched off in Settings, Email templates" }) });
+          held++; continue;
+        }
+        d.template = tp.template;
+      }
       const cfg = d.config ?? {};
       let att: { filename: string; content: string }[] | undefined;
       let { subject, html, text } = m.kind === "kitchen_slip" ? await kitchenSlip(m, d).then((k) => { att = k.attachments; return k; }) as { subject: string; html: string; text?: string } : build(m.kind, d);
@@ -403,6 +423,8 @@ async function processOutbox() {
       const unsubHeaders = guestKind && d.unsub ? { "List-Unsubscribe": `<${d.unsub.post}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" } : undefined;
       const id = await send(to, subject, html, cfg.from_email, guestKind ? cfg.reply_to : (m.kind === "kitchen_slip" ? undefined : (d.customer?.email || undefined)), att, cc, text, unsubHeaders);
       await db(`email_outbox?id=eq.${m.id}`, { method: "PATCH", body: JSON.stringify({ status: "sent", sent_at: new Date().toISOString(), provider_message_id: id, last_error: null }) });
+      // Which wording it went out with (only when a template was used; a failure here never resends the email)
+      if (d.template?.id) await db(`email_outbox?id=eq.${m.id}`, { method: "PATCH", body: JSON.stringify({ template_version_id: d.template.id }) }).catch(() => {});
       sent++;
     } catch (e) {
       // A problem that a retry cannot fix (such as a missing order number) is not retried
