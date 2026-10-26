@@ -22,7 +22,7 @@ Roneel (with phone screenshots): "if it's delivery then just have the vehicle ic
 - Checks: test_polish.cjs 96 of 96, test_treat_orders.cjs 73 of 73, test_service.cjs 39 of 39, test_seasonal.cjs 158 of 158, on phone, tablet and computer, with the live page scripts.
 - Rollback: loader 15 back on the staff page and publish.
 
-## Icon tiles coloured by meaning (staged 27 Oct 2026, 8:30 AM, not published)
+## Icon tiles coloured by meaning (live 27 Oct 2026, 8:37 AM)
 Roneel (phone screenshot of Today): "are the icons properly coloured?" Answer: no; seven colours (pink, red, amber, brown, blue, purple, teal) with no meaning, two near-identical oranges, colour on zero, solid blocks next to light tints.
 - One style: light tint with a thin-line icon in the same colour; no solid blocks.
 - Colour by meaning: red urgent or late; amber to do or money owed (To do and Payments to collect now the same amber); green done or ready; navy plain information (Due today, Next 7 days, Booked this week, This week, Coming up, Next priority); grey when the number is 0.
