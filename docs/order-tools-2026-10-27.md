@@ -1,6 +1,6 @@
 # Order tools release notes, 27 October 2026
 
-## Refined lines and icons (staged 27 Oct 2026, 7:31 AM, not published; includes the 26 Oct polish round)
+## Refined lines and icons (live 27 Oct 2026, 7:38 AM; includes the 26 Oct polish round)
 Roneel: "what can be done to make it feel more refined, like icons, more refined lines"; "website order could just have the website icon instead of the word, walk-ins could show a person walking icon, and so forth."
 - Lines: one hairline border colour, one corner size for cards, slim 3px status edges (order cards, Kitchen Next priority and Needs attention, Analytics "What to do", Treat orders), no heavy black outlines or 2px dividers, quiet shadows, a gentle lift only on tappable cards, one navy focus ring, a light press effect.
 - Channel: an icon badge in lists instead of the word (globe for Website order, walking person for Walk-in, phone, chat for WhatsApp, share for Social media, building for Corporate). The name is the badge's label for hover and screen readers; the order details keep the words.
