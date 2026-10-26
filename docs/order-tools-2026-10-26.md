@@ -34,3 +34,8 @@ Roneel: "make it as user friendly as possible without destroying the underlying 
 - No rule, check or saved field changes.
 - Webflow: `ccOrderToolsLoader3` (commit 6f4b57f4) replaces `ccOrderToolsLoader2` in the staff page footer. Rollback: put `ccOrderToolsLoader2` back, or remove the loader entirely, then publish.
 - Checks: `test/order-tools/test_order_tools.cjs` passes 74 of 74, with the tablet emulated as a real touch tablet. `test/run_old_orders.cjs` passes 138 of 144; the 6 differences are its checks for the old wording ("New order", "Old order", "Old order from a paper slip", "Old order saved"), which were changed on purpose. `test/run_order_flow.cjs` has the same 2 failures that were already there.
+
+## Version 2.1: "Customer mobile number" (live 26 Oct 2026, 1:21 PM, after Roneel said "deploy")
+- The order form label and placeholder "Mobile number" now read "Customer mobile number". This is a text change only.
+- Webflow: `ccOrderToolsLoader4` (commit f39c0e95) replaces `ccOrderToolsLoader3`. Rollback: put `ccOrderToolsLoader3` back and publish.
+- Checks: `test/order-tools/test_order_tools.cjs` passes 74 of 74. The new label, the Required tag and the typed number were checked on tablet and phone.
