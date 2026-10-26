@@ -74,25 +74,33 @@ const tap = async (p, s, wait) => { await p.evaluate(s => { const e = document.q
     await tap(p, '.cct-add[data-cct-plus="i1"]'); await tap(p, '.cct-add[data-cct-plus="i2"]'); await tap(p, '[data-cct-plus="i2"]');
     const bar = await p.evaluate(() => (document.querySelector('.cct-bar') || {}).textContent || '');
     check(t + ' bar shows 3 treats and $59', /3 treats · \$59/.test(bar), bar);
-    await tap(p, '[data-cct="next"]', 500);
+    await tap(p, '[data-cct="go2"]', 500);
     const dd = await p.evaluate(() => [...document.querySelectorAll('.cct-days .cct-chip')].map(x => x.getAttribute('data-cct-day')));
-    check(t + ' pickup days start after 2 days notice', dd.length >= 5 && dd[0] === new Intl.DateTimeFormat('en-CA', { timeZone: 'Pacific/Fiji' }).format(new Date(Date.now() + 2 * 864e5)), dd);
-    await tap(p, '[data-cct="send"]', 300);
+    check(t + ' step 2: pickup days start after 2 days notice', dd.length >= 5 && dd[0] === new Intl.DateTimeFormat('en-CA', { timeZone: 'Pacific/Fiji' }).format(new Date(Date.now() + 2 * 864e5)), dd);
+    check(t + ' step 2: treats hidden, recap shown', await p.evaluate(() => !document.querySelector('.cct-grid') && /3 treats · \$59/.test(document.querySelector('.cct-recap').textContent)));
+    check(t + ' step 2: calendar behind More days', await p.evaluate(() => !document.querySelector('[data-cct-k="dayin"]') && !!document.querySelector('[data-cct="moredays"]')));
+    await tap(p, '[data-cct="go3"]', 300);
     check(t + ' asks for the day first', await p.evaluate(() => /Choose a pickup day/.test(document.getElementById('cc-treat-order').textContent)));
     await tap(p, '.cct-days .cct-chip:nth-child(2)', 300);
     const tm = await p.evaluate(() => [...document.querySelectorAll('.cct-times .cct-chip')].map(x => x.textContent));
     check(t + ' times in 12-hour format from collection hours', tm[0] === '9:00 AM' && tm.includes('12:00 PM') && tm[tm.length - 1] === '8:00 PM', tm);
     await tap(p, '.cct-times [data-cct-time="660"]', 300);
-    await p.fill('[data-cct-k="name"]', 'Mere Tui'); await p.fill('[data-cct-k="phone"]', '912 3456'); await p.fill('[data-cct-k="note"]', 'Gift wrap');
     const ch = await p.evaluate(() => Math.min(...[...document.querySelectorAll('.cct-chip')].map(x => x.getBoundingClientRect().height)));
     check(t + ' day and time chips at least 48px', ch >= 48, ch);
+    if (SHOTS) await p.screenshot({ path: SHOTS + '/web-' + t + '-treats2.png', fullPage: true });
+    await tap(p, '[data-cct="go3"]', 400);
+    check(t + ' step 3: note behind Add a note', await p.evaluate(() => !document.querySelector('[data-cct-k="note"]') && !!document.querySelector('[data-cct="note"]')));
+    await p.fill('[data-cct-k="name"]', 'Mere Tui'); await p.fill('[data-cct-k="phone"]', '912 3456');
+    await tap(p, '[data-cct="note"]', 300); await p.fill('[data-cct-k="note"]', 'Gift wrap');
+    const s3 = await p.evaluate(() => ({ recap: document.querySelector('.cct-recap').textContent, sum: document.querySelector('.cct-sum').textContent }));
+    check(t + ' step 3: summary with day, time and total', /11:00 AM/.test(s3.recap) && /Total\$59/.test(s3.sum), s3);
     if (SHOTS) await p.screenshot({ path: SHOTS + '/web-' + t + '-treats.png', fullPage: true });
     check(t + ' no horizontal scroll with the module', await p.evaluate(() => document.documentElement.scrollWidth - innerWidth <= 1));
     await tap(p, '[data-cct="send"]', 800);
     const ts = await p.evaluate(() => window.__tsent || []);
     check(t + ' treat request sent with day, time, name, mobile, note and a resend key', ts.length === 1 && ts[0].time === '11:00' && ts[0].name === 'Mere Tui' && ts[0].phone === '912 3456' && ts[0].note === 'Gift wrap' && /^[0-9a-f-]{36}$/.test(ts[0].idempotency_key) && JSON.stringify(ts[0].treats) === '[{"id":"i1","quantity":1},{"id":"i2","quantity":2}]', ts);
     const dn = await p.evaluate(() => (document.querySelector('.cct-done') || {}).textContent || '');
-    check(t + ' thank-you with the reference and 11:00 AM', /T-1001/.test(dn) && /Thank you, Mere/.test(dn) && /11:00 AM/.test(dn), dn);
+    check(t + ' warm thank-you with the reference and 11:00 AM', /T-1001/.test(dn) && /Vinaka, Mere!/.test(dn) && /11:00 AM/.test(dn), dn);
     if (SHOTS) await p.screenshot({ path: SHOTS + '/web-' + t + '-treats-done.png' });
     check(t + ' cake form untouched (no cake request sent)', await p.evaluate(() => window.__sent.length === 0));
     check(t + ' no page errors', !errors.length, errors);
@@ -100,7 +108,7 @@ const tap = async (p, s, wait) => { await p.evaluate(s => { const e = document.q
   }
   // database refusal is shown on the right field; resend uses the same key
   { const { p, ctx } = await go(b, 1366, 900, { nodraft: true, trej: true });
-    await tap(p, '.cct-add[data-cct-plus="i1"]'); await tap(p, '[data-cct="next"]', 400); await tap(p, '.cct-days .cct-chip', 300); await tap(p, '.cct-times .cct-chip', 300);
+    await tap(p, '.cct-add[data-cct-plus="i1"]'); await tap(p, '[data-cct="go2"]', 400); await tap(p, '.cct-days .cct-chip', 300); await tap(p, '.cct-times .cct-chip', 300); await tap(p, '[data-cct="go3"]', 300);
     await p.fill('[data-cct-k="name"]', 'Mere Tui'); await p.fill('[data-cct-k="phone"]', '9123456'); await tap(p, '[data-cct="send"]', 800);
     const e1 = await p.evaluate(() => ({ err: (document.querySelector('#cct-e-phone') || {}).textContent, focus: document.activeElement.getAttribute('data-cct-k') }));
     check('refusal shown under the mobile number, focused', /mobile number/.test(e1.err || '') && e1.focus === 'phone', e1);
@@ -110,10 +118,10 @@ const tap = async (p, s, wait) => { await p.evaluate(s => { const e = document.q
     await ctx.close(); }
   // form left midway: picks, day and details come back after a reload
   { const { p, ctx } = await go(b, 820, 1180, { nodraft: true });
-    await tap(p, '.cct-add[data-cct-plus="i2"]'); await tap(p, '[data-cct="next"]', 400); await tap(p, '.cct-days .cct-chip', 300); await p.fill('[data-cct-k="name"]', 'Ana');
+    await tap(p, '.cct-add[data-cct-plus="i2"]'); await tap(p, '[data-cct="go2"]', 400); await tap(p, '.cct-days .cct-chip', 300); await tap(p, '.cct-times .cct-chip', 300); await tap(p, '[data-cct="go3"]', 300); await p.fill('[data-cct-k="name"]', 'Ana');
     await p.reload(); await p.waitForTimeout(1500);
-    const r = await p.evaluate(() => ({ q: document.querySelector('[data-cct-plus="i2"]').parentNode.querySelector('output') && document.querySelector('[data-cct-plus="i2"]').parentNode.querySelector('output').textContent, day: !!document.querySelector('.cct-days .is-on'), name: (document.querySelector('[data-cct-k="name"]') || {}).value }));
-    check('resume after reload', r.q === '1' && r.day && r.name === 'Ana', r);
+    const r = await p.evaluate(() => ({ step3: !!document.querySelector('[data-cct-k="name"]'), recap: (document.querySelector('.cct-recap') || {}).textContent, name: (document.querySelector('[data-cct-k="name"]') || {}).value }));
+    check('resume after reload at the same step', r.step3 && /1 treat · \$12/.test(r.recap) && r.name === 'Ana', r);
     await ctx.close(); }
   // nothing on sale: the form is exactly as before
   { const { p, ctx } = await go(b, 1366, 900, { empty: true });

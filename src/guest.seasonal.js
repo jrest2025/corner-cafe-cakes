@@ -193,9 +193,9 @@
   // Shows only while the section is On in the Service Hub and something is on sale; otherwise nothing is added to the page.
   var T = (function () {
     var KEYT = 'cct-draft-v1', host = null, st = null;
-    function blank() { return { q: {}, open: false, day: null, time: null, name: '', phone: '', note: '', key: null, err: null, msg: null, done: null, sending: false }; }
-    function load() { try { var d = JSON.parse(win.localStorage.getItem(KEYT) || 'null'); if (d && d.at && Date.now() - d.at < 3 * 864e5) { var b = blank(); ['q', 'open', 'day', 'time', 'name', 'phone', 'note', 'key'].forEach(function (k) { if (d[k] != null) b[k] = d[k]; }); return b; } } catch (_) {} return blank(); }
-    function save() { try { if (st.done) win.localStorage.removeItem(KEYT); else win.localStorage.setItem(KEYT, JSON.stringify({ at: Date.now(), q: st.q, open: st.open, day: st.day, time: st.time, name: st.name, phone: st.phone, note: st.note, key: st.key })); } catch (_) {} }
+    function blank() { return { q: {}, step: 1, moreDays: false, noteOpen: false, day: null, time: null, name: '', phone: '', note: '', key: null, err: null, msg: null, done: null, sending: false }; }
+    function load() { try { var d = JSON.parse(win.localStorage.getItem(KEYT) || 'null'); if (d && d.at && Date.now() - d.at < 3 * 864e5) { var b = blank(); ['q', 'step', 'day', 'time', 'name', 'phone', 'note', 'key'].forEach(function (k) { if (d[k] != null) b[k] = d[k]; }); if (d.open && !d.step) b.step = 2; return b; } } catch (_) {} return blank(); }
+    function save() { try { if (st.done) win.localStorage.removeItem(KEYT); else win.localStorage.setItem(KEYT, JSON.stringify({ at: Date.now(), q: st.q, step: st.step, day: st.day, time: st.time, name: st.name, phone: st.phone, note: st.note, key: st.key })); } catch (_) {} }
     function uuid() { try { if (win.crypto && win.crypto.randomUUID) return win.crypto.randomUUID(); } catch (_) {} return 'xxxxxxxx-xxxx-4xxx-8xxx-xxxxxxxxxxxx'.replace(/x/g, function () { return (Math.random() * 16 | 0).toString(16); }); }
     function chosen() { return Object.keys(st.q).filter(function (k) { return st.q[k] > 0 && byId(k); }); }
     function count() { return chosen().reduce(function (a, k) { return a + st.q[k]; }, 0); }
@@ -223,7 +223,7 @@
     function payLine(g) { return { pickup: 'Pay when you collect.', deposit: 'We will contact you to confirm and take a deposit.', full: 'We will contact you to confirm and take payment.' }[g && g.payment] || 'Pay when you collect.'; }
     function phoneOk(v) { var d = String(v || '').replace(/\D/g, ''); return d.length >= 7 && d.length <= 15; }
     function checkDay() {
-      if (st.day && !dayOk(st.day)) { st.msg = 'Your pickup day was cleared because one of your treats is not available on ' + nice(st.day) + '. Please choose another day.'; st.day = null; st.time = null; }
+      if (st.day && !dayOk(st.day)) { st.msg = 'One of your treats is not available on ' + nice(st.day) + ', so please choose another day.'; st.day = null; st.time = null; }
       if (st.day && st.time != null && slots(st.day).indexOf(st.time) < 0) st.time = null;
     }
     function step(it) {
@@ -234,49 +234,64 @@
       return '<div class="cct-card' + (q ? ' is-on' : '') + (w && !q ? ' is-off' : '') + '">' + pic + '<div class="cct-tx"><b>' + nm + '</b>' + (it.detail ? '<small>' + esc(it.detail) + '</small>' : '') + '<span class="cct-pr">' + money(it.price) + '</span>' + (w ? '<em>' + esc(w) + '</em>' : '') + '</div>' + ctl + '</div>';
     }
     function errFor(f) { return st.err && st.err.field === f ? '<p class="cct-err" id="cct-e-' + f + '">' + esc(st.err.message) + '</p>' : ''; }
-    function details() {
-      var dl = days(10), h = '<div class="cct-det" id="cct-det"><h3>Pickup and your details</h3>';
-      h += '<div class="cct-f" role="group" aria-labelledby="cct-l-day"><p class="cct-l" id="cct-l-day">Pickup day</p>';
+    function recap(withWhen) {
+      var n = count();
+      return '<div class="cct-recap"><span><b>' + n + ' treat' + (n > 1 ? 's' : '') + '</b> · ' + money(sum()) + (withWhen && st.day && st.time != null ? '<br>' + esc(nice(st.day)) + ', ' + label(st.time) : '') + '</span><button type="button" class="cct-link" data-cct="go1">Change</button></div>';
+    }
+    function stepWhen() {
+      var dl = days(8), h = '<div class="cct-det" id="cct-det">' + recap(false) + '<h3>When would you like to collect?</h3>';
+      h += '<div class="cct-f" role="group" aria-label="Pickup day">';
       if (!dl.length) h += '<p class="cct-msg">There are no pickup days for these treats together. Please remove one, or call us on <a href="tel:' + esc(String(PHONE).replace(/[^\d+]/g, '')) + '">' + esc(PHONE) + '</a>.</p>';
       else {
         if (st.day && dl.indexOf(st.day) < 0) dl.push(st.day);
         h += '<div class="cct-chips cct-days">' + dl.map(function (d) { var x = shortDay(d); return '<button type="button" class="cct-chip' + (st.day === d ? ' is-on' : '') + '" data-cct-day="' + d + '" aria-pressed="' + (st.day === d) + '"><span>' + (d === today() ? 'Today' : d === addDays(today(), 1) ? 'Tomorrow' : x.w) + '</span><b>' + x.d + '</b></button>'; }).join('') + '</div>';
         var L = loc(), first = days(1)[0];
-        h += '<label class="cct-later">Or pick another day <input type="date" data-cct-k="dayin" min="' + (first || today()) + '" max="' + addDays(today(), L.max_days_ahead || 90) + '" value="' + (st.day || '') + '"></label>';
+        h += st.moreDays ? '<label class="cct-later">Another day <input type="date" data-cct-k="dayin" min="' + (first || today()) + '" max="' + addDays(today(), L.max_days_ahead || 90) + '" value="' + (st.day || '') + '"></label>' : '<button type="button" class="cct-link" data-cct="moredays">More days</button>';
       }
       h += errFor('date') + '</div>';
-      if (st.day) {
-        var sl = slots(st.day);
-        h += '<div class="cct-f" role="group" aria-labelledby="cct-l-time"><p class="cct-l" id="cct-l-time">Pickup time on ' + esc(nice(st.day)) + '</p><div class="cct-chips cct-times">' +
-          sl.map(function (m) { return '<button type="button" class="cct-chip' + (st.time === m ? ' is-on' : '') + '" data-cct-time="' + m + '" aria-pressed="' + (st.time === m) + '">' + label(m) + '</button>'; }).join('') + '</div>' + errFor('time') + '</div>';
-      }
+      if (st.day) h += '<div class="cct-f" role="group" aria-label="Pickup time"><p class="cct-l">Time on ' + esc(nice(st.day)) + '</p><div class="cct-chips cct-times">' +
+        slots(st.day).map(function (m) { return '<button type="button" class="cct-chip' + (st.time === m ? ' is-on' : '') + '" data-cct-time="' + m + '" aria-pressed="' + (st.time === m) + '">' + label(m) + '</button>'; }).join('') + '</div>' + errFor('time') + '</div>';
+      return h + '<div class="cct-nav"><button type="button" class="cct-send" data-cct="go3">Continue</button><button type="button" class="cct-ghost" data-cct="go1">Back</button></div></div>';
+    }
+    function stepWho() {
+      var h = '<div class="cct-det" id="cct-det">' + recap(true) + '<h3>Your details</h3>';
       h += '<div class="cct-two"><label class="cct-f"><span class="cct-l">Your name</span><input type="text" data-cct-k="name" autocomplete="name" maxlength="120" value="' + esc(st.name) + '"' + (st.err && st.err.field === 'name' ? ' aria-invalid="true" aria-describedby="cct-e-name"' : '') + '>' + errFor('name') + '</label>' +
         '<label class="cct-f"><span class="cct-l">Mobile number</span><input type="tel" data-cct-k="phone" autocomplete="tel" inputmode="tel" maxlength="20" placeholder="For example 912 3456" value="' + esc(st.phone) + '"' + (st.err && st.err.field === 'phone' ? ' aria-invalid="true" aria-describedby="cct-e-phone"' : '') + '>' + errFor('phone') + '</label></div>';
-      h += '<label class="cct-f"><span class="cct-l">Note <i>(optional)</i></span><textarea data-cct-k="note" rows="2" maxlength="300" placeholder="For example, gift wrap or a name tag">' + esc(st.note) + '</textarea></label>';
+      h += st.noteOpen || st.note ? '<label class="cct-f"><span class="cct-l">Note</span><textarea data-cct-k="note" rows="2" maxlength="300" placeholder="For example, gift wrap or a name tag">' + esc(st.note) + '</textarea></label>' : '<button type="button" class="cct-link" data-cct="note">Add a note</button>';
+      h += '<ul class="cct-sum">' + chosen().map(function (k) { var it = byId(k); return '<li><span>' + st.q[k] + ' × ' + esc(it.name) + '</span><b>' + money(Number(it.price) * st.q[k]) + '</b></li>'; }).join('') + '<li class="cct-tot"><span>Total</span><b>' + money(sum()) + '</b></li></ul>';
       if (st.err && ['date', 'time', 'name', 'phone'].indexOf(st.err.field) < 0) h += '<p class="cct-err" role="alert">' + esc(st.err.message) + '</p>';
-      h += '<button type="button" class="cct-send" data-cct="send"' + (st.sending ? ' disabled' : '') + '>' + (st.sending ? 'Sending…' : 'Send treat request · ' + money(sum())) + '</button>';
-      h += '<p class="cct-fine">We will confirm by phone or WhatsApp. ' + esc(payLine((menu.groups || [])[0])) + '</p></div>';
-      return h;
+      h += '<div class="cct-nav"><button type="button" class="cct-send" data-cct="send"' + (st.sending ? ' disabled' : '') + '>' + (st.sending ? 'Sending…' : 'Send my request') + '</button><button type="button" class="cct-ghost" data-cct="go2">Back</button></div>';
+      return h + '<p class="cct-fine">No payment now. We will WhatsApp or call you to confirm. ' + esc(payLine((menu.groups || [])[0])) + '</p></div>';
     }
     function doneHtml() {
       var d = st.done;
-      return '<div class="cct-done" role="status" tabindex="-1"><p class="cct-k">Request received</p><h2>Thank you, ' + esc(d.name.split(' ')[0]) + '.</h2>' +
-        '<p>Your reference is <b>' + esc(d.ref) + '</b>. We will confirm your treats by phone or WhatsApp. ' + esc(d.pay) + '</p>' +
-        '<ul>' + d.lines.map(function (l) { return '<li><span>' + l.q + ' × ' + esc(l.name) + '</span><b>' + money(l.price * l.q) + '</b></li>'; }).join('') + '<li class="cct-tot"><span>Total</span><b>' + money(d.total) + '</b></li></ul>' +
-        '<p>Pickup: <b>' + esc(nice(d.day)) + ', ' + label(d.time) + '</b> at Corner Café' + (setup && setup.location && setup.location.address ? ', ' + esc(setup.location.address) : '') + '.</p>' +
+      return '<div class="cct-done" role="status" tabindex="-1"><h2>Vinaka, ' + esc(d.name.split(' ')[0]) + '!</h2>' +
+        '<p>We have your request. We will WhatsApp or call you to confirm.</p>' +
+        '<p class="cct-when">' + esc(nice(d.day)) + ', ' + label(d.time) + '</p>' +
+        '<ul class="cct-sum">' + d.lines.map(function (l) { return '<li><span>' + l.q + ' × ' + esc(l.name) + '</span><b>' + money(l.price * l.q) + '</b></li>'; }).join('') + '<li class="cct-tot"><span>Total</span><b>' + money(d.total) + '</b></li></ul>' +
+        '<p class="cct-fine">Reference ' + esc(d.ref) + ' · Corner Café' + (setup && setup.location && setup.location.address ? ', ' + esc(setup.location.address) : '') + '</p>' +
         '<button type="button" class="cct-ghost" data-cct="again">Order more treats</button></div>';
     }
     function html() {
       var g = (menu.groups || []), title = g.length === 1 ? g[0].name : 'Seasonal treats', h = '<div class="cct-in">';
       if (st.done) return h + doneHtml() + '</div>';
-      h += '<div class="cct-head"><p class="cct-k">Now available</p><h2 id="cct-title">' + esc(title) + '</h2><p class="cct-sub">' + esc([g.length === 1 ? g[0].message : '', 'Order them on their own, no cake needed.'].filter(Boolean).join(' ')) + '</p></div>';
-      h += '<div class="cct-grid">' + items().map(step).join('') + '</div>';
-      var n = count();
+      var n = count(); if (!n && st.step > 1) st.step = 1;
+      h += '<div class="cct-head' + (st.step > 1 ? ' is-small' : '') + '"><p class="cct-k">' + (st.step > 1 ? 'Step ' + st.step + ' of 3' : 'Now available') + '</p><h2 id="cct-title">' + esc(title) + '</h2>' + (st.step === 1 ? '<p class="cct-sub">' + esc([g.length === 1 ? g[0].message : '', 'Order them on their own, no cake needed.'].filter(Boolean).join(' ')) + '</p>' : '') + '</div>';
       if (st.msg) h += '<p class="cct-msg" role="status">' + esc(st.msg) + '</p>';
-      if (n && !st.open) h += '<div class="cct-bar"><span><b>' + n + ' treat' + (n > 1 ? 's' : '') + '</b> · ' + money(sum()) + '</span><button type="button" class="cct-send" data-cct="next">Continue</button></div>';
-      if (n && st.open) h += details();
-      if (!n) h += '<p class="cct-fine">Ordering a cake too? Use the cake form below and add treats at the last step.</p>';
+      if (st.step === 2) return h + stepWhen() + '</div>';
+      if (st.step === 3) return h + stepWho() + '</div>';
+      h += '<div class="cct-grid">' + items().map(step).join('') + '</div>';
+      if (n) h += '<div class="cct-bar"><span><b>' + n + ' treat' + (n > 1 ? 's' : '') + '</b> · ' + money(sum()) + '</span><button type="button" class="cct-send" data-cct="go2">Continue</button></div>';
+      else h += '<p class="cct-fine">Ordering a cake too? Use the cake form below and add treats at the last step.</p>';
       return h + '</div>';
+    }
+    function go(n) {
+      st.err = null;
+      if (n >= 2 && !count()) return;
+      if (n === 3) { if (!st.day) return fail('date', 'Choose a pickup day.'); if (st.time == null) return fail('time', 'Choose a pickup time.'); }
+      st.step = n; st.key = st.key || uuid(); save(); render();
+      try { host.scrollIntoView({ block: 'start', behavior: 'smooth' }); } catch (_) {}
+      var f = host.querySelector(n === 1 ? '.cct-grid button' : n === 2 ? '.cct-days button' : '[data-cct-k="name"]'); if (f) f.focus({ preventScroll: true });
     }
     function render(focusSel) {
       if (!host) return;
@@ -294,7 +309,7 @@
       for (var i = 0; i < at.length; i++) if (el.hasAttribute(at[i])) return '[' + at[i] + '="' + el.getAttribute(at[i]) + '"]';
       return null;
     }
-    function fail(field, message) { st.err = { field: field, message: message }; render(); var f = host.querySelector(field === 'date' ? '.cct-days button, [data-cct-k="dayin"]' : field === 'time' ? '.cct-times button' : '[data-cct-k="' + field + '"]'); if (f) { f.focus({ preventScroll: true }); try { f.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (_) {} } }
+    function fail(field, message) { st.err = { field: field, message: message }; if (field === 'date' || field === 'time') st.step = 2; else if (field === 'name' || field === 'phone') st.step = 3; else if (field === 'treats') st.step = 1; render(); var f = host.querySelector(field === 'date' ? '.cct-days button, [data-cct-k="dayin"]' : field === 'time' ? '.cct-times button' : '[data-cct-k="' + field + '"]'); if (f) { f.focus({ preventScroll: true }); try { f.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (_) {} } }
     function send() {
       if (st.sending) return;
       st.err = null;
@@ -324,7 +339,9 @@
       else if ((id = b.getAttribute('data-cct-minus'))) { st.q[id] = Math.max(0, (st.q[id] || 0) - 1); if (!st.q[id]) delete st.q[id]; st.msg = null; }
       else if (b.hasAttribute('data-cct-day')) { st.day = b.getAttribute('data-cct-day'); st.time = null; st.msg = null; if (st.err && st.err.field === 'date') st.err = null; }
       else if (b.hasAttribute('data-cct-time')) { st.time = +b.getAttribute('data-cct-time'); if (st.err && st.err.field === 'time') st.err = null; }
-      else if (b.getAttribute('data-cct') === 'next') { st.open = true; st.key = st.key || uuid(); save(); render(); var t = host.querySelector('#cct-det'); if (t) { try { t.scrollIntoView({ block: 'start', behavior: 'smooth' }); } catch (_) {} var f = t.querySelector('.cct-days button'); if (f) f.focus({ preventScroll: true }); } return; }
+      else if (/^go[123]$/.test(b.getAttribute('data-cct') || '')) { go(+b.getAttribute('data-cct').slice(2)); return; }
+      else if (b.getAttribute('data-cct') === 'moredays') { st.moreDays = true; render(); var di = host.querySelector('[data-cct-k="dayin"]'); if (di) di.focus(); return; }
+      else if (b.getAttribute('data-cct') === 'note') { st.noteOpen = true; render(); var ta = host.querySelector('[data-cct-k="note"]'); if (ta) ta.focus(); return; }
       else if (b.getAttribute('data-cct') === 'send') { send(); return; }
       else if (b.getAttribute('data-cct') === 'again') { st = blank(); save(); render(); var g = host.querySelector('.cct-grid button'); if (g) g.focus({ preventScroll: true }); return; }
       else return;
@@ -408,8 +425,16 @@
         P + ' .cct-done .cct-tot{font-weight:700}',
         '@media(max-width:620px){' + P + ' .cct-two{grid-template-columns:1fr}}',
         '@media(max-width:520px){' + P + ' .cct-in{padding:18px 14px 14px;border-radius:16px}' + P + ' h2{font-size:23px}' + P + ' .cct-grid{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:10px;padding-bottom:6px;margin-right:-14px;padding-right:14px}' + P + ' .cct-card{flex:0 0 168px;scroll-snap-align:start}' + P + ' .cct-bar{position:sticky;bottom:10px;z-index:5;box-shadow:0 6px 20px rgba(40,39,32,.12)}' + P + ' .cct-days{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px}' + P + ' .cct-days .cct-chip{flex:0 0 auto}' + P + ' .cct-later input{width:100%}}',
+        P + ' .cct-head.is-small h2{font-size:20px}' + P + ' .cct-head.is-small .cct-k{margin:0}',
+        P + ' .cct-recap{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 16px;padding:10px 14px;border-radius:12px;background:#f8faf6;border:1px solid #cad7c1;font-size:16px;color:#46403a}',
+        P + ' .cct-link{min-height:48px;padding:0 6px;border:0;background:none;color:#3f5d34;font-weight:700;font-size:16px;text-decoration:underline;cursor:pointer}',
+        P + ' .cct-det > .cct-link,' + P + ' .cct-f > .cct-link{display:block;margin:2px 0 12px}',
+        P + ' .cct-nav{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:8px}' + P + ' .cct-nav .cct-send{flex:1 1 220px}',
+        P + ' .cct-sum{list-style:none;margin:6px 0 14px;padding:0;border-top:1px solid #efece7}' + P + ' .cct-sum li{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid #efece7;font-size:16px}' + P + ' .cct-sum .cct-tot{font-weight:700}',
+        P + ' .cct-when{font-size:20px!important;font-weight:700;color:#282720!important;margin:12px 0 0!important}',
+        P + ' .cct-det{border-top:0;margin-top:14px;padding-top:0}',
         // Type weight by device: phones lighter and smoothed for small sharp screens; tablets a step heavier for arm's-length reading
-        '@media (max-width:759px){' + P + '{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}' + P + ' .cct-sub,' + P + ' .cct-fine,' + P + ' .cct-tx small,' + P + ' input,' + P + ' textarea{font-weight:400}' + P + ' h2{font-weight:650}' + P + ' h3,' + P + ' .cct-tx b,' + P + ' .cct-pr,' + P + ' .cct-l,' + P + ' .cct-add,' + P + ' .cct-send,' + P + ' .cct-ghost,' + P + ' .cct-chip,' + P + ' .cct-done li b,' + P + ' .cct-done p b{font-weight:600}' + P + ' .cct-days .cct-chip span{font-weight:500}}',
+        '@media (max-width:759px){' + P + '{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}' + P + ' .cct-sub,' + P + ' .cct-fine,' + P + ' .cct-tx small,' + P + ' input,' + P + ' textarea{font-weight:400}' + P + ' h2{font-weight:650}' + P + ' h3,' + P + ' .cct-tx b,' + P + ' .cct-pr,' + P + ' .cct-l,' + P + ' .cct-link,' + P + ' .cct-when,' + P + ' .cct-add,' + P + ' .cct-send,' + P + ' .cct-ghost,' + P + ' .cct-chip,' + P + ' .cct-done li b,' + P + ' .cct-done p b{font-weight:600}' + P + ' .cct-days .cct-chip span{font-weight:500}}',
         '@media (min-width:760px) and (hover:none) and (pointer:coarse){' + P + ' .cct-sub,' + P + ' .cct-fine,' + P + ' .cct-tx small,' + P + ' .cct-done p,' + P + ' .cct-later,' + P + ' input,' + P + ' textarea{font-weight:500}' + P + ' .cct-tx b,' + P + ' .cct-chip,' + P + ' .cct-l{font-weight:700}' + P + ' .cct-days .cct-chip span{font-weight:600}}',
         '@media(prefers-reduced-motion:reduce){' + P + ' *{scroll-behavior:auto!important;transition:none!important}}'
       ].join('\n');
