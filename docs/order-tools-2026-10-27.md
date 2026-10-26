@@ -76,7 +76,7 @@ Roneel: "the same philosophy applied across the board"; "proceed and deploy" (ph
 - Untouched: data, rules, Overview, Cake Heartbeat, Daily Cake Demand, Festive treats switch (Off).
 - Rollback: remove ccOrderToolsLoader23, add ccOrderToolsLoader22 (footer, 1.0.22), publish.
 
-## Cake Heartbeat renamed Cake Pulse (loader 24, commit 864861bd) — staged
+## Cake Heartbeat renamed Cake Pulse (loader 24, commit 864861bd) — live 27 Oct 2026, 11:20 AM
 
 - Title, screen-reader label, loading and error lines read "Cake Pulse". Chart, data, range switch, holiday markers and Daily Cake Demand unchanged.
 - Holds through 7 / 30 / 90 day switches (re-applied after each chart render).
