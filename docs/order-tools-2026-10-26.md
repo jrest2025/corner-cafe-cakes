@@ -110,3 +110,15 @@ Roneel: "make the seasonal items section enterprise level" (all eight points agr
 - What's booked: by pickup day against each daily limit (amber from 80%, red when full).
 - Typing in this section does not mark Settings "Not saved yet", and a half-typed item survives a Settings redraw.
 - Commit 1784e025; Webflow `ccOrderToolsLoader11` replaces loader 10. Checks: test_seasonal.cjs 158 of 158. Rollback: loader 10 back and publish.
+
+## Treat orders: festive treats without a cake (staged 26 Oct 2026, 10:10 PM, not published)
+Roneel: "make the special items section into a separate module above the cakes section, so customers fill it and request, basic details with items. Leave the current cake form separate."
+- Website order page: a separate Festive treats module above the cake form (photos, Add and plus or minus, pickup day chips from the item notice days, pickup times from collection hours in 12-hour format, name, mobile, note). It is saved as a treat order (T-1001…) and shows a thank-you with the reference. The module is hidden while the section is Off or nothing is on sale. A half-filled request comes back after a reload. The first-screen panel is removed; the add-on at the cake form's last step stays.
+- Service Hub: a Today banner (new requests, to collect today or this week, not collected); the Treat orders board (To do, Today, All; grouped by pickup day with day totals; Confirm, Record payment, Collected with a check when money is owing, Cancel with a reason and a refund reminder, Print slip, Call, WhatsApp); New treat order for the counter (saved as confirmed, paid now or at pickup); a Treat orders button in Settings > Seasonal items.
+- Analytics: Seasonal sales counts treat orders and shows with a cake or treats only.
+- Type weight by device on these screens: lighter and smoothed on phones, a step heavier on tablets, computers unchanged.
+- Database (applied): `supabase/sql/treat_orders_20261026.sql`. New tables treat_orders, treat_order_items, treat_order_events; each item's daily limit counts cake orders and treat orders together. Cake orders, Daily Cake Demand and the daily cake limit are untouched. Rolled-back trial passed (online order, resend not doubled, wrong slot refused, wine counter only, notice days, shared limit, board actions, counter order, sales totals). Reference counter reset so the first real order is T-1001.
+- Commit 13bb4569. Webflow: `ccOrderToolsLoader12` replaces loader 11 (six files, live file check passed); the website order page footer points at the new guest.seasonal.js (integrity sha384-qXdOVftz…).
+- Checks: test_treat_orders.cjs 61 of 61, test_guest_seasonal.cjs 82 of 82, test_seasonal.cjs 158 of 158, test_service.cjs 39 of 39, on phone, tablet and computer.
+- Not included: no email for treat orders yet (staff see them on the Today banner and the board).
+- Rollback: loader 11 back on the staff page, the guest.seasonal.js line back to commit 6ef8d4c5 (integrity sha384-Gtgebv7J…), publish. The database tables can stay; nothing reads them without the new files.
