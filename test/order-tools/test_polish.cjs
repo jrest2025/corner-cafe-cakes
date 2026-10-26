@@ -57,6 +57,9 @@ const shot = async (p, name) => { if (SHOTS) await p.screenshot({ path: SHOTS + 
     check(t + ' Kitchen: Today and Board only, with icons', kt.modes.join('|') === 'Today|Board' && kt.icons === 2, kt);
     check(t + ' Kitchen: attention rows not cut, reason on few lines', kt.lines.length && kt.lines.every(l => !l.cut && l.lines <= 3), kt.lines);
     check(t + ' Kitchen: main button navy', kt.bg === 'rgb(36, 95, 153)', kt.bg);
+    const tn = await p.evaluate(() => Object.fromEntries([...document.querySelectorAll('#ccs-main [data-ccp-tone]')].filter(x => x.getClientRects().length).map(x => [(x.closest('.kw-count,.cl-h,.kw-label') || x.parentElement).textContent.replace(/\s+/g, ' ').trim().slice(0, 20), x.getAttribute('data-ccp-tone') + ' ' + getComputedStyle(x).backgroundColor])));
+    const tv = Object.entries(tn);
+    check(t + ' icon tiles: tinted, coloured by meaning', tv.length >= 4 && tv.every(([k, v]) => !/rgb\((214|74|142|63|138), /.test(v)) && /^green/.test((tv.find(([k]) => /^Ready/.test(k)) || [])[1] || '') && /^amber/.test((tv.find(([k]) => /^To make/.test(k)) || [])[1] || '') && /^navy/.test((tv.find(([k]) => /^Coming up/.test(k)) || [])[1] || ''), tn);
     await shot(p, t + '-kitchen');
     // ---------- Settings ----------
     if (t !== 'phone') {

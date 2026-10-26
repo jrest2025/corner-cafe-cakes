@@ -294,8 +294,28 @@
     dd(mods, { label: 'Section', item: 'button[data-v]:not(.is-need)', icons: AN_IC, hideClass: 'ccp-navsrc', cls: 'ccp-mobonly ccdd-wide',
       place: function (b) { var n5 = mods.previousElementSibling; (n5 && n5.classList.contains('cc-nav5') ? n5 : mods).insertAdjacentElement('beforebegin', b); } });
   }
+  // Icon tiles: one style (light tint, thin-line icon in the same colour) and colour only by meaning:
+  // red urgent or late, amber to do or money owed, green done or ready, navy plain information, grey when the number is 0
+  var NAVY = /^(\$?[\d,.]+\s*)?(Due today|Next 7 days|Booked this week|This week|Later this week|Coming up|Next priority|Upcoming|Due)/i;
+  function tone(t) {
+    var host = t.closest('.ap-island, .tq-stat, .kw-count, .cl-stat, .cl-h, .kw-label, h2, h3') || t.parentElement, w = txt(host);
+    if (host.classList.contains('ap-island')) { var n0 = w.match(/^\s*(\d+)/); if (n0 && +n0[1] === 0) return 'grey'; return host.classList.contains('ap-red') ? 'red' : host.classList.contains('ap-green') ? 'green' : 'amber'; }
+    var stat = host.matches('.tq-stat, .kw-count, .cl-stat'), n = w.match(/^\s*\$?([\d,]+)/) || (stat && w.match(/(\d+)\s*cakes?\b/));
+    if (stat && n && +String(n[1]).replace(/,/g, '') === 0) return 'grey';
+    if (/\burgent\b|\blate\b|overdue/i.test(w)) return 'red';
+    if (NAVY.test(w)) return 'navy';
+    if (/to do|waiting on you|to collect|to make|needs attention|owed|owing|unpaid/i.test(w)) return 'amber';
+    if (/ready|handed over|done|completed|collected/i.test(w)) return 'green';
+    return 'navy';
+  }
+  function tiles(root) {
+    [].forEach.call(root.querySelectorAll('.cl-tile, .ap-icon'), function (t) {
+      if (t.closest('#cc-heartbeat')) return;
+      var k = tone(t); if (t.getAttribute('data-ccp-tone') !== k) t.setAttribute('data-ccp-tone', k);
+    });
+  }
   function refine(main) {
-    channels(main); iconOnly(main); analyticsNav(main);
+    channels(main); iconOnly(main); analyticsNav(main); tiles(main);
     // status tags: a small icon that says what kind of status it is
     [].forEach.call(main.querySelectorAll('.ccs-pill, .ccs-tag'), function (e) {
       if (e.closest('#cc-heartbeat') || e.querySelector('svg')) return;
@@ -431,6 +451,15 @@
       // Analytics section dropdown: phones and tablets only
       '#cc-staff .ccp-mobonly{display:none!important}',
       '@media (max-width:1099px),(hover:none) and (pointer:coarse){#cc-staff #ccs-main .ccp-mobonly{display:inline-flex!important;margin:8px 0 12px}#cc-staff #ccs-main .ccp-navsrc,#cc-staff #ccs-main .cc-nav5{display:none!important}}',
+      // icon tiles: light tint + thin-line icon, colour by meaning (Cake Heartbeat and Daily Cake Demand not touched)
+      ':root:not(#cc-t0) #cc-staff #ccs-main :is(.cl-tile,.ap-icon)[data-ccp-tone]:not(#cc-heartbeat *){border:0!important;box-shadow:none!important;background-image:none!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main :is(.cl-tile,.ap-icon)[data-ccp-tone] svg:not(#cc-heartbeat *){stroke-width:1.75!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main :is(.cl-tile,.ap-icon)[data-ccp-tone="red"]:not(#cc-heartbeat *){background:#FEF3F2!important;color:#B42318!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main :is(.cl-tile,.ap-icon)[data-ccp-tone="amber"]:not(#cc-heartbeat *){background:#FFF6E5!important;color:#B54708!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main :is(.cl-tile,.ap-icon)[data-ccp-tone="green"]:not(#cc-heartbeat *){background:#ECFDF3!important;color:#067647!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main :is(.cl-tile,.ap-icon)[data-ccp-tone="navy"]:not(#cc-heartbeat *){background:#EEF3F9!important;color:#245F99!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main :is(.cl-tile,.ap-icon)[data-ccp-tone="grey"]:not(#cc-heartbeat *){background:#F2F4F7!important;color:#667085!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main :is(.cl-tile,.ap-icon)[data-ccp-tone] :is(svg,path,circle,rect,line,polyline):not(#cc-heartbeat *){stroke:currentColor!important}',
       // Customers number-card icons
       '#cc-staff #ccs-main .cw-metric-arrow.ccp-kpi-ic{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:10px;background:#EEF3F9;color:var(--ccp-navy)}#cc-staff #ccs-main .cw-metric-arrow .ccp-ic{width:20px;height:20px}',
       // page titles with their sidebar icon
