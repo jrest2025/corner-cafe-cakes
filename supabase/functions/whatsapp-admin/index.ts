@@ -70,11 +70,18 @@ Deno.serve(async (req: Request) => {
     if(digits.length===7) digits="679"+digits;
     return /^[1-9][0-9]{7,14}$/.test(digits)?"+"+digits:"";
   };
-  async function validatedOrder(id:unknown) {
-    const orderId=String(id||"");
-    if(!/^[0-9a-f-]{36}$/i.test(orderId))return null;
-    const {data}=await db.from("orders").select("id,reference,contact_phone,contact_name").eq("id",orderId).maybeSingle();
-    return data||null;
+  // Order references have a UNIQUE constraint in the existing Cakes database.
+  // Resolving the reference on the server works for orders opened from calendar,
+  // search, customer history and the orders list without relying on UI click history.
+  async function validatedOrder(id:unknown, reference?:unknown) {
+    const orderId=String(id||"").trim();
+    const ref=String(reference||"").trim();
+    if(orderId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orderId))return null;
+    if(!orderId && (!ref || ref.length>60))return null;
+    let query=db.from("orders").select("id,reference,contact_phone,contact_name");
+    query=orderId?query.eq("id",orderId):query.eq("reference",ref);
+    const {data,error}=await query.maybeSingle();
+    return error?null:data;
   }
   if (["inbox","thread","order","link"].includes(op) && !mayMessage)
     return respond(req,{ok:false,error:"messaging_not_allowed"},403);
@@ -100,7 +107,7 @@ Deno.serve(async (req: Request) => {
     return respond(req,{ok:true,enabled:true,peer_number:peer,messages:data||[]});
   }
   if (op==="order") {
-    const order=await validatedOrder(body.order_id);
+    const order=await validatedOrder(body.order_id,body.order_reference);
     if(!order)return respond(req,{ok:false,error:"order_not_found"},404);
     const peer=e164(order.contact_phone);
     const {data:linked,error}=await db.from("wa_messages")
@@ -117,7 +124,7 @@ Deno.serve(async (req: Request) => {
       unlinked=pending||[];
     }
     return respond(req,{ok:true,enabled:!!conn?.enabled,display_number:conn?.display_number||null,
-      order_reference:order.reference,peer_number:peer,linked:linked||[],unlinked});
+      order_id:order.id,order_reference:order.reference,peer_number:peer,linked:linked||[],unlinked});
   }
   if (op==="link") {
     const order=await validatedOrder(body.order_id);
