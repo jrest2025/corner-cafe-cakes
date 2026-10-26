@@ -10,6 +10,10 @@
  *  3. Old order (from a paper slip) is only for cakes already picked up, so its pickup date stops at yesterday.
  *     Beside that date: "Cake not picked up yet?" with one tap to switch to New order, keeping what was typed and
  *     using the slip date as the day they ordered.
+ *  4. (Later the same day, "make it as user friendly as possible without destroying the underlying logic")
+ *     Plain words: "Cake still to come" / "Cake already picked up" instead of New order / Old order.
+ *  5. One way to choose a later date: "Other date" becomes "Later date" and opens the calendar in one tap.
+ *  6. Help text at 17px on tablets and 16px on phones (computers unchanged).
  * Presentation only: no order is saved or changed here except through the app's own buttons. If anything fails,
  * the app works exactly as before.
  */
@@ -63,12 +67,11 @@
       '#ccs-sheet .cc-ot-reasons{margin:12px 0 4px}' +
       '#ccs-sheet .cc-ot-reasons .sl-k,#ccs-sheet .cc-ot-q{display:block;margin:0 0 8px;font-weight:600;color:#1D2939}' +
       '#ccs-sheet .cc-ot-chips{display:flex;flex-wrap:wrap;gap:8px}' +
-      '#ccs-sheet .cc-ot-chips .ccs-chip{min-height:48px;white-space:normal;text-align:left}' +
+      '#ccs-sheet .cc-ot-chips .ccs-chip{white-space:normal;text-align:left}' +
       '#ccs-sheet .cc-ot-err{color:#B42318;font-weight:600;margin:8px 0 0}' +
       '#cc-staff .cc-ot-notyet,#ccs-sheet .cc-ot-notyet{margin:12px 0;padding:14px 16px;border:1px solid #C9D6E3;border-radius:12px;background:#F5F8FB;color:#1D2939}' +
       '#cc-staff .cc-ot-notyet p,#ccs-sheet .cc-ot-notyet p{margin:0 0 10px;line-height:1.4}' +
-      '#cc-staff .cc-ot-notyet .ccs-btn,#ccs-sheet .cc-ot-notyet .ccs-btn{min-height:48px}' +
-      '@media (hover:none) and (pointer:coarse){#ccs-sheet .cc-ot-chips .ccs-chip,#cc-staff .cc-ot-notyet .ccs-btn,#ccs-sheet .cc-ot-notyet .ccs-btn{min-height:56px}}';
+      '';   // tap sizes on touch screens come from the app's own touch standard, like every other button
     doc.head.appendChild(s);
   }
 
@@ -158,8 +161,8 @@
     if (!row || (row.nextElementSibling && row.nextElementSibling.classList.contains('cc-ot-notyet'))) return;
     var box = doc.createElement('div');
     box.className = 'cc-ot-notyet';
-    box.innerHTML = '<p><b>Cake not picked up yet?</b> Then it is a New order. Everything typed so far stays, and the slip date is used as the day they ordered.</p>' +
-      '<button type="button" class="ccs-btn" data-cc-notyet="1">Switch to New order</button>';
+    box.innerHTML = '<p><b>Cake not picked up yet?</b> Switch to Cake still to come. Everything typed so far stays, and the slip date is kept as the day they ordered.</p>' +
+      '<button type="button" class="ccs-btn" data-cc-notyet="1">Switch to Cake still to come</button>';
     row.parentNode.insertBefore(box, row.nextSibling);
   }
   function switchToNew() {
@@ -184,11 +187,76 @@
     try { switchToNew(); } catch (x) { warn('switch to new order', x); }
   }, true);
 
+  // ---------- 4. Plain words (26 October 2026, "make it as user friendly as possible") ----------
+  // Only the words on screen change. The buttons, their data and every rule behind them stay the app's own.
+  var WORDS = {
+    modeNew: ['Cake still to come', 'Ordering now, or a paper slip for a later pickup'],
+    modeOld: ['Cake already picked up', 'Typing in an old paper slip'],
+    titleOld: 'Paper slip: cake already picked up'
+  };
+  function setText(el, t) { if (el && el.textContent !== t) el.textContent = t; }
+  function plainWords() {
+    [['new', WORDS.modeNew], ['old', WORDS.modeOld]].forEach(function (m) {
+      [].forEach.call(doc.querySelectorAll('[data-oo-mode="' + m[0] + '"]'), function (b) {
+        setText(b.querySelector('b'), m[1][0]); setText(b.querySelector('small'), m[1][1]);
+      });
+    });
+    [].forEach.call(doc.querySelectorAll('#ccs-sheet .ccs-sheet-head h2, #cc-staff .ccs-title, #ccs-sheet .ccs-title'), function (h) {
+      if (h.textContent.trim() === 'Old order from a paper slip') h.textContent = WORDS.titleOld;
+    });
+  }
+
+  // ---------- 5. One way to choose a later date ----------
+  // The next 7 days and the short-notice buttons stay. "Other date" becomes "Later date" and opens the calendar
+  // straight away; the date field under it is labelled "Pickup date". The app's own date limits stay in force.
+  var openAfterTap = false;
+  function laterDate() {
+    var form = doc.querySelector('#ccs-slipform'); if (!form) return;
+    var V = draft(); if (V && V.old) return;
+    var other = form.querySelector('[data-act="n-date-other"]');
+    if (other && !other.querySelector('.cc-ot-later')) {
+      other.innerHTML = '<span class="cc-ot-later"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>Later date</span>';
+      other.setAttribute('aria-label', 'Later date: open the calendar');
+    }
+    var lab = form.querySelector('label[for="n-date"], label[data-cc-date-for="n-date"]');
+    if (lab && lab.textContent.trim() === 'Other date') lab.textContent = 'Pickup date';
+    if (openAfterTap) {
+      var trig = form.querySelector('#n-date ~ .cc-dp-trigger, #n-date + .cc-dp-trigger');
+      if (trig && !trig.disabled) { openAfterTap = false; trig.click(); }
+      else if (form.querySelector('#n-date') && !win.__ccDatePicker20261019) {   // shared calendar not loaded: use the phone's own
+        openAfterTap = false; var i = form.querySelector('#n-date'); try { i.focus(); if (i.showPicker) i.showPicker(); } catch (_) {}
+      }
+    }
+  }
+  doc.addEventListener('click', function (e) {
+    var b = e.target && e.target.closest && e.target.closest('#ccs-slipform [data-act="n-date-other"]'); if (!b) return;
+    openAfterTap = true; setTimeout(function () { openAfterTap = false; }, 1500);   // the app draws the date field, then it opens
+  }, true);
+
+  // ---------- 6. Readable help text on tablets and phones (computers unchanged) ----------
+  function ensureTouchStyle() {
+    if (doc.getElementById('cc-order-tools-touch')) return;
+    var s = doc.createElement('style');
+    s.id = 'cc-order-tools-touch';
+    var T = 'html.ccs-tablet-mode body ', H = ['#ccs-slipform .ccs-hint', '#ccs-slipform .oo-mode-b small', '#ccs-slipform .of-who-t small', '#ccs-slipform .oo-note', '#ccs-sheet .ccs-hint', '#ccs-sheet .ccs-note', '#ccs-sheet .cc-ot-notyet p'];
+    // Size only: the colour stays the app's own touch-screen text colour. Repeated ids so the size wins.
+    H = H.map(function (x) { return x.replace(/^#(ccs-slipform|ccs-sheet)/, '#$1#$1#$1'); });
+    var B = H.map(function (x) { return 'html body ' + x; });
+    var tablet = B.join(',') + '{font-size:17px!important;line-height:1.4!important}';
+    s.textContent =
+      '#ccs-slipform .cc-ot-later{display:inline-flex;align-items:center;gap:8px;font-weight:600}' +
+      '#ccs-slipform .cc-ot-later svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}' +
+      '@media (hover:none) and (pointer:coarse){' + tablet + '}' +
+      H.map(function (x) { return T + x; }).join(',') + '{font-size:17px!important;line-height:1.4!important}' +
+      '@media (max-width:759px){' + B.join(',') + '{font-size:16px!important}}';
+    doc.head.appendChild(s);
+  }
+
   // ---------- keep up with the app's redraws ----------
   var queued = false;
   function run() {
     queued = false;
-    try { ensureStyle(); addCancelButton(); enhancePanel(); addNotYet(); } catch (e) { warn('update', e); }
+    try { ensureStyle(); ensureTouchStyle(); addCancelButton(); enhancePanel(); addNotYet(); plainWords(); laterDate(); } catch (e) { warn('update', e); }
   }
   function schedule() { if (queued) return; queued = true; (win.requestAnimationFrame || setTimeout)(run); }
   function boot() { run(); new MutationObserver(schedule).observe(doc.body, { childList: true, subtree: true }); }

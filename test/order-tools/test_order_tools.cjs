@@ -12,10 +12,10 @@ const shown = (p, s) => p.evaluate(s => [...document.querySelectorAll(s)].some(e
 const overflow = p => p.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
 
 async function cancelFlow(b, w, h, tag, o) {
-  const { p, ctx, errors, logs } = await open(b, w, h, Object.assign({ post, extraFoot: loader, extraHead: verify }, o || {}));
+  const { p, ctx, errors, logs } = await open(b, w, h, Object.assign({ post, extraFoot: loader, extraHead: verify, ipad: tag === 'tablet' }, o || {}));
   await p.waitForTimeout(800);
   check(tag + ' order tools loaded', await p.evaluate(() => !!window.__ccOrderTools20261026));
-  check(tag + ' future pickup loaded', await p.evaluate(() => !!window.__ccFuturePickup20261026));
+  check(tag + ' extra future pickup buttons not loaded', await p.evaluate(() => !window.__ccFuturePickup20261026));
   await tap(p, '#cc-staff [data-tab="orders"]', 1200);
   await tap(p, '[data-act="open-order"][data-id="o1"]', 1200);
   const btn = await p.evaluate(() => { const b = document.querySelector('#ccs-sheet .ccs-actions-row .cc-ot-cancel'); if (!b) return null; const r = b.getBoundingClientRect(); return { h: r.height, inView: r.top >= 0 && r.bottom <= innerHeight, row: b.parentElement.textContent.replace(/\s+/g, ' ').trim() }; });
@@ -27,7 +27,7 @@ async function cancelFlow(b, w, h, tag, o) {
   const chips = await p.evaluate(() => [...document.querySelectorAll('#ccs-sheet [data-cc-reason]')].map(c => c.textContent));
   check(tag + ' six reasons to tap', chips.length === 6, chips);
   const chipH = await p.evaluate(() => Math.min(...[...document.querySelectorAll('#ccs-sheet [data-cc-reason]')].map(c => c.getBoundingClientRect().height)));
-  check(tag + ' reasons are big enough to tap (' + Math.round(chipH) + 'px)', chipH >= 44, chipH);
+  check(tag + ' reasons are the app\'s own touch size (' + Math.round(chipH) + 'px)', chipH >= (tag === 'tablet' ? 52 : 44), chipH);
   await shot(p, tag + '-2-panel');
   await tap(p, '#ccs-sheet [data-act="do-cancel"]', 500);
   check(tag + ' no reason: stopped with a message', await p.evaluate(() => { const e = document.querySelector('#ccs-sheet .cc-ot-err'); return e && /Tap why/.test(e.textContent) && !(window.__cancels || []).length; }));
@@ -61,7 +61,7 @@ async function paidFlow(b) {
   await ctx.close();
 }
 async function oldOrderFlow(b, w, h, tag) {
-  const { p, ctx, errors } = await open(b, w, h, { extraFoot: loader });
+  const { p, ctx, errors } = await open(b, w, h, { extraFoot: loader, ipad: tag === 'tablet' });
   await p.waitForTimeout(800);
   await tap(p, '#cc-staff [data-tab="new"]', 1200);
   await tap(p, '[data-oo-mode="old"]', 500);
@@ -81,11 +81,17 @@ async function oldOrderFlow(b, w, h, tag) {
   const st = await p.evaluate(() => { const V = window.__ccsOf.V(); return { old: V.old, taken: V.taken, takenDate: V.takenDate, by: V.takenBy }; });
   check(tag + ' switched to New order, slip date kept as order day', st.old === false && st.taken === 'other' && st.takenDate === slip && !!st.by, st);
   check(tag + ' notice gone in New order', !(await shown(p, '.cc-ot-notyet')));
-  const fut = await p.evaluate(() => { const dates = [...document.querySelectorAll('#ccs-slipform [data-act="n-date"]')].map(b => b.dataset.v).filter(Boolean); return { dates: dates.length, calendar: !!document.querySelector('#ccs-slipform [data-cc-future-calendar]'), two: !!document.querySelector('#ccs-slipform .cc-fp-two-weeks') }; });
-  check(tag + ' future pickup dates offered after switching', fut.dates > 0 && fut.calendar && fut.two, fut);
-  await tap(p, '#ccs-slipform .cc-fp-two-weeks', 800);
+  check(tag + ' mode buttons in plain words', await p.evaluate(() => { const n = document.querySelector('[data-oo-mode="new"] b'), o = document.querySelector('[data-oo-mode="old"] b'); return (!n || n.textContent === 'Cake still to come') && (!o || o.textContent === 'Cake already picked up'); }));
+  const dateUi = await p.evaluate(() => ({ cells: document.querySelectorAll('#ccs-slipform .ccs-datecell').length, later: (document.querySelector('#ccs-slipform [data-act="n-date-other"]') || {}).textContent, extra: !!document.querySelector('#ccs-slipform .cc-fp-actions, #ccs-slipform .cc-fp-two-weeks') }));
+  check(tag + ' date step: 7 days and one "Later date" button, nothing extra', dateUi.cells === 7 && /Later date/.test(dateUi.later || '') && !dateUi.extra, dateUi);
+  await tap(p, '#ccs-slipform [data-act="n-date-other"]', 900);
+  check(tag + ' Later date opens the calendar in one tap', await shown(p, '#cc-date-picker-layer .cc-dp-dialog'));
+  const want = fiji(14);
+  for (let i = 0; i < 3 && !(await shown(p, '#cc-date-picker-layer [data-cc-date-day="' + want + '"]:not([disabled])')); i++) await tap(p, '#cc-date-picker-layer [data-cc-date-move="1"]', 300);
+  await tap(p, '#cc-date-picker-layer [data-cc-date-day="' + want + '"]', 800);
   const picked = await p.evaluate(() => window.__ccsOf.V().date);
-  check(tag + ' Pickup in 2 weeks picks ' + fiji(14), picked === fiji(14), picked);
+  check(tag + ' picked ' + want + ' from the calendar', picked === want, picked);
+  check(tag + ' date field labelled Pickup date', await p.evaluate(() => { const l = document.querySelector('#ccs-slipform label[for="n-date"], #ccs-slipform label[data-cc-date-for="n-date"]'); return l && l.textContent.trim() === 'Pickup date'; }));
   await shot(p, tag + '-4-new');
   check(tag + ' no horizontal scroll', (await overflow(p)) <= 1, await overflow(p));
   check(tag + ' no page errors', !errors.filter(m => !/reading 'length'|reading 'filter'/.test(m)).length, errors);
