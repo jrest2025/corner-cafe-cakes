@@ -11,7 +11,7 @@ Roneel: "what can be done to make it feel more refined, like icons, more refined
 - Checks: test_polish.cjs 77 of 77, test_service.cjs 39 of 39, on phone, tablet and computer.
 - Rollback: loader 13 (last published) back on the staff page and publish.
 
-## Icons instead of words; Analytics Section dropdown (staged 27 Oct 2026, 8:00 AM, not published)
+## Icons instead of words; Analytics Section dropdown (live 27 Oct 2026, 8:03 AM)
 Roneel (with phone screenshots): "if it's delivery then just have the vehicle icon instead of the word delivery, use icons instead of words wherever possible."
 - Delivery and collection: a vehicle or bag icon instead of the word, in the order details (next to the date), order lists and Kitchen. Custom: a pen icon. The channel badge (walking person, globe, phone...) is now also in the order details. Each icon keeps its word as a label (hover, long-press, screen readers).
 - Order details: Call shows a phone icon and the number; WhatsApp is the chat icon; "Print kitchen slip" is "Print slip" with a printer; icons on the Cake, Delivery, Kitchen, Customer, Feedback, Payment and History tabs.
