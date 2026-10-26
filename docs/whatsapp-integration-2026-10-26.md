@@ -50,3 +50,12 @@ Create staff UI, implement Meta template approval and outbound queue for order c
 - For inbound messages with no reliable order reference, show **Needs linking** in a shared inbox; staff can pick the order after reviewing the reference and content. The order assignment UI and authenticated assignment endpoint are still pending.
 - An order page should show only explicitly linked messages, plus a clear link to the broader phone-number conversation; do not misrepresent an unlinked conversation as belonging to the order.
 - Stage order association separately from production. No messages have been sent.
+
+## 26 October follow-on: inbox and order messaging preview
+- Added `src/staff.whatsapp-workspace.js` and `src/staff.whatsapp-workspace.css`, with a central WhatsApp inbox, phone-number thread view, and per-order message panel where the current order ID can be resolved unambiguously from the existing order list.
+- Expanded `whatsapp-admin` to support `inbox`, `thread`, `order`, `link` and order-specific `reply`, all authenticated and restricted to counter/manager/admin roles. The API validates that the order's saved contact phone matches the WhatsApp recipient before linking or sending.
+- `scripts/build-central.mjs` injects the preview assets **only after** verifying the pristine live-page checksum. No production page file has been changed.
+- This is an **early integration preview**, not a complete end-to-end release. The order action is not shown when the UI cannot confidently resolve the order ID; this requires a first-party order-detail integration before production. Staff permissions in custom access levels still need final verification.
+- The UI does not support setting the business number yet; manager configuration is available only through the protected API. A proper Settings section is still required.
+- No customer notifications, templates, automated sending, or image handling have been implemented.
+- Not deployed and not runtime-tested. Schema remains unapplied and connection disabled pending Meta verification. Do not merge this PR until browser, backend, data protection and role tests pass.
