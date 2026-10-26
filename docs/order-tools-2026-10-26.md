@@ -40,7 +40,7 @@ Roneel: "make it as user friendly as possible without destroying the underlying 
 - Webflow: `ccOrderToolsLoader4` (commit f39c0e95) replaces `ccOrderToolsLoader3`. Rollback: put `ccOrderToolsLoader3` back and publish.
 - Checks: `test/order-tools/test_order_tools.cjs` passes 74 of 74. The new label, the Required tag and the typed number were checked on tablet and phone.
 
-## Version 3: friendly wording (staged 26 Oct 2026, 1:40 PM, not live)
+## Version 3: friendly wording (live 26 Oct 2026, 1:39 PM, after Roneel said "deploy")
 Roneel: "humanise as much as possible".
 - About 50 lines on the order form are reworded in everyday language: labels, hints, placeholders, the review step, the restart prompt and the paper slip version. For example: "Customer name", "Writing on the cake", "What are they celebrating?", "Pickup day", "Did they pay anything today?" and "Save this paper slip".
 - This is text only. Buttons keep their own data, so no rule, check or saved value changes.
