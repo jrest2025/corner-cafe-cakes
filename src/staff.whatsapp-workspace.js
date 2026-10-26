@@ -21,7 +21,7 @@ async function call(op,payload={}){
  return result;
 }
 function mine(){return !!root.querySelector('.ccs-app')&&!root.querySelector('#ccs-login');}
-function role(){const nav=root.querySelector('.ccs-nav');return !!nav;}
+function role(){const nav=root.querySelector('.ccs-nav');return !!nav && [...nav.querySelectorAll('[data-tab]')].some(el=>el.dataset.tab==='customers');}
 function orderId(){
  const s=root.querySelector('#ccs-sheet.ccs-open');
  if(!s)return '';
