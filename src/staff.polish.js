@@ -732,6 +732,20 @@
       '@media (max-width:759px){:root:not(#cc-t0) #cc-staff #ccs-main .oi-kpis > .ccs-kpi.ccp-okpi > .ccp-kic{width:34px!important;height:34px!important}:root:not(#cc-t0) #cc-staff #ccs-main .oi-kpis > .ccs-kpi.ccp-okpi > .ccs-kpi-n{font-size:23px!important}:root:not(#cc-t0) #cc-staff #ccs-main .cat-split.ccp-dn > svg.ccp-donut{width:100px;height:100px}}',
       // phones: day charts keep readable columns and scroll sideways instead of squashing the dates
       '@media (max-width:759px){:root:not(#cc-t0) #cc-staff #ccs-main .cat-page .cat-cols{grid-auto-flow:column!important;grid-template-columns:none!important;grid-auto-columns:minmax(56px,1fr)!important;column-gap:6px!important;overflow-x:auto!important;scrollbar-width:thin;padding-bottom:6px!important;-webkit-overflow-scrolling:touch}:root:not(#cc-t0) #cc-staff #ccs-main .cat-page .cat-cols .cat-cl{white-space:nowrap!important;font-size:14px!important}:root:not(#cc-t0) #cc-staff #ccs-main .cat-page .cat-cols .cat-cl em{display:block!important}}',
+      // channel badges: icon centred in its circle everywhere
+      ':root:not(#cc-t0) #cc-staff .cc-ch.ccp-chi.ccp-chi:not(#cc-heartbeat *){display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:none!important;position:relative!important;vertical-align:middle!important;box-sizing:border-box!important}',
+      // channel badges are plain information: soft navy everywhere (lists, order details, Today pop-ups); WhatsApp keeps its green
+      ':root:not(#cc-t0) #cc-staff .cc-ch.ccp-chi.ccp-chi:not(#cc-heartbeat *):not(#ccs-x){width:36px!important;height:36px!important;min-width:0!important;padding:0!important;gap:0!important;border-radius:50%!important;background:#E8EFF7!important;border:1px solid #9DB8D9!important;color:#1A4570!important}',
+      ':root:not(#cc-t0) #cc-staff .cc-ch.ccp-chi.ccp-chi.cc-ch-whatsapp:not(#cc-heartbeat *):not(#ccs-x){background:#E3F6EA!important;border-color:#9FDDB6!important;color:#0B7A3E!important}',
+      ':root:not(#cc-t0) #cc-staff .cc-ch.ccp-chi.ccp-chi:not(#cc-heartbeat *):not(#ccs-x) > span{position:absolute!important;width:1px!important;height:1px!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;white-space:nowrap!important}',
+      ':root:not(#cc-t0) #cc-staff .cc-ch.ccp-chi.ccp-chi:not(#cc-heartbeat *):not(#ccs-x) svg{width:20px!important;height:20px!important;stroke-width:2!important;margin:0!important}',
+      '@media (max-width:759px){:root:not(#cc-t0) #cc-staff .cc-ch.ccp-chi.ccp-chi:not(#cc-heartbeat *):not(#ccs-x){width:32px!important;height:32px!important}:root:not(#cc-t0) #cc-staff .cc-ch.ccp-chi.ccp-chi:not(#cc-heartbeat *):not(#ccs-x) svg{width:18px!important;height:18px!important}}',
+      // "Collect balance first" is money owed: amber, not blue
+      ':root:not(#cc-t0) #cc-staff .up-tags .up-tag{background:#FDF0D9!important;color:#8A4504!important;border:1px solid #E9C27F!important;font-style:normal!important}',
+      // Today pop-up rows (To do, Due today...): channel badge sits on the right of the row, not on its own line
+      ':root:not(#cc-t0) #cc-staff .tq-w:has(> .cc-ch.ccp-chi){grid-template-columns:10px minmax(0,1fr) auto!important;column-gap:12px!important;align-items:start!important}',
+      ':root:not(#cc-t0) #cc-staff .tq-w > .cc-ch.ccp-chi.ccp-chi{grid-column:3!important;grid-row:1 / span 4!important;align-self:center!important;margin:0!important}',
+      ':root:not(#cc-t0) #cc-staff .tq-w:has(> .cc-ch.ccp-chi) > :not(i):not(.cc-ch){grid-column:2!important}',
       // Treat orders board: the same card language
       '#cc-staff #cc-to .cc-to-sum.ccp-sum{display:flex;align-items:center;gap:12px}',
       '#cc-staff #cc-to .cc-to-sum .cl-tile{flex:none;width:38px;height:38px;border-radius:11px;display:inline-flex;align-items:center;justify-content:center}',
