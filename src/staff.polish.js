@@ -216,10 +216,10 @@
     main.classList.add('ccp-has-fu');
   }
   // Number cards (Customers, Analytics): icon left, number, label under; colour by meaning; a zero goes grey
-  var KPI_TONE = [[/owed|owing|to collect|not confirmed|follow-ups due/i, 'amber'], [/./, 'navy']];
-  var CATK_IC = [[/sales|revenue|value|owed|collect|spend/i, 'coins'], [/average|share|per order/i, 'chart'], [/cakes? sold|top cake|cakes,|cakes per|size/i, 'cake'], [/customer/i, 'users'], [/new|first/i, 'spark'], [/return|repeat/i, 'repeat'], [/not confirmed/i, 'hourglass'], [/order/i, 'box'], [/slow/i, 'moon'], [/./, 'chart']];
+  var KPI_TONE = [[/owed|owing|to collect|not confirmed|not recorded|follow-ups due/i, 'amber'], [/./, 'navy']];
+  var CATK_IC = [[/occasion/i, 'gift'], [/matching/i, 'users'], [/multiple orders/i, 'repeat'], [/lead time/i, 'clock'], [/peak month|month/i, 'cal'], [/sales|revenue|value|owed|collect|spend/i, 'coins'], [/average|share|per order/i, 'chart'], [/cakes? sold|top cake|cakes,|cakes per|size/i, 'cake'], [/customer/i, 'users'], [/new|first/i, 'spark'], [/return|repeat/i, 'repeat'], [/not confirmed/i, 'hourglass'], [/order/i, 'box'], [/slow/i, 'moon'], [/./, 'chart']];
   function kpis(main) {
-    [].forEach.call(main.querySelectorAll('.cat-page .cat-kpis > .cat-k'), function (k) {
+    [].forEach.call(main.querySelectorAll('.cat-page .cat-kpis > .cat-k, section.cat-card[aria-label="Business intelligence"] .cat-kpis > .cat-k'), function (k) {
       if (k.closest('#cc-heartbeat')) return;
       var lab = txt(k.querySelector('.cat-k-top > span')), num = txt(k.querySelector(':scope > strong'));
       if (!k.querySelector(':scope > .ccp-kic')) { var ic = 'chart'; for (var i = 0; i < CATK_IC.length; i++) if (CATK_IC[i][0].test(lab)) { ic = CATK_IC[i][1]; break; } k.insertAdjacentHTML('afterbegin', '<span class="cl-tile ccp-kic ccp-fixed">' + svg(ic) + '</span>'); }
@@ -230,6 +230,59 @@
     [].forEach.call(main.querySelectorAll('section.cw-summary > .cw-metric'), function (m) {
       var v = txt(m.querySelector('.cw-metric-value')); m.classList.toggle('ccp-zero', v === '0');
       var a = m.querySelector('.cw-metric-arrow'); if (a) a.setAttribute('data-ccp-tone', v === '0' ? 'grey' : /due/.test(m.getAttribute('data-ccdr') || '') ? 'amber' : 'navy');
+    });
+  }
+  // Analytics, charts over text: donut for two-part splits, bars on the largest orders, quiet notes behind an "i"
+  var flagOpen = false, DONUT_C = 2 * Math.PI * 42;
+  function num(t) { var m = String(t || '').replace(/[$,]/g, '').match(/-?\d+(\.\d+)?/); return m ? +m[0] : 0; }
+  function anCharts(main) {
+    if (!main.querySelector('.cat-page')) return;
+    // 1. two-part split bar -> donut, legend (and its taps) unchanged
+    [].forEach.call(main.querySelectorAll('.cat-page section.cat-card .cat-split'), function (sp) {
+      var rows = [].slice.call(sp.querySelectorAll('.cat-leg > .cat-lr')); if (!rows.length || rows.length > 6) return;
+      var vals = rows.map(function (r) { var b = r.querySelector('b'); return b ? num(b.firstChild && b.firstChild.nodeType === 3 ? b.firstChild.nodeValue : b.textContent) : 0; });
+      var tot = vals.reduce(function (a, b) { return a + b; }, 0), sig = vals.join(',');
+      if (sp.getAttribute('data-ccp-donut') === sig) return;
+      var old = sp.querySelector(':scope > svg.ccp-donut'); if (old) old.remove();
+      sp.setAttribute('data-ccp-donut', sig); if (!tot) { sp.classList.remove('cat-donut', 'ccp-dn'); return; }
+      var card = sp.closest('section'), lab = /returning|customers/i.test(card ? card.getAttribute('aria-label') || '' : '') ? 'customers' : 'total', off = 0;
+      var arcs = rows.map(function (r, i) {
+        if (!vals[i]) return '';
+        var col = getComputedStyle(r.querySelector('i') || r).backgroundColor, len = DONUT_C * vals[i] / tot, gap = vals[i] === tot ? 0 : 1.4;
+        var a = '<circle r="42" cx="60" cy="60" fill="none" stroke="' + col + '" stroke-width="15" stroke-dasharray="' + Math.max(len - gap, 0).toFixed(2) + ' ' + (DONUT_C - len + gap).toFixed(2) + '" stroke-dashoffset="' + (-off).toFixed(2) + '"></circle>';
+        off += len; return a;
+      }).join('');
+      var aria = rows.map(function (r, i) { return txt(r.querySelector('span')) + ' ' + Math.round(vals[i] * 100 / tot) + '%'; }).join(', ');
+      sp.insertAdjacentHTML('afterbegin', '<svg class="ccp-donut" viewBox="0 0 120 120" role="img" aria-label="' + esc(aria) + '"><circle r="42" cx="60" cy="60" fill="none" stroke="#EEF1F5" stroke-width="15"></circle><g transform="rotate(-90 60 60)">' + arcs + '</g><text x="60" y="58" text-anchor="middle" class="cat-dv">' + tot + '</text><text x="60" y="74" text-anchor="middle" class="cat-dl">' + lab + '</text></svg>');
+      sp.classList.add('cat-donut', 'ccp-dn');
+    });
+    // 2. Largest orders: a bar per order, sized by value
+    [].forEach.call(main.querySelectorAll('.cat-page section.cat-card[aria-label="Largest orders"] .cat-list'), function (l) {
+      var li = [].slice.call(l.querySelectorAll(':scope > .cat-li')), v = li.map(function (x) { return num(txt(x.querySelector('em'))); }), mx = Math.max.apply(null, v.concat([1]));
+      li.forEach(function (x, i) {
+        var bar = x.querySelector(':scope > .ccp-lbar'); if (!bar) { x.insertAdjacentHTML('beforeend', '<i class="ccp-lbar" aria-hidden="true"><s></s></i>'); bar = x.lastChild; x.classList.add('ccp-barli'); }
+        var w = +(v[i] * 100 / mx).toFixed(1), sx = bar.firstChild; if (parseFloat(sx.style.width) !== w) sx.style.width = w + '%';
+        var sp = x.querySelector(':scope > span'); if (sp && /·\s*\d+ cakes?/.test(sp.textContent) && !sp.getAttribute('data-ccp-t')) { sp.setAttribute('data-ccp-t', '1'); sp.textContent = sp.textContent.replace(/\s*·\s*\d+ cakes?/, ''); }
+      });
+      l.classList.add('ccp-bars');
+    });
+    // 3. say it once: "Top cake" repeats the first bar of Cakes ranked
+    [].forEach.call(main.querySelectorAll('.cat-page .cat-kpis'), function (g) {
+      [].forEach.call(g.querySelectorAll(':scope > .cat-k'), function (k) { if (/^Top cake$/.test(txt(k.querySelector('.cat-k-top > span')))) k.classList.add('ccp-gone'); });
+      var n = [].filter.call(g.children, function (k) { return !k.classList.contains('ccp-gone') && getComputedStyle(k).display !== 'none'; }).length;
+      if (g.getAttribute('data-ccp-n') !== String(n)) g.setAttribute('data-ccp-n', n);
+    });
+    // 4. setup notes go behind an "i"
+    [].forEach.call(main.querySelectorAll('.cat-page p.cat-flag'), function (f) {
+      if (!f.querySelector(':scope > .ccp-flag-b')) f.insertAdjacentHTML('afterbegin', '<button type="button" class="ccp-flag-b" aria-expanded="false"><span class="ccp-flag-i" aria-hidden="true">i</span><span>' + (/gross profit/i.test(f.textContent) ? 'Gross profit' : 'Note') + '</span></button>');
+      f.classList.add('ccp-flag'); f.classList.toggle('is-open', flagOpen); f.querySelector('.ccp-flag-b').setAttribute('aria-expanded', String(flagOpen));
+    });
+    // 5. Occasions numbers: the shared card
+    [].forEach.call(main.querySelectorAll('.oi-kpis > .ccs-kpi'), function (k) {
+      if (k.querySelector(':scope > .ccp-kic')) return;
+      var lab = txt(k.querySelector('.ccs-kpi-l')), ic = 'chart'; for (var i = 0; i < CATK_IC.length; i++) if (CATK_IC[i][0].test(lab)) { ic = CATK_IC[i][1]; break; }
+      var zero = /^\$?0(\.0+)?%?$/.test(txt(k.querySelector('.ccs-kpi-n')));
+      k.insertAdjacentHTML('afterbegin', '<span class="cl-tile ccp-kic ccp-fixed" data-ccp-tone="' + (zero ? 'grey' : 'navy') + '">' + svg(ic) + '</span>'); k.classList.add('ccp-okpi'); k.classList.toggle('ccp-zero', zero);
     });
   }
   function kitchenCounts(main) {
@@ -417,7 +470,7 @@
     [].forEach.call(main.querySelectorAll('.ccs-tab[data-act="filter"]'), function (t) { var n = t.querySelector('.ccs-n'); t.classList.toggle('ccp-quiet', !!n && txt(n) === '0' && t.getAttribute('aria-pressed') !== 'true'); });
   }
   function refine(main) {
-    channels(main); iconOnly(main); analyticsNav(main); tiles(main); today(main); ordersTabs(main); custActions(main); kpis(main);
+    channels(main); iconOnly(main); analyticsNav(main); tiles(main); today(main); ordersTabs(main); custActions(main); kpis(main); anCharts(main);
     // status tags: a small icon that says what kind of status it is
     [].forEach.call(main.querySelectorAll('.ccs-pill, .ccs-tag'), function (e) {
       if (e.closest('#cc-heartbeat') || e.querySelector('svg')) return;
@@ -643,6 +696,35 @@
       '@media (max-width:759px){:root:not(#cc-t0) #cc-staff #ccs-main .cat-kpis > .cat-k.ccp-kcard > .ccp-kic{width:34px!important;height:34px!important}:root:not(#cc-t0) #cc-staff #ccs-main .cat-kpis > .cat-k.ccp-kcard > strong{font-size:23px!important}}',
       // section tabs on a phone: never squeeze an icon into its word; scroll sideways instead
       '@media (max-width:759px){:root:not(#cc-t0) #cc-staff #ccs-main .ccs-secbar{overflow-x:auto!important;scrollbar-width:none}:root:not(#cc-t0) #cc-staff #ccs-main .ccs-secbar > .ccs-secbtn{flex:0 0 auto!important;min-width:max-content!important;padding:0 12px!important}:root:not(#cc-t0) #cc-staff #ccs-main .ccs-secbtn > .ccp-ic{flex:none!important}}',
+      // ---------- Analytics: charts over text ----------
+      ':root:not(#cc-t0) #cc-staff #ccs-main .cat-split.ccp-dn{display:flex!important;align-items:center!important;gap:20px!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main .cat-split.ccp-dn > .cat-sb{display:none!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main .cat-split.ccp-dn > svg.ccp-donut{flex:none;width:120px;height:120px}:root:not(#cc-t0) #cc-staff #ccs-main .cat-split.ccp-dn > .cat-leg{flex:1 1 auto;min-width:0}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main svg.ccp-donut .cat-dv{font-size:24px!important;font-weight:600!important;fill:#1D2939!important}:root:not(#cc-t0) #cc-staff #ccs-main svg.ccp-donut .cat-dl{font-size:11px!important;font-weight:400!important;fill:#475467!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main .cat-list.ccp-bars > .cat-li.ccp-barli{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;grid-template-areas:"ref amt" "bar bar" "when when"!important;gap:6px 12px!important;align-items:center!important;text-align:left!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main .cat-li.ccp-barli > b{grid-area:ref!important}:root:not(#cc-t0) #cc-staff #ccs-main .cat-li.ccp-barli > em{grid-area:amt!important;font-style:normal}:root:not(#cc-t0) #cc-staff #ccs-main .cat-li.ccp-barli > span{grid-area:when!important;color:#475467!important;margin:0!important}',
+      '#cc-staff #ccs-main .ccp-lbar{grid-area:bar;display:block;height:10px;border-radius:5px;background:#EEF1F5;overflow:hidden}#cc-staff #ccs-main .ccp-lbar > s{display:block;height:100%;border-radius:5px;background:#168F91;text-decoration:none}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main .cat-page[data-cat="pl"] .cat-kpis > .cat-k .cat-k-cap{display:none!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main .cat-kpis > .cat-k.ccp-gone.ccp-gone:not(#cc-heartbeat *){display:none!important}',
+      '@media (min-width:760px){:root:not(#cc-t0) #cc-staff #ccs-main .cat-kpis[data-ccp-n="3"]{grid-template-columns:repeat(3,minmax(0,1fr))!important}:root:not(#cc-t0) #cc-staff #ccs-main .cat-kpis[data-ccp-n="2"]{grid-template-columns:repeat(2,minmax(0,1fr))!important}}',
+      // Business intelligence: same cards, no long captions
+      ':root:not(#cc-t0) #cc-staff #ccs-main section.cat-card[aria-label="Business intelligence"] .cat-k.ccp-kcard{border-left:1px solid var(--ccp-line)!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main section.cat-card[aria-label="Business intelligence"] .cat-k .cat-k-cap{display:none!important}',
+      // setup note behind an "i"
+      ':root:not(#cc-t0) #cc-staff #ccs-main p.cat-flag.ccp-flag{background:none!important;border:0!important;padding:0!important;margin:0 0 12px!important;color:#475467!important;display:block!important;font-size:inherit}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main p.cat-flag.ccp-flag:not(.is-open){font-size:0!important}:root:not(#cc-t0) #cc-staff #ccs-main p.cat-flag.ccp-flag.ccp-flag:not(.is-open):not(#cc-heartbeat *) > button.ccs-link{display:none!important}',
+      '#cc-staff #ccs-main .ccp-flag-b{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 4px;background:none;border:0;color:#475467;font:inherit;font-size:16px;cursor:pointer;margin-right:8px}',
+      '#cc-staff #ccs-main .ccp-flag-i{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;border:1.5px solid #98A2B3;font-style:italic;font-weight:600;font-family:Georgia,serif;font-size:13px;color:#475467}',
+      // Occasions numbers: shared card
+      ':root:not(#cc-t0) #cc-staff #ccs-main .oi-kpis > .ccs-kpi.ccp-okpi:not(.ccf-hide){display:grid!important;grid-template-columns:auto minmax(0,1fr)!important;grid-template-areas:"ic num" "ic lab"!important;align-items:center!important;gap:2px 12px!important;text-align:left!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main .oi-kpis > .ccs-kpi.ccp-okpi > .ccp-kic{grid-area:ic!important;width:40px!important;height:40px!important;border-radius:11px!important;display:inline-flex!important;align-items:center;justify-content:center}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main .oi-kpis > .ccs-kpi.ccp-okpi > .ccs-kpi-n{grid-area:num!important;order:0!important;font-size:28px!important;line-height:1.1!important;margin:0!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main .oi-kpis > .ccs-kpi.ccp-okpi > .ccs-kpi-l{grid-area:lab!important;font-size:15px!important;color:#344054!important;margin:0!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main .oi-kpis > .ccs-kpi.ccp-okpi > .ccs-kpi-s{display:none!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main .oi-kpis > .ccs-kpi.ccp-zero{background:#F9FAFB!important}',
+      '@media (max-width:759px){:root:not(#cc-t0) #cc-staff #ccs-main .oi-kpis > .ccs-kpi.ccp-okpi > .ccp-kic{width:34px!important;height:34px!important}:root:not(#cc-t0) #cc-staff #ccs-main .oi-kpis > .ccs-kpi.ccp-okpi > .ccs-kpi-n{font-size:23px!important}:root:not(#cc-t0) #cc-staff #ccs-main .cat-split.ccp-dn > svg.ccp-donut{width:100px;height:100px}}',
+      // phones: day charts keep readable columns and scroll sideways instead of squashing the dates
+      '@media (max-width:759px){:root:not(#cc-t0) #cc-staff #ccs-main .cat-page .cat-cols{grid-auto-flow:column!important;grid-template-columns:none!important;grid-auto-columns:minmax(56px,1fr)!important;column-gap:6px!important;overflow-x:auto!important;scrollbar-width:thin;padding-bottom:6px!important;-webkit-overflow-scrolling:touch}:root:not(#cc-t0) #cc-staff #ccs-main .cat-page .cat-cols .cat-cl{white-space:nowrap!important;font-size:14px!important}:root:not(#cc-t0) #cc-staff #ccs-main .cat-page .cat-cols .cat-cl em{display:block!important}}',
       // Treat orders board: the same card language
       '#cc-staff #cc-to .cc-to-sum.ccp-sum{display:flex;align-items:center;gap:12px}',
       '#cc-staff #cc-to .cc-to-sum .cl-tile{flex:none;width:38px;height:38px;border-radius:11px;display:inline-flex;align-items:center;justify-content:center}',
@@ -705,6 +787,7 @@
     if (wm) { e.preventDefault(); e.stopPropagation(); var k0 = wm.getAttribute('data-k'); warnOpen[k0] = !warnOpen[k0]; run(); return; }
     var i = t.closest('.ccp-i');
     if (i) { e.preventDefault(); e.stopPropagation(); var f = doc.querySelector('#ccs-main .ccp-fine'); var on = i.getAttribute('aria-expanded') !== 'true'; i.setAttribute('aria-expanded', String(on)); if (f) f.classList.toggle('is-open', on); return; }
+    if (t.closest('.ccp-flag-b')) { e.preventDefault(); flagOpen = !flagOpen; run(); return; }
     if (t.closest('.ccp-fu-all')) { var fb = doc.querySelector('#ccs-main .ccs-secbtn[data-g="crm"][data-v="fu"]'); if (fb) fb.click(); return; }
     var r = t.closest('.ccp-rem');
     if (r) { var show = doc.querySelector('#ccs-main section.ccs-rem [data-act="rem-show"]'); if (show) { var sec = show.closest('section'); sec.classList.remove('ccdd-src'); show.click(); } }

@@ -97,6 +97,23 @@ const shot = async (p, name) => { if (SHOTS) await p.screenshot({ path: SHOTS + 
     { const k = await p.evaluate(() => [...document.querySelectorAll('.cat-page[data-cat="sl"] .cat-kpis > .cat-k')].filter(x => x.getClientRects().length).map(x => { const i = x.querySelector('.ccp-kic'), n = x.querySelector(':scope > strong'); return { tone: i && i.getAttribute('data-ccp-tone'), left: !!(i && n && i.getBoundingClientRect().right <= n.getBoundingClientRect().left + 1), zero: x.classList.contains('ccp-zero'), v: n && n.textContent.trim(), lab: (x.querySelector('.cat-k-top > span') || {}).textContent }; }));
       check(t + ' Analytics: number cards use the shared card (icon left, colour by meaning, zero grey)', k.length >= 3 && k.every(x => x.tone && x.left) && k.every(x => (x.tone === 'grey') === /^\$?0(\.0+)?%?$/.test(x.v)) && k.filter(x => /owed/i.test(x.lab)).every(x => x.tone === 'amber' || x.tone === 'grey'), k);
       const hb = await p.evaluate(() => document.querySelectorAll('#cc-heartbeat .ccp-kic').length); check(t + ' Analytics: Cake Heartbeat untouched', hb === 0, hb); }
+    { const fl = await p.evaluate(() => { const f = document.querySelector('.cat-page[data-cat="sl"] p.cat-flag'); return f ? { b: !!f.querySelector('.ccp-flag-b'), link: getComputedStyle(f.querySelector('.ccs-link')).display } : null; });
+      check(t + ' Analytics: setup note sits behind an "i"', !fl || (fl.b && fl.link === 'none'), fl);
+      const anGo = v => p.evaluate(v => { const b = document.querySelector('#ccs-main [data-g="anm"][data-v="' + v + '"]'); if (b) b.click(); }, v).then(() => p.waitForTimeout(1300));
+      await anGo('cu');
+      const dn = await p.evaluate(() => { const c = [...document.querySelectorAll('.cat-page[data-cat="cu"] section.cat-card')].find(x => /New and returning/.test(x.getAttribute('aria-label') || '')); return c ? { svg: !!(c.querySelector('svg.ccp-donut') || {}).getClientRects, vis: !!(c.querySelector('svg.ccp-donut') || { getClientRects: () => [] }).getClientRects().length, bar: !!(c.querySelector('.cat-sb') || { getClientRects: () => [] }).getClientRects().length, taps: c.querySelectorAll('.cat-leg [data-act="dx-drill"]').length } : null; });
+      check(t + ' Analytics: New and returning is a donut, taps kept', dn && dn.vis && !dn.bar && dn.taps >= 1, dn);
+      await anGo('pd');
+      const tc = await p.evaluate(() => [...document.querySelectorAll('.cat-page[data-cat="pd"] .cat-kpis > .cat-k')].filter(k => k.getClientRects().length).map(k => k.querySelector('.cat-k-top > span').textContent));
+      check(t + ' Analytics: "Top cake" said once (in Cakes ranked)', tc.length >= 2 && !tc.includes('Top cake'), tc);
+      await anGo('pl');
+      const lo = await p.evaluate(() => { const c = document.querySelector('.cat-page[data-cat="pl"] section.cat-card[aria-label="Largest orders"]'); if (!c) return null; const li = [...c.querySelectorAll('.cat-li')]; return { n: li.length, bars: li.map(x => (x.querySelector('.ccp-lbar > s') || {}).style ? x.querySelector('.ccp-lbar > s').style.width : null), open: li.every(x => x.getAttribute('data-act') === 'open-order'), caps: [...document.querySelectorAll('.cat-page[data-cat="pl"] .cat-kpis .cat-k-cap')].filter(x => x.getClientRects().length).length }; });
+      check(t + ' Analytics: Largest orders drawn as bars (first is 100%), still open the order; no long captions', lo && lo.n >= 1 && parseFloat(lo.bars[0]) === 100 && lo.bars.every(Boolean) && lo.open && lo.caps === 0, lo);
+      if (t === 'phone') { const cc = await p.evaluate(() => { const c = document.querySelector('.cat-page[data-cat="pl"] .cat-cols'); return c ? [...c.children].map(x => x.getBoundingClientRect().width) : []; }); check('phone Analytics: day chart columns stay readable (scroll sideways)', cc.length && cc.every(w => w >= 50), cc); }
+      await anGo('sd');
+      const ok = await p.evaluate(() => [...document.querySelectorAll('.oi-kpis > .ccs-kpi')].filter(k => k.getClientRects().length).map(k => !!k.querySelector('.ccp-kic') && k.querySelector('.ccp-kic').getBoundingClientRect().right <= k.querySelector('.ccs-kpi-n').getBoundingClientRect().left + 1));
+      check(t + ' Analytics: Occasions numbers use the shared card (only the four that matter)', ok.length === 4 && ok.every(Boolean), ok);
+      await anGo('sl'); }
     // ---------- refined details ----------
     await go(p, 'orders');
     const rf = await p.evaluate(() => { const c = document.querySelector('#ccs-main .ccs-card'), cs = getComputedStyle(c), bf = getComputedStyle(c, '::before');
