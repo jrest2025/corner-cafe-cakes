@@ -5,7 +5,7 @@ if(window.CornerWhatsappWorkspace)return;
 const BASE='https://ilbrfwxblhidtlsjgxlh.supabase.co/functions/v1/whatsapp-admin';
 const SB='https://ilbrfwxblhidtlsjgxlh.supabase.co';
 const PUB='sb_publishable_4c9NdubC5PYevEOSMYH0ag_mv1LJ76E';
-let state={tab:'',orderId:'',inbox:null,thread:null,order:null,peer:'',busy:false,error:'',mode:'inbox'};
+let state={tab:'',orderId:'',inbox:null,thread:null,order:null,peer:'',busy:false,error:'',mode:'inbox',status:null,statusPending:false,statusChecked:false,lastOpened:''};
 const root=document.getElementById('cc-staff');if(!root)return;
 const esc=x=>String(x??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 const date=x=>x?new Date(x).toLocaleString('en-FJ',{timeZone:'Pacific/Fiji',dateStyle:'medium',timeStyle:'short'}):'';
@@ -22,15 +22,17 @@ async function call(op,payload={}){
 }
 function mine(){return !!root.querySelector('.ccs-app')&&!root.querySelector('#ccs-login');}
 function role(){const nav=root.querySelector('.ccs-nav');return !!nav && [...nav.querySelectorAll('[data-tab]')].some(el=>el.dataset.tab==='customers');}
+// The live CRM Birthday Club bridge exposes the exact current sheet ID. Never guess from a
+// customer name/order reference: a customer can have several cake orders.
 function orderId(){
- const s=root.querySelector('#ccs-sheet.ccs-open');
- if(!s)return '';
- const ref=s.querySelector('.os-tref');
- const item=ref&&ref.textContent.trim();
- if(!item)return '';
- // Order ID is not encoded in the rendered UI. Find matching in-app order button only when unique.
- const matched=[...root.querySelectorAll('[data-act="open-order"][data-id]')].filter(b=>b.textContent.includes(item));
- return matched.length===1?matched[0].dataset.id:'';
+ const sheet=root.querySelector('#ccs-sheet.ccs-open');
+ if(!sheet || !sheet.querySelector('.os-tref'))return '';
+ const bridge=window.__ccsBc;
+ const current=bridge && typeof bridge.sheet==='function' ? bridge.sheet() : null;
+ if(current && current.type==='order' && /^[0-9a-f-]{36}$/i.test(String(current.id||'')))return String(current.id);
+ // Capture the explicit order ID on the existing order-button click. It is cleared when
+ // another sheet is opened, so an older order cannot be mistaken for the current one.
+ return /^[0-9a-f-]{36}$/i.test(state.lastOpened||'')?state.lastOpened:'';
 }
 function panel(name){let el=root.querySelector('#ccwa-panel');if(!el){el=document.createElement('section');el.id='ccwa-panel';el.className='ccwa-panel';root.appendChild(el);}el.hidden=false;el.innerHTML='<div class="ccwa-top"><h2>'+esc(name)+'</h2><button type="button" class="ccs-btn ccs-ghost" data-wa="close">Close</button></div><div id="ccwa-body"><p>Loading messages…</p></div>';return el;}
 function list(messages,orderView){
@@ -66,25 +68,90 @@ async function showOrder(id){
  (x.enabled?composer(x.peer_number,true):'');
  }catch(e){err(e);}
 }
+function statusView(){
+ const st=state.status;
+ if(!st)return '<p class="ccs-note">The WhatsApp connection has not been deployed or configured yet. Your live Cake CRM is unchanged.</p>';
+ return '<p class="ccs-note"><b>'+ (st.enabled?'Connected — messages enabled':st.connected?'Number verified — messages disabled':'Not connected')+
+ '</b></p><p>Business number: <b>'+esc(st.display_number||'Not set')+'</b></p>';
+}
+function settingsPanel(){
+ const st=state.status,canManage=!!st&&st.can_manage;
+ let h='<details class="ccwa-settings"><summary>WhatsApp Business <span>One active number</span></summary><div class="ccs-set-body">'+statusView();
+ if(canManage){
+ h+='<p class="ccs-hint">Changing the number requires verification through Meta. Your current number is not replaced if verification fails. Only one number can be active.</p>'+
+ '<div class="ccwa-settings-fields"><label class="ccs-label" for="ccwa-number">Business WhatsApp number</label><input class="ccs-input" id="ccwa-number" type="tel" placeholder="+679..." value="'+esc(st.display_number||'')+'" autocomplete="off">'+
+ '<details><summary>Meta connection details</summary><div class="ccwa-settings-fields">'+
+ '<label class="ccs-label" for="ccwa-pid">Meta Phone Number ID</label><input class="ccs-input" id="ccwa-pid" inputmode="numeric" autocomplete="off" placeholder="From Meta Business Manager">'+
+ '<label class="ccs-label" for="ccwa-waba">WhatsApp Business Account ID</label><input class="ccs-input" id="ccwa-waba" inputmode="numeric" autocomplete="off" placeholder="From Meta Business Manager"></div></details>'+
+ '<div class="ccs-actions-row"><button type="button" class="ccs-btn ccs-ghost" data-wa="configure">Verify and save number</button>'+
+ (st.enabled?'<button type="button" class="ccs-btn ccs-ghost" data-wa="disable">Disable sending</button>':'')+
+ '</div><p class="ccs-hint">Meta API secrets are entered securely in Supabase, never in this screen. Go-live is intentionally not available in this preview.</p></div>';
+ } else if(st && !st.can_manage) h+='<p class="ccs-hint">Only a manager or administrator can configure the business number.</p>';
+ h+='<button type="button" class="ccs-link" data-wa="checkstatus">Refresh connection status</button></div></details>';
+ return h;
+}
+async function loadStatus(){
+ if(state.statusPending)return;
+ state.statusPending=true;
+ try{state.status=await call('status');}catch(e){state.status=null;}
+ finally{state.statusPending=false;state.statusChecked=true;enhance();}
+}
 function enhance(){
  if(!mine()||!role())return;
  const nav=root.querySelector('.ccs-nav');
- if(nav&&!nav.querySelector('[data-wa="inbox"]')){
- const button=document.createElement('button');button.type='button';button.className='ccs-nav-item';button.dataset.wa='inbox';button.innerHTML='<span aria-hidden="true">✉</span><span>WhatsApp inbox</span>';nav.appendChild(button);
+ if(nav&&!nav.querySelector('[data-wa="inbox"]')&&(state.status===null || state.status.can_message)){
+   const button=document.createElement('button');button.type='button';button.className='ccs-nav-item';button.dataset.wa='inbox';
+   button.innerHTML='<span aria-hidden="true">✉</span><span>WhatsApp inbox</span>';nav.appendChild(button);
  }
  const sheet=root.querySelector('#ccs-sheet.ccs-open');
- if(sheet&&sheet.querySelector('.os-tref')&&!sheet.querySelector('[data-wa="order"]')){
- const id=orderId();if(id){
- const button=document.createElement('button');button.type='button';button.className='ccs-btn ccs-ghost ccwa-order-button';button.dataset.wa='order';button.dataset.order=id;button.textContent='WhatsApp messages';
- const target=sheet.querySelector('.ccs-sheet-body');
- if(target)target.prepend(button);
- }}
+ if(sheet&&sheet.querySelector('.os-tref')&&!sheet.querySelector('[data-wa="order"]')&&(state.status===null || state.status.can_message)){
+   const id=orderId();
+   if(id){
+     const button=document.createElement('button');button.type='button';button.className='ccs-btn ccs-ghost ccwa-order-button';button.dataset.wa='order';button.dataset.order=id;button.textContent='Messages · WhatsApp';
+     const target=sheet.querySelector('.ccs-sheet-body');if(target)target.prepend(button);
+   }
+ }
+ const settings=root.querySelector('#ccs-main[data-screen="settings"] .ccs-set');
+ if(settings&&!settings.querySelector('.ccwa-settings'))settings.insertAdjacentHTML('beforeend',settingsPanel());
+ if(!state.statusChecked && !state.statusPending)loadStatus();
 }
 let queued=false;const watch=new MutationObserver(()=>{if(queued)return;queued=true;requestAnimationFrame(()=>{queued=false;enhance();});});
 watch.observe(root,{childList:true,subtree:true});
+// Capture the real order ID before the CRM's own click handler opens the order sheet.
+document.addEventListener('click',event=>{
+ const btn=event.target.closest('[data-act="open-order"][data-id]');
+ if(btn && root.contains(btn))state.lastOpened=String(btn.dataset.id||'');
+ else if(event.target.closest('[data-act="close-sheet"],[data-act="open-customer"],[data-tab="new"],[data-tab="customers"]'))state.lastOpened='';
+},true);
 root.addEventListener('click',e=>{
  const btn=e.target.closest('[data-wa]');if(!btn)return;e.preventDefault();e.stopImmediatePropagation();
  if(btn.dataset.wa==='close'){root.querySelector('#ccwa-panel').hidden=true;return;}
+ if(btn.dataset.wa==='checkstatus'){loadStatus();return;}
+ if(btn.dataset.wa==='configure'){
+   if(!state.status?.can_manage)return;
+   const number=root.querySelector('#ccwa-number')?.value.trim();
+   const phone_number_id=root.querySelector('#ccwa-pid')?.value.trim();
+   const waba_id=root.querySelector('#ccwa-waba')?.value.trim();
+   if(!/^\\+[1-9][0-9]{7,14}$/.test(number||'')){
+     alert('Enter the business number with country code, for example +679...');
+     return;
+   }
+   if(!/^\\d{5,25}$/.test(phone_number_id||'')||!/^\\d{5,25}$/.test(waba_id||'')){
+     alert('Open Meta connection details and enter the Phone Number ID and WhatsApp Business Account ID.');
+     return;
+   }
+   btn.disabled=true;
+   call('configure',{display_number:number,phone_number_id,waba_id})
+     .then(()=>loadStatus()).catch(e=>alert(e.message||'The number could not be verified. No changes were saved.'))
+     .finally(()=>{btn.disabled=false;});
+   return;
+ }
+ if(btn.dataset.wa==='disable'){
+   if(!state.status?.can_manage||!confirm('Disable WhatsApp sending and incoming-message processing for this number?'))return;
+   btn.disabled=true;
+   call('disable').then(()=>loadStatus()).catch(e=>alert(e.message||'Could not disable WhatsApp.'))
+     .finally(()=>{btn.disabled=false;});return;
+ }
  if(btn.dataset.wa==='inbox')return showInbox();
  if(btn.dataset.wa==='thread')return showThread(btn.dataset.phone);
  if(btn.dataset.wa==='order')return showOrder(btn.dataset.order);
