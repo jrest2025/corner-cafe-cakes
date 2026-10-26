@@ -100,7 +100,7 @@ Roneel: treats "further ahead in the form", "like the specials module ... turn i
 - Checks: test_seasonal.cjs 125 of 125, test_guest_seasonal.cjs 63 of 63; loader 10 with the live file check, no warnings. Rolled-back database trial: 5 treats, $106, booked, website.
 - Rollback: loader 9 back on the staff page and the earlier guest.seasonal.js line (commit 2440fc07 is staff only; website line at 75b32c53), then publish.
 
-## Seasonal items, enterprise layout (staged 26 Oct 2026, not live until "deploy")
+## Seasonal items, enterprise layout (live 26 Oct 2026, 9:30 PM, after Roneel said "deploy")
 Roneel: "make the seasonal items section enterprise level" (all eight points agreed).
 - Computers and tablets: inside Settings beside the side list (no separate screen). Phones: full screen from Settings.
 - Overview: on sale now, switched off or not on sale, sold this season, booked still to collect; a Needs attention banner.
