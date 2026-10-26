@@ -90,3 +90,12 @@ Roneel: "special limited time items we punch in and upload in the back end and i
 - On computers and tablets, Settings shows a side list built before Seasonal items is added, so it was missing there. `staff.seasonal.js` now adds its own entry after Cakes and prices (commit 2440fc07).
 - Webflow: `ccOrderToolsLoader9` replaces `ccOrderToolsLoader8`. Rollback: put loader 8 back and publish.
 - Checks: `test/order-tools/test_seasonal.cjs` 110 of 110.
+
+## Seasonal items: section switch, first-screen treats, Seasonal sales (staged 26 Oct 2026, not live until "deploy")
+Roneel: treats "further ahead in the form", "like the specials module ... turn it on and off as required", and "in the analytics ... Bhavin and executives will want to know how much was sold".
+- Section On/Off switch on each heading (database `seasonal_groups.active`, applied; existing headings start On). Off hides every item on the website and at the counter and the database refuses them; each item keeps its own switch.
+- Website, first screen: Festive treats panel above the cakes, with photos, Add and plus or minus; picks carry to the last step. "Want treats without a cake? WhatsApp us or call" line until treats-only orders (step 2).
+- Analytics > Cake sales: Seasonal sales card (sales value, collected and booked, items sold, share of cake orders with treats, average per order, by item, website or counter, by pickup week). Database `crm_seasonal_sales()` (read only, applied).
+- Files at commit 6ef8d4c5. Webflow: `ccOrderToolsLoader10` replaces loader 9; website order page footer points at the new guest.seasonal.js (integrity hash updated).
+- Checks: test_seasonal.cjs 125 of 125, test_guest_seasonal.cjs 63 of 63; loader 10 with the live file check, no warnings. Rolled-back database trial: 5 treats, $106, booked, website.
+- Rollback: loader 9 back on the staff page and the earlier guest.seasonal.js line (commit 2440fc07 is staff only; website line at 75b32c53), then publish.
