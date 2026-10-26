@@ -350,6 +350,36 @@
       if (after && after.nextSibling) set.insertBefore(d, after.nextSibling); else set.appendChild(d);
       if (summaryText) d.querySelector('.cc-szm-sum').textContent = summaryText;
     }
+    // Computers and tablets: Settings shows a side list with one section beside it. The app builds that list
+    // before this section exists, so Seasonal items adds its own entry and shows itself when chosen.
+    var nav = set.querySelector(':scope > .ccs-setnav');
+    if (!nav) return;
+    var mine = nav.querySelector('[data-setk="Seasonal items"]');
+    if (!mine) {
+      mine = doc.createElement('button'); mine.type = 'button'; mine.className = 'ccs-secbtn'; mine.setAttribute('role', 'tab');
+      mine.setAttribute('data-setk', 'Seasonal items'); mine.setAttribute('data-cc-szm-tab', '1'); mine.textContent = 'Seasonal items';
+      var prev = nav.querySelector('[data-setk="Cakes and prices"]');
+      if (prev && prev.nextSibling) nav.insertBefore(mine, prev.nextSibling); else nav.appendChild(mine);
+      nav.addEventListener('click', function (e) {
+        var b = e.target.closest && e.target.closest('[data-setk]'); if (!b) return;
+        setOn = !!b.hasAttribute('data-cc-szm-tab'); showMine(set, nav);
+      });
+      var sm = d.querySelector('summary');
+      if (sm) sm.addEventListener('click', function (e) { if (set.classList.contains('is-fit')) { e.preventDefault(); setOn = true; showMine(set, nav); } });
+    }
+    if (setOn) showMine(set, nav);
+  }
+  var setOn = false;
+  function showMine(set, nav) {
+    var d = set.querySelector(':scope > details.cc-szm-entry'); if (!d) return;
+    if (setOn) {
+      [].forEach.call(set.querySelectorAll(':scope > details'), function (x) { x.classList.toggle('is-cur', x === d); });
+      if (!d.open) d.open = true;
+      [].forEach.call(nav.querySelectorAll('[data-setk]'), function (b) { b.setAttribute('aria-selected', String(b.hasAttribute('data-cc-szm-tab'))); });
+    } else {
+      d.classList.remove('is-cur');
+      var me = nav.querySelector('[data-cc-szm-tab]'); if (me) me.setAttribute('aria-selected', 'false');
+    }
   }
   var summaryText = null;
   function mLoad() {

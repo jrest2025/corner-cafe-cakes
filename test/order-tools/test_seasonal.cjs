@@ -114,6 +114,18 @@ const shot = async (p, name) => { if (SHOTS) await p.screenshot({ path: SHOTS + 
     await p.waitForTimeout(1500);
     const entry = await p.evaluate(() => { const d = document.querySelector('#ccs-main .ccs-set details.cc-szm-entry'); if (!d) return null; const prev = d.previousElementSibling; return { prev: prev && prev.querySelector('summary') ? prev.querySelector('summary').textContent : '', sum: d.querySelector('summary').textContent }; });
     check(t + ' Settings has Seasonal items after Cakes and prices', entry && /^Cakes and prices/.test(entry.prev), entry);
+    if (t !== 'phone') {
+      const nav = await p.evaluate(() => [...document.querySelectorAll('#ccs-main .ccs-setnav [data-setk]')].map(x => x.dataset.setk));
+      check(t + ' side list has Seasonal items after Cakes and prices', nav.indexOf('Seasonal items') === nav.indexOf('Cakes and prices') + 1, nav);
+      await tap(p, '#ccs-main .ccs-setnav [data-setk="Seasonal items"]', 500);
+      const vis = await p.evaluate(() => [...document.querySelectorAll('#ccs-main .ccs-set > details')].filter(d => d.getClientRects().length && getComputedStyle(d).display !== 'none').map(d => d.querySelector('summary').textContent.trim().slice(0, 20)));
+      check(t + ' choosing it shows only Seasonal items', vis.length === 1 && /^Seasonal items/.test(vis[0]) && await p.evaluate(() => document.querySelector('[data-setk="Seasonal items"]').getAttribute('aria-selected') === 'true'), vis);
+      check(t + ' its Open button is on screen', await p.evaluate(() => { const b = document.querySelector('[data-cc-szm="open"]'); const r = b && b.getBoundingClientRect(); return !!r && r.height > 0 && r.bottom <= innerHeight; }));
+      await tap(p, '#ccs-main .ccs-setnav [data-setk="Closed days"]', 500);
+      const vis2 = await p.evaluate(() => [...document.querySelectorAll('#ccs-main .ccs-set > details')].filter(d => d.getClientRects().length && getComputedStyle(d).display !== 'none').map(d => d.querySelector('summary').textContent.trim().slice(0, 20)));
+      check(t + ' choosing another section hides it again', vis2.length === 1 && /^Closed days/.test(vis2[0]), vis2);
+      await tap(p, '#ccs-main .ccs-setnav [data-setk="Seasonal items"]', 500);
+    }
     await p.evaluate(() => { const d = document.querySelector('details.cc-szm-entry'); d.open = true; d.querySelector('[data-cc-szm="open"]').click(); });
     await p.waitForTimeout(900);
     const ml = await p.evaluate(() => { const l = document.getElementById('cc-szm'); return l ? { items: [...l.querySelectorAll('.cc-szm-it .cc-sz-txt b')].map(x => x.textContent), pills: [...l.querySelectorAll('.cc-szm-pill')].map(x => x.textContent), sw: [...l.querySelectorAll('.cc-szm-sw')].map(x => x.textContent) } : null; });
