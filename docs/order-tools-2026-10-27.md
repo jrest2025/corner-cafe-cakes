@@ -53,3 +53,13 @@ Roneel: "the same philosophy applied across the board"; "proceed and deploy" (ph
 - WhatsApp in its own green (Roneel: "message icons, if related to WhatsApp, should have the associated colour"): the WhatsApp button in order details, the WhatsApp channel badge, and WhatsApp on the Treat orders board. Other message icons stay navy.
 - Commit 3d23ec0f. Webflow `ccOrderToolsLoader21` replaces loader 19 (loader 20 was an earlier stage of this). Checks: test_polish.cjs 117 of 117, test_service.cjs 39 of 39.
 - Rollback: loader 19 back and publish.
+
+## Phase 3: Customers and Analytics (loader 22, commit 5d02434e)
+
+- Customers: "Follow-ups due" action list above the numbers (up to 3 due or late, read-only via `my_followups`; tap opens the customer, "See all" opens Follow-ups). Hidden when nothing is due.
+- Customers: number cards in one slim row (icon left, number, label); the "Follow-ups due today" card hides while the list shows it; zero goes grey.
+- Customers on phones: section tabs (Customers / Follow-ups / Insights) no longer squash icons into words; they scroll sideways.
+- Analytics: number cards use the shared card (icon left, colour by meaning: amber for money owed / not confirmed, navy otherwise, grey for zero). Cake Heartbeat and Daily Cake Demand untouched.
+- Treat orders board: status line carries an icon coloured by meaning (to confirm / to pay = amber, late = red, paid / handed over = green, cancelled = grey); summary gets a tile; selected tab is soft navy.
+- No data, rules or workflow changes. Festive treats section stays Off.
+- Rollback: remove ccOrderToolsLoader22 from the staff page, add ccOrderToolsLoader21 (footer, 1.0.0), publish.
