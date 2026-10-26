@@ -214,7 +214,7 @@ begin
   return jsonb_build_object('ok', true, 'today', v_today, 'can_edit', public.has_perm('mgmt.settings'),
     'groups', coalesce((select jsonb_agg(to_jsonb(g) order by g.sort, g.name) from public.seasonal_groups g), '[]'),
     'items', coalesce((select jsonb_agg(to_jsonb(i) || jsonb_build_object('sold', (select coalesce(sum(x.quantity), 0) from public.order_extras x join public.orders o on o.id = x.order_id
-        where x.item_id = i.id and o.deleted_at is null and o.order_status not in ('declined', 'cancelled')))) order by i.sort, i.name)
+        where x.item_id = i.id and o.deleted_at is null and o.order_status not in ('declined', 'cancelled'))) order by i.sort, i.name)
       from public.seasonal_items i where i.archived_at is null), '[]'),
     'booked', coalesce((select jsonb_agg(jsonb_build_object('day', q.day, 'item', q.item_id, 'name', q.name, 'quantity', q.n) order by q.day, q.name)
       from (select x.item_id, x.name, o.required_date as day, sum(x.quantity)::int n from public.order_extras x join public.orders o on o.id = x.order_id
