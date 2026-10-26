@@ -196,6 +196,14 @@
   };
   function setText(el, t) { if (el && el.textContent !== t) el.textContent = t; }
   function plainWords() {
+    // "Mobile number" reads "Customer mobile number" (Roneel, 26 Oct 2026). Text only: the field, its checks and
+    // the "Required" tag stay the app's own.
+    [].forEach.call(doc.querySelectorAll('#ccs-slipform label[for="n-phone"], #ccs-sheet label[for="n-phone"]'), function (l) {
+      var n = l.firstChild; if (n && n.nodeType === 3 && /^\s*Mobile number\s*$/.test(n.nodeValue)) n.nodeValue = 'Customer mobile number ';
+    });
+    [].forEach.call(doc.querySelectorAll('#ccs-slipform #n-phone, #ccs-sheet #n-phone'), function (i) {
+      if (i.getAttribute('placeholder') === 'Mobile number') i.setAttribute('placeholder', 'Customer mobile number');
+    });
     [['new', WORDS.modeNew], ['old', WORDS.modeOld]].forEach(function (m) {
       [].forEach.call(doc.querySelectorAll('[data-oo-mode="' + m[0] + '"]'), function (b) {
         setText(b.querySelector('b'), m[1][0]); setText(b.querySelector('small'), m[1][1]);
