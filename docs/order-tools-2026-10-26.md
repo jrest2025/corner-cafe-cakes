@@ -62,3 +62,11 @@ Roneel: "humanise as much as possible".
 ## Data clean-up list (shown to Roneel, nothing changed)
 - 4 paper slips entered on 19–20 Oct have impossible pickup years: CC-1076 (0002-01-09), CC-1077 (0001-01-18), CC-1083 (0002-01-09) and CC-1087 (0002-01-05). The correct dates need to come from the slips. The pickup date guard released on 22 Oct now stops this from happening again.
 - 27 old-sheet orders (H-) have no usable size (0, 2, 3, 4 or 50 inch), and all of them have a $0 price. These are legacy sheet records and were not cleaned, by earlier decision. Size charts should show them as "size not recorded".
+
+## Analytics: "By booking time" view 0.3.0 (staged 26 Oct 2026, 4:05 PM, not live)
+- Month names no longer overlap. Each name only uses the space up to the next month and is shortened or left out when there's no room.
+- A dark tick on each day with cakes, and on upcoming days, shows the usual number of cakes for that weekday: the average of the 8 weeks before, counting empty days as 0.
+- An amber dot marks days with short-notice orders a manager said yes to. Tapping a day shows "Usual for a Saturday: 8 cakes", "busier than usual" when it is, and the number of short-notice orders.
+- Database: `dashboard_register` now includes `rush` (from `orders.rush_override`) for each record. This is one extra key and nothing else changes (`supabase/sql/dashboard_register_rush_20261026.sql`, applied 26 Oct 2026; 8 such orders on record).
+- Loading: the page head still loads 0.2.0 (unchanged). `ccOrderToolsLoader7` (commit ace873bd) also loads 0.3.0, which takes over before Analytics opens. The page code was not edited. Rollback: put `ccOrderToolsLoader6` back and publish.
+- Checks: `test/order-tools/test_leadview.cjs` passes 30 of 30 on phone, tablet and desktop, with the live page code and the file check on. Daily cake demand ("Booked and due") is compared with the live version and is unchanged.
