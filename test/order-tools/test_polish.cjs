@@ -75,6 +75,22 @@ const shot = async (p, name) => { if (SHOTS) await p.screenshot({ path: SHOTS + 
     const an2 = await p.evaluate(() => ({ pressed: [...document.querySelectorAll('.cat-page[data-cat="sl"] .cat-chip')].filter(x => x.getAttribute('aria-pressed') === 'true' || x.classList.contains('is-on')).map(x => x.textContent.trim()), btn: (document.querySelector('.cat-page[data-cat="sl"] .ccdd-btn') || {}).getAttribute('aria-label') }));
     check(t + ' Analytics: choosing 30 days switches the period', an2.pressed.join() === '30 days' && an2.btn === 'Period: 30 days', an2);
     await shot(p, t + '-analytics');
+    // ---------- refined details ----------
+    await go(p, 'orders');
+    const rf = await p.evaluate(() => { const c = document.querySelector('#ccs-main .ccs-card'), cs = getComputedStyle(c), bf = getComputedStyle(c, '::before');
+      return { border: cs.borderTopWidth + ' ' + cs.borderTopColor, radius: cs.borderTopLeftRadius, edge: bf.width, dateIc: !!c.querySelector('.ccs-when .ccp-when-ic'), tagIc: [...document.querySelectorAll('#ccs-main .ccs-pill, #ccs-main .ccs-tag')].filter(x => x.getClientRects().length).every(x => !!x.querySelector('svg') || !/Custom|Delivery|price|Confirmed|Ready|Late/i.test(x.textContent)), title: !!document.querySelector('#ccs-main .ccs-title .ccp-tic'), dots: /·\s*$/.test(document.querySelector('#ccs-main .ccs-head .ccs-fresh').firstChild.nodeValue || ''), num: getComputedStyle(document.querySelector('.ccs-price')).fontVariantNumeric }; });
+    check(t + ' refined: hairline border, 14px corners, 3px status edge', rf.border === '1px rgb(228, 231, 236)' && rf.radius === '14px' && rf.edge === '3px', rf);
+    check(t + ' refined: icons on date, tags and page title', rf.dateIc && rf.tagIc && rf.title, rf);
+    check(t + ' refined: no stray dot, even figures', !rf.dots && /tabular-nums/.test(rf.num), rf);
+    const ch = await p.evaluate(() => [...document.querySelectorAll('#ccs-main .ccs-card .cc-ch')].filter(x => x.getClientRects().length).map(x => ({ label: x.getAttribute('aria-label'), w: Math.round(x.getBoundingClientRect().width), textShown: x.querySelector(':scope > span').getBoundingClientRect().width > 2 })));
+    if (t !== 'phone') check(t + ' channel shown as an icon with its name as the label', ch.length && ch.every(c => c.label === 'Website order' && c.w <= 40 && !c.textShown), ch);
+    await shot(p, t + '-orders-refined');
+    await go(p, 'customers');
+    if (t === 'phone') { await tap(p, '#ccs-main .cc-fit-bar[data-fit="cust"]', 700); }
+    const rc = await p.evaluate(() => ({ kpi: document.querySelectorAll('#ccs-main .cw-metric-arrow svg').length, th: (() => { const th = document.querySelector('#ccs-main .ccs-table th'); if (!th) return null; const c = getComputedStyle(th); return c.textTransform + ' ' + c.backgroundColor; })() }));
+    check(t + ' refined: Customers number-card icons, quiet table header', rc.kpi === 4 && (rc.th === null || rc.th === 'none rgb(249, 250, 251)'), rc);
+    await shot(p, t + '-customers-refined');
+    const hb = await p.evaluate(() => { const r = document.getElementById('cc-demand-scroll-rail'); return r ? 'ok' : 'none'; });
     check(t + ' no horizontal scroll', await p.evaluate(() => document.documentElement.scrollWidth - innerWidth <= 1));
     check(t + ' no page errors or polish warnings', !errors.filter(m => !/reading 'length'|reading 'filter'/.test(m)).length && !logs.filter(x => /Polish|Analytics focus/.test(x)).length, errors.concat(logs.filter(x => /Polish/.test(x))));
     await ctx.close();

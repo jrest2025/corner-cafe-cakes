@@ -56,7 +56,12 @@
     list: '<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',
     tag: '<path d="M12.6 2.6A2 2 0 0 0 11.2 2H4a2 2 0 0 0-2 2v7.2a2 2 0 0 0 .6 1.4l8.7 8.7a2.4 2.4 0 0 0 3.4 0l6.6-6.6a2.4 2.4 0 0 0 0-3.4z"/><circle cx="7.5" cy="7.5" r="1"/>',
     pen: '<path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>',
-    pause: '<circle cx="12" cy="12" r="9"/><path d="M10 9v6M14 9v6"/>'
+    pause: '<circle cx="12" cy="12" r="9"/><path d="M10 9v6M14 9v6"/>',
+    alert: '<path d="m21.7 18-8-14a2 2 0 0 0-3.4 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3M12 9v4M12 17h.01"/>',
+    checkc: '<circle cx="12" cy="12" r="9"/><path d="m8.5 12 2.5 2.5 4.5-5"/>',
+    hourglass: '<path d="M5 22h14M5 2h14M17 22v-4.2a2 2 0 0 0-.6-1.4L12 12l-4.4 4.4a2 2 0 0 0-.6 1.4V22M7 2v4.2a2 2 0 0 0 .6 1.4L12 12l4.4-4.4a2 2 0 0 0 .6-1.4V2"/>',
+    coins: '<circle cx="8" cy="8" r="6"/><path d="M18.1 10.4A6 6 0 1 1 10.3 18M7 6h1v4M16.7 13.9l.7.7-2.8 2.8"/>',
+    inbox: '<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5.1 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.8 4H7.2a2 2 0 0 0-1.7 1.1"/>'
   };
   function svg(k, cls) { return P[k] ? '<svg class="ccp-ic' + (cls ? ' ' + cls : '') + '" viewBox="0 0 24 24" aria-hidden="true" focusable="false">' + P[k] + '</svg>' : ''; }
   function txt(e) { return e ? e.textContent.replace(/\s+/g, ' ').trim() : ''; }
@@ -226,10 +231,57 @@
   }
   function treatBoard() {
     var l = doc.getElementById('cc-to'); if (!l) return;
+    var e0 = l.querySelector('.cc-to-empty'); if (e0 && !e0.querySelector('.ccp-empty-ic')) { e0.insertAdjacentHTML('afterbegin', '<span class="ccp-empty-ic">' + svg('inbox') + '</span>'); e0.classList.add('ccp-empty'); }
     [].forEach.call(l.querySelectorAll('.cc-to-moreb .ccs-btn, .cc-to-acts .ccs-btn'), function (b) {
       var w = txt(b); deco(b, /^Call/.test(w) ? 'phone' : /^WhatsApp/.test(w) ? 'chat' : /^Print/.test(w) ? 'printer' : /^Cancel order/.test(w) ? 'xcircle' : /^Take payment/.test(w) ? null : null);
     });
     deco(l.querySelector('[data-cc-to="new"]'), 'gift');
+  }
+
+  // ---------- refined details: icons on tags and number cards, page-title icons, tidy separators ----------
+  var TAG_IC = [[/allerg|dietary/i, null], [/^(Needs a price|Check order|To check|Waiting|Not confirmed|Quote|Awaiting)/i, 'hourglass'], [/^(Confirmed|Ready|Paid|Completed|Handed over|Collected|Done)/i, 'checkc'], [/^(Late|Overdue|Changed)/i, 'alert'], [/^Delivery/i, 'truck'], [/^Custom$/i, 'pen'], [/^Custom$/i, 'pen'], [/(to pay|owing|deposit|payment)/i, 'coins'], [/^Cancelled|^Declined/i, 'xcircle']];
+  var KPI_IC = { customers: 'users', 'new': 'spark', returning: 'repeat', due_today: 'bell' };
+  var TITLE_TAB = { 'Analytics': 'dash', 'Cake orders': 'orders', 'Customers': 'customers', 'Settings': 'settings', 'Calendar': 'calendar', 'Shift handover': 'handover', "What's on today?": 'kitchen', 'Register': 'register' };
+  var WALK = '<circle cx="13.5" cy="4.5" r="2"/><path d="M10 21.5l2.3-6.3 3.2 2.6v3.7M8 12.8l2.2-3.6 4.1.9 2.4 3.1M12.4 10l-1 5.4"/>';
+  function channels(root) {
+    [].forEach.call(root.querySelectorAll('.cc-ch'), function (c) {
+      if (c.classList.contains('ccp-chi') || c.closest('#ccs-sheet')) return;
+      var name = txt(c.querySelector(':scope > span')) || txt(c);
+      c.classList.add('ccp-chi'); c.setAttribute('role', 'img'); c.setAttribute('aria-label', name); c.title = name;
+      if (c.classList.contains('cc-ch-walk_in')) { var g = c.querySelector('svg'); if (g) g.innerHTML = WALK; }
+    });
+  }
+  function refine(main) {
+    channels(main);
+    // status tags: a small icon that says what kind of status it is
+    [].forEach.call(main.querySelectorAll('.ccs-pill, .ccs-tag'), function (e) {
+      if (e.closest('#cc-heartbeat') || e.querySelector('svg')) return;
+      var w = txt(e); for (var i = 0; i < TAG_IC.length; i++) if (TAG_IC[i][0].test(w)) { if (TAG_IC[i][1]) deco(e, TAG_IC[i][1]); break; }
+    });
+    // Customers number cards: a proper icon instead of the text arrow
+    [].forEach.call(main.querySelectorAll('.cw-metric'), function (m) {
+      var a = m.querySelector('.cw-metric-arrow'), k = KPI_IC[m.getAttribute('data-ccdr')];
+      if (a && k && !a.querySelector('svg')) { a.innerHTML = svg(k); a.classList.add('ccp-kpi-ic'); }
+    });
+    // page titles carry the same icon as their sidebar item
+    var h1 = main.querySelector(':scope > .ccs-head h1.ccs-title, :scope > .ccs-head .ccs-title');
+    if (h1 && !h1.querySelector('.ccp-tic')) {
+      var tab = TITLE_TAB[txt(h1).replace(/\s*i$/, '')], src = tab && doc.querySelector('#cc-staff .ccs-nav [data-tab="' + tab + '"] svg');
+      if (src) { var c = src.cloneNode(true); c.setAttribute('class', 'ccp-tic'); c.setAttribute('aria-hidden', 'true'); h1.insertBefore(c, h1.firstChild); h1.classList.add('ccp-hast'); }
+    }
+    // stray separators ("Updated 7:22 AM ·" before the refresh icon, "·Export summary")
+    [].forEach.call(main.querySelectorAll(':scope > .ccs-head .ccs-fresh, :scope > .ccs-head .ccs-sub'), function (p) {
+      [].forEach.call(p.childNodes, function (n) {
+        if (n.nodeType !== 3) return;
+        var nx = n.nextSibling;
+        if (/^\s*·\s*$/.test(n.nodeValue)) n.nodeValue = ' ';
+        else if (/·\s*$/.test(n.nodeValue) && nx && nx.nodeType === 1 && /ccs-refresh/.test(nx.className || '')) n.nodeValue = n.nodeValue.replace(/\s*·\s*$/, ' ');
+      });
+    });
+    // empty states: a soft icon over the line
+    [].forEach.call(main.querySelectorAll('.ccs-empty, .cc-to-empty, .cat-none'), function (e) { if (!e.querySelector('.ccp-empty-ic') && e.getClientRects().length) { e.insertAdjacentHTML('afterbegin', '<span class="ccp-empty-ic">' + svg('inbox') + '</span>'); e.classList.add('ccp-empty'); } });
+    // order date block: a small calendar mark
+    [].forEach.call(main.querySelectorAll('.ccs-card > .ccs-when'), function (w) { if (!w.querySelector('.ccp-ic')) w.insertAdjacentHTML('afterbegin', svg('cal', 'ccp-when-ic')); });
   }
 
   // ---------- style ----------
@@ -287,6 +339,51 @@
       '#ccs-main .ccp-i{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;margin-left:4px;vertical-align:middle;border:0;background:none;cursor:pointer}#ccs-main .ccp-i span{width:24px;height:24px;border-radius:50%;border:1.5px solid #98A2B3;color:#475467;font:italic 600 14px/21px Georgia,serif;text-align:center}',
       '#ccs-main .ccp-i[aria-expanded="true"] span{background:#E8EEF7;border-color:#245F99;color:#1E3A5F}',
       '#ccs-main .ccs-ctool{display:flex;flex-wrap:wrap;align-items:center;gap:10px}#ccs-main .ccp-rem{display:inline-flex;align-items:center;gap:8px}',
+      // ---------- refined lines: one hairline, one radius set, status as a slim edge, quiet shadows ----------
+      ':root{--ccp-line:#E4E7EC;--ccp-line-2:#D0D5DD;--ccp-navy:#245F99;--ccp-r:14px}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main :is(.ccs-card,.cat-card,.cat-k,.cw-metric,.kw-line,.kw-count,.kw-sec,.kw-next,.tq-stat,.ccs-box,.dx-card,.cc-ss):not(#cc-heartbeat *){border:1px solid var(--ccp-line)!important;border-radius:var(--ccp-r)!important;box-shadow:none!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main :is(.kw-line,.cw-metric){border-radius:12px!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main .ccs-card:not(#cc-heartbeat *)::before{width:3px!important;border-radius:3px 0 0 3px}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main .kw-next:not(#cc-heartbeat *){box-shadow:inset 3px 0 0 var(--ccp-navy)!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main .kw-sec.kw-att:not(#cc-heartbeat *){box-shadow:inset 3px 0 0 #F2B544!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main .cat-todo .cci-card:not(#cc-heartbeat *){border-top-color:var(--ccp-line)!important;border-right-color:var(--ccp-line)!important;border-bottom-color:var(--ccp-line)!important;border-left-width:3px!important;border-radius:var(--ccp-r)!important;box-shadow:none!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main .tp-urgent .tp-urg{border-left-width:3px!important;border-radius:0 10px 10px 0!important}',
+      // gentle lift only on things you can tap
+      ':root:not(#cc-t0) #cc-staff #ccs-main :is(.ccs-card,.kw-line,.kw-count,.cw-metric,.cat-k.cat-tap):not(#cc-heartbeat *){transition:border-color .15s,box-shadow .15s,transform .12s}',
+      '@media (hover:hover){:root:not(#cc-t0) #cc-staff #ccs-main :is(.ccs-card,.kw-line,.kw-count,.cw-metric,.cat-k.cat-tap):not(#cc-heartbeat *):hover{border-color:var(--ccp-line-2)!important;box-shadow:0 4px 14px rgba(16,24,40,.06)!important}}',
+      '#cc-staff :is(button,.ccs-btn,.ccs-card,.kw-line):active{transform:scale(.985)}',
+      '#cc-staff :is(button,a,input,select,textarea):focus-visible{outline:3px solid rgba(36,95,153,.35)!important;outline-offset:2px!important}',
+      // Analytics number cards: one quiet navy mark instead of four colours
+      ':root:not(#cc-t0) #cc-staff #ccs-main .cat-k:not(#cc-heartbeat *)::before{background:var(--ccp-navy)!important;opacity:.85;width:3px!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main .cat-k .cat-k-top > i{display:none!important}',
+      // Treat orders board lines
+      '#cc-staff .cc-to-dh{border-bottom:1px solid var(--ccp-line)!important}#cc-staff .cc-to-o{border-left-width:3px!important;border-color:var(--ccp-line)}#cc-staff .cc-to-o.is-new{border-left-color:#079455}#cc-staff .cc-to-o.is-due{border-left-color:#F79009}#cc-staff .cc-to-o.is-late{border-left-color:#B42318}#cc-staff .cc-to-o.is-paid{border-left-color:var(--ccp-navy)}',
+      // numbers: even figures that line up, a lighter weight on big numbers
+      ':root:not(#cc-t0) #cc-staff #ccs-main :is(.ccs-price,.cat-k strong,.cw-metric-value,.ccs-n,.kw-when b,.ccs-when,.ccs-table td,.cc-ss-kpi b,.hb-k-value,.cc-to-time,.cci-big,.tq-stat b,.tq-stat strong):not(#cc-heartbeat *){font-variant-numeric:tabular-nums lining-nums}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main :is(.cat-k strong,.cw-metric-value):not(#cc-heartbeat *){font-weight:650!important;letter-spacing:-.02em!important}',
+      // tables: quiet header, hairline rows
+      ':root:not(#cc-t0) #cc-staff #ccs-main .ccs-table th:not(#cc-heartbeat *){background:#F9FAFB!important;color:#475467!important;text-transform:none!important;letter-spacing:0!important;font-weight:600!important;border-bottom:1px solid var(--ccp-line)!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main .ccs-table-wrap:not(#cc-heartbeat *){border:1px solid var(--ccp-line)!important;border-radius:var(--ccp-r)!important;box-shadow:none!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main .ccs-table-wrap:not(#cc-heartbeat *){border:1px solid var(--ccp-line)!important;border-radius:var(--ccp-r)!important;box-shadow:none!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main .ccs-table td:not(#cc-heartbeat *){border-bottom:1px solid #F2F4F7!important}',
+      '@media (hover:hover){:root:not(#cc-t0) #cc-staff #ccs-main .ccs-table tbody tr:hover td:not(#cc-heartbeat *){background:#F9FAFB}}',
+      // tags: slimmer, with an icon
+      ':root:not(#cc-t0) #cc-staff #ccs-main :is(.ccs-pill,.ccs-tag).ccp-hasic:not(#cc-heartbeat *){gap:6px}#cc-staff #ccs-main :is(.ccs-pill,.ccs-tag) .ccp-ic{width:16px;height:16px;stroke-width:2}',
+      // how the order came in: an icon badge in lists (the name shows on hover and to screen readers; the order details keep the words)
+      ':root:not(#cc-t0) #cc-staff #ccs-main .cc-ch.ccp-chi:not(#cc-heartbeat *){width:34px!important;height:34px!important;min-width:0!important;padding:0!important;border-radius:50%!important;justify-content:center!important;gap:0!important;border:1px solid var(--ccp-line-2)!important;background:#fff!important;color:#344054!important;flex:none}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main .cc-ch.ccp-chi > span:not(#cc-heartbeat *){position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}',
+      '#cc-staff #ccs-main .cc-ch.ccp-chi svg{width:18px!important;height:18px!important;stroke-width:1.75!important;margin:0!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main .cc-ch.ccp-chi.cc-ch-online:not(#cc-heartbeat *){background:#EEF3F9!important;border-color:#B7CCE3!important;color:var(--ccp-navy)!important}',
+      '@media (min-width:760px) and (hover:none) and (pointer:coarse){:root:not(#cc-t0) #cc-staff #ccs-main .cc-ch.ccp-chi:not(#cc-heartbeat *){width:38px!important;height:38px!important}#cc-staff #ccs-main .cc-ch.ccp-chi svg{width:20px!important;height:20px!important}}',
+      // Customers number-card icons
+      '#cc-staff #ccs-main .cw-metric-arrow.ccp-kpi-ic{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:10px;background:#EEF3F9;color:var(--ccp-navy)}#cc-staff #ccs-main .cw-metric-arrow .ccp-ic{width:20px;height:20px}',
+      // page titles with their sidebar icon
+      '#cc-staff #ccs-main .ccs-title.ccp-hast{display:flex;align-items:center;gap:12px}#cc-staff #ccs-main .ccp-tic{width:24px;height:24px;padding:8px;box-sizing:content-box;border-radius:10px;background:#EEF3F9;color:var(--ccp-navy);fill:none;stroke:currentColor;stroke-width:1.75;flex:none}',
+      // order date block mark
+      '#cc-staff #ccs-main .ccs-when{position:relative}#cc-staff #ccs-main .ccp-when-ic{width:16px;height:16px;color:var(--ccp-navy);opacity:.7;display:block;margin-bottom:4px}',
+      // empty states
+      '#cc-staff .ccp-empty{text-align:center;padding:28px 12px!important;color:#475467}#cc-staff .ccp-empty-ic{display:flex;justify-content:center;margin-bottom:8px}#cc-staff .ccp-empty-ic .ccp-ic{width:36px;height:36px;padding:8px;border-radius:12px;background:#F2F4F7;color:#667085;stroke-width:1.5;box-sizing:content-box}',
+      '@media (prefers-reduced-motion:reduce){#cc-staff *{transition:none!important}#cc-staff :is(button,.ccs-btn,.ccs-card,.kw-line):active{transform:none}}',
       // type weight by device (computers unchanged)
       '@media (max-width:759px){#cc-staff #ccs-main{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}#cc-staff #ccs-main h1,#cc-staff #ccs-main h2{font-weight:600}#cc-staff .ccdd-btn,#cc-staff #ccs-main .cdir-pager .ccdd-btn{width:100%;min-height:52px!important;height:auto!important}#ccs-main .ccp-i{display:none!important}#cc-staff .ccdd-wide{min-width:0}#ccs-main .ccp-i{width:48px;height:48px}}',
       '@media (min-width:760px) and (hover:none) and (pointer:coarse){#cc-staff #ccs-main .ccs-sub,#cc-staff #ccs-main .ccs-meta,#cc-staff #ccs-main .kw-what span,#cc-staff #ccs-main .vr-order-meta{font-weight:500}#cc-staff .ccdd-btn,#cc-staff #ccs-main .cdir-pager .ccdd-btn{min-height:56px!important;height:auto!important;font-size:18px}#cc-staff .ccdd-opt{min-height:56px;font-size:18px}#ccs-main .ccp-i{width:54px;height:54px}#cc-staff .ccp-ic{width:22px;height:22px}}'
@@ -308,6 +405,7 @@
       if (/^orders/.test(scr) || main.querySelector('.ccs-list .ccs-card')) orders(main);
       if (main.querySelector('.ccs-setnav')) settings(main);
       if (main.querySelector('.cat-page, .dx-filters')) analytics(main);
+      refine(main);
       seasonal(); treatBoard();
     } catch (e) { warn('update', e); }
   }
