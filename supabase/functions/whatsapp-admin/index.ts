@@ -31,7 +31,7 @@ Deno.serve(async (req: Request) => {
   if (["configure","enable","disable"].includes(op) && !admin) return respond(req,{ok:false,error:"manager_required"},403);
   const {data:conn,error:readErr}=await db.from("wa_connection").select("*").eq("id",1).maybeSingle();
   if (readErr) return respond(req,{ok:false,error:"schema_not_installed"},503);
-  if (op==="status") return respond(req,{ok:true,connected:!!conn?.verified_at,enabled:!!conn?.enabled,display_number:conn?.display_number||null});
+  if (op==="status") return respond(req,{ok:true,connected:!!conn?.verified_at,enabled:!!conn?.enabled,display_number:conn?.display_number||null,can_manage:admin,can_message:["admin","manager","front_of_house"].includes(staff.role)});
   if (op==="disable") {
     const {error}=await db.from("wa_connection").update({enabled:false,updated_by:auth.user.id,updated_at:new Date().toISOString()}).eq("id",1);
     return respond(req,error?{ok:false,error:"save_failed"}:{ok:true,enabled:false},error?500:200);
@@ -62,10 +62,89 @@ Deno.serve(async (req: Request) => {
     const {error}=await db.from("wa_connection").update({enabled:true,updated_by:auth.user.id,updated_at:new Date().toISOString()}).eq("id",1);
     return respond(req,error?{ok:false,error:"save_failed"}:{ok:true,enabled:true},error?500:200);
   }
+
+  // All inbox and order views are server-authorized; private message rows stay off the browser Data API.
+  const mayMessage=["admin","manager","front_of_house"].includes(staff.role);
+  const e164=(input:unknown) => {
+    let digits=String(input||"").replace(/[^0-9]/g,"");
+    if(digits.length===7) digits="679"+digits;
+    return /^[1-9][0-9]{7,14}$/.test(digits)?"+"+digits:"";
+  };
+  async function validatedOrder(id:unknown) {
+    const orderId=String(id||"");
+    if(!/^[0-9a-f-]{36}$/i.test(orderId))return null;
+    const {data}=await db.from("orders").select("id,reference,contact_phone,contact_name").eq("id",orderId).maybeSingle();
+    return data||null;
+  }
+  if (["inbox","thread","order","link"].includes(op) && !mayMessage)
+    return respond(req,{ok:false,error:"messaging_not_allowed"},403);
+  if (op==="inbox") {
+    if(!conn?.enabled)return respond(req,{ok:true,enabled:false,threads:[]});
+    const {data,error}=await db.from("wa_messages")
+      .select("peer_number,body,status,direction,created_at,order_id,message_type")
+      .eq("number_id",conn.phone_number_id).order("created_at",{ascending:false}).limit(250);
+    if(error)return respond(req,{ok:false,error:"inbox_unavailable"},503);
+    const seen=new Set<string>();
+    const threads=(data||[]).filter((m:any)=>{
+      if(seen.has(m.peer_number))return false; seen.add(m.peer_number); return true;
+    }).slice(0,80);
+    return respond(req,{ok:true,enabled:true,threads});
+  }
+  if (op==="thread") {
+    if(!conn?.enabled)return respond(req,{ok:true,enabled:false,messages:[]});
+    const peer=e164(body.peer_number);
+    if(!peer)return respond(req,{ok:false,error:"invalid_phone"},400);
+    const {data,error}=await db.from("wa_messages").select("id,meta_message_id,peer_number,direction,message_type,body,status,created_at,order_id")
+      .eq("number_id",conn.phone_number_id).eq("peer_number",peer).order("created_at",{ascending:true}).limit(150);
+    if(error)return respond(req,{ok:false,error:"thread_unavailable"},503);
+    return respond(req,{ok:true,enabled:true,peer_number:peer,messages:data||[]});
+  }
+  if (op==="order") {
+    const order=await validatedOrder(body.order_id);
+    if(!order)return respond(req,{ok:false,error:"order_not_found"},404);
+    const peer=e164(order.contact_phone);
+    const {data:linked,error}=await db.from("wa_messages")
+      .select("id,direction,body,message_type,status,created_at,peer_number,order_id")
+      .eq("order_id",order.id).order("created_at",{ascending:true}).limit(150);
+    if(error)return respond(req,{ok:false,error:"order_messages_unavailable"},503);
+    let unlinked:any[]=[];
+    if(conn?.enabled && peer){
+      const {data:pending,error:pendingErr}=await db.from("wa_messages")
+        .select("id,direction,body,message_type,status,created_at,peer_number,order_id")
+        .eq("number_id",conn.phone_number_id).eq("peer_number",peer).is("order_id",null)
+        .order("created_at",{ascending:false}).limit(30);
+      if(pendingErr)return respond(req,{ok:false,error:"unlinked_messages_unavailable"},503);
+      unlinked=pending||[];
+    }
+    return respond(req,{ok:true,enabled:!!conn?.enabled,display_number:conn?.display_number||null,
+      order_reference:order.reference,peer_number:peer,linked:linked||[],unlinked});
+  }
+  if (op==="link") {
+    const order=await validatedOrder(body.order_id);
+    const mid=String(body.message_id||"");
+    if(!order||!/^[0-9a-f-]{36}$/i.test(mid))return respond(req,{ok:false,error:"invalid_order_or_message"},400);
+    const peer=e164(order.contact_phone);
+    if(!peer)return respond(req,{ok:false,error:"order_phone_missing"},409);
+    const {data:msg}=await db.from("wa_messages").select("id,order_id,peer_number,number_id")
+      .eq("id",mid).maybeSingle();
+    if(!msg||msg.order_id||msg.peer_number!==peer||msg.number_id!==conn?.phone_number_id)
+      return respond(req,{ok:false,error:"message_already_linked_or_phone_mismatch"},409);
+    const {data:linked,error}=await db.from("wa_messages")
+      .update({order_id:order.id,linked_by:auth.user.id,linked_at:new Date().toISOString()})
+      .eq("id",msg.id).is("order_id",null).select("id").maybeSingle();
+    if(error||!linked)return respond(req,{ok:false,error:"link_failed"},409);
+    return respond(req,{ok:true,linked:true});
+  }
   if (op==="reply") {
     if (!conn?.enabled || !conn?.phone_number_id) return respond(req,{ok:false,error:"whatsapp_disabled"},409);
-    if (staff.role==="kitchen" || staff.role==="finance") return respond(req,{ok:false,error:"messaging_not_allowed"},403);
-    const to=String(body.to||"").trim(), message=String(body.message||"").trim(), requestId=String(body.request_id||"").trim();
+    if (!mayMessage) return respond(req,{ok:false,error:"messaging_not_allowed"},403);
+    const to=e164(body.to), message=String(body.message||"").trim(), requestId=String(body.request_id||"").trim();
+    let replyOrder:any=null;
+    if(body.order_id){
+      replyOrder=await validatedOrder(body.order_id);
+      if(!replyOrder||e164(replyOrder.contact_phone)!==to)
+        return respond(req,{ok:false,error:"order_phone_mismatch"},409);
+    }
     if (!/^\+[1-9][0-9]{7,14}$/.test(to) || !message || message.length>4096 ||
        !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(requestId))
       return respond(req,{ok:false,error:"invalid_reply"},400);
@@ -76,7 +155,8 @@ Deno.serve(async (req: Request) => {
     const {data:existing}=await db.from("wa_messages").select("id,status").eq("client_request_id",requestId).maybeSingle();
     if (existing) return respond(req,{ok:true,duplicate:true,status:existing.status});
     const {error:writeError}=await db.from("wa_messages").insert({number_id:conn.phone_number_id,peer_number:to,
-      direction:"outbound",message_type:"text",body:message,status:"sending",client_request_id:requestId,staff_id:auth.user.id});
+      direction:"outbound",message_type:"text",body:message,status:"sending",client_request_id:requestId,staff_id:auth.user.id,
+      order_id:replyOrder?.id||null,linked_by:replyOrder?auth.user.id:null,linked_at:replyOrder?new Date().toISOString():null});
     if (writeError) return respond(req,{ok:false,error:"log_failed"},500);
     const sent=await fetch("https://graph.facebook.com/v23.0/"+encodeURIComponent(conn.phone_number_id)+"/messages",{
       method:"POST",headers:{"Authorization":"Bearer "+env("WA_ACCESS_TOKEN"),"Content-Type":"application/json"},
