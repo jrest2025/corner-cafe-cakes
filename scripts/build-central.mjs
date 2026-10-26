@@ -59,10 +59,20 @@ const installTag = '<script src="https://cdn.prod.website-files.com/6a0afe25d2f1
 if (page.split(installTag).length !== 2) fail('the app-install script tag was not found exactly once');
 page = page.replace(installTag, '<script src="/app-install.js" type="text/javascript"></script>');
 
+// WhatsApp preview is composed only after the pristine live-page checksum passes.
+const whatsappJs = read('src/staff.whatsapp-workspace.js');
+const whatsappCss = read('src/staff.whatsapp-workspace.css');
+if (!whatsappJs.includes('CornerWhatsappWorkspace') || !whatsappCss.includes('.ccwa-panel'))
+  fail('WhatsApp preview assets are missing or incomplete');
+page = page.replace('</body>', '<link rel="stylesheet" href="/whatsapp-workspace.css"><script src="/whatsapp-workspace.js" defer></script></body>');
+if (!page.includes('src="/whatsapp-workspace.js"')) fail('WhatsApp preview script injection failed');
+
 const out = join(root, 'central', 'dist');
 rmSync(out, { recursive: true, force: true });
 mkdirSync(out, { recursive: true });
 writeFileSync(join(out, 'index.html'), page);
+writeFileSync(join(out, 'whatsapp-workspace.js'), whatsappJs);
+writeFileSync(join(out, 'whatsapp-workspace.css'), whatsappCss);
 for (const f of ['app/app-install.js', 'app/manifest.json', 'cc-logo.png']) copyFileSync(join(root, 'central', f), join(out, f.split('/').pop()));
 writeFileSync(join(out, 'robots.txt'), 'User-agent: *\nDisallow: /\n');
-console.log(`Built central/dist: index.html (live page, ${page.length} characters), app-install.js, manifest.json, cc-logo.png, robots.txt`);
+console.log(`Built central/dist: index.html (live page, ${page.length} characters), app-install.js, manifest.json, cc-logo.png, robots.txt, WhatsApp preview assets`);
