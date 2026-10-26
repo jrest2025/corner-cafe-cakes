@@ -85,3 +85,8 @@ Roneel: "special limited time items we punch in and upload in the back end and i
 - Published to cornercafefiji.com and www.cornercafefiji.com (not webflow.io). Festive and test pages stayed in draft.
 - Checks: `test/order-tools/test_seasonal.cjs` 102 of 102, `test_guest_seasonal.cjs` 39 of 39, `test_service.cjs` 39 of 39, on phone, tablet and computer; loader 8 loads all five files with the live file check and no warnings.
 - Rollback: put `ccOrderToolsLoader7` back on the staff page, remove the guest.seasonal.js line from the order page footer, and publish. Switching every item Off hides treats everywhere straight away without a publish.
+
+## Fix: Seasonal items in the Settings side list (live 26 Oct 2026, 8:32 PM, after Roneel said "deploy")
+- On computers and tablets, Settings shows a side list built before Seasonal items is added, so it was missing there. `staff.seasonal.js` now adds its own entry after Cakes and prices (commit 2440fc07).
+- Webflow: `ccOrderToolsLoader9` replaces `ccOrderToolsLoader8`. Rollback: put loader 8 back and publish.
+- Checks: `test/order-tools/test_seasonal.cjs` 110 of 110.
