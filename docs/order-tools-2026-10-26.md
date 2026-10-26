@@ -91,7 +91,7 @@ Roneel: "special limited time items we punch in and upload in the back end and i
 - Webflow: `ccOrderToolsLoader9` replaces `ccOrderToolsLoader8`. Rollback: put loader 8 back and publish.
 - Checks: `test/order-tools/test_seasonal.cjs` 110 of 110.
 
-## Seasonal items: section switch, first-screen treats, Seasonal sales (staged 26 Oct 2026, not live until "deploy")
+## Seasonal items: section switch, first-screen treats, Seasonal sales (live 26 Oct 2026, 9:10 PM, after Roneel said "deploy")
 Roneel: treats "further ahead in the form", "like the specials module ... turn it on and off as required", and "in the analytics ... Bhavin and executives will want to know how much was sold".
 - Section On/Off switch on each heading (database `seasonal_groups.active`, applied; existing headings start On). Off hides every item on the website and at the counter and the database refuses them; each item keeps its own switch.
 - Website, first screen: Festive treats panel above the cakes, with photos, Add and plus or minus; picks carry to the last step. "Want treats without a cake? WhatsApp us or call" line until treats-only orders (step 2).
