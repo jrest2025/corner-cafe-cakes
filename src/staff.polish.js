@@ -69,6 +69,14 @@
     inbox: '<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5.1 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.8 4H7.2a2 2 0 0 0-1.7 1.1"/>'
   };
   function svg(k, cls) { return P[k] ? '<svg class="ccp-ic' + (cls ? ' ' + cls : '') + '" viewBox="0 0 24 24" aria-hidden="true" focusable="false">' + P[k] + '</svg>' : ''; }
+  var client = null;
+  function db() {
+    if (client) return client;
+    if (win.__ccsMock) return (client = win.__ccsMock);
+    if (!win.supabase || !win.supabase.createClient) return null;
+    client = win.supabase.createClient('https://ilbrfwxblhidtlsjgxlh.supabase.co', 'sb_publishable_4c9NdubC5PYevEOSMYH0ag_mv1LJ76E', { auth: { persistSession: true, storageKey: 'cc-cakes-staff', autoRefreshToken: false, detectSessionInUrl: false } });
+    return client;
+  }
   function txt(e) { return e ? e.textContent.replace(/\s+/g, ' ').trim() : ''; }
   function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function warn(w, e) { try { console.warn('[Polish] ' + w, e); } catch (_) {} }
@@ -180,6 +188,50 @@
     deco(main.querySelector('[data-act="cust-new"]'), 'userplus');
     [].forEach.call(main.querySelectorAll('.ccs-secbtn[data-g="crm"]'), function (b) { deco(b, { all: 'users', fu: 'bell', ov: 'chart' }[b.getAttribute('data-v')]); });
   }
+  // Customers: follow-ups that are due as a short action list at the top (read only; tapping opens the customer)
+  var FU = { data: null, at: 0, busy: false };
+  function fuLoad() {
+    if (FU.busy || (FU.data && Date.now() - FU.at < 60000)) return;
+    var c = db(); if (!c) return;
+    FU.busy = true;
+    c.rpc('my_followups', { p_days: 0, p_all: false }).then(function (r) {
+      FU.busy = false; FU.at = Date.now();
+      var d = r && r.data; FU.data = d && d.ok && d.allowed !== false ? (d.tasks || []) : [];
+      schedule();
+    }, function () { FU.busy = false; FU.at = Date.now(); FU.data = []; });
+  }
+  function fuToday() { return new Intl.DateTimeFormat('en-CA', { timeZone: 'Pacific/Fiji' }).format(new Date()); }
+  function custActions(main) {
+    if (!/^customers-all/.test(main.getAttribute('data-screen') || '')) { return; }
+    fuLoad();
+    var list = (FU.data || []).filter(function (t) { return t.due_on && t.due_on <= fuToday(); }).sort(function (a, b) { return a.due_on < b.due_on ? -1 : 1; });
+    var box = main.querySelector(':scope > .ccp-fu'), anchor = main.querySelector(':scope > section.cw-summary');
+    if (!list.length || !anchor) { if (box) box.remove(); main.classList.remove('ccp-has-fu'); return; }
+    var t0 = fuToday(), days = function (d) { var n = Math.round((Date.parse(t0) - Date.parse(d)) / 864e5); return n <= 0 ? 'Due today' : n === 1 ? '1 day late' : n + ' days late'; };
+    var h = '<div class="ccp-fu-h"><span class="cl-tile ccp-fixed" data-ccp-tone="amber">' + svg('bell') + '</span><h3>Follow-ups due</h3><button type="button" class="ccs-link ccp-fu-all">See all</button></div><div class="ccp-fu-l">' +
+      list.slice(0, 3).map(function (t) { return '<button type="button" class="ccp-fu-i" data-act="open-customer" data-id="' + esc(t.customer_id) + '"><b>' + esc(t.title || 'Follow up') + '</b><span>' + esc(t.customer || '') + '</span><em class="' + (t.due_on < t0 ? 'is-late' : '') + '">' + days(t.due_on) + '</em></button>'; }).join('') +
+      (list.length > 3 ? '<p class="ccp-fu-more">+' + (list.length - 3) + ' more in Follow-ups</p>' : '') + '</div>';
+    if (!box) { box = doc.createElement('section'); box.className = 'ccp-fu'; box.setAttribute('aria-label', 'Follow-ups due'); main.insertBefore(box, anchor); }
+    if (box.getAttribute('data-h') !== h) { box.innerHTML = h; box.setAttribute('data-h', h); }
+    main.classList.add('ccp-has-fu');
+  }
+  // Number cards (Customers, Analytics): icon left, number, label under; colour by meaning; a zero goes grey
+  var KPI_TONE = [[/owed|owing|to collect|not confirmed|follow-ups due/i, 'amber'], [/./, 'navy']];
+  var CATK_IC = [[/sales|revenue|value|owed|collect|spend/i, 'coins'], [/average|share|per order/i, 'chart'], [/cakes? sold|top cake|cakes,|cakes per|size/i, 'cake'], [/customer/i, 'users'], [/new|first/i, 'spark'], [/return|repeat/i, 'repeat'], [/not confirmed/i, 'hourglass'], [/order/i, 'box'], [/slow/i, 'moon'], [/./, 'chart']];
+  function kpis(main) {
+    [].forEach.call(main.querySelectorAll('.cat-page .cat-kpis > .cat-k'), function (k) {
+      if (k.closest('#cc-heartbeat')) return;
+      var lab = txt(k.querySelector('.cat-k-top > span')), num = txt(k.querySelector(':scope > strong'));
+      if (!k.querySelector(':scope > .ccp-kic')) { var ic = 'chart'; for (var i = 0; i < CATK_IC.length; i++) if (CATK_IC[i][0].test(lab)) { ic = CATK_IC[i][1]; break; } k.insertAdjacentHTML('afterbegin', '<span class="cl-tile ccp-kic ccp-fixed">' + svg(ic) + '</span>'); }
+      var zero = /^\$?0(\.0+)?%?$/.test(num), tn = zero ? 'grey' : (KPI_TONE.filter(function (x) { return x[0].test(lab); })[0] || [0, 'navy'])[1];
+      var t = k.querySelector(':scope > .ccp-kic'); if (t.getAttribute('data-ccp-tone') !== tn) t.setAttribute('data-ccp-tone', tn);
+      k.classList.toggle('ccp-zero', zero); k.classList.add('ccp-kcard');
+    });
+    [].forEach.call(main.querySelectorAll('section.cw-summary > .cw-metric'), function (m) {
+      var v = txt(m.querySelector('.cw-metric-value')); m.classList.toggle('ccp-zero', v === '0');
+      var a = m.querySelector('.cw-metric-arrow'); if (a) a.setAttribute('data-ccp-tone', v === '0' ? 'grey' : /due/.test(m.getAttribute('data-ccdr') || '') ? 'amber' : 'navy');
+    });
+  }
   function kitchenCounts(main) {
     [].forEach.call(main.querySelectorAll('.kw-counts > .kw-count'), function (c) { var em = c.querySelector('em'); c.classList.toggle('ccp-zero', !!em && !/^[1-9]/.test(txt(em))); });
   }
@@ -261,6 +313,16 @@
       var w = txt(b); deco(b, /^Call/.test(w) ? 'phone' : /^WhatsApp/.test(w) ? 'chat' : /^Print/.test(w) ? 'printer' : /^Cancel order/.test(w) ? 'xcircle' : /^Take payment/.test(w) ? null : null);
     });
     deco(l.querySelector('[data-cc-to="new"]'), 'gift');
+    // matching card style: one icon on the status line, coloured by meaning; the summary gets a tile
+    var ST = { 'is-new': ['hourglass', 'amber'], 'is-due': ['coins', 'amber'], 'is-late': ['alert', 'red'], 'is-paid': ['checkc', 'green'], 'is-done': ['checkc', 'green'], 'is-off': ['xcircle', 'grey'] };
+    [].forEach.call(l.querySelectorAll('.cc-to-state'), function (e) {
+      if (e.querySelector('.ccp-sti')) return;
+      var k = Object.keys(ST).filter(function (c) { return e.classList.contains(c); })[0]; if (!k) return;
+      e.insertAdjacentHTML('afterbegin', '<span class="ccp-sti">' + svg(ST[k][0]) + '</span>'); e.setAttribute('data-ccp-tone', ST[k][1]);
+      var card = e.closest('.cc-to-o'); if (card) card.setAttribute('data-ccp-tone', ST[k][1]);
+    });
+    var sm = l.querySelector('.cc-to-sum');
+    if (sm && !sm.querySelector('.cl-tile')) { var done = /^All done/.test(txt(sm)); sm.insertAdjacentHTML('afterbegin', '<span class="cl-tile ccp-fixed" data-ccp-tone="' + (done ? 'green' : 'amber') + '">' + svg(done ? 'checkc' : 'bell') + '</span>'); sm.classList.add('ccp-sum'); }
   }
 
   // ---------- refined details: icons on tags and number cards, page-title icons, tidy separators ----------
@@ -331,7 +393,7 @@
   }
   function tiles(root) {
     [].forEach.call(root.querySelectorAll('.cl-tile, .ap-icon'), function (t) {
-      if (t.closest('#cc-heartbeat')) return;
+      if (t.closest('#cc-heartbeat') || t.classList.contains('ccp-fixed')) return;
       var k = tone(t); if (t.getAttribute('data-ccp-tone') !== k) t.setAttribute('data-ccp-tone', k);
     });
   }
@@ -355,7 +417,7 @@
     [].forEach.call(main.querySelectorAll('.ccs-tab[data-act="filter"]'), function (t) { var n = t.querySelector('.ccs-n'); t.classList.toggle('ccp-quiet', !!n && txt(n) === '0' && t.getAttribute('aria-pressed') !== 'true'); });
   }
   function refine(main) {
-    channels(main); iconOnly(main); analyticsNav(main); tiles(main); today(main); ordersTabs(main);
+    channels(main); iconOnly(main); analyticsNav(main); tiles(main); today(main); ordersTabs(main); custActions(main); kpis(main);
     // status tags: a small icon that says what kind of status it is
     [].forEach.call(main.querySelectorAll('.ccs-pill, .ccs-tag'), function (e) {
       if (e.closest('#cc-heartbeat') || e.querySelector('svg')) return;
@@ -548,6 +610,49 @@
       ':root:not(#cc-t0) #cc-staff #ccs-sheet .os-callrow .ccp-call.ccp-ionly{color:#0B7A3E!important;background:#E3F6EA!important;border-color:#9FDDB6!important}',
       ':root:not(#cc-t0) #cc-staff :is(#ccs-main,#ccs-sheet) .cc-ch.ccp-chi.cc-ch-whatsapp{color:#0B7A3E!important;background:#E3F6EA!important;border-color:#9FDDB6!important}',
       ':root:not(#cc-t0) #cc-staff .cc-to a.ccs-btn[href*="wa.me"]{color:#0B7A3E!important;background:#E3F6EA!important;border-color:#9FDDB6!important}',
+      // ---------- Phase 3: Customers and Analytics ----------
+      // Follow-ups due: the action list on top
+      '#cc-staff #ccs-main .ccp-fu{background:#fff;border:1px solid var(--ccp-line);border-left:3px solid #F0BE6A;border-radius:var(--ccp-r);padding:14px 16px;margin:0 0 14px}',
+      '#cc-staff #ccs-main .ccp-fu-h{display:flex;align-items:center;gap:10px;margin:0 0 8px}#cc-staff #ccs-main .ccp-fu-h h3{margin:0;font-size:19px;font-weight:600;flex:1 1 auto}',
+      '#cc-staff #ccs-main .ccp-fu-h .cl-tile{width:34px!important;height:34px!important;border-radius:10px!important;display:inline-flex!important;align-items:center;justify-content:center}',
+      '#cc-staff #ccs-main .ccp-fu-all{min-height:44px;font-weight:600}',
+      '#cc-staff #ccs-main .ccp-fu-i{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"t w" "c w";gap:2px 12px;width:100%;text-align:left;background:none;border:0;border-top:1px solid #F2F4F7;padding:10px 0;cursor:pointer;color:#1D2939;font:inherit}',
+      '#cc-staff #ccs-main .ccp-fu-i b{grid-area:t;font-weight:600}#cc-staff #ccs-main .ccp-fu-i span{grid-area:c;color:#475467}#cc-staff #ccs-main .ccp-fu-i em{grid-area:w;align-self:center;font-style:normal;font-weight:600;color:#8A4504}#cc-staff #ccs-main .ccp-fu-i em.is-late{color:#9E1F14}',
+      '#cc-staff #ccs-main .ccp-fu-more{margin:6px 0 0;color:#475467}',
+      // said once: the "Follow-ups due today" number card hides when the list is shown
+      ':root:not(#cc-t0) #cc-staff #ccs-main.ccp-has-fu .cw-summary > .cw-metric[data-ccdr="due_today"]{display:none!important}',
+      // Customers number cards: one slim row, icon left, number, label under
+      ':root:not(#cc-t0) #cc-staff #ccs-main .cw-summary{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))!important;gap:10px!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main .cw-summary > .cw-metric{display:grid!important;grid-template-columns:auto minmax(0,1fr)!important;grid-template-areas:"ic num" "ic lab"!important;align-items:center!important;gap:2px 12px!important;padding:12px 14px!important;min-height:0!important;text-align:left!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main .cw-summary > .cw-metric > .cw-metric-arrow{grid-area:ic!important;position:static!important;width:40px!important;height:40px!important;border-radius:11px!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main .cw-summary > .cw-metric > .cw-metric-value{grid-area:num!important;font-size:26px!important;line-height:1.1!important;margin:0!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main .cw-summary > .cw-metric > .cw-metric-label{grid-area:lab!important;font-size:15px!important;color:#344054!important;margin:0!important;line-height:1.3!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main .cw-summary > .cw-metric .cw-metric-arrow[data-ccp-tone="amber"]{background:#F7D9A6!important;color:#8A4504!important;box-shadow:inset 0 0 0 1px #E2AE5C!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main .cw-summary > .cw-metric .cw-metric-arrow[data-ccp-tone="navy"]{background:#CADAEE!important;color:#1A4570!important;box-shadow:inset 0 0 0 1px #8FAED3!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main .cw-summary > .cw-metric .cw-metric-arrow[data-ccp-tone="grey"]{background:#D8DEE6!important;color:#3E4A5C!important;box-shadow:inset 0 0 0 1px #B3BDC9!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main .cw-summary > .cw-metric.ccp-zero{background:#F9FAFB!important}:root:not(#cc-t0) #cc-staff #ccs-main .cw-summary > .cw-metric.ccp-zero > :is(.cw-metric-value,.cw-metric-label){color:#98A2B3!important}',
+      '@media (max-width:759px){:root:not(#cc-t0) #cc-staff #ccs-main .cw-summary{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}:root:not(#cc-t0) #cc-staff #ccs-main .cw-summary > .cw-metric{padding:10px!important;gap:2px 10px!important}:root:not(#cc-t0) #cc-staff #ccs-main .cw-summary > .cw-metric > .cw-metric-arrow{width:34px!important;height:34px!important}:root:not(#cc-t0) #cc-staff #ccs-main .cw-summary > .cw-metric > .cw-metric-value{font-size:22px!important}}',
+      // Analytics number cards: the same card (icon left, number, label under, one line of detail only where it matters)
+      ':root:not(#cc-t0) #cc-staff #ccs-main .cat-kpis > .cat-k.ccp-kcard:not(#cc-heartbeat *){display:grid!important;grid-template-columns:auto minmax(0,1fr)!important;grid-template-areas:"ic num" "ic lab" "ic cap"!important;align-items:center!important;align-content:center!important;gap:2px 12px!important;text-align:left!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main .cat-kpis > .cat-k.ccp-kcard::before{display:none!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main .cat-kpis > .cat-k.ccp-kcard > .ccp-kic{grid-area:ic!important;align-self:start!important;width:40px!important;height:40px!important;border-radius:11px!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main .cat-kpis > .cat-k.ccp-kcard > strong{grid-area:num!important;font-size:28px!important;line-height:1.1!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main .cat-kpis > .cat-k.ccp-kcard > .cat-k-top{grid-area:lab!important;font-size:15px!important;color:#344054!important;margin:0!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main .cat-kpis > .cat-k.ccp-kcard > .cat-k-cap{grid-area:cap!important;margin:0!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main .cat-kpis > .cat-k.ccp-kcard.ccp-zero{background:#F9FAFB!important}:root:not(#cc-t0) #cc-staff #ccs-main .cat-kpis > .cat-k.ccp-kcard.ccp-zero > :is(strong,.cat-k-top){color:#98A2B3!important}',
+      '@media (max-width:759px){:root:not(#cc-t0) #cc-staff #ccs-main .cat-kpis > .cat-k.ccp-kcard > .ccp-kic{width:34px!important;height:34px!important}:root:not(#cc-t0) #cc-staff #ccs-main .cat-kpis > .cat-k.ccp-kcard > strong{font-size:23px!important}}',
+      // section tabs on a phone: never squeeze an icon into its word; scroll sideways instead
+      '@media (max-width:759px){:root:not(#cc-t0) #cc-staff #ccs-main .ccs-secbar{overflow-x:auto!important;scrollbar-width:none}:root:not(#cc-t0) #cc-staff #ccs-main .ccs-secbar > .ccs-secbtn{flex:0 0 auto!important;min-width:max-content!important;padding:0 12px!important}:root:not(#cc-t0) #cc-staff #ccs-main .ccs-secbtn > .ccp-ic{flex:none!important}}',
+      // Treat orders board: the same card language
+      '#cc-staff #cc-to .cc-to-sum.ccp-sum{display:flex;align-items:center;gap:12px}',
+      '#cc-staff #cc-to .cc-to-sum .cl-tile{flex:none;width:38px;height:38px;border-radius:11px;display:inline-flex;align-items:center;justify-content:center}',
+      '#cc-staff #cc-to .cc-to-sum .cl-tile .ccp-ic{width:60%;height:60%;stroke-width:2.2}',
+      ':root:not(#cc-t0) #cc-staff #cc-to .cl-tile[data-ccp-tone="amber"]{background:#F7D9A6!important;box-shadow:inset 0 0 0 1px #E2AE5C!important;color:#8A4504!important;border:0!important}:root:not(#cc-t0) #cc-staff #cc-to .cl-tile[data-ccp-tone="green"]{background:#BCE6CC!important;box-shadow:inset 0 0 0 1px #7FCBA0!important;color:#05603A!important;border:0!important}',
+      ':root:not(#cc-t0) #cc-staff #cc-to .cc-to-tabs .ccs-chip[aria-selected="true"]{background:#E8F0F8!important;border-color:#8FAED3!important;color:#1A4570!important;box-shadow:none!important}',
+      '#cc-staff #cc-to .cc-to-o{border:1px solid var(--ccp-line);border-left:4px solid #B3BDC9;border-radius:var(--ccp-r);background:#fff}',
+      '#cc-staff #cc-to .cc-to-o[data-ccp-tone="amber"]{border-left-color:#E2AE5C}#cc-staff #cc-to .cc-to-o[data-ccp-tone="red"]{border-left-color:#E9988E}#cc-staff #cc-to .cc-to-o[data-ccp-tone="green"]{border-left-color:#7FCBA0}',
+      '#cc-staff #cc-to .cc-to-state{display:flex;align-items:center;gap:8px}#cc-staff #cc-to .ccp-sti{flex:none;display:inline-flex;width:22px;height:22px}#cc-staff #cc-to .ccp-sti .ccp-ic{width:100%;height:100%;stroke-width:2.2}',
+      '#cc-staff #cc-to .cc-to-state[data-ccp-tone="amber"]{color:#8A4504}#cc-staff #cc-to .cc-to-state[data-ccp-tone="red"]{color:#9E1F14}#cc-staff #cc-to .cc-to-state[data-ccp-tone="green"]{color:#05603A}#cc-staff #cc-to .cc-to-state[data-ccp-tone="grey"]{color:#3E4A5C}',
       // Orders: tabs with nothing in them go quiet
       '#cc-staff #ccs-main .ccs-tab.ccp-quiet{color:#98A2B3!important}#cc-staff #ccs-main .ccs-tab.ccp-quiet .ccs-n{display:none!important}',
       // Customers number-card icons
@@ -600,6 +705,7 @@
     if (wm) { e.preventDefault(); e.stopPropagation(); var k0 = wm.getAttribute('data-k'); warnOpen[k0] = !warnOpen[k0]; run(); return; }
     var i = t.closest('.ccp-i');
     if (i) { e.preventDefault(); e.stopPropagation(); var f = doc.querySelector('#ccs-main .ccp-fine'); var on = i.getAttribute('aria-expanded') !== 'true'; i.setAttribute('aria-expanded', String(on)); if (f) f.classList.toggle('is-open', on); return; }
+    if (t.closest('.ccp-fu-all')) { var fb = doc.querySelector('#ccs-main .ccs-secbtn[data-g="crm"][data-v="fu"]'); if (fb) fb.click(); return; }
     var r = t.closest('.ccp-rem');
     if (r) { var show = doc.querySelector('#ccs-main section.ccs-rem [data-act="rem-show"]'); if (show) { var sec = show.closest('section'); sec.classList.remove('ccdd-src'); show.click(); } }
   }

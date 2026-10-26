@@ -21,6 +21,12 @@ const shot = async (p, name) => { if (SHOTS) await p.screenshot({ path: SHOTS + 
     await shot(p, t + '-today');
     // ---------- Customers ----------
     await go(p, 'customers');
+    { const f = await p.evaluate(() => { const m = document.getElementById('ccs-main'), box = m.querySelector(':scope > .ccp-fu'), sum = m.querySelector(':scope > section.cw-summary');
+        const met = [...m.querySelectorAll('.cw-summary > .cw-metric')].filter(x => x.getClientRects().length), a = met.map(x => x.querySelector('.cw-metric-arrow')), ic = a[0] && a[0].getBoundingClientRect(), v = met[0] && met[0].querySelector('.cw-metric-value').getBoundingClientRect();
+        return { box: !!box, before: !!(box && sum && box.nextElementSibling === sum), rows: box ? [...box.querySelectorAll('.ccp-fu-i')].map(x => x.innerText.replace(/\n/g, ' / ')) : [], ids: box ? [...box.querySelectorAll('.ccp-fu-i')].map(x => x.getAttribute('data-act') + ':' + x.getAttribute('data-id')) : [], tile: box && box.querySelector('.cl-tile').getAttribute('data-ccp-tone'),
+          due: met.some(x => x.dataset.ccdr === 'due_today'), n: met.length, tones: a.map(x => x.getAttribute('data-ccp-tone')), left: !!(ic && v && ic.right <= v.left + 1) }; });
+      check(t + ' Customers: follow-ups due shown as an action list above the numbers', f.box && f.before && f.rows.length >= 1 && /late|Due today/.test(f.rows[0]) && f.ids.every(x => /^open-customer:\S+/.test(x)) && f.tile === 'amber', f);
+      check(t + ' Customers: said once (due-today number hidden), slim cards with icon left', !f.due && f.n === 3 && f.tones.every(x => x === 'navy' || x === 'grey') && f.left, f); }
     if (t === 'phone') { await tap(p, '#ccs-main .cc-fit-bar[data-fit="cust"]', 700); }
     const c0 = await p.evaluate(() => { const m = document.getElementById('ccs-main'), btn = [...m.querySelectorAll('.ccdd-btn')].filter(x => x.getClientRects().length);
       return { btns: btn.map(x => x.getAttribute('aria-label')), pills: !!(m.querySelector('nav.cdir-segments') || {}).getClientRects().length, nativeSel: !!(m.querySelector('#ccs-seg') || {}).getClientRects().length, head2: !!(m.querySelector('.cdir-heading-copy') || {}).getClientRects().length, sub: !!(m.querySelector('.ccs-head .ccs-sub') || {}).getClientRects().length, rem: !!(m.querySelector('section.ccs-rem') || {}).getClientRects().length, remBtn: (m.querySelector('.ccp-rem') || {}).textContent, addBg: getComputedStyle(m.querySelector('[data-act="cust-new"]')).backgroundColor, tabIcons: m.querySelectorAll('.ccs-secbtn .ccp-ic').length }; });
@@ -88,6 +94,9 @@ const shot = async (p, name) => { if (SHOTS) await p.screenshot({ path: SHOTS + 
     const an2 = await p.evaluate(() => ({ pressed: [...document.querySelectorAll('.cat-page[data-cat="sl"] .cat-chip')].filter(x => x.getAttribute('aria-pressed') === 'true' || x.classList.contains('is-on')).map(x => x.textContent.trim()), btn: (document.querySelector('.cat-page[data-cat="sl"] .ccdd-btn') || {}).getAttribute('aria-label') }));
     check(t + ' Analytics: choosing 30 days switches the period', an2.pressed.join() === '30 days' && an2.btn === 'Period: 30 days', an2);
     await shot(p, t + '-analytics');
+    { const k = await p.evaluate(() => [...document.querySelectorAll('.cat-page[data-cat="sl"] .cat-kpis > .cat-k')].filter(x => x.getClientRects().length).map(x => { const i = x.querySelector('.ccp-kic'), n = x.querySelector(':scope > strong'); return { tone: i && i.getAttribute('data-ccp-tone'), left: !!(i && n && i.getBoundingClientRect().right <= n.getBoundingClientRect().left + 1), zero: x.classList.contains('ccp-zero'), v: n && n.textContent.trim(), lab: (x.querySelector('.cat-k-top > span') || {}).textContent }; }));
+      check(t + ' Analytics: number cards use the shared card (icon left, colour by meaning, zero grey)', k.length >= 3 && k.every(x => x.tone && x.left) && k.every(x => (x.tone === 'grey') === /^\$?0(\.0+)?%?$/.test(x.v)) && k.filter(x => /owed/i.test(x.lab)).every(x => x.tone === 'amber' || x.tone === 'grey'), k);
+      const hb = await p.evaluate(() => document.querySelectorAll('#cc-heartbeat .ccp-kic').length); check(t + ' Analytics: Cake Heartbeat untouched', hb === 0, hb); }
     // ---------- refined details ----------
     await go(p, 'orders');
     const rf = await p.evaluate(() => { const c = document.querySelector('#ccs-main .ccs-card'), cs = getComputedStyle(c), bf = getComputedStyle(c, '::before');
