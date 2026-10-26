@@ -12,6 +12,13 @@ const shot = async (p, name) => { if (SHOTS) await p.screenshot({ path: SHOTS + 
   for (const [w, h, t] of [[1366, 900, 'desktop'], [1180, 820, 'tablet'], [390, 844, 'phone']]) {
     const { p, ctx, errors, logs } = await open(b, w, h, { extraFoot: loader, ipad: t === 'tablet' });
     await p.waitForTimeout(800);
+    // ---------- Today: action first, quiet zeros, no repeats ----------
+    await go(p, 'today');
+    const td = await p.evaluate(() => { const m = document.getElementById('ccs-main'); const vis = e => e && e.getClientRects().length;
+      return { biz: vis(m.querySelector('.tq-stats > .cl-biz')), stats: [...m.querySelectorAll('.tq-stats > .tq-stat')].filter(vis).length, todayCell: getComputedStyle(m.querySelector('.ccs-daycell.is-today')).backgroundColor, dash: [...m.querySelectorAll('.tq-days em')].filter(e => /^—$/.test(e.textContent.trim()) && getComputedStyle(e).visibility !== 'hidden').length, fit: [...m.querySelectorAll('.tq-days .ccs-daycell')].every(c => c.getBoundingClientRect().right <= innerWidth), nb: m.querySelector('.tp-nb') ? getComputedStyle(m.querySelector('.tp-nb')).backgroundColor : null }; });
+    check(t + ' Today: three summary tiles, no business figure', !td.biz && td.stats === 3, td);
+    check(t + ' Today: today in soft navy, empty days blank, all 7 days fit, next step not black', td.todayCell === 'rgb(238, 243, 249)' && td.dash === 0 && td.fit && (td.nb === null || td.nb === 'rgb(238, 243, 249)'), td);
+    await shot(p, t + '-today');
     // ---------- Customers ----------
     await go(p, 'customers');
     if (t === 'phone') { await tap(p, '#ccs-main .cc-fit-bar[data-fit="cust"]', 700); }

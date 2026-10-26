@@ -314,8 +314,27 @@
       var k = tone(t); if (t.getAttribute('data-ccp-tone') !== k) t.setAttribute('data-ccp-tone', k);
     });
   }
+  // Today: what needs action first, weight by importance, say it once
+  function today(main) {
+    if (main.getAttribute('data-screen') !== 'today') return;
+    // the business figure belongs in Analytics, not on the counter screen
+    [].forEach.call(main.querySelectorAll('.tq-stats > .cl-biz'), function (e) { e.classList.add('ccp-gone'); });
+    // zero goes quiet
+    [].forEach.call(main.querySelectorAll('.tq-stats > .tq-stat'), function (e) { var b = e.querySelector(':scope > b'); e.classList.toggle('ccp-zero', !!b && /^\$?0$/.test(txt(b))); });
+    var st = main.querySelector('.tq-stats'); if (st) st.setAttribute('data-n', String(main.querySelectorAll('.tq-stats > .tq-stat:not(.ccp-gone)').length));
+    // say it once: an empty panel ("No cakes are due…") repeats the 0 above it
+    [].forEach.call(main.querySelectorAll('.tq-main > section.tp-card'), function (sec) {
+      var empty = !sec.querySelector('.ccs-mini, .ccs-card, button[data-act="open-order"]') && /^No |nothing/i.test(txt(sec.querySelector(':scope > :not(.ccs-card-head)')));
+      sec.classList.toggle('ccp-gone', empty);
+    });
+    // week strip: empty days blank, not a dash
+    [].forEach.call(main.querySelectorAll('.tq-days .ccs-daycell em'), function (em) { var w = txt(em), m = w.match(/^(\d+)\s*cakes?$/); em.classList.toggle('ccp-blank', /^[—–-]$/.test(w)); if (m) { if (em.getAttribute('data-n') !== m[1]) em.setAttribute('data-n', m[1]); } else em.removeAttribute('data-n'); });
+  }
+  function ordersTabs(main) {
+    [].forEach.call(main.querySelectorAll('.ccs-tab[data-act="filter"]'), function (t) { var n = t.querySelector('.ccs-n'); t.classList.toggle('ccp-quiet', !!n && txt(n) === '0' && t.getAttribute('aria-pressed') !== 'true'); });
+  }
   function refine(main) {
-    channels(main); iconOnly(main); analyticsNav(main); tiles(main);
+    channels(main); iconOnly(main); analyticsNav(main); tiles(main); today(main); ordersTabs(main);
     // status tags: a small icon that says what kind of status it is
     [].forEach.call(main.querySelectorAll('.ccs-pill, .ccs-tag'), function (e) {
       if (e.closest('#cc-heartbeat') || e.querySelector('svg')) return;
@@ -460,6 +479,40 @@
       ':root:not(#cc-t0) #cc-staff #ccs-main :is(.cl-tile,.ap-icon)[data-ccp-tone="navy"]:not(#cc-heartbeat *){background:#CADAEE!important;box-shadow:inset 0 0 0 1px #8FAED3!important;color:#1A4570!important}',
       ':root:not(#cc-t0) #cc-staff #ccs-main :is(.cl-tile,.ap-icon)[data-ccp-tone="grey"]:not(#cc-heartbeat *){background:#D8DEE6!important;box-shadow:inset 0 0 0 1px #B3BDC9!important;color:#3E4A5C!important}',
       ':root:not(#cc-t0) #cc-staff #ccs-main :is(.cl-tile,.ap-icon)[data-ccp-tone] :is(svg,path,circle,rect,line,polyline):not(#cc-heartbeat *){stroke:currentColor!important}',
+      // ---------- Today: action first, one card layout, quiet zeros, no repeats ----------
+      ':root:not(#cc-t0) #cc-staff #ccs-main[data-screen] .ccp-gone,:root:not(#cc-t0) #cc-staff #ccs-main[data-screen] .tq-stats > .tq-stat.ccp-gone.ccp-gone{display:none!important}',
+      // Needs attention: icon on the left, number and label on one line, the orders listed under it
+      ':root:not(#cc-t0) #cc-staff #ccs-main[data-screen="today"] .ap-island{display:grid!important;grid-template-columns:auto minmax(0,1fr)!important;align-items:start!important;gap:4px 14px!important;text-align:left!important;padding:14px 16px!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main[data-screen="today"] .ap-island .ap-icon{grid-row:1 / span 2;width:44px!important;height:44px!important;border-radius:12px!important;margin:0!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main[data-screen="today"] .ap-island .ap-text{display:flex!important;flex-wrap:wrap!important;align-items:baseline!important;gap:2px 8px!important;min-width:0}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main[data-screen="today"] .ap-island .ap-text > b{font-size:28px!important;line-height:1.1!important;font-weight:650!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main[data-screen="today"] .ap-island .ap-text > span:not(.wd-prev){font-size:18px!important;font-weight:600!important;color:#1D2939!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main[data-screen="today"] .ap-island .wd-prev{display:flex!important;flex-direction:column!important;flex-basis:100%!important;gap:2px!important;margin-top:4px!important;color:#344054!important;font-weight:500!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main[data-screen="today"] .ap-islands{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))!important;gap:10px!important;width:100%!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main[data-screen="today"] .ap-island{width:auto!important;max-width:none!important;min-width:0!important;box-sizing:border-box!important}',
+      // the next step on a Today card: soft navy, not a black pill
+      ':root:not(#cc-t0) #cc-staff #ccs-main .tp-nb{background:#EEF3F9!important;color:#1E3A5F!important;border:1px solid #B7CCE3!important}',
+      // names in the Today lists in full; references never split
+      ':root:not(#cc-t0) #cc-staff #ccs-main[data-screen="today"] .ccs-prow-m b{white-space:normal!important;overflow:visible!important;text-overflow:clip!important;max-width:none!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main[data-screen="today"] .ccs-prow-m span{white-space:nowrap!important}',
+      // summary row: three slim tiles, icon left, number, label under; zero goes grey and quiet
+      ':root:not(#cc-t0) #cc-staff #ccs-main[data-screen="today"] .tq-stats[data-n="3"]{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:10px!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main[data-screen="today"] .tq-stats > .tq-stat{display:grid!important;grid-template-columns:auto minmax(0,1fr)!important;grid-template-rows:auto auto!important;align-items:center!important;gap:4px 10px!important;padding:12px!important;min-height:0!important;text-align:left!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main[data-screen="today"] .tq-stats > .tq-stat > .cl-tile{grid-column:1!important;grid-row:1!important;width:36px!important;height:36px!important;border-radius:10px!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main[data-screen="today"] .tq-stats > .tq-stat > b{grid-column:2!important;grid-row:1!important;font-size:26px!important;line-height:1!important;font-weight:650!important;margin:0!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main[data-screen="today"] .tq-stats > .tq-stat > span:not(.cl-tile){grid-column:1 / -1!important;grid-row:2!important;font-size:15px!important;line-height:1.3!important;color:#344054!important;margin:0!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main[data-screen="today"] .tq-stats > .tq-stat > :not(.cl-tile):not(b):not(span){display:none!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main[data-screen="today"] .tq-stats > .tq-stat.ccp-zero{background:#F9FAFB!important;border-color:#EAECF0!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main[data-screen="today"] .tq-stats > .tq-stat.ccp-zero > b,:root:not(#cc-t0) #cc-staff #ccs-main[data-screen="today"] .tq-stats > .tq-stat.ccp-zero > span:not(.cl-tile){color:#98A2B3!important}',
+      '@media (min-width:760px) and (hover:none) and (pointer:coarse){:root:not(#cc-t0) #cc-staff #ccs-main[data-screen="today"] .tq-stats > .tq-stat > span:not(.cl-tile){font-size:17px!important}:root:not(#cc-t0) #cc-staff #ccs-main[data-screen="today"] .tq-stats > .tq-stat > b{font-size:30px!important}}',
+      // week strip: today in soft navy, blank empty days, all seven days fit
+      ':root:not(#cc-t0) #cc-staff #ccs-main .tq-days .ccs-daycell.is-today{background:#EEF3F9!important;border:1px solid #245F99!important;color:#1E3A5F!important;box-shadow:none!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main .tq-days .ccs-daycell em.ccp-blank{visibility:hidden!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main .tq-days{display:grid!important;grid-template-columns:repeat(7,minmax(0,1fr))!important;gap:6px!important;overflow:visible!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main .tq-days .ccs-daycell{min-width:0!important;width:auto!important;padding:8px 2px!important}',
+      '@media (max-width:759px){:root:not(#cc-t0) #cc-staff #ccs-main .tq-days{gap:3px!important}:root:not(#cc-t0) #cc-staff #ccs-main .tq-days .ccs-daycell{padding:6px 0!important;border-radius:10px!important}:root:not(#cc-t0) #cc-staff #ccs-main .tq-days .ccs-daycell span{font-size:13px!important}:root:not(#cc-t0) #cc-staff #ccs-main .tq-days .ccs-daycell b{font-size:17px!important}:root:not(#cc-t0) #cc-staff #ccs-main .tq-days .ccs-daycell em[data-n]{font-size:0!important;line-height:0!important;display:block!important;margin-top:4px!important}:root:not(#cc-t0) #cc-staff #ccs-main .tq-days .ccs-daycell em[data-n]::after{content:attr(data-n);display:inline-block;min-width:20px;padding:2px 6px;border-radius:999px;background:#EEF3F9;color:#1E3A5F;font-size:12px!important;line-height:16px!important;font-weight:600;font-style:normal}:root:not(#cc-t0) #cc-staff #ccs-main[data-screen="today"] .tq-stats[data-n="3"]{gap:6px!important}:root:not(#cc-t0) #cc-staff #ccs-main[data-screen="today"] .tq-stats > .tq-stat{padding:10px 8px!important;gap:6px 8px!important}:root:not(#cc-t0) #cc-staff #ccs-main[data-screen="today"] .tq-stats > .tq-stat > .cl-tile{width:30px!important;height:30px!important}:root:not(#cc-t0) #cc-staff #ccs-main[data-screen="today"] .tq-stats > .tq-stat > b{font-size:22px!important}:root:not(#cc-t0) #cc-staff #ccs-main[data-screen="today"] .tq-stats > .tq-stat > span:not(.cl-tile){font-size:14px!important}}',
+      // Orders: tabs with nothing in them go quiet
+      '#cc-staff #ccs-main .ccs-tab.ccp-quiet{color:#98A2B3!important}#cc-staff #ccs-main .ccs-tab.ccp-quiet .ccs-n{display:none!important}',
       // Customers number-card icons
       '#cc-staff #ccs-main .cw-metric-arrow.ccp-kpi-ic{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:10px;background:#EEF3F9;color:var(--ccp-navy)}#cc-staff #ccs-main .cw-metric-arrow .ccp-ic{width:20px;height:20px}',
       // page titles with their sidebar icon
