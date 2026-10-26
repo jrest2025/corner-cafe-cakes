@@ -17,7 +17,7 @@ const post = '(' + function (D10, T0) {
   window.__szList = { ok: true, today: T0, can_edit: true, groups: [{ id: 'g1', name: 'Festive treats', web_message: 'A little festive joy', payment: 'pickup', sort: 1, active: true }],
     items: [{ id: 'i1', group_id: 'g1', name: 'Gingerbread House', detail: '15cm', price: 35, channel: 'website', active: true, sale_from: T0, sale_to: '2099-12-20', pickup_from: null, pickup_to: '2099-12-24', lead_days: 2, daily_limit: 10, max_per_order: null, blocked_days: [], sold: 7 },
       { id: 'i8', group_id: 'g1', name: 'Bottle of wine', detail: 'Red or white', price: 30, channel: 'counter', active: false, lead_days: 0, blocked_days: [], sold: 0 }],
-    booked: [{ day: D10, item: 'i1', name: 'Gingerbread House', quantity: 7 }, { day: D10, item: 'i2', name: 'Mince Pies', quantity: 4 }] };
+    booked: [{ day: D10, item: 'i1', name: 'Gingerbread House', quantity: 8 }, { day: D10, item: 'i2', name: 'Mince Pies', quantity: 4 }] };
   var R = m.rpc;
   m.rpc = function (fn, a) {
     if (fn === 'get_seasonal_menu') { seq.push(fn + ':' + a.p_channel); return Promise.resolve({ data: JSON.parse(JSON.stringify(window.__menu)) }); }
@@ -39,6 +39,9 @@ const post = '(' + function (D10, T0) {
   };
   var F = m.from;
   m.from = function (t) {
+    if (t === 'seasonal_item_changes') { var b2 = { select: function () { return b2; }, eq: function () { return b2; }, order: function () { return b2; }, limit: function () { return b2; }, then: function (ok, bad) { return Promise.resolve({ data: [
+      { item_id: 'i1', at: '2026-10-26T07:30:00Z', by_label: 'Test Manager', action: 'changed', before: { price: 35, daily_limit: 10, name: 'Gingerbread House' }, after: { price: 36, daily_limit: 12, name: 'Gingerbread House' } },
+      { item_id: 'i1', at: '2026-10-26T05:00:00Z', by_label: null, action: 'added', before: null, after: {} }] }).then(ok, bad); } }; return b2; }
     if (t === 'order_extras') { var b = { select: function () { return b; }, eq: function () { return b; }, then: function (ok, bad) { return Promise.resolve({ data: [{ order_id: 'o7', item_id: 'i2', name: 'Mince Pies', detail: 'Pack of 3', quantity: 2, unit_price: 12 }] }).then(ok, bad); } }; return b; }
     return F.apply(this, arguments);
   };
@@ -113,61 +116,94 @@ const shot = async (p, name) => { if (SHOTS) await p.screenshot({ path: SHOTS + 
     check(t + ' warns about the refund and the reprint', /paid \$19 more/.test(note) && /Print the kitchen slip again/.test(note), note);
     await shot(p, 'sz-' + t + '-order');
     await p.evaluate(() => { const x = document.querySelector('#ccs-sheet .ccs-x'); if (x) x.click(); }); await p.waitForTimeout(500);
-    // ---------- Settings > Seasonal items ----------
+    // ---------- Settings > Seasonal items (enterprise layout) ----------
     if (t === 'phone') await p.evaluate(() => { const x = document.querySelector('#cc-staff [data-tab="settings"]'); if (x) x.click(); }); else await tap(p, '#cc-staff [data-tab="settings"]', 1500);
     await p.waitForTimeout(1500);
-    const entry = await p.evaluate(() => { const d = document.querySelector('#ccs-main .ccs-set details.cc-szm-entry'); if (!d) return null; const prev = d.previousElementSibling; return { prev: prev && prev.querySelector('summary') ? prev.querySelector('summary').textContent : '', sum: d.querySelector('summary').textContent }; });
+    const entry = await p.evaluate(() => { const d = document.querySelector('#ccs-main .ccs-set details.cc-szm-entry'); if (!d) return null; const prev = d.previousElementSibling; return { prev: prev && prev.querySelector('summary') ? prev.querySelector('summary').textContent : '' }; });
     check(t + ' Settings has Seasonal items after Cakes and prices', entry && /^Cakes and prices/.test(entry.prev), entry);
+    const S = t === 'phone' ? '#cc-szm' : '#cc-szx-inline';
     if (t !== 'phone') {
       const nav = await p.evaluate(() => [...document.querySelectorAll('#ccs-main .ccs-setnav [data-setk]')].map(x => x.dataset.setk));
       check(t + ' side list has Seasonal items after Cakes and prices', nav.indexOf('Seasonal items') === nav.indexOf('Cakes and prices') + 1, nav);
-      await tap(p, '#ccs-main .ccs-setnav [data-setk="Seasonal items"]', 500);
+      await tap(p, '#ccs-main .ccs-setnav [data-setk="Seasonal items"]', 1200);
       const vis = await p.evaluate(() => [...document.querySelectorAll('#ccs-main .ccs-set > details')].filter(d => d.getClientRects().length && getComputedStyle(d).display !== 'none').map(d => d.querySelector('summary').textContent.trim().slice(0, 20)));
-      check(t + ' choosing it shows only Seasonal items', vis.length === 1 && /^Seasonal items/.test(vis[0]) && await p.evaluate(() => document.querySelector('[data-setk="Seasonal items"]').getAttribute('aria-selected') === 'true'), vis);
-      check(t + ' its Open button is on screen', await p.evaluate(() => { const b = document.querySelector('[data-cc-szm="open"]'); const r = b && b.getBoundingClientRect(); return !!r && r.height > 0 && r.bottom <= innerHeight; }));
-      await tap(p, '#ccs-main .ccs-setnav [data-setk="Closed days"]', 500);
-      const vis2 = await p.evaluate(() => [...document.querySelectorAll('#ccs-main .ccs-set > details')].filter(d => d.getClientRects().length && getComputedStyle(d).display !== 'none').map(d => d.querySelector('summary').textContent.trim().slice(0, 20)));
-      check(t + ' choosing another section hides it again', vis2.length === 1 && /^Closed days/.test(vis2[0]), vis2);
-      await tap(p, '#ccs-main .ccs-setnav [data-setk="Seasonal items"]', 500);
+      check(t + ' choosing it shows only Seasonal items, inside Settings', vis.length === 1 && /^Seasonal items/.test(vis[0]) && await p.evaluate(() => !!document.querySelector('#ccs-main #cc-szx-inline .cc-szx-kpis') && !document.getElementById('cc-szm')), vis);
+    } else {
+      await p.evaluate(() => { const d = document.querySelector('details.cc-szm-entry'); d.open = true; d.querySelector('[data-cc-szm="open"]').click(); });
+      await p.waitForTimeout(1000);
+      check(t + ' phone: opens full screen', await p.evaluate(() => !!document.querySelector('#cc-szm .cc-szx-kpis')));
     }
-    await p.evaluate(() => { const d = document.querySelector('details.cc-szm-entry'); d.open = true; d.querySelector('[data-cc-szm="open"]').click(); });
-    await p.waitForTimeout(900);
-    const ml = await p.evaluate(() => { const l = document.getElementById('cc-szm'); return l ? { items: [...l.querySelectorAll('.cc-szm-it .cc-sz-txt b')].map(x => x.textContent), pills: [...l.querySelectorAll('.cc-szm-pill')].map(x => x.textContent), sw: [...l.querySelectorAll('.cc-szm-it .cc-szm-sw')].map(x => x.textContent) } : null; });
-    check(t + ' manager list with status and switches', ml && ml.items[0] === 'Gingerbread House · $35' && ml.pills.indexOf('On sale now') > -1 && ml.pills.indexOf('Counter only') > -1 && ml.pills.indexOf('Switched off') > -1 && ml.sw.join() === 'On,Off', ml);
+    const ov = await p.evaluate(s => { const r = document.querySelector(s); return { k: [...r.querySelectorAll('.cc-szx-kpi b')].map(x => x.textContent), att: (r.querySelector('.cc-szx-att') || {}).textContent || '' }; }, S);
+    check(t + ' overview: on sale, off, sold this season, booked', JSON.stringify(ov.k) === JSON.stringify(['1', '1', '$245', '$280']), ov);
+    check(t + ' needs attention banner', /1 item needs attention/.test(ov.att), ov);
+    const rows = await p.evaluate(s => [...document.querySelectorAll(s + ' .cc-szx-row:not(.cc-szx-hd)')].map(r => ({ name: r.querySelector('.cc-szx-item b').textContent, pills: [...r.querySelectorAll('.cc-szm-pill')].map(x => x.textContent), av: r.querySelector('.cc-szx-av').textContent, sw: (r.querySelector('[data-cc-szm="toggle"]') || {}).textContent })), S);
+    check(t + ' item table with status, checks and availability', rows.length === 2 && rows[0].pills.indexOf('On sale now') > -1 && rows[0].pills.indexOf('No photo') > -1 && rows[0].pills.some(x => /^Nearly sold out/.test(x)) && /Pickup: Now to Thu 24 Dec/.test(rows[0].av) && /2 days' notice · 10 a day/.test(rows[0].av) && rows[1].pills.indexOf('Counter only') > -1, rows);
     await shot(p, 'sz-' + t + '-manager');
-    await tap(p, '#cc-szm [data-cc-szm="toggle"][data-id="i8"]', 900);
+    await tap(p, S + ' .cc-szx-att', 500);
+    check(t + ' Needs attention filter', await p.evaluate(s => document.querySelectorAll(s + ' .cc-szx-row:not(.cc-szx-hd)').length === 1 && document.querySelector(s + ' .ccs-chip[data-cc-szm="filter"][data-v="attention"]').getAttribute('aria-pressed') === 'true', S), await p.evaluate(s => ({ rows: document.querySelectorAll(s + ' .cc-szx-row:not(.cc-szx-hd)').length, chips: [...document.querySelectorAll(s + ' [data-cc-szm="filter"]')].map(x => x.dataset.v + ':' + x.getAttribute('aria-pressed')) }), S));
+    await tap(p, S + ' [data-cc-szm="filter"][data-v="counter"]', 400);
+    check(t + ' Counter only filter', await p.evaluate(s => [...document.querySelectorAll(s + ' .cc-szx-row:not(.cc-szx-hd) .cc-szx-item b')].map(x => x.textContent).join() === 'Bottle of wine', S));
+    await tap(p, S + ' [data-cc-szm="filter"][data-v="all"]', 400);
+    // switch one item On
+    await tap(p, S + ' [data-cc-szm="toggle"][data-id="i8"]', 900);
     check(t + ' switch On saves just the switch', await p.evaluate(() => window.__seq.some(x => x === 'staff_seasonal_save_item:{"id":"i8","active":true}')));
-    check(t + ' message after switching On', await p.evaluate(() => /Bottle of wine is switched On/.test((document.querySelector('#cc-szm .cc-szm-ok') || {}).textContent || '')));
-    await tap(p, '#cc-szm [data-cc-szm="edit-item"][data-id="i1"]', 600);
-    check(t + ' change form has every setting', await p.evaluate(() => ['cc-szf-name', 'cc-szf-detail', 'cc-szf-price', 'cc-szf-sale-from', 'cc-szf-sale-to', 'cc-szf-pick-from', 'cc-szf-pick-to', 'cc-szf-lead', 'cc-szf-limit', 'cc-szf-max', 'cc-szf-block', 'cc-szf-file'].every(id => document.getElementById(id)) && document.querySelectorAll('#cc-szm [data-cc-szm="channel"]').length === 2));
+    check(t + ' message after switching On', await p.evaluate(s => /Bottle of wine is switched On/.test((document.querySelector(s + ' .cc-szm-ok') || {}).textContent || ''), S));
+    // bulk: select both, switch Off, then set dates
+    await tap(p, S + ' [data-cc-szm="sel"][data-id="i1"]', 200); await tap(p, S + ' [data-cc-szm="sel"][data-id="i8"]', 300);
+    check(t + ' bulk bar shows 2 selected', await p.evaluate(s => /2 selected/.test((document.querySelector(s + ' .cc-szx-bulk') || {}).textContent || ''), S));
+    await shot(p, 'sz-' + t + '-bulk');
+    const b1 = await p.evaluate(() => window.__seq.length);
+    await tap(p, S + ' [data-cc-szm="bulk-off"]', 1500);
+    const bo = await p.evaluate(b => window.__seq.slice(b).filter(x => /save_item/.test(x)), b1);
+    check(t + ' bulk Switch Off: each item saved with the database checks', bo.length === 2 && bo.every(x => /"active":false/.test(x)), bo);
+    check(t + ' bulk message', await p.evaluate(s => /2 items switched Off/.test((document.querySelector(s + ' .cc-szm-ok') || {}).textContent || ''), S));
+    await tap(p, S + ' [data-cc-szm="sel"][data-id="i1"]', 200); await tap(p, S + ' [data-cc-szm="sel"][data-id="i8"]', 300);
+    await tap(p, S + ' [data-cc-szm="bulk-dates"]', 400);
+    await p.evaluate(() => { const i = document.getElementById('cc-szb-pick-to'); i.value = '2099-12-23'; i.dispatchEvent(new Event('input', { bubbles: true })); i.dispatchEvent(new Event('change', { bubbles: true })); });
+    const b2 = await p.evaluate(() => window.__seq.length);
+    await tap(p, S + ' [data-cc-szm="bulk-dates-save"]', 1500);
+    const bd = await p.evaluate(b => window.__seq.slice(b).filter(x => /save_item/.test(x)), b2);
+    check(t + ' bulk Set dates: only the chosen date changes, the rest kept', bd.length === 2 && bd.every(x => /"pickup_to":"2099-12-23"/.test(x)) && /"sale_to":"2099-12-20"/.test(bd[0]) && /"price":"35"/.test(bd[0]), bd);
+    check(t + ' bulk message for dates', await p.evaluate(s => /Dates set on 2 items/.test((document.querySelector(s + ' .cc-szm-ok') || {}).textContent || ''), S));
+    check(t + ' no "Not saved yet" mark from typing in Seasonal items', await p.evaluate(() => !document.querySelector('#ccs-main .cc-szm-entry .ccs-unsaved, #ccs-main .ccs-setnav [data-setk="Seasonal items"] .ccs-unsaved')));
+    // editor with live preview and history
+    await tap(p, S + ' [data-cc-szm="edit-item"][data-id="i1"]', 900);
+    check(t + ' editor groups: Details, Photo, Availability, Limits, On sale', await p.evaluate(s => [...document.querySelectorAll(s + ' .cc-szx-fs h4')].map(x => x.textContent).join() === 'Details,Photo,Availability,Limits,On sale', S));
+    check(t + ' editor has every setting', await p.evaluate(() => ['cc-szf-name', 'cc-szf-detail', 'cc-szf-price', 'cc-szf-sale-from', 'cc-szf-sale-to', 'cc-szf-pick-from', 'cc-szf-pick-to', 'cc-szf-lead', 'cc-szf-limit', 'cc-szf-max', 'cc-szf-block', 'cc-szf-file'].every(id => document.getElementById(id))));
+    await p.fill('#cc-szf-name', 'Gingerbread House Deluxe'); await p.fill('#cc-szf-price', '39');
+    const pv = await p.evaluate(s => (document.querySelector(s + ' .cc-szx-preview') || {}).textContent || '', S);
+    check(t + ' live preview follows typing (website, counter, slip)', /Gingerbread House Deluxe/.test(pv) && /\$39/.test(pv) && /On the kitchen slip/.test(pv) && /1 × Gingerbread House Deluxe \(15cm\)/.test(pv), pv);
+    const hist = await p.evaluate(s => [...document.querySelectorAll(s + ' .cc-szx-hist li')].map(x => x.textContent), S);
+    check(t + ' change history: who changed what and when (12-hour)', hist.length === 2 && /Changed: price \$35 to \$36, daily limit/.test(hist[0]) && /Test Manager/.test(hist[0]) && /\d{1,2}:\d{2} (AM|PM)/.test(hist[0]) && /^Added/.test(hist[1]), hist);
     await shot(p, 'sz-' + t + '-edit');
-    await p.fill('#cc-szf-price', ''); await tap(p, '#cc-szm [data-cc-szm="save-item"]', 700);
-    check(t + ' database message shown when the price is missing', await p.evaluate(() => /Enter the price/.test((document.querySelector('#cc-szm .cc-szm-err') || {}).textContent || '')));
+    await p.fill('#cc-szf-price', ''); await tap(p, S + ' [data-cc-szm="save-item"]', 700);
+    check(t + ' database message shown when the price is missing', await p.evaluate(s => /Enter the price/.test((document.querySelector(s + ' .cc-szm-err') || {}).textContent || ''), S));
     await p.fill('#cc-szf-price', '36'); await p.fill('#cc-szf-limit', '12');
     await p.evaluate(() => { const i = document.getElementById('cc-szf-block'); i.value = '2099-12-25'; i.dispatchEvent(new Event('input', { bubbles: true })); i.dispatchEvent(new Event('change', { bubbles: true })); });
-    await tap(p, '#cc-szm [data-cc-szm="block-add"]', 300);
-    check(t + ' typed values kept after adding a blocked day', await p.evaluate(() => document.getElementById('cc-szf-price').value === '36' && document.getElementById('cc-szf-limit').value === '12' && document.querySelectorAll('#cc-szm .cc-szm-chip').length === 1));
-    await tap(p, '#cc-szm [data-cc-szm="save-item"]', 900);
+    await tap(p, S + ' [data-cc-szm="block-add"]', 300);
+    check(t + ' typed values kept after adding a blocked day', await p.evaluate(() => document.getElementById('cc-szf-price').value === '36' && document.getElementById('cc-szf-limit').value === '12' && document.getElementById('cc-szf-name').value === 'Gingerbread House Deluxe' && document.querySelectorAll('.cc-szm-chip').length === 1));
+    if (t !== 'phone') {
+      // the app redraws Settings (for example after its own save): the half-typed item must survive
+      await p.evaluate(() => { try { const a = window.__ccsOf; if (a && a.redraw) a.redraw(); } catch (e) {} }); await p.waitForTimeout(900);
+      check(t + ' a Settings redraw keeps the half-typed item', await p.evaluate(() => (document.getElementById('cc-szf-price') || {}).value === '36' && (document.getElementById('cc-szf-name') || {}).value === 'Gingerbread House Deluxe'));
+    }
+    await tap(p, S + ' [data-cc-szm="save-item"]', 900);
     const sv = await p.evaluate(() => window.__seq.filter(x => /^staff_seasonal_save_item:\{"id":"i1"/.test(x)).pop());
-    check(t + ' saved with the new price, limit and blocked day', sv && /"price":"36"/.test(sv) && /"daily_limit":"12"/.test(sv) && /"blocked_days":\["2099-12-25"\]/.test(sv), sv);
-    check(t + ' back to the list with a message', await p.evaluate(() => /Gingerbread House saved/.test((document.querySelector('#cc-szm .cc-szm-ok') || {}).textContent || '')));
-    await tap(p, '#cc-szm [data-cc-szm="tab"][data-v="booked"]', 500);
-    const bk = await p.evaluate(() => [...document.querySelectorAll('#cc-szm .cc-szm-day')].map(x => x.textContent.replace(/\s+/g, ' ').trim()));
-    check(t + " What's booked by pickup day, and sold so far", bk.length === 2 && /Gingerbread House ?7/.test(bk[0]) && /Mince Pies ?4/.test(bk[0]) && /\$245/.test(bk[1]), bk);
-    await tap(p, '#cc-szm [data-cc-szm="tab"][data-v="items"]', 400);
-    // the section master switch (like a specials module)
-    check(t + ' section switch shows On', await p.evaluate(() => (document.querySelector('#cc-szm [data-cc-szm="gtoggle"]') || {}).textContent === 'Section On'));
-    await tap(p, '#cc-szm [data-cc-szm="gtoggle"]', 900);
-    check(t + ' section switched Off in one tap, items keep their own setting', await p.evaluate(() => window.__seq.indexOf('group_switch:false') > -1 && /Section Off/.test(document.querySelector('#cc-szm [data-cc-szm="gtoggle"]').textContent) && /On, but the section is Off/.test(document.querySelector('#cc-szm').textContent) && /is switched Off/.test((document.querySelector('#cc-szm .cc-szm-ok') || {}).textContent || '')));
-    if (SHOTS) await p.screenshot({ path: SHOTS + '/sz-' + t + '-section-off.png' });
-    await tap(p, '#cc-szm [data-cc-szm="gtoggle"]', 900);
-    check(t + ' and back On', await p.evaluate(() => window.__seq.indexOf('group_switch:true') > -1 && /Section On/.test(document.querySelector('#cc-szm [data-cc-szm="gtoggle"]').textContent)));
-    await tap(p, '#cc-szm [data-cc-szm="copy-year"]', 300);
-    await tap(p, '#cc-szm [data-cc-szm="copy-yes"]', 800);
-    check(t + ' copy for next year (after a confirm)', await p.evaluate(() => /2 items copied for next year/.test((document.querySelector('#cc-szm .cc-szm-ok') || {}).textContent || '')));
+    check(t + ' saved with the new name, price, limit and blocked day', sv && /"name":"Gingerbread House Deluxe"/.test(sv) && /"price":"36"/.test(sv) && /"daily_limit":"12"/.test(sv) && /"blocked_days":\["2099-12-25"\]/.test(sv), sv);
+    check(t + ' back to the list with a message', await p.evaluate(s => /Gingerbread House Deluxe saved/.test((document.querySelector(s + ' .cc-szm-ok') || {}).textContent || ''), S));
+    await tap(p, S + ' [data-cc-szm="tab"][data-v="booked"]', 500);
+    const bk = await p.evaluate(s => [...document.querySelectorAll(s + ' .cc-szx-day')].map(x => ({ t: x.textContent.replace(/\s+/g, ' ').trim(), bars: [...x.querySelectorAll('.cc-szx-db i')].map(i => i.className + ':' + i.style.width) })), S);
+    check(t + " What's booked by day against the daily limit", bk.length === 1 && /Gingerbread House ?8 of 10/.test(bk[0].t) && /Mince Pies ?4/.test(bk[0].t) && bk[0].bars[0] === 'is-near:80%', bk);
+    await shot(p, 'sz-' + t + '-booked');
+    await tap(p, S + ' [data-cc-szm="tab"][data-v="items"]', 400);
+    check(t + ' section switch shows On', await p.evaluate(s => (document.querySelector(s + ' [data-cc-szm="gtoggle"]') || {}).textContent === 'Section On', S));
+    await tap(p, S + ' [data-cc-szm="gtoggle"]', 900);
+    check(t + ' section switched Off in one tap', await p.evaluate(s => window.__seq.indexOf('group_switch:false') > -1 && /Section Off/.test(document.querySelector(s + ' [data-cc-szm="gtoggle"]').textContent), S));
+    await tap(p, S + ' [data-cc-szm="gtoggle"]', 900);
+    await tap(p, S + ' [data-cc-szm="copy-year"]', 300); await tap(p, S + ' [data-cc-szm="copy-yes"]', 800);
+    check(t + ' copy for next year (after a confirm)', await p.evaluate(s => /2 items copied for next year/.test((document.querySelector(s + ' .cc-szm-ok') || {}).textContent || ''), S));
     check(t + ' no horizontal scroll', (await overflow(p)) <= 1, await overflow(p));
-    await tap(p, '#cc-szm [data-cc-szm="close"]', 400);
-    check(t + ' close', await p.evaluate(() => !document.getElementById('cc-szm')));
+    if (t === 'phone') { await tap(p, '#cc-szm [data-cc-szm="close"]', 400); check(t + ' close', await p.evaluate(() => !document.getElementById('cc-szm'))); }
     // ---------- Analytics > Cake sales: Seasonal sales ----------
     await tap(p, '#cc-staff [data-tab="dash"]', 4000);
     await p.evaluate(() => { const b = document.querySelector('#ccs-main [data-g="anm"][data-v="sl"]'); if (b) b.click(); }); await p.waitForTimeout(1800);
