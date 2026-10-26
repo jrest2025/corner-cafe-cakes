@@ -1,4 +1,6 @@
-/* Corner Cafe Cake CRM — Cakes by pickup day and booking time (live 22 Oct 2026; 0.2.0 calmer text).
+/* Corner Cafe Cake CRM — Cakes by pickup day and booking time (live 22 Oct 2026; 0.2.0 calmer text;
+ * 0.3.0, 26 Oct 2026: month names no longer overlap, a dark tick shows the usual number of cakes for that
+ * weekday (average of the 8 weeks before), and an amber mark shows days with short-notice orders a manager OK'd).
  * One bar per pickup day. The bar height is the cakes due that day (the same count as
  * the protected Daily Cake Demand green line). The bar is split by how far ahead the
  * cakes were booked. Order counting rules match CCCakeSeasonalStage.normalize:
@@ -8,7 +10,7 @@
  */
 (function(global){
   'use strict';
-  var NAME='CCCakeLeadTime',VERSION='0.2.0',DAY=86400000;
+  var NAME='CCCakeLeadTime',VERSION='0.3.0',DAY=86400000;
   var BUCKETS=[
     {k:'weeks',label:'8 or more days ahead',short:'8+ days',color:'#1f5f3f'},
     {k:'week',label:'3 to 7 days ahead',short:'3–7 days',color:'#3f8a5f'},
@@ -35,8 +37,8 @@
       if(!o||o.off===true||['cancelled','declined','not_confirmed'].indexOf(o.st)>=0)return;
       var pd=iso(o.pd),od=iso(o.od);if(!pd||pd<'2024-01-01'||pd>'2028-12-31')return;
       var ok=o.odok===true&&od&&od<=pd&&od<=today,q=qtyOf(o),b=bucket(ok?gap(od,pd):null);
-      var d=days[pd]||(days[pd]={total:0,orders:0,b:{},cakes:{}});
-      d.total+=q;d.orders++;d.b[b]=(d.b[b]||0)+q;
+      var d=days[pd]||(days[pd]={total:0,orders:0,b:{},cakes:{},rush:0});
+      d.total+=q;d.orders++;d.b[b]=(d.b[b]||0)+q;if(o.rush===true)d.rush++;
       var n=cakeName(o);d.cakes[n]=(d.cakes[n]||0)+q;
       if(ok&&od===today)takenToday+=q;
       if(!first||pd<first)first=pd;
@@ -58,6 +60,14 @@
       BUCKETS.forEach(function(b){var v=x.b[b.k]||0;tot[b.k]=(tot[b.k]||0)+v;all+=v;if(b.k!=='unknown')known+=v;});}
     var top=null;BUCKETS.forEach(function(b){if(b.k!=='unknown'&&(tot[b.k]||0)>(top?tot[top.k]:0))top=b;});
     return {tot:tot,all:all,known:known,top:top};
+  }
+
+  /* Usual cakes for that weekday: the average of the same weekday over the 8 weeks before (before today for
+     upcoming days), counting days with no cakes as 0, and only from the first day with any cakes on record. */
+  function usual(ix,d,today){
+    var ref=d>today?today:add(d,-1),sum=0,n=0,wd=new Date(t(d)).getUTCDay();
+    for(var x=ref;n<8&&ix.first&&x>=ix.first;x=add(x,-1)){if(new Date(t(x)).getUTCDay()!==wd)continue;sum+=ix.days[x]?ix.days[x].total:0;n++;}
+    return n>=4?Math.round(10*sum/n)/10:null;
   }
 
   function mount(host,raw,opts){
@@ -84,7 +94,7 @@
           return '<button type="button" data-r="'+r.k+'" aria-pressed="'+(r===state.range)+'">'+esc(r.label)+'</button>';}).join('')+'</div>'+
         '<div class="cclt-habit"><p>'+headline+'</p><div class="cclt-strip" aria-hidden="true">'+strip+'</div>'+
         '<ul class="cclt-key">'+key+'</ul><p class="cclt-note">'+s.all+' cakes picked up '+esc(state.range.label.toLowerCase())+'.</p>'+
-        '<details class="cc-why"><summary>About this chart</summary><p class="cclt-note">Grey, booking date not known: paper slips and older records with no order date. Amber outline: busiest day. Light orange days: Fiji public holidays.</p></details></div>'+
+        '<details class="cc-why"><summary>About this chart</summary><p class="cclt-note">Grey, booking date not known: paper slips and older records with no order date. Amber outline: busiest day. Light orange days: Fiji public holidays. Dark tick: the usual number of cakes for that weekday (average of the 8 weeks before). Amber dot: a short-notice order a manager said yes to.</p></details></div>'+
         '<div class="cclt-chart"><div class="cclt-scroll" tabindex="0" aria-label="Scroll to see more days"></div></div>'+
         '<div class="cclt-detail" aria-live="polite"></div>';
       root.querySelectorAll('[data-r]').forEach(function(btn){btn.onclick=function(){
@@ -99,12 +109,17 @@
       var bw=Math.max(minBw,Math.min(maxBw,Math.floor(avail/n))),showN=bw>=22,showD=bw>=20;
       var H=236,top=28,bottom=54,plot=H-top-bottom;
       var max=1,busy=null;
-      for(var d=w.start;d<=w.end;d=add(d,1)){var x=ix.days[d];if(x){if(x.total>max)max=x.total;if(d<=today&&(!busy||x.total>ix.days[busy].total))busy=d;}}
+      for(var d=w.start;d<=w.end;d=add(d,1)){var x=ix.days[d],u0=usual(ix,d,today);if(u0&&u0>max)max=u0;if(x){if(x.total>max)max=x.total;if(d<=today&&(!busy||x.total>ix.days[busy].total))busy=d;}}
       max=Math.max(4,Math.ceil(max/2)*2);
       var W=n*bw+44,svg='';
       [0,.5,1].forEach(function(f){var y=top+plot-plot*f;
         svg+='<line x1="34" x2="'+W+'" y1="'+y+'" y2="'+y+'" stroke="#e6ece8"/>'+
           '<text x="28" y="'+(y+5)+'" text-anchor="end" class="cclt-ax">'+Math.round(max*f)+'</text>';});
+      /* Month names: each one only uses the room up to the next month, so they never run into each other */
+      var mStarts=[],k=0;for(d=w.start;d<=w.end;d=add(d,1),k++){if(!mStarts.length||d.slice(0,7)!==mStarts[mStarts.length-1].m)mStarts.push({m:d.slice(0,7),i:k,d:d});}
+      var mLabel={};mStarts.forEach(function(ms,j){var room=((j+1<mStarts.length?mStarts[j+1].i:n)-ms.i)*bw-6;
+        var long=new Date(t(ms.d)).toLocaleDateString('en-GB',{month:'long',year:'numeric',timeZone:'UTC'}),short=new Date(t(ms.d)).toLocaleDateString('en-GB',{month:'short',timeZone:'UTC'}).slice(0,3);
+        mLabel[ms.m]=room>=long.length*7?long:room>=short.length*7+2?short:'';});
       var i=0,lastMonth='';
       for(d=w.start;d<=w.end;d=add(d,1),i++){
         var x0=40+i*bw,dd=ix.days[d],future=d>today,y=top+plot,mid=x0+bw/2;
@@ -119,10 +134,13 @@
           if(showN||d===busy)svg+='<text x="'+mid+'" y="'+(y-6)+'" text-anchor="middle" class="cclt-n'+(d===busy?' cclt-busy-n':'')+'">'+dd.total+'</text>';
           if(d===busy)svg+='<rect x="'+(x0+1)+'" y="'+(y-1)+'" width="'+(bw-2)+'" height="'+(top+plot-y+2)+'" fill="none" stroke="#d98b19" stroke-width="2.5" rx="3"/>';
         }
+        var uv=usual(ix,d,today);
+        if(uv&&uv>=0.5&&(dd||future)){var uy=top+plot-plot*uv/max;svg+='<line x1="'+(x0+2)+'" x2="'+(x0+bw-2)+'" y1="'+uy+'" y2="'+uy+'" stroke="#344054" stroke-width="2" stroke-linecap="round" class="cclt-usual"><title>'+esc('Usual for a '+pretty(d,{weekday:'long',day:undefined,month:undefined})+': '+uv+' cakes')+'</title></line>';}
+        if(dd&&dd.rush){var ry=Math.max(top-8,(top+plot-plot*dd.total/max)-(showN||d===busy?24:10));svg+='<circle cx="'+mid+'" cy="'+ry+'" r="'+(bw>=20?5:4)+'" fill="#F79009" stroke="#fff" stroke-width="1.5" class="cclt-rush"><title>'+esc(dd.rush+' short-notice order'+(dd.rush===1?'':'s')+' a manager said yes to')+'</title></circle>';}
         var dt=new Date(t(d)),day=dt.getUTCDate(),wd='SMTWTFS'[dt.getUTCDay()],mon=d.slice(0,7);
         var tick=showD||d===today||(gap(d,today)%7===0&&Math.abs(gap(d,today))>=4);if(tick)svg+='<text x="'+mid+'" y="'+(top+plot+19)+'" text-anchor="middle" class="cclt-d'+(d===today?' cclt-on':'')+'">'+day+'</text>';
         if(showD)svg+='<text x="'+mid+'" y="'+(top+plot+36)+'" text-anchor="middle" class="cclt-w">'+wd+'</text>';
-        if(mon!==lastMonth){lastMonth=mon;svg+='<text x="'+x0+'" y="12" class="cclt-m">'+esc(new Date(t(d)).toLocaleDateString('en-GB',{month:bw<20?'short':'long',year:'numeric',timeZone:'UTC'}))+'</text>';
+        if(mon!==lastMonth){lastMonth=mon;if(mLabel[mon])svg+='<text x="'+x0+'" y="12" class="cclt-m">'+esc(mLabel[mon])+'</text>';
           if(i)svg+='<line x1="'+x0+'" x2="'+x0+'" y1="16" y2="'+(top+plot)+'" stroke="#d6dde3" stroke-dasharray="3 3"/>';}
         if(d===state.selected)svg+='<rect x="'+(x0+1)+'" y="'+(top+plot+3)+'" width="'+(bw-2)+'" height="'+(showD?42:24)+'" rx="5" fill="none" stroke="#2f4a7a" stroke-width="2"/>';
         svg+='<rect x="'+x0+'" y="0" width="'+bw+'" height="'+H+'" fill="transparent" class="cclt-hit" data-d="'+d+'">'+
@@ -143,6 +161,9 @@
       var hn=hols(d).map(function(e){return e.name;});
       el.innerHTML='<h4>'+esc(pretty(d,{year:'numeric'}))+(hn.length?' <small class="cclt-hol">'+esc(hn.join(', '))+'</small>':'')+(d>today?' <small>upcoming, booked so far</small>':d===today?' <small>today</small>':'')+'</h4>'+
         '<p class="cclt-big"><b>'+x.total+'</b> cake'+(x.total===1?'':'s')+' for pickup · '+x.orders+' order'+(x.orders===1?'':'s')+'</p>'+
+        (function(){var u=usual(ix,d,today),wdn=pretty(d,{weekday:'long',day:undefined,month:undefined});
+          return (u!==null?'<p class="cclt-note">Usual for a '+esc(wdn)+': <b>'+u+'</b> cake'+(u===1?'':'s')+(x.total>u*1.5&&x.total-u>=2?' · <b style="color:#B54708">busier than usual</b>':'')+'</p>':'')+
+            (x.rush?'<p class="cclt-note"><b style="color:#B54708">'+x.rush+' short-notice order'+(x.rush===1?'':'s')+'</b> a manager said yes to</p>':'');})()+
         '<div class="cclt-cols"><div><h5>When they were booked</h5><ul class="cclt-parts">'+parts+'</ul></div>'+
         '<div><h5>Cakes</h5><ul class="cclt-cakes">'+cakes+'</ul></div></div>';
     }
