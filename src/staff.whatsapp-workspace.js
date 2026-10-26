@@ -49,10 +49,10 @@ function composer(peer,order){
 }
 function err(e){const b=root.querySelector('#ccwa-body');if(b)b.innerHTML='<p class="ccs-err">'+esc(e.message||e)+'</p><button class="ccs-btn ccs-ghost" data-wa="refresh">Retry</button>';}
 async function showInbox(){
- state.mode='inbox';panel('WhatsApp inbox');
+ state.mode='inbox';panel('Customer messages');
  try{state.inbox=await call('inbox');const b=root.querySelector('#ccwa-body');if(!b)return;
  if(!state.inbox.enabled){b.innerHTML='<p class="ccs-note">WhatsApp is not connected yet. No messages can be sent.</p>';return;}
- b.innerHTML='<p class="ccs-hint">Conversations are grouped by phone number. Link messages to the correct cake order after checking the details.</p>'+
+ b.innerHTML='<div class="ccwa-channels"><b>WhatsApp</b><span>Viber · planned, provider access required</span></div><p class="ccs-hint">Conversations are grouped by phone number. Link messages to the correct cake order after checking the details.</p>'+
  (state.inbox.threads.length?state.inbox.threads.map(t=>'<button type="button" class="ccwa-thread" data-wa="thread" data-phone="'+esc(t.peer_number)+'"><b>'+esc(t.peer_number)+'</b><small>'+date(t.created_at)+'</small><span>'+esc((t.body||'Media message').slice(0,110))+'</span></button>').join(''):'<p>No messages yet.</p>');
  }catch(e){err(e);}
 }
@@ -65,7 +65,7 @@ async function showThread(peer){
 async function showOrder(id,reference){
  state.mode='order';state.orderId=id||'';state.orderReference=reference||'';panel('Order messages');
  try{state.order=await call('order',id?{order_id:id}:{order_reference:reference});state.orderId=state.order.order_id;const x=state.order,b=root.querySelector('#ccwa-body');if(!b)return;
- b.innerHTML='<h3>Order '+esc(x.order_reference)+'</h3><p class="ccs-hint">Conversation: '+esc(x.peer_number||'No phone number')+'</p>'+
+ b.innerHTML='<div class="ccwa-order-context"><b>'+esc(x.order_reference)+'</b><span>'+esc(x.order_customer||'Customer')+'</span><small>Collection: '+esc(x.required_date||'Not set')+' · '+esc(x.required_time||'')+'</small></div><div class="ccwa-channels"><b>WhatsApp</b><span>Viber · not connected</span></div><p class="ccs-hint">Conversation: '+esc(x.peer_number||'No phone number')+'</p>'+
  (!x.enabled?'<p class="ccs-note">WhatsApp is not connected. Messaging remains disabled.</p>':'')+
  '<h4>Messages linked to this order</h4>'+list(x.linked,true)+
  (x.unlinked.length?'<h4>Other messages from this number — check before linking</h4>'+
@@ -112,7 +112,7 @@ function enhance(){
  if(sheet&&sheet.querySelector('.os-tref')&&!sheet.querySelector('[data-wa="order"]')&&(state.status===null || state.status.can_message)){
    const id=orderId();
    if(id||orderRef()){
-     const button=document.createElement('button');button.type='button';button.className='ccs-btn ccs-ghost ccwa-order-button';button.dataset.wa='order';button.dataset.order=id;button.dataset.reference=orderRef();button.textContent='Messages · WhatsApp';
+     const button=document.createElement('button');button.type='button';button.className='ccs-btn ccs-ghost ccwa-order-button';button.dataset.wa='order';button.dataset.order=id;button.dataset.reference=orderRef();button.textContent='Customer messages';
      const target=sheet.querySelector('.ccs-sheet-body');if(target)target.prepend(button);
    }
  }
