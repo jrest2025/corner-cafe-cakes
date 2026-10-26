@@ -86,6 +86,13 @@ const fact = (label: string, value: string, sub = "") =>
 const smallBtn = (href: string, label: string, primary = false) =>
   `<a href="${esc(href)}" style="display:inline-block;padding:${primary ? "14px 26px" : "12px 20px"};margin:0 8px 10px 0;background:${primary ? GREEN : "#ffffff"};color:${primary ? "#ffffff" : GREEN};border:2px solid ${GREEN};border-radius:10px;text-decoration:none;font-weight:bold;font-size:15px">${esc(label)}</a>`;
 
+// Seasonal treats on the order (Settings > Seasonal items), for example "2 × Mince Pies (Pack of 3), 1 × Gingerbread House · $59"
+function treatsLine(d: any): string {
+  const t: any[] = Array.isArray(d.treats) ? d.treats : [];
+  if (!t.length) return "";
+  const sum = t.reduce((s, x) => s + Number(x.price) * Number(x.quantity), 0);
+  return t.map((x) => `${x.quantity} × ${x.name}${x.detail ? ` (${x.detail})` : ""}`).join(", ") + ` · ${money(sum)}`;
+}
 function staffNewOrder(d: any): { subject: string; html: string } {
   const o = d.order, i = d.item ?? {}, c = d.customer ?? {}, loc = d.location, cfg = d.config ?? {};
   const custom = o.order_type === "custom";
@@ -125,7 +132,7 @@ function staffNewOrder(d: any): { subject: string; html: string } {
   b += section("02", "The cake", grid(
     kv("Cake", esc(cakeLine(i))) + kv("Finish", i.finish === "custom" ? "Custom design" : "Standard finish") +
     kv("Design", esc(i.design_description || "")) + kv("Occasion", esc(i.occasion || "")) + kv("Serves", esc(i.serves_label || "")) +
-    kv("Photos", d.attachments > 0 ? `${d.attachments} in the staff app` : "") + kv("Notes", esc(o.customer_notes || ""))) +
+    kv("Treats", esc(treatsLine(d))) + kv("Photos", d.attachments > 0 ? `${d.attachments} in the staff app` : "") + kv("Notes", esc(o.customer_notes || ""))) +
     (i.cake_message ? `<div style="margin:8px 0 4px;border:1.5px dashed ${INK};border-radius:8px;padding:12px;text-align:center"><div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:${MUTED}">Written on the cake · copy exactly</div><div style="font-size:20px;font-weight:bold;color:${INK};margin-top:4px">“${esc(i.cake_message)}”</div></div>` : ""));
   b += section("03", "Customer", grid(
     kv("Name", esc(name)) + kv("History", c.past_orders > 0 ? `Returning, ${c.past_orders} earlier order${c.past_orders > 1 ? "s" : ""}` : "New customer") +

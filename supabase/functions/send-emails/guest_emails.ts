@@ -60,6 +60,8 @@ function orderRows(d: any): Row[] {
   if (i.finish === "custom" || isRequest(i)) rows.push(["Design", i.design_description || "Custom design"]);
   if (i.cake_message) rows.push(["On the cake", `“${i.cake_message}”`]);
   if (i.candles) rows.push(["Candles", i.candles]);
+  const treats: any[] = Array.isArray(d.treats) ? d.treats : [];
+  if (treats.length) rows.push(["Treats", treats.map((x) => `${x.quantity} × ${x.name}${x.detail ? ` (${x.detail})` : ""}`).join(", ") + ` · ${money(treats.reduce((s, x) => s + Number(x.price) * Number(x.quantity), 0))}`]);
   const REQ: Record<string, string> = { eggless: "Eggless (vegetarian)", gluten_free: "Gluten-free", dairy_free: "Dairy-free", vegan: "Vegan (no egg, no dairy)" };
   const reqs = (i.requirements ?? []).map((k: string) => k === "other" ? (i.requirements_note || "Other") : REQ[k] || k);
   if (reqs.length) rows.push(["Your cake must be", reqs.join(", "), true]);
