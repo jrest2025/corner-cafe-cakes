@@ -255,3 +255,11 @@ Screens:
 - email-templates Edge Function v3 → commit 427b3ce9 (preview matches send-emails v30). Rollback: 7e1aa73b2cd7aa3e894a019d5f38dfc11eccf5b5.
 - Rollback (page): remove ccordertoolsloader45, add ccordertoolsloader44 (1.0.44, footer), publish.
 - Found, not fixed: the editor preview shows 'Café phone">' before the phone number in the "Questions? … call" line.
+
+## Loader 46 (commit 5a4cdc4e) and email editor 1.0.1 — live 28 Oct 2026, 12:11 AM
+- Settings in the Kazumi Service Hub format: menu beside the page on computers and iPads, overview cards with key facts,
+  full-word groups (Ordering and availability, Menu and pricing, Calendar, Alerts and communications, People and access,
+  Data and safety), one icon per setting. Layout only.
+- Email editor: registered script ccemailtemplates2 (dist/app/email-templates.82a1c537ec.js @17dbfb9d, SRI sha384-R0FyBq…)
+  replaces ccemailtemplates; fields inside a link address stay as fields (fixed the broken phone link in previews/published templates).
+- Rollback: page scripts back to ccemailtemplates 1.0.0 and ccordertoolsloader45 1.0.45, publish.
