@@ -59,4 +59,7 @@ const lead = res.find(x => x.id === 'lead'), unpriced = res.find(x => x.id === '
 check('insights: unpriced confirmed order is reported (F006 at $0)', !!unpriced && unpriced.big === '1', unpriced);
 check('insights: lead time wording says median (shown only with 8+ orders)', !lead || /median/.test(lead.title), lead);
 
+// the delivered add-on must contain exactly the current source files (rebuild with build/analytics_metrics_addon.py)
+const addon = fs.readFileSync(path.join(__dirname, '../../src/staff.analytics-metrics.js'), 'utf8');
+check('staff.analytics-metrics.js is up to date with both source files', addon.includes(src) && addon.includes(ins));
 console.log(n + ' passed, ' + fails + ' failed'); process.exit(fails ? 1 : 0);
