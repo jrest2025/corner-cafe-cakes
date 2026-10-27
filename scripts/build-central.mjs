@@ -29,7 +29,7 @@ const sha = (s) => createHash('sha256').update(s, 'utf8').digest('hex');
 const fail = (m) => { console.error(m); process.exit(1); };
 
 const PARTS = {
-  skeleton: '8434bc8ec3d98f497fed14f3f4e7e1df61bdd55fd35187189d718d646c0f9114',
+  skeleton: 'cca0bb76c764f2a026e0941a186575c3712454b6a00786beae38c2cf2e346434',
   'site-head': '63b968d6ab610ff64d127b89d0fc6da298ea2d42c8ed799a95f15652a895b9b8',
   'page-head': '313b60f83af98de669f269769df7f15f46f982c410e60f4d94fc83799ea0ea8a',
   'site-footer': 'e77c9f45bf199763a7c7bbaf6500e02e9c84eccf4f2832fa35d1212bab3cba02',

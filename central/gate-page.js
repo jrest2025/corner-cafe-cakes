@@ -18,7 +18,7 @@ export function gatePage({ error = '', next = '/', notReady = false } = {}) {
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
 <meta name="color-scheme" content="light">
-<title>Corner Café Service Hub</title>
+<title>Corner Café Marketing &amp; Business Intelligence Hub</title>
 <link rel="icon" href="/cc-logo.png" type="image/png">
 <style>
 @font-face{font-family:"Grift";src:url("https://cdn.prod.website-files.com/6a0e37a6c7018b2c8724e236/6a4c7a93a693407b27c24668_Grift-Regular.woff2") format("woff2");font-weight:400;font-display:swap}
@@ -60,7 +60,7 @@ input:focus{border-color:var(--acc);box-shadow:0 0 0 4px rgba(41,45,51,.18)}
 <body>
 <main>
   <img class="logo" src="/cc-logo.png" width="180" height="66" alt="Corner Café">
-  <h1>Corner Café Service Hub</h1>
+  <h1>Corner Café Marketing &amp; Business Intelligence Hub</h1>
   <p class="lead">Enter the team password to continue.</p>
   ${message}
   <form method="post" action="/__gate" id="gf">
