@@ -1,5 +1,11 @@
 # Corner Café Service Hub on Vercel (central.cornercafefiji.com)
 
+> **WARNING: STALE SNAPSHOT. DO NOT SWITCH STAFF OVER.** `central/page/` is a copy of the Webflow staff page from
+> 22 October 2026, 14:57 UTC. It predates order tools loaders 2 to 34 (live: `ccOrderToolsLoader34`), the iPad shell,
+> flow, polish, admin console, analytics metrics, seasonal, treat orders and the Cake Pulse rename. Deploying
+> `central/dist` and switching staff over would roll them back to the 22 October app. It must be rebuilt from the
+> current live Webflow page first. Full list of what is missing: [`docs/CENTRAL-STALE.md`](../docs/CENTRAL-STALE.md).
+
 Started 23 October 2026, the same way as the Kazumi Service Hub (central.kazumifiji.com) and Marketing Central
 (central.jacksrestaurantsfiji.com). Only the staff page moves: the Cake CRM at
 www.cornercafefiji.com/cake-orders-staff. The Corner Café website, the guest cake order page and the festive page
@@ -18,6 +24,9 @@ stay on Webflow.
 - **Login gate.** `middleware.js` is the Kazumi gate with Corner Café names: anyone without a valid gate cookie sees
   the Corner Café gate page (`central/gate-page.js`) and must enter the team password. The device then stays unlocked
   for 30 days. This replaces the Webflow page password. Staff then sign in with their own account, as before.
+- **Sign-in, as it actually is.** Three layers: the team password gate above, then each staff member's own email and
+  password (Supabase), then a sign-out after 12 hours without activity. There is no two-step (second factor) code;
+  two-step sign-in is planned but not built. Earlier wording that mentioned a "two-step code" was wrong.
 - **Hidden from Google.** Every response says noindex and `robots.txt` disallows everything.
 - **Builds.** Vercel builds only when the files listed in `vercel.json` (`ignoreCommand`) change.
 

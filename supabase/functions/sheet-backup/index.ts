@@ -5,7 +5,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 import { Plain, prepare, robot, run, status } from "./core.ts";
 
-const ORIGINS = ["https://www.cornercafefiji.com", "https://cornercafefiji.com"];
+const ORIGINS = ["https://www.cornercafefiji.com", "https://cornercafefiji.com", "https://central.cornercafefiji.com"];
 function cors(req: Request) {
   const o = req.headers.get("origin") || "";
   return {

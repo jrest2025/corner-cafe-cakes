@@ -38,6 +38,12 @@ const PARTS = {
 // The whole live page, as published by Webflow on 22 October 2026 (137,574 characters).
 const LIVE_PAGE = '6d8d874985efd6c4d795b668232450a8df339737415866ba31edb27178d62c10';
 
+// Stale snapshot warning (28 October 2026). Printed only; it does not change what is built or checked.
+// central/page/ predates order tools loaders 2 to 34, so switching staff over to this build would roll them back.
+// See docs/CENTRAL-STALE.md. Remove this warning once central/page/ is rebuilt from the current live Webflow page.
+console.warn('WARNING: central/page/ is the 22 October 2026 snapshot and predates order tools loaders 2 to 34. ' +
+  'Do not switch staff over to this build until it is rebuilt from the current live Webflow page. See docs/CENTRAL-STALE.md.');
+
 const part = {};
 for (const [name, want] of Object.entries(PARTS)) {
   part[name] = read(`central/page/${name}.html`);
