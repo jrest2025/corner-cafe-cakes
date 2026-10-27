@@ -321,3 +321,9 @@ Screens:
 ## Cake Enquiries hidden (28 Oct 2026, 6:35 AM)
 - Roneel: worried it would confuse staff; chose "Hide it for now". Staff page back on `ccordertoolsloader51` (1.0.51), published; checked live: no Enquiries tab or button, all other add-ons load.
 - Kept for later: the enquiry tables and functions in the database (empty, unused), loader 52 (registered, not applied), src/staff.enquiries.js and its test. To bring it back: apply ccordertoolsloader52 and publish (consider the safeguards discussed: hint to use New order, "is this a confirmed order?" check, one button on Orders only).
+
+## Order card refinements — LIVE (28 Oct 2026, 10:41 AM)
+- Approved by Roneel ("deploy", 10:40 AM). staff.flow.js (__ccOrderCard20261028): only the order number under the name; cake detail labels semi-bold #1D2939; Collection box under the cake on the Cake tab (read from the order, the app's own Change button); Collection tab hidden.
+- `ccordertoolsloader53` (1.0.53) replaces loader 51 (Enquiries stay hidden): commit 68c30f75, new fingerprints for staff.flow.js and staff.admin.js (inert Two-step row code).
+- Test: test/order-tools/test_order_card.cjs 19 pass (computer, iPad, phone); test_flow 20 pass. Live check on CC-1140: CC-1140 only, labels 600, tabs Cake / Payment / More, Collection Sunday 1 November at 4:00 PM.
+- Rollback: remove ccordertoolsloader53, add ccordertoolsloader51 (1.0.51, footer), publish.
