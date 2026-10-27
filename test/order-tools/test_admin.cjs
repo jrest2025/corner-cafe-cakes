@@ -20,7 +20,7 @@ const goSettings = p => p.evaluate(() => { const b = [...document.querySelectorA
         needs: [...m.querySelectorAll('.cca-needs .cca-chip')].map(x => x.textContent), hx: document.scrollingElement.scrollWidth <= innerWidth, mainX: m.scrollWidth <= m.clientWidth + 1 }; });
     check(t + ' opens on the overview (grouped cards), flat list hidden', ov.home && !ov.flat && ov.cards.length >= 3, ov);
     { const want = ov.nav.filter(k => k !== 'Remove Settings entries'); const extra = ov.rows.filter(k => !want.includes(k));   // Remove entries retired 28 Oct; Communications = email templates window
-    check(t + ' every section this user can see is on the overview, nothing invented', want.every(k => ov.rows.includes(k)) && extra.every(k => k === 'Communications') && !ov.rows.includes('Remove Settings entries'), { rows: ov.rows, nav: ov.nav }); }
+    check(t + ' every section this user can see is on the overview, nothing invented', want.every(k => ov.rows.includes(k)) && extra.every(k => k === 'Communications' || k === 'Settings history') && !ov.rows.includes('Remove Settings entries'), { rows: ov.rows, nav: ov.nav }); }
     check(t + ' no sideways scroll', ov.hx && ov.mainX, ov);
     if (role === 'admin') {
       // statuses agree with each section's own header
@@ -37,7 +37,7 @@ const goSettings = p => p.evaluate(() => { const b = [...document.querySelectorA
     check(t + ' search with no match says so', await p.evaluate(() => /No setting matches/.test((document.querySelector('#ccs-main .cca-empty') || {}).textContent || '')));
     await p.fill('#ccs-main [data-cca-q] >> visible=true', ''); await p.waitForTimeout(300);
     // open every section: the app's own section shows, with path back and its group as tabs
-    const keys = ov.rows.filter(k => k !== 'Communications'), wide = await p.evaluate(() => innerWidth >= 1100);
+    const keys = ov.rows.filter(k => k !== 'Communications' && k !== 'Settings history'), wide = await p.evaluate(() => innerWidth >= 1100);
     for (const k of keys) {
       await p.evaluate(k => [...document.querySelectorAll('#ccs-main .cca-home .cca-row')].find(r => r.getAttribute('data-cca-open') === k).click(), k); await p.waitForTimeout(700);
       const s = await p.evaluate(() => { const m = document.getElementById('ccs-main'), vis = e => !!(e && e.getClientRects().length), cur = m.querySelector('.ccs-set > details.is-cur');

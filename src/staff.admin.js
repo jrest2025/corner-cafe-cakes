@@ -12,6 +12,7 @@
   win.__ccAdmin20261027 = true;
 
   var I = {"globe": "<circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M12 3a13 13 0 0 0 0 18 13 13 0 0 0 0-18M3 12h18\"/>", "cake": "<path d=\"M20 21v-8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8\"/><path d=\"M4 16s.5-1 2-1 2.5 2 4 2 2.5-2 4-2 2.5 2 4 2 2-1 2-1\"/><path d=\"M2 21h20M7 8v3M12 8v3M17 8v3\"/>", "cal": "<rect x=\"3\" y=\"4\" width=\"18\" height=\"17\" rx=\"2\"/><path d=\"M16 2v4M8 2v4M3 10h18\"/>", "bell": "<path d=\"M10.3 21a2 2 0 0 0 3.4 0M3.3 15.3A1 1 0 0 0 4 17h16a1 1 0 0 0 .7-1.7C19.4 14 18 12.5 18 8A6 6 0 0 0 6 8c0 4.5-1.4 6-2.7 7.3\"/>", "users": "<path d=\"M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2\"/><circle cx=\"9\" cy=\"7\" r=\"4\"/><path d=\"M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8\"/>", "shield": "<path d=\"M20 13c0 5-3.5 7.5-7.7 9a1 1 0 0 1-.6 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.2-2.7a1.2 1.2 0 0 1 1.6 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1z\"/>", "db": "<ellipse cx=\"12\" cy=\"5\" rx=\"8\" ry=\"3\"/><path d=\"M4 5v14a8 3 0 0 0 16 0V5M4 12a8 3 0 0 0 16 0\"/>", "chev": "<path d=\"m6 9 6 6 6-6\"/>", "arrow": "<path d=\"M5 12h14M13 6l6 6-6 6\"/>", "alert": "<path d=\"m21.7 18-8-14a2 2 0 0 0-3.4 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3M12 9v4M12 17h.01\"/>", "printer": "<path d=\"M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 9V3h12v6\"/><rect x=\"6\" y=\"14\" width=\"12\" height=\"8\" rx=\"1\"/>", "flag": "<path d=\"M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1zM4 22v-7\"/>", "star": "<path d=\"M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z\"/>", "truck": "<path d=\"M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2M15 18H9\"/><path d=\"M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.62l-3.48-4.35A1 1 0 0 0 17.52 8H14\"/><circle cx=\"17\" cy=\"18\" r=\"2\"/><circle cx=\"7\" cy=\"18\" r=\"2\"/>", "clock": "<circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M12 7v5l3 2\"/>", "calx": "<rect x=\"3\" y=\"4\" width=\"18\" height=\"17\" rx=\"2\"/><path d=\"M16 2v4M8 2v4M3 10h18M10 14l4 4M14 14l-4 4\"/>", "gift": "<rect x=\"3\" y=\"8\" width=\"18\" height=\"4\" rx=\"1\"/><path d=\"M12 8v13M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7M7.5 8a2.5 2.5 0 0 1 0-5C10 3 12 8 12 8s2-5 4.5-5a2.5 2.5 0 0 1 0 5\"/>", "layers": "<path d=\"m12 2 10 5-10 5L2 7zM2 17l10 5 10-5M2 12l10 5 10-5\"/>", "search": "<circle cx=\"11\" cy=\"11\" r=\"7\"/><path d=\"m20 20-3.5-3.5\"/>", "back": "<path d=\"m15 18-6-6 6-6\"/>", "info": "<circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M12 11v5M12 8h.01\"/>", "trash": "<path d=\"M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14\"/>", "mail": "<rect x=\"2\" y=\"4\" width=\"20\" height=\"16\" rx=\"2\"/><path d=\"m22 7-9 5.7a2 2 0 0 1-2 0L2 7\"/>"};
+  I.history = '<path d="M3 12a9 9 0 1 0 2.6-6.4L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/>';
   function svg(k, c) { return I[k] ? '<svg class="cca-ic' + (c ? ' ' + c : '') + '" viewBox="0 0 24 24" aria-hidden="true" focusable="false">' + I[k] + '</svg>' : ''; }
   function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function txt(e) { return e ? (e.textContent || '').replace(/\s+/g, ' ').trim() : ''; }
@@ -24,7 +25,7 @@
     { k: 'calendar', t: 'Calendar', ic: 'cal', s: ['Occasions and special dates', 'Events and public holidays'] },
     { k: 'alerts', t: 'Alerts and communications', ic: 'bell', s: ['Order alerts', 'Kitchen printing', 'Communications'] },
     { k: 'team', t: 'People and access', ic: 'users', s: ['Team and access', 'What each level can do'] },
-    { k: 'data', t: 'Data and safety', ic: 'shield', s: ['Backup and business continuity', 'Deleted orders', 'Remove Settings entries'] }
+    { k: 'data', t: 'Data and safety', ic: 'shield', s: ['Settings history', 'Backup and business continuity', 'Deleted orders', 'Remove Settings entries'] }
   ];
   var KEYWORDS = {
     'Online orders': 'website pause stop accept online form', 'Notice and collection hours': 'lead time days notice pickup collection hours slots limit per day',
@@ -70,7 +71,7 @@
       var st = info.status || ''; if (/^administrators?$/i.test(st) || (st.split(' ').length > 4 && !/\d/.test(st))) st = '';
       var bic = b.querySelector('svg'); return { k: k, b: b, d: info.d, status: st, flag: extra, ic: SEC_IC[k] ? svg(SEC_IC[k]) : bic ? bic.outerHTML : svg(DEF_IC[k] || 'layers') };
     }).filter(function (s) { return s.k !== 'Remove Settings entries'; })   // retired 28 Oct 2026: off sale or archive instead
-      .concat(commsRow(set, btns));
+      .concat(commsRow(set, btns)).concat(histRow());
   }
   // Email templates (22 Oct) sit in the old Settings list, which this home hides: shown here as Communications,
   // opening the email templates window directly (Roneel, 27 Oct 2026 11:52 PM: "its not there")
@@ -78,6 +79,78 @@
     if (!set.querySelector(':scope > #et-comm') || !win.CCEmailTemplates || typeof win.CCEmailTemplates.open !== 'function') return [];
     if (btns.some(function (b) { return b.getAttribute('data-setk') === 'Communications'; })) return [];
     return [{ k: 'Communications', b: null, d: null, status: 'Email templates', flag: '', ic: svg('mail'), et: true }];
+  }
+  // ---------- Settings history (Release C, 28 Oct 2026): who changed which setting, when, before and after, put back ----------
+  var H = { allowed: null, entries: [], more: false, area: '', busy: false, err: null, arm: null, msg: null, areas: [] };
+  function histRow() { return H.allowed ? [{ k: 'Settings history', b: null, d: null, status: '', flag: '', ic: svg('history'), hist: true }] : []; }
+  function bc() { return win.__ccsBc && typeof win.__ccsBc.rpc === 'function' ? win.__ccsBc : null; }
+  function histCheck() {
+    if (H.allowed !== null || !bc()) return; H.allowed = false;
+    bc().rpc('settings_history', { p_limit: 1 }).then(function (r) { var d = r && r.data; H.allowed = !!(d && d.ok); if (H.allowed) schedule(); }, function () {});
+  }
+  function histLoad(more) {
+    if (H.busy || !bc()) return; H.busy = true; H.err = null;
+    var before = more && H.entries.length ? H.entries[H.entries.length - 1].id : null;
+    bc().rpc('settings_history', { p_area: H.area || null, p_before: before, p_limit: 40 }).then(function (r) {
+      H.busy = false; var d = r && r.data;
+      if (!d || !d.ok) { H.err = (d && d.message) || 'Could not load the history. Check the internet connection.'; schedule(); return; }
+      H.entries = more ? H.entries.concat(d.entries || []) : (d.entries || []); H.more = !!d.more; H.areas = d.areas || H.areas; H.loaded = true; schedule();
+    }, function () { H.busy = false; H.err = 'Could not load the history. Check the internet connection.'; schedule(); });
+  }
+  var FIELD = { fee: 'Fee', collection_open: 'First collection', collection_close: 'Last collection', lead_days_standard: 'Notice, standard cakes (days)',
+    lead_days_custom: 'Notice, custom cakes (days)', max_days_ahead: 'Furthest ahead (days)', slot_minutes: 'Time slots (minutes)', daily_capacity: 'Most cakes per day',
+    accepts_online: 'Taking website orders', price: 'Price', active: 'On', is_active: 'On', featured: 'Shown on order forms', sort: 'Position', status: 'Status',
+    label: 'Name', name: 'Name', title: 'Title', blurb: 'Text', link_url: 'Link', link_label: 'Link text', image_url: 'Photo', lead_days: 'Notice (days)',
+    alert_email: 'Order alerts', full_name: 'Name', level_id: 'Access level', role: 'Role', value: 'Value', reason: 'Reason', day: 'Date', ends_on: 'Last day', note: 'Note',
+    defaults_confirmed: 'Confirmed', occasions: 'Occasions', description: 'Description', serves_label: 'Serves', size_inch: 'Size (inch)' };
+  function fieldName(k) { return FIELD[k] || (k.charAt(0).toUpperCase() + k.slice(1)).replace(/_/g, ' '); }
+  function t12s(v) { var m = /^(\d{2}):(\d{2})(:\d{2})?$/.exec(v); if (!m) return null; var h = +m[1]; return ((h % 12) || 12) + ':' + m[2] + ' ' + (h >= 12 ? 'PM' : 'AM'); }
+  function val(k, v) {
+    if (v === null || v === undefined || v === '') return 'blank';
+    if (typeof v === 'boolean') return v ? 'Yes' : 'No';
+    if (Array.isArray(v)) return v.length ? v.join(', ') : 'none';
+    if (typeof v === 'object') return 'changed';
+    if (typeof v === 'number' && /fee|price/.test(k)) return '$' + (Math.round(v * 100) / 100);
+    var s = String(v), tt = t12s(s); if (tt) return tt;
+    if (/^\d{4}-\d{2}-\d{2}T/.test(s)) { try { return new Intl.DateTimeFormat('en-NZ', { timeZone: 'Pacific/Fiji', day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(s)); } catch (e) {} }
+    return s.length > 80 ? s.slice(0, 78) + '…' : s;
+  }
+  function when(at) {
+    try { var d = new Date(at), p = new Intl.DateTimeFormat('en-NZ', { timeZone: 'Pacific/Fiji', weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true }).formatToParts(d), o = {};
+      p.forEach(function (x) { o[x.type] = x.value; }); return o.weekday + ' ' + o.day + ' ' + o.month + ', ' + o.hour + ':' + o.minute + ' ' + String(o.dayPeriod || '').toUpperCase(); } catch (e) { return ''; }
+  }
+  var ACT = { insert: 'Added', delete: 'Removed', staff_removed: 'Removed from the team', order_alerts_changed: 'Order alerts changed', rotated: 'New code made' };
+  function histHtml() {
+    var h = '<div class="cca-hh"><h2>Settings history</h2><label class="cca-hf"><span class="ccp-sr">Show</span><select data-cca-harea><option value="">All settings</option>' +
+      (H.areas || []).slice().sort().map(function (a) { return '<option' + (a === H.area ? ' selected' : '') + '>' + esc(a) + '</option>'; }).join('') + '</select></label></div>';
+    if (H.msg) h += '<p class="cca-hmsg" role="status">' + esc(H.msg) + '</p>';
+    if (H.err) h += '<p class="cca-herr" role="alert">' + esc(H.err) + '</p>';
+    if (!H.loaded && !H.err) return h + '<p class="cca-hnone">Loading…</p>';
+    if (!H.entries.length) return h + '<p class="cca-hnone">No changes recorded yet.</p>';
+    h += '<ol class="cca-hlist">' + H.entries.map(function (e) {
+      var ch = (e.changes || []).filter(function (c) { return !/^(updated_by|created_by|set_by|set_at|grants)$/.test(c.field); });
+      var what = e.action === 'update' ? (ch.length ? ch.map(function (c) { return '<li><span>' + esc(fieldName(c.field)) + '</span> ' + esc(val(c.field, c.before)) + ' <i aria-hidden="true">→</i> <b>' + esc(val(c.field, c.after)) + '</b></li>'; }).join('') : '<li>Saved, no visible change</li>')
+        : '<li>' + esc(ACT[e.action] || e.action.replace(/_/g, ' ')) + '</li>';
+      var armed = H.arm === e.id;
+      return '<li class="cca-he"><div class="cca-hm"><b>' + esc(e.item || e.area) + '</b><span>' + esc(e.area) + '</span></div><ul class="cca-hc">' + what + '</ul>' +
+        '<div class="cca-hw"><span>' + esc(when(e.at)) + '</span><em>' + esc(e.who) + '</em>' +
+        (e.can_restore && ch.length ? '<button type="button" class="cca-hb' + (armed ? ' is-armed' : '') + '" data-cca-restore="' + e.id + '">' + (armed ? 'Tap again to put back' : 'Put back') + '</button>' : '') + '</div></li>';
+    }).join('') + '</ol>';
+    if (H.more) h += '<button type="button" class="cca-hmore" data-cca-hmore>' + (H.busy ? 'Loading…' : 'Show earlier changes') + '</button>';
+    return h;
+  }
+  function histView(main) {
+    var box = main.querySelector(':scope > .cca-hist');
+    if (!box) { box = doc.createElement('section'); box.className = 'cca-hist'; box.setAttribute('aria-label', 'Settings history'); main.appendChild(box); }
+    var h = '<button type="button" class="cca-back cca-hback" data-cca-home>' + svg('back') + '<span>All settings</span></button>' + histHtml();
+    if (box.getAttribute('data-h') !== h) { box.innerHTML = h; box.setAttribute('data-h', h); }
+  }
+  function histRestore(id) {
+    if (H.arm !== id) { H.arm = id; H.msg = null; schedule(); setTimeout(function () { if (H.arm === id) { H.arm = null; schedule(); } }, 5000); return; }
+    H.arm = null; if (!bc()) return;
+    bc().rpc('settings_restore', { p_id: id }).then(function (r) {
+      var d = r && r.data; H.msg = d && d.ok ? 'Put back. The change is in the history too.' : ((d && d.message) || 'Nothing was changed.'); histLoad(false);
+    }, function () { H.msg = 'Nothing was changed. Check the internet connection.'; schedule(); });
   }
   function groupOf(k) { for (var i = 0; i < GROUPS.length; i++) if (GROUPS[i].s.indexOf(k) > -1) return GROUPS[i]; return { k: 'other', t: 'Other', ic: 'layers', s: [] }; }
 
@@ -173,6 +246,11 @@
     var list = sections(set); if (!list.length) return;
     main.classList.add('cca-on');
     headerTone(list);
+    histCheck();
+    var hist = view === 'Settings history' && H.allowed;
+    main.classList.toggle('cca-hist-on', !!hist);
+    if (hist) { main.classList.remove('cca-home-on'); main.classList.add('cca-sec-on'); menu(main, list, view); if (!H.loaded && !H.busy && !H.err) histLoad(false); histView(main); return; }
+    var oh = main.querySelector(':scope > .cca-hist'); if (oh) oh.remove();
     var cur = list.filter(function (s) { return s.d && s.d.classList.contains('is-cur'); })[0] || list[0];
     if (view !== 'home' && cur.k !== view) { var want = list.filter(function (s) { return s.k === view; })[0]; if (want) { want.b.click(); return; } setView('home'); }
     var isHome = view === 'home';
@@ -187,6 +265,9 @@
     var t = e.target; if (!t || !t.closest) return;
     var o = t.closest('[data-cca-open]');
     if (o && o.getAttribute('data-cca-open') === 'Communications' && doc.querySelector('#cc-staff .ccs-set > #et-comm') && win.CCEmailTemplates) { e.preventDefault(); try { win.CCEmailTemplates.open(); } catch (er) {} return; }
+    var rs = t.closest('[data-cca-restore]'); if (rs) { e.preventDefault(); histRestore(+rs.getAttribute('data-cca-restore')); return; }
+    if (t.closest('[data-cca-hmore]')) { e.preventDefault(); histLoad(true); return; }
+    if (o && o.getAttribute('data-cca-open') === 'Settings history') { e.preventDefault(); setView('Settings history'); H.loaded = false; H.entries = []; H.msg = null; schedule(); var mh = doc.getElementById('ccs-main'); if (mh) mh.scrollTop = 0; return; }
     if (o) { e.preventDefault(); var k = o.getAttribute('data-cca-open'); setView(k); var b = doc.querySelector('#ccs-main .ccs-setnav [data-setk="' + (win.CSS && CSS.escape ? CSS.escape(k) : k) + '"]'); if (b) b.click(); schedule(); var m = doc.getElementById('ccs-main'); if (m) m.scrollTop = 0; return; }
     if (t.closest('[data-cca-home]')) { e.preventDefault(); setView('home'); schedule(); var m2 = doc.getElementById('ccs-main'); if (m2) m2.scrollTop = 0; return; }
     var i = t.closest('.cca-i');
@@ -194,6 +275,7 @@
     // the sidebar Settings item always starts at the overview
     if (t.closest('#cc-staff [data-tab="settings"]')) { setView('home'); q = ''; schedule(); }
   }, true);
+  doc.addEventListener('change', function (e) { var t = e.target; if (t && t.hasAttribute && t.hasAttribute('data-cca-harea')) { H.area = t.value; H.loaded = false; H.entries = []; histLoad(false); } });
   doc.addEventListener('input', function (e) { var t = e.target; if (t && t.hasAttribute && t.hasAttribute('data-cca-q')) { q = t.value; if (view !== 'home') setView('home'); schedule(); } });
   doc.addEventListener('keydown', function (e) {
     var t = e.target;
@@ -290,6 +372,20 @@
       S + ' .cca-grid{grid-template-columns:repeat(auto-fill,minmax(min(100%,380px),1fr))}' +
     '}',
     '@media (prefers-reduced-motion:no-preference){' + S + ' .cca-home,' + S + ' .cca-bar{animation:cca-in .16s ease-out}}@keyframes cca-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}',
+    S + '.cca-hist-on > .ccs-set,' + S + '.cca-hist-on > .cca-home,' + S + '.cca-hist-on > .cca-bar{display:none!important}',
+    S + ' .cca-hist{max-width:1100px}' + S + ' .cca-hh{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 0 12px}' + S + ' .cca-hh h2{margin:0;font-size:20px;font-weight:600;color:#1D2939}',
+    S + ' .cca-hf select{min-height:44px;padding:0 36px 0 12px;border:1px solid #D0D5DD;border-radius:10px;background:#fff;font:inherit;font-size:15px;color:#1D2939}',
+    S + ' .cca-hlist{list-style:none;margin:0;padding:0;background:#fff;border:1px solid #E4E7EC;border-radius:14px;overflow:hidden}',
+    S + ' .cca-he{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1.6fr) minmax(170px,.8fr);gap:8px 16px;align-items:start;padding:12px 16px;border-top:1px solid #F2F4F7}' + S + ' .cca-he:first-child{border-top:0}',
+    S + ' .cca-hm{display:flex;flex-direction:column;gap:2px;min-width:0}' + S + ' .cca-hm b{font-weight:600;color:#1D2939;overflow-wrap:anywhere}' + S + ' .cca-hm span{font-size:13px;color:#667085}',
+    S + ' .cca-hc{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:3px;font-size:15px;color:#344054;min-width:0}' + S + ' .cca-hc span{color:#667085}' + S + ' .cca-hc b{font-weight:600;color:#1D2939}' + S + ' .cca-hc i{font-style:normal;color:#98A2B3}',
+    S + ' .cca-hw{display:flex;flex-direction:column;align-items:flex-end;gap:2px;font-size:13px;color:#475467;text-align:right}' + S + ' .cca-hw em{font-style:italic;color:#667085}',
+    S + ' .cca-hb{margin-top:6px;min-height:40px;padding:0 14px;border:1px solid #8FAED3;border-radius:10px;background:#fff;color:#1A4570;font:inherit;font-size:14px;font-weight:600;cursor:pointer}' + S + ' .cca-hb.is-armed{background:#FDF0D9;border-color:#E9C27F;color:#8A4504}',
+    S + ' .cca-hmore{margin:12px 0 0;min-height:44px;padding:0 16px;border:1px solid #D0D5DD;border-radius:10px;background:#fff;font:inherit;font-weight:600;color:#1D2939;cursor:pointer}',
+    S + ' .cca-hmsg{margin:0 0 10px;padding:10px 12px;border-radius:10px;background:#E3F4EA;color:#05603A}' + S + ' .cca-herr{margin:0 0 10px;color:#B42318}' + S + ' .cca-hnone{color:#475467;font-style:italic}',
+    S + ' .cca-hback{margin:0 0 12px}',
+    '@media (min-width:1100px){' + S + ' .cca-hback{display:none}}',
+    '@media (max-width:759px){' + S + ' .cca-he{grid-template-columns:1fr}' + S + ' .cca-hw{align-items:flex-start;text-align:left}}',
     ':root:not(#cct0) #cc-staff .cct12-src{position:absolute!important;width:1px!important;height:1px!important;opacity:0!important;pointer-events:none!important;overflow:hidden!important}',
     ':root:not(#cct0) #cc-staff .cct12{display:flex;flex-wrap:wrap;align-items:center;gap:8px}',
     ':root:not(#cct0) #cc-staff .cct12-t{width:6.5em;min-height:48px;padding:0 12px;border:1px solid #D0D5DD;border-radius:10px;background:#fff;font:inherit;font-size:17px;color:#1D2939}',
@@ -342,6 +438,6 @@
       src.after(w); src.__t12 = w;
     });
   }
-  function start() { styles(); var t12q = false, mo12 = new MutationObserver(function () { if (t12q) return; t12q = true; setTimeout(function () { t12q = false; try { time12(); } catch (e) {} }, 30); }); mo12.observe(doc.body, { childList: true, subtree: true }); var mo = new MutationObserver(function (m) { for (var i = 0; i < m.length; i++) { var r = m[i], n = r.target; if (n && n.closest && n.closest('.cca-home, .cca-bar, .cca-i, .cca-menu')) continue; if (r.type === 'attributes' && (n.id === 'ccs-main' && r.attributeName === 'class' || n.classList && (n.classList.contains('cca-hst') || n.classList.contains('cca-hidetext')))) continue; schedule(); return; } }); mo.observe(doc.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'open', 'data-screen'] }); schedule(); }
+  function start() { styles(); var t12q = false, mo12 = new MutationObserver(function () { if (t12q) return; t12q = true; setTimeout(function () { t12q = false; try { time12(); } catch (e) {} }, 30); }); mo12.observe(doc.body, { childList: true, subtree: true }); var mo = new MutationObserver(function (m) { for (var i = 0; i < m.length; i++) { var r = m[i], n = r.target; if (n && n.closest && n.closest('.cca-home, .cca-bar, .cca-i, .cca-menu, .cca-hist')) continue; if (r.type === 'attributes' && (n.id === 'ccs-main' && r.attributeName === 'class' || n.classList && (n.classList.contains('cca-hst') || n.classList.contains('cca-hidetext')))) continue; schedule(); return; } }); mo.observe(doc.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'open', 'data-screen'] }); schedule(); }
   if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', start); else start();
 })();
