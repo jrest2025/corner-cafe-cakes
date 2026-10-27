@@ -61,13 +61,13 @@ async function makeSlip(p) {
       const s = await makeSlip(p);
       check(label + ': slip made', !!s.ref, s);
       await js(p, '#ccs-sheet [data-act=brief-print]', 1500);
-      const pr = await p.evaluate(() => { const e = document.getElementById('ccs-print'); if (!e) return null; const head = e.querySelector('.sl-head'), logo = head && head.querySelector('.sl-logo');
-        const hr = head && head.getBoundingClientRect(), lr = logo && logo.getBoundingClientRect();
-        return { ph: !!e.querySelector('.sl-ph1 img'), thumbs: e.querySelectorAll('.sl-phx img').length, oldPhotos: !!e.querySelector('.sl-photos'), centred: hr && lr ? Math.abs((lr.left + lr.width / 2) - (hr.left + hr.width / 2)) < 3 : null,
-          text: e.innerText, rows: [...e.querySelectorAll('.sl-ckc .sl-k > span')].map(x => x.textContent), printed: window.__printed }; });
-      check(label + ': print slip logo centred', pr && pr.centred, pr && pr.centred);
-      check(label + ': print slip cake block in order', pr && JSON.stringify(pr.rows) === JSON.stringify(['Cake', 'Size', 'Finish', 'Design', 'Inscription', 'Candles and occasion']), pr && pr.rows);
-      check(label + ': print slip photo ' + (np ? 'beside the cake' : 'none'), pr && pr.ph === np > 0 && pr.thumbs === Math.max(0, np - 1) && !pr.oldPhotos, pr && { ph: pr.ph, thumbs: pr.thumbs });
+      const pr = await p.evaluate(() => { const e = document.getElementById('ccs-print'); if (!e) return null; const top = e.querySelector('.slp-top'), logo = top && top.querySelector('.slp-logo');
+        return { photoSlip: !!e.querySelector('.slp'), oldSlip: !!e.querySelector('.sl-ordno'), logoLeft: top && logo ? logo.getBoundingClientRect().left - top.getBoundingClientRect().left < 20 : null,
+          ph: !!e.querySelector('.slp-ph img'), more: e.querySelectorAll('.slp-more img').length, labels: [...e.querySelectorAll('.slp-c > span')].map(x => x.textContent), text: e.innerText }; });
+      if (np) {
+        check(label + ': photo slip with the logo top left', pr && pr.photoSlip && pr.logoLeft && !pr.oldSlip, pr && { photoSlip: pr.photoSlip, logoLeft: pr.logoLeft });
+        check(label + ': cake, photo and details in order', pr && pr.ph && pr.more === np - 1 && JSON.stringify(pr.labels) === JSON.stringify(['Cake', 'Size', 'Design', 'Inscription', 'Candles', 'Occasion', 'Allergy']), pr && pr.labels);
+      } else check(label + ': no photo keeps the slip as it was', pr && pr.oldSlip && !pr.photoSlip, pr && { oldSlip: pr.oldSlip });
       check(label + ': no Short notice tag', pr && !/short notice/i.test(pr.text));
       if (SH) { await p.emulateMedia({ media: 'print' }); await p.screenshot({ path: path.join(SH, 'print-' + paper + '-' + np + '.png'), fullPage: true }); await p.emulateMedia({ media: 'screen' }); }
       const [dl] = await Promise.all([p.waitForEvent('download', { timeout: 15000 }), js(p, '#ccs-sheet [data-act=brief-pdf]', 300)]);

@@ -49,7 +49,7 @@ export function slipEmailHtml({ s, version, changes, fileName, sentBy }) {
   if (upd) rows += `<tr><td style="padding:0 20px 12px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${AMBER_BG};border-left:5px solid ${AMBER}"><tr><td style="padding:10px 14px">` +
     `<div style="font:bold 11px/1 ${FONT};letter-spacing:1.6px;text-transform:uppercase;color:${AMBER}">Changed since v${v - 1}</div>` +
     `<div style="font:bold 15px/1.4 ${FONT};color:${INK};padding-top:5px">${ch.length ? esc(ch.join(", ")) : "Order details updated. Check the whole slip."}</div></td></tr></table></td></tr>`;
-  if (s.rush) rows += `<tr><td style="padding:0 20px 12px"><div style="font:bold 14px/1.4 ${FONT};color:${AMBER}">Short-notice order</div></td></tr>`;
+  // No short-notice line: that is an internal matter, not for the kitchen slip (27 Oct 2026)
   // Cake
   rows += section("Cake", [
     ["Cake", esc(cake), true],
