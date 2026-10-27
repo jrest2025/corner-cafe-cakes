@@ -280,3 +280,11 @@ Screens:
 - Checked live: staff list and website list come from Settings; Settings shows 8:00 AM to 9:00 PM.
 - Rollback: supabase/sql/release_b_20261028_rollback.sql; footers from docs/rollback/*-before-release-b-2026-10-28.html;
   page scripts back to ccordertoolsloader47 1.0.47; publish.
+
+## Release C (Settings audit) — live 28 Oct 2026, 1:31 AM
+- Database migration release_c_20261028: settings_history, settings_restore (put back only when unchanged since; everyday
+  settings only), audit on promo_cards, calendar_events, catalogue_items, catalogue_item_options; write_audit keys by code/key too.
+  Tested first on a private PostgreSQL copy (caught two bugs, fixed).
+- Loader 49 (commit 7e6c822d): Settings > Data and safety > Settings history.
+- Checked live: history loads (40 latest, "Show earlier changes"), before/after in plain words, Put back offered on 14 of 40.
+- Rollback: supabase/sql/release_c_20261028_rollback.sql; page scripts back to ccordertoolsloader48 1.0.48; publish.
