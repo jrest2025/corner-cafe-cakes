@@ -191,10 +191,11 @@
   ].join(''));
 
   // ============ ORDERS ============
+  // rows sized to their content: a long list can no longer squash the heading to nothing (title hidden under the search)
   // computers and iPads: search and status tabs share one row
   var OR = [];
   [NI, IP].forEach(function (P) {
-    OR.push(P + M('orders') + '{display:grid!important;grid-template-columns:minmax(220px,360px) minmax(0,1fr)!important;column-gap:12px!important;row-gap:12px!important;align-content:start!important}');
+    OR.push(P + M('orders') + '{display:grid!important;grid-template-columns:minmax(220px,360px) minmax(0,1fr)!important;column-gap:12px!important;row-gap:12px!important;align-content:start!important;grid-template-rows:none!important;grid-auto-rows:max-content!important}');
     OR.push(P + M('orders') + ' > *{grid-column:1 / -1;margin-top:0!important;margin-bottom:0!important}');
     OR.push(P + M('orders') + ' > .ccs-toolbar{grid-column:1!important;min-width:0;align-self:center!important}');
     OR.push(P + M('orders') + ' > .ccs-toolbar .ccs-search{width:100%!important;max-width:none!important}');
@@ -231,7 +232,7 @@
   css.push(at(WIDE, CU));
   // wide screens: Follow-ups due beside the three numbers
   function fuSide(P) { var C = P + M('customers*') + '.ccp-has-fu'; return [
-    C + '{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;column-gap:12px!important;row-gap:12px!important;align-content:start!important}',
+    C + '{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;column-gap:12px!important;row-gap:12px!important;align-content:start!important;grid-template-rows:none!important;grid-auto-rows:max-content!important}',
     C + ' > *{grid-column:1 / -1;margin-top:0!important;margin-bottom:0!important}',
     C + ' > .ccp-fu{grid-column:1!important;align-self:stretch!important}',
     C + ' > .cw-summary{grid-column:2!important;align-self:stretch!important;grid-template-columns:1fr!important;grid-auto-rows:1fr!important;gap:8px!important}',
@@ -289,7 +290,7 @@
   var KI = [];
   [NI, IP].forEach(function (P) {
     var K = P + M('kitchen*');
-    KI.push(K + '{display:grid!important;grid-template-columns:auto minmax(0,1fr)!important;column-gap:12px!important;row-gap:12px!important;align-content:start!important}');
+    KI.push(K + '{display:grid!important;grid-template-columns:auto minmax(0,1fr)!important;column-gap:12px!important;row-gap:12px!important;align-content:start!important;grid-template-rows:none!important;grid-auto-rows:max-content!important}');
     KI.push(K + ' > *{grid-column:1 / -1;margin-top:0!important;margin-bottom:0!important}');
     KI.push(K + ' > .ccs-toolbar:has(+ .tp-urgent){grid-column:1!important;align-self:center!important}');
     KI.push(K + ' > .ccs-toolbar + .tp-urgent{grid-column:2!important;align-self:center!important}');
@@ -299,7 +300,7 @@
   // ============ REGISTER ============
   // computers and iPad landscape: the three numbers and the review tabs share one row
   function regRow(P) { var R = P + M('register'); return [
-    R + '{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;column-gap:12px!important;row-gap:12px!important;align-content:start!important}',
+    R + '{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;column-gap:12px!important;row-gap:12px!important;align-content:start!important;grid-template-rows:none!important;grid-auto-rows:max-content!important}',
     R + ' > *{grid-column:1 / -1;margin-top:0!important;margin-bottom:0!important}',
     R + ' > .ccs-kpis:has(+ .ccs-secbar){grid-column:1!important;align-self:center!important;display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important}',
     R + ' > .ccs-kpis + .ccs-secbar{grid-column:2!important;align-self:center!important}'
