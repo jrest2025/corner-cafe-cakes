@@ -231,6 +231,47 @@
     pop.style.left = Math.round(left) + 'px'; pop.style.top = Math.round(Math.max(12, top)) + 'px';
   }
 
+  // ---------- Popular cake types, Booking channels, Customer mix (moved from the Overview, Roneel 27 Oct 10:33 PM) ----------
+  // The same rules as the Overview cards (CCCakeSeasonalStage management cards): orders with a verified booking date in
+  // the period, pickups from the launch, cancelled/declined/not confirmed left out; returning = first completed sale
+  // before the period. The period follows this page's buttons (Since launch / 7 / 30 / 90 days).
+  function trio(x) {
+    // the same card and bar markup as the tab pages (kit copied here: the live tabs module does not expose it)
+    var K = {
+      tap: function (x, list, title, inner, cls) { return list && list.length && x.key ? '<button type="button" class="' + cls + ' cat-tap dx-tap" data-act="dx-drill" data-v="' + x.key({ t: title, l: list }) + '">' + inner + '</button>' : '<div class="' + cls + '">' + inner + '</div>'; },
+      card: function (title, note, body) { return '<section class="cat-card" aria-label="' + esc(title) + '"><header><h3>' + esc(title) + '</h3><span>' + esc(note) + '</span></header>' + body + '</section>'; },
+      none: function (t) { return '<p class="cat-none">' + esc(t) + '</p>'; },
+      bars: function (x, rows, fmt, tone) {
+        var max = rows.reduce(function (m, r) { return Math.max(m, r.v); }, 0) || 1;
+        return '<div class="cat-bars' + (tone ? ' cat-t-' + tone : '') + '">' + rows.map(function (r) {
+          return K.tap(x, r.list, r.t || r.l, '<span class="cat-bl" title="' + esc(r.l) + '">' + esc(r.l) + '</span><span class="cat-bt"><i style="width:' + Math.max(r.v ? 3 : 0, Math.round(r.v / max * 100)) + '%"></i></span><b>' + esc(fmt(r.v)) + '</b>', 'cat-br');
+        }).join('') + '</div>';
+      }
+    };
+    var today = x.today(), r = x.r || {}, from = r.all ? x.launch : r.from, to = r.to && r.to < today ? r.to : today, launch = x.launch;
+    var all = ((x.data && (x.data.allOrders || x.data.orders)) || []).filter(function (o) { return o && (!x.match || x.match(o)); });
+    var alive = all.filter(function (o) { return live(o) && !o.off; });
+    var recent = alive.filter(function (o) { var d = o.odok === true && iso(o.od) && o.od <= today && o.od <= o.pd ? o.od : ''; return o.pd >= launch && d && d >= from && d <= to; });
+    var cakes = {}, ch = {}, ids = {}, first = {};
+    recent.forEach(function (o) {
+      var it = (o.it || [])[0] || [], k = it[1] || it[0] || 'Cake'; (cakes[k] = cakes[k] || { l: k, v: 0, list: [] }).v += cakesOf(o); cakes[k].list.push(o);
+      var c = (x.src && x.src[o.src]) || String(o.src || o.sys || 'Not recorded').replace(/_/g, ' '); (ch[c] = ch[c] || { l: c, v: 0, list: [] }).v++; ch[c].list.push(o);
+      var id = typeof o.c === 'string' && o.c.trim().length >= 4 ? o.c.trim() : ''; if (id) (ids[id] = ids[id] || []).push(o);
+    });
+    all.forEach(function (o) { var id = typeof o.c === 'string' && o.c.trim().length >= 4 ? o.c.trim() : ''; if (!id || !(o.cp === 'recorded' || o.cp === 'assumed') || o.st === 'cancelled' || o.st === 'declined' || !iso(o.pd)) return; if (!first[id] || o.pd < first[id]) first[id] = o.pd; });
+    var ret = [], fst = [];
+    Object.keys(ids).forEach(function (id) { (first[id] && first[id] < from ? ret : fst).push.apply(first[id] && first[id] < from ? ret : fst, ids[id]); });
+    var nRet = Object.keys(ids).filter(function (id) { return first[id] && first[id] < from; }).length, nAll = Object.keys(ids).length;
+    var sort = function (g) { return Object.keys(g).map(function (k) { return g[k]; }).sort(function (a, b) { return b.v - a.v || (a.l < b.l ? -1 : 1); }).slice(0, 6); };
+    var span = r.all ? 'since the launch' : 'this period';
+    var rows = [
+      K.card('Popular cake types', 'Cakes booked · ' + span, recent.length ? K.bars(x, sort(cakes).map(function (g) { g.t = g.l + ', booked'; return g; }), String, 'green') : K.none('No bookings with a known booking date in this period.')),
+      K.card('Booking channels', 'Orders booked · ' + span, recent.length ? K.bars(x, sort(ch).map(function (g) { g.t = g.l + ' bookings'; return g; }), String, 'blue') : K.none('No bookings with a known booking date in this period.')),
+      K.card('Customer mix', 'Customers · ' + span, nAll ? K.bars(x, [{ l: 'Returning', v: nRet, list: ret, t: 'Returning customers' }, { l: 'First time', v: nAll - nRet, list: fst, t: 'First-time customers' }], String, 'purple') : K.none('No identifiable customers in this period.'))
+    ];
+    return '<div class="cat-row cat-n3 pk-trio">' + rows.join('') + '</div>';
+  }
+
   // ---------- the Cake sales page ----------
   function last() { var A = win.CCAnalyticsAnswers; return A && typeof A.last === 'function' ? A.last() : null; }
   function mount() {
@@ -241,6 +282,7 @@
     var host = doc.createElement('div'); host.innerHTML = card(data);
     var mainCard = pg.querySelector(':scope > .cat-main');
     if (mainCard) mainCard.after(host.firstChild); else pg.appendChild(host.firstChild);
+    try { var t3 = doc.createElement('div'); t3.innerHTML = trio(L.x); if (t3.firstChild) pg.querySelector('.pk').after(t3.firstChild); } catch (e) { warn('moved cards not shown', e); }
     [].forEach.call(doc.querySelectorAll('#ccs-main section.cat-card[aria-label="Busiest pickup days"], #ccs-main [data-ccf-title="Busiest pickup days"]'), function (c) { c.hidden = true; c.setAttribute('data-pk-replaced', '1'); });
     var rail = pg.querySelector('.pk-rail');
     go(rail, scrollAt != null ? null : 0, scrollAt);
@@ -339,7 +381,7 @@
   function hideSnapshot() {
     if (doc.getElementById('ccpk-snap')) return;
     var s = doc.createElement('style'); s.id = 'ccpk-snap';
-    s.textContent = ':root:not(#cc-p1) #cc-staff .hb-v2 .hb-k-heading,:root:not(#cc-p1) #cc-staff .hb-v2 .hb-k-kpis{display:none!important}';
+    s.textContent = ':root:not(#cc-p1) #cc-staff .hb-v2 .hb-k-heading,:root:not(#cc-p1) #cc-staff .hb-v2 .hb-k-kpis,:root:not(#cc-p1) #cc-staff .hb-v2 .hb-k-panels{display:none!important}';
     doc.head.appendChild(s);
   }
   function start() { hideSnapshot(); new MutationObserver(schedule).observe(doc.body, { childList: true, subtree: true }); schedule(); }

@@ -18,7 +18,7 @@ const sales = async p => { await tap(p, '#cc-staff [data-tab="dash"]', 3000); aw
     await p.context().close();
   }
   check('Daily cake demand is identical with the timeline add-on', hb[0].length > 1000 && hb[0] === hb[1], [hb[0].length, hb[1].length]);
-  check('Performance snapshot (heading, day buttons, six numbers) hidden; the cards below and the By booking time view stay', snap[0].head && snap[0].kpis && !snap[1].head && !snap[1].kpis && snap[1].panels === snap[0].panels && snap[1].view === snap[0].view, snap);
+  check('Overview: Performance snapshot and its three cards hidden (moved to Cake sales); the By booking time view stays', snap[0].head && snap[0].kpis && snap[0].panels && !snap[1].head && !snap[1].kpis && !snap[1].panels && snap[1].view === snap[0].view, snap);
   for (const [w, h, t] of [[1440, 900, 'desktop'], [1180, 820, 'ipad'], [390, 844, 'phone']]) {
     const { p, errors } = await open(b, w, h, { extraFoot: base, ipad: t === 'ipad' });
     await p.waitForTimeout(2500); await sales(p);
@@ -28,6 +28,8 @@ const sales = async p => { await tap(p, '#cc-staff [data-tab="dash"]', 3000); aw
         busiest: [...document.querySelectorAll('section.cat-card[aria-label="Busiest pickup days"]')].filter(e => e.getClientRects().length).length, scrolls: rail.scrollWidth > rail.clientWidth, side: document.documentElement.scrollWidth - innerWidth }; });
     check(t + ' timeline on Cake sales, past and upcoming days, today in view, scrolls sideways inside itself', s && s.cols > 100 && s.past && s.next && s.todayVisible && s.scrolls && s.side <= 0, s);
     check(t + ' replaces Busiest pickup days', s && s.busiest === 0, s);
+    const trio = await p.evaluate(() => { const r = document.querySelector('#ccs-main .cat-page[data-cat="sl"] .pk-trio'); return r && { titles: [...r.querySelectorAll('h3')].map(h => h.textContent), rows: r.querySelectorAll('.cat-br, .cat-bars > *').length, afterPk: r.previousElementSibling && r.previousElementSibling.classList.contains('pk') }; });
+    check(t + ' Popular cake types, Booking channels, Customer mix sit on Cake sales under the timeline', trio && trio.titles.join('|') === 'Popular cake types|Booking channels|Customer mix' && trio.rows > 0 && trio.afterPk, trio);
     const d = await p.evaluate(() => { const c = [...document.querySelectorAll('.pk-col.is-past:not(.is-zero)')].pop(); c.scrollIntoView({ inline: 'center', block: 'center' }); return c.getAttribute('data-pk'); });
     await p.waitForTimeout(300);
     await p.evaluate(d => document.querySelector('.pk-col[data-pk="' + d + '"]').click(), d); await p.waitForTimeout(400);
