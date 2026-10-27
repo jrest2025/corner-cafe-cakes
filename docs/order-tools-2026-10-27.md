@@ -83,7 +83,7 @@ Roneel: "the same philosophy applied across the board"; "proceed and deploy" (ph
 - Reservations Hub and Kazumi Service Hub still say "Heartbeat"; to rename separately in those apps.
 - Rollback: remove ccOrderToolsLoader24, add ccOrderToolsLoader23 (footer, 1.0.23), publish.
 
-## Channel badge fix (loader 25, commit 5c2d3a99) — staged
+## Channel badge fix (loader 25, commit 5c2d3a99) — live 27 Oct 2026, 12:21 PM
 
 - Channel icons (walk-in, website, WhatsApp...) centred in their circle everywhere, including the Today pop-ups (To do, Due today).
 - In Today pop-up rows the badge sits on the right of the row instead of on its own line.
