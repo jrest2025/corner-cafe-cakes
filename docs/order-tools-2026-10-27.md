@@ -249,3 +249,9 @@ Screens:
 - "Old orders" in the sidebar (under Orders) and first in More on phones; opens the existing Old order (paper slip) form directly. Same form, checks and server function; nothing new saved.
 - Loader messages shortened to stay under Webflow's 2,000-character limit.
 - Rollback: remove ccordertoolsloader44, add ccordertoolsloader43 (1.0.43, footer), publish.
+
+## Loader 45 (commit 427b3ce9) — live 27 Oct 2026, 11:56 PM
+- Settings home: Alerts & printing → Communications (Email templates) opens the email templates window (was hidden by the new Settings home).
+- email-templates Edge Function v3 → commit 427b3ce9 (preview matches send-emails v30). Rollback: 7e1aa73b2cd7aa3e894a019d5f38dfc11eccf5b5.
+- Rollback (page): remove ccordertoolsloader45, add ccordertoolsloader44 (1.0.44, footer), publish.
+- Found, not fixed: the editor preview shows 'Café phone">' before the phone number in the "Questions? … call" line.
