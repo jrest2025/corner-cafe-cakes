@@ -111,7 +111,7 @@ Customer profile:
 
 No data, rules or permissions changed. Rollback: remove ccOrderToolsLoader26, add ccOrderToolsLoader25 (footer, 1.0.25), publish.
 
-## Plain words round (loader 27, commit d8f48e55) — staged
+## Plain words round (loader 27, commit d8f48e55) — superseded by loader 28 (went live together with the iPad shell)
 
 Word list (display only; data and rules unchanged):
 - Status: Check order → New (amber) · Needs a price → Needs price (amber) · Waiting for customer → Waiting (navy) · Waiting for deposit → Deposit due (amber) · Confirmed (navy) · Completed → Done (green) · Declined / Cancelled (grey). Kitchen stage chips drop "Kitchen:" and show a chef icon.
@@ -125,3 +125,7 @@ Screens:
 - Order details: next-step chip only when there is no main button (no "Take $26" twice); completed orders show "All done" first; cake summary card hidden (the Cake tab shows it); four tabs — Cake, Collection/Delivery, Payment, More (Kitchen, Customer, Feedback, History).
 - Kitchen: empty week days show only a dash.
 - Rollback: remove ccOrderToolsLoader27, add ccOrderToolsLoader26 (footer, 1.0.26), publish.
+
+## Live 27 Oct 2026, 2:51 PM: loader 28 (commit 8d9e0515) = plain words round + iPad shell
+- Files: the eight add-ons plus src/staff.ipad.js (marker __ccIpad20261027). Details: docs/ipad-shell-2026-10-27.md.
+- Rollback: remove ccOrderToolsLoader28, add ccOrderToolsLoader26 (footer, 1.0.26), publish. (Loader 27 = plain words only, without the iPad shell, if only the iPad part needs undoing.)

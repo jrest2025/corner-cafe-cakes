@@ -1,6 +1,6 @@
 # iPad shell refinement — preview branch `preview/ipad-shell-20261027` (27 Oct 2026)
 
-Status: preview only. Not registered in Webflow, not published. Production is unchanged.
+Status: live 27 Oct 2026, 2:51 PM (loader 28), approved by Roneel after review.
 
 ## Root causes found
 1. **Page taller than the screen on iPad Safari.** `#cc-staff` has `min-height: 100vh` (src/staff.css) while the app inside is `100dvh` (src/staff.cal.css). On iPad Safari `100vh` is the height with the toolbar hidden, so with the toolbar showing the document is taller than the window and scrolls.
