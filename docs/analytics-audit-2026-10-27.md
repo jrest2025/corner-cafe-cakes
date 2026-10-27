@@ -58,7 +58,7 @@ Live numbers are from read-only queries; code references are file:line in the re
 2. "Sales" figure: **after refunds, including delivery fees and VAT** (as now), or **cake sales only** (excluding delivery)?
 3. Returning customer: **ordered before (any earlier order)** — recommended — or **2+ orders ever**?
 
-## 6. Stage 2a — implemented (loader 33, commit bc2779fd) — staged, not published
+## 6. Stage 2a — implemented (loader 33, commit bc2779fd) — live 27 Oct 2026, 5:28 PM
 
 Decisions applied (recommended defaults, approved with "proceed"): number cards count pickups from the launch like the tabs (multi-year charts stay all years and say so); sales stay "after refunds, incl. delivery and VAT" with the VAT line visible; returning customer = had a completed sale before the period.
 
