@@ -374,6 +374,96 @@
       var open = custMore || busy; zone.classList.add('ccp-zone'); zone.classList.toggle('is-open', open); b.setAttribute('aria-expanded', String(open));
     }
   }
+  // ---------- Plain words: one short status word per stage, a 2-4 word next step, same everywhere ----------
+  var STATUS = { 'Check order': ['New', 'amber'], 'Needs a price': ['Needs price', 'amber'], 'Waiting for customer': ['Waiting', 'navy'], 'Waiting for deposit': ['Deposit due', 'amber'], 'Confirmed': ['Confirmed', 'navy'], 'Completed': ['Done', 'green'], 'Declined': ['Declined', 'grey'], 'Cancelled': ['Cancelled', 'grey'] };
+  var FLAG = { 'Confirm': ['New', 'checkc'], 'Price': ['Add price', 'pen'], 'Deposit': ['Take deposit', 'coins'], 'Waiting': ['Waiting', 'hourglass'], 'Unpaid': ['To pay', 'coins'], 'Paid': ['Paid', 'checkc'], 'Due soon': ['Due soon', 'clock'], 'Overdue': ['Overdue', 'alert'], 'Allergy': ['Allergy', 'alert'] };
+  var KSTEP = { scheduled: ['Plan', 'cal'], preparing: ['Prep', 'chef'], baking: ['Bake', 'chef'], assembling: ['Baked', 'checkc'], decorating: ['Decorate', 'pen'], quality_check: ['To check', 'hourglass'] };
+  function shortNext(t) {
+    t = String(t || '').replace(/^\s*Next:\s*/, '').trim();
+    var amt = (t.match(/take (\$[\d,.]+)/i) || [])[1], kitchen = /^Kitchen:/i.test(t), take = /take (the balance|\$)/i.test(t);
+    if (/^Check it/i.test(t)) return ['Check & confirm', 'checkc', 'amber'];
+    if (/^Add the price/i.test(t)) return ['Add price', 'pen', 'amber'];
+    if (/^Waiting for the customer/i.test(t)) return ['Waiting on customer', 'hourglass', 'navy'];
+    if (/deposit/i.test(t)) return ['Take deposit', 'coins', 'amber'];
+    if (take) return [(amt ? 'Take ' + amt : 'Take balance') + (!kitchen && /hand it over/i.test(t) ? ', hand over' : ''), 'coins', 'amber'];
+    if (/deliver it/i.test(t)) return ['Deliver', 'truck', 'green'];
+    if (/hand it over/i.test(t)) return ['Hand over', 'bag', 'green'];
+    if (/gone out|tap Order completed/i.test(t)) return ['Mark completed', 'checkc', 'green'];
+    if (kitchen) return ['Waiting on kitchen', 'chef', 'navy'];
+    return null;
+  }
+  function nextChip(el, r) {
+    if (!r) return;
+    var sig = r.join('|'); if (el.getAttribute('data-ccp-nx') === sig) return;
+    el.setAttribute('data-ccp-nx', sig); el.setAttribute('data-ccp-tone', r[2]); el.classList.add('ccp-nx');
+    el.innerHTML = '<span class="ccp-sr">Next: </span>' + svg(r[1]) + '<span>' + esc(r[0]) + '</span>';
+  }
+  function words(root) {
+    // status chips
+    [].forEach.call(root.querySelectorAll('.ccs-pill.st'), function (e) {
+      if (e.closest('#cc-heartbeat')) return;
+      var w = txt(e), m = STATUS[w] || STATUS[e.getAttribute('data-ccp-was')];
+      if (/^Kitchen: /.test(w)) { var k = w.replace(/^Kitchen: /, ''); e.setAttribute('aria-label', w); e.title = w; if (!e.querySelector('.ccp-kw')) { e.innerHTML = svg('chef') + '<span class="ccp-kw">' + esc(k.charAt(0).toUpperCase() + k.slice(1)) + '</span>'; } return; }
+      if (!m) return;
+      if (!e.getAttribute('data-ccp-was')) e.setAttribute('data-ccp-was', w);
+      if (w !== m[0]) { var ic = e.querySelector('svg'); e.textContent = m[0]; if (ic) e.insertBefore(ic, e.firstChild); }
+      if (e.getAttribute('data-ccp-st') !== m[1]) e.setAttribute('data-ccp-st', m[1]);
+    });
+    // next steps: lists, Today and order details
+    [].forEach.call(root.querySelectorAll('.ccs-next, .ccs-nextline'), function (e) {
+      var raw = e.getAttribute('data-ccp-raw') || e.textContent; if (!e.getAttribute('data-ccp-raw')) e.setAttribute('data-ccp-raw', raw);
+      nextChip(e, shortNext(raw));
+    });
+    [].forEach.call(root.querySelectorAll('.tp-nb'), function (e) {
+      var w = e.getAttribute('data-ccp-raw') || txt(e), m = { 'Check and confirm': ['Check & confirm', 'checkc', 'amber'], 'Add the price': ['Add price', 'pen', 'amber'], 'Record the deposit': ['Take deposit', 'coins', 'amber'] }[w] || shortNext(w);
+      if (!e.getAttribute('data-ccp-raw')) e.setAttribute('data-ccp-raw', w); nextChip(e, m);
+    });
+    // phone list flag: one short word with an icon
+    [].forEach.call(root.querySelectorAll('.ccs-prow-f'), function (e) {
+      var was = e.getAttribute('data-ccp-was') || txt(e), m = FLAG[was]; if (!m) return;
+      if (!e.getAttribute('data-ccp-was')) e.setAttribute('data-ccp-was', was);
+      if (!e.querySelector('svg') || txt(e) !== m[0]) e.innerHTML = svg(m[1]) + '<span>' + esc(m[0]) + '</span>';
+    });
+    // kitchen: one-word step buttons
+    [].forEach.call(root.querySelectorAll('[data-act="k-next"]'), function (b) {
+      var m = KSTEP[b.getAttribute('data-v')]; if (!m) return;
+      if (!b.getAttribute('data-ccp-was')) { b.setAttribute('data-ccp-was', txt(b)); b.title = txt(b); }
+      if (txt(b) !== m[0] || !b.querySelector('svg')) b.innerHTML = svg(m[1]) + '<span>' + esc(m[0]) + '</span>';
+    });
+    [].forEach.call(root.querySelectorAll('[data-act="open-kitchen"].ccs-btn:not(.ccs-ghost)'), function (b) { if (/^Check and mark Ready$/.test(txt(b))) { b.title = txt(b); b.innerHTML = svg('checkc') + '<span>Ready</span>'; } });
+  }
+  function sheetNextOnce() {
+    var sh = doc.getElementById('ccs-sheet'); if (!sh) return;
+    var nl = sh.querySelector('.ccs-actions > .ccs-nextline'); if (!nl) { var sd = sh.querySelector('.ccs-sheet-head .ccs-pill.st[data-ccp-was="Completed"]'), acts = sh.querySelector('.os-main > .ccs-actions'); var dn = sh.querySelector('.os-main > .ccp-done'); if (sd && acts && !dn) { dn = doc.createElement('p'); dn.className = 'ccs-nextline ccp-done'; nextChip(dn, ['All done', 'checkc', 'green']); } if (dn) { var fb0 = sh.querySelector('.os-main > .fb-cta'), before = fb0 && fb0.nextElementSibling === acts ? fb0 : acts; if (before && dn.nextElementSibling !== before) before.parentNode.insertBefore(dn, before); } return; }
+    var prim = sh.querySelector('.ccs-actions .ccs-actions-row > .ccs-btn:not(.ccs-ghost):not([disabled])');
+    nl.classList.toggle('ccp-gone', !!prim);
+  }
+  // Today: say it once
+  function todayTrim(main) {
+    if (main.getAttribute('data-screen') !== 'today') return;
+    var head = main.querySelector('.tq-head');
+    if (head) {
+      // the long sentence under the greeting repeats the cards below
+      [].forEach.call(head.querySelectorAll('p, .tp-sub, .tq-sub'), function (p) { if (/needs you|due to be handed|waiting to be checked|cakes? (is|are) due/i.test(p.textContent) && !p.querySelector('button')) p.classList.add('ccp-gone'); });
+      var ul = head.querySelector('.ccb-list'); if (ul) ul.classList.add('ccp-gone');
+    }
+    var mir = main.querySelector(':scope > .ccs-mirnote'); if (mir) mir.classList.add('ccp-gone');
+    var fu = main.querySelector(':scope > .tq-fu'); if (fu) fu.classList.add('ccp-gone');
+  }
+  // Order details: cake shown once, four tabs (rest under More)
+  var tabsOpen = false, TAB_MAIN = { cake: 1, when: 1, payment: 1 };
+  function sheetTabs() {
+    var sh = doc.getElementById('ccs-sheet'); if (!sh || !sh.classList.contains('ccs-open') || sh.classList.contains('rm-profile')) return;
+    var ph = sh.querySelector('.os-main > .os-phcake'); if (ph) ph.classList.add('ccp-gone');
+    var bar = sh.querySelector('.os-detail > .ccs-secbar'); if (!bar) return;
+    var btns = [].slice.call(bar.querySelectorAll(':scope > .ccs-secbtn[data-act="secgo"]')); if (btns.length < 5) return;
+    var sel = bar.querySelector('.ccs-secbtn[aria-selected="true"]'), selExtra = sel && !TAB_MAIN[sel.getAttribute('data-v')];
+    btns.forEach(function (b) { b.classList.toggle('ccp-xtab', !TAB_MAIN[b.getAttribute('data-v')]); });
+    var mb = bar.querySelector(':scope > .ccp-tabmore');
+    if (!mb) { bar.insertAdjacentHTML('beforeend', '<button type="button" class="ccs-secbtn ccp-tabmore" aria-expanded="false">' + svg('chev') + '<span>More</span></button>'); mb = bar.lastChild; }
+    var open = tabsOpen || selExtra; bar.classList.toggle('ccp-tabs-open', !!open); mb.setAttribute('aria-expanded', String(!!open));
+    mb.classList.toggle('is-sel', !!selExtra);
+  }
   function kitchenCounts(main) {
     [].forEach.call(main.querySelectorAll('.kw-counts > .kw-count'), function (c) { var em = c.querySelector('em'); c.classList.toggle('ccp-zero', !!em && !/^[1-9]/.test(txt(em))); });
   }
@@ -413,11 +503,11 @@
       var t = [].slice.call(box.children).filter(function (e) { return !e.classList.contains('ccp-more'); }), rank = function (e) {
         if (e.classList.contains('s-alert') || e.classList.contains('vr-allergy')) return 0;
         if (e.classList.contains('cc-ch')) return 2;
-        if (e.classList.contains('st')) return next ? 9 : 1;
-        if (e.classList.contains('s-flag') || e.classList.contains('s-warn')) return 1;
+        if (e.classList.contains('st')) { if (e.getAttribute('data-ccp-was') === 'Confirmed' && box.querySelector('.ccs-pill.st .ccp-kw, .ccs-pill.st[aria-label^="Kitchen"]') && !/^Kitchen/.test(e.getAttribute('aria-label') || '')) return 9; return 1; }
+        if (e.classList.contains('s-flag') || e.classList.contains('s-warn')) return 1; if (e.classList.contains('ccs-pay') && next) return 9;
         return 5;
       };
-      var keep = t.slice().sort(function (a, b) { return rank(a) - rank(b); }).filter(function (e) { return rank(e) < 9; }).slice(0, 2);
+      var keep = t.slice().sort(function (a, b) { return rank(a) - rank(b); }).filter(function (e) { return rank(e) < 9; }).slice(0, 3);
       t.forEach(function (e) { e.classList.toggle('ccp-moretag', keep.indexOf(e) < 0); });
       t = t.filter(function (e) { return !e.classList.contains('ccp-more'); });
       var extra = t.filter(function (e) { return keep.indexOf(e) < 0 && rank(e) < 9; }), more = extra.length, m = box.querySelector(':scope > .ccp-more');
@@ -468,7 +558,7 @@
   }
 
   // ---------- refined details: icons on tags and number cards, page-title icons, tidy separators ----------
-  var TAG_IC = [[/allerg|dietary/i, null], [/^(Needs a price|Check order|To check|Waiting|Not confirmed|Quote|Awaiting)/i, 'hourglass'], [/^(Confirmed|Ready|Paid|Completed|Handed over|Collected|Done)/i, 'checkc'], [/^(Late|Overdue|Changed)/i, 'alert'], [/^Delivery/i, 'truck'], [/^Custom$/i, 'pen'], [/^Custom$/i, 'pen'], [/(to pay|owing|deposit|payment)/i, 'coins'], [/^Cancelled|^Declined/i, 'xcircle']];
+  var TAG_IC = [[/allerg|dietary/i, null], [/^(Needs a price|Needs price|Check order|New$|To check|Waiting|Not confirmed|Quote|Awaiting)/i, 'hourglass'], [/^(Confirmed|Ready|Paid|Completed|Handed over|Collected|Done)/i, 'checkc'], [/^(Late|Overdue|Changed)/i, 'alert'], [/^Delivery/i, 'truck'], [/^Custom$/i, 'pen'], [/^Custom$/i, 'pen'], [/(to pay|owing|deposit|payment|Deposit due)/i, 'coins'], [/^Cancelled|^Declined/i, 'xcircle']];
   var KPI_IC = { customers: 'users', 'new': 'spark', returning: 'repeat', due_today: 'bell' };
   var TITLE_TAB = { 'Analytics': 'dash', 'Cake orders': 'orders', 'Customers': 'customers', 'Settings': 'settings', 'Calendar': 'calendar', 'Shift handover': 'handover', "What's on today?": 'kitchen', 'Register': 'register' };
   var WALK = '<circle cx="13.5" cy="4.5" r="2"/><path d="M10 21.5l2.3-6.3 3.2 2.6v3.7M8 12.8l2.2-3.6 4.1.9 2.4 3.1M12.4 10l-1 5.4"/>';
@@ -559,7 +649,7 @@
     [].forEach.call(main.querySelectorAll('.ccs-tab[data-act="filter"]'), function (t) { var n = t.querySelector('.ccs-n'); t.classList.toggle('ccp-quiet', !!n && txt(n) === '0' && t.getAttribute('aria-pressed') !== 'true'); });
   }
   function refine(main) {
-    channels(main); iconOnly(main); analyticsNav(main); tiles(main); today(main); ordersTabs(main); custActions(main); kpis(main); anCharts(main);
+    channels(main); iconOnly(main); analyticsNav(main); tiles(main); today(main); ordersTabs(main); custActions(main); kpis(main); anCharts(main); words(main); todayTrim(main);
     // status tags: a small icon that says what kind of status it is
     [].forEach.call(main.querySelectorAll('.ccs-pill, .ccs-tag'), function (e) {
       if (e.closest('#cc-heartbeat') || e.querySelector('svg')) return;
@@ -878,6 +968,47 @@
       ':root:not(#cc-t0) #cc-staff #ccs-sheet .cd-zone.ccp-zone:not(.is-open) > :not(.ccp-more-b){display:none!important}',
       '#cc-staff #ccs-sheet .cd-zone .ccp-more-b{display:inline-flex;align-items:center;gap:8px;min-height:48px;padding:0 4px;background:none;border:0;color:#344054;font:inherit;font-weight:500;cursor:pointer}#cc-staff #ccs-sheet .cd-zone .ccp-more-b .ccp-ic{width:18px;height:18px}#cc-staff #ccs-sheet .cd-zone.is-open .ccp-more-b .ccp-ic{transform:rotate(180deg)}',
       ':root:not(#cc-t0) #cc-staff #ccs-sheet .cd-zone .cd-ask{width:100%!important;min-height:52px!important;background:#fff!important;color:#B42318!important;border:1px solid #F3B8B2!important;border-radius:12px!important;box-shadow:none!important}',
+      // ---------- Plain words ----------
+      ':root:not(#cc-t0) #cc-staff .ccp-gone.ccp-gone:not(#cc-heartbeat *){display:none!important}',
+      // status chip: one word, one colour (amber to do, navy plain, green done, grey closed)
+      ':root:not(#cc-t0) #cc-staff .ccs-pill.st[data-ccp-st]:not(#cc-heartbeat *){font-weight:600!important;border:1px solid transparent!important}',
+      ':root:not(#cc-t0) #cc-staff .ccs-pill.st[data-ccp-st="amber"]:not(#cc-heartbeat *){background:#FDF0D9!important;color:#8A4504!important;border-color:#E9C27F!important}',
+      ':root:not(#cc-t0) #cc-staff .ccs-pill.st[data-ccp-st="navy"]:not(#cc-heartbeat *){background:#E8F0F8!important;color:#1A4570!important;border-color:#9DB8D9!important}',
+      ':root:not(#cc-t0) #cc-staff .ccs-pill.st[data-ccp-st="green"]:not(#cc-heartbeat *){background:#E3F4EA!important;color:#05603A!important;border-color:#9ED2B3!important}',
+      ':root:not(#cc-t0) #cc-staff .ccs-pill.st[data-ccp-st="grey"]:not(#cc-heartbeat *){background:#F2F4F7!important;color:#475467!important;border-color:#D0D5DD!important}',
+      ':root:not(#cc-t0) #cc-staff .ccs-pill.st[data-ccp-st]:not(#cc-heartbeat *)::before{background:currentColor!important}',
+      ':root:not(#cc-t0) #cc-staff .ccs-pill.st:has(.ccp-kw){display:inline-flex!important;align-items:center;gap:6px}#cc-staff .ccs-pill.st .ccp-ic{width:16px;height:16px;flex:none}',
+      // next step: icon + 2-4 words, coloured by meaning
+      ':root:not(#cc-t0) #cc-staff .ccp-nx:not(#cc-heartbeat *){display:inline-flex!important;align-items:center!important;gap:8px!important;font-weight:600!important;font-style:normal!important;line-height:1.3!important;padding:6px 12px!important;border-radius:999px!important;margin:6px 0 0!important;width:auto!important;max-width:100%!important;border:1px solid transparent}',
+      ':root:not(#cc-t0) #cc-staff .ccp-nx > .ccp-ic{width:18px!important;height:18px!important;flex:none;stroke-width:2.2!important}',
+      ':root:not(#cc-t0) #cc-staff .ccp-nx[data-ccp-tone="amber"]{background:#FDF0D9!important;color:#8A4504!important;border-color:#E9C27F!important}',
+      ':root:not(#cc-t0) #cc-staff .ccp-nx[data-ccp-tone="green"]{background:#E3F4EA!important;color:#05603A!important;border-color:#9ED2B3!important}',
+      ':root:not(#cc-t0) #cc-staff .ccp-nx[data-ccp-tone="navy"]{background:#E8F0F8!important;color:#1A4570!important;border-color:#9DB8D9!important}',
+      ':root:not(#cc-t0) #cc-staff p.ccs-nextline.ccp-nx{font-size:17px!important}',
+      // phone list flag with its icon
+      ':root:not(#cc-t0) #cc-staff .ccs-prow-f:has(> svg){display:inline-flex!important;align-items:center!important;gap:6px!important;white-space:nowrap!important}:root:not(#cc-t0) #cc-staff .ccs-prow-f > .ccp-ic{width:16px;height:16px;flex:none;stroke-width:2.2}',
+      // kitchen: one-word step buttons with an icon
+      ':root:not(#cc-t0) #cc-staff [data-act="k-next"]:has(> svg),:root:not(#cc-t0) #cc-staff [data-act="open-kitchen"].ccs-btn:has(> .ccp-ic){display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:10px!important;min-width:150px!important}',
+      ':root:not(#cc-t0) #cc-staff [data-act="k-next"] > .ccp-ic,:root:not(#cc-t0) #cc-staff [data-act="open-kitchen"].ccs-btn > .ccp-ic{width:20px;height:20px;flex:none;stroke-width:2.2}',
+      // kitchen week: an empty day is just a dash
+      '#cc-staff #ccs-main .kw-day.is-zero > :last-child{visibility:hidden}',
+      // Today week cells on tablet and computer: count as a small pill, cells no taller than needed
+      '@media (min-width:760px){:root:not(#cc-t0) #cc-staff #ccs-main .tq-week{align-self:start!important}:root:not(#cc-t0) #cc-staff #ccs-main .tq-days .ccs-daycell{min-height:0!important;height:auto!important;padding:10px 4px!important}}',
+      ':root:not(#cc-t0) #cc-staff .ccs-pill.st[data-ccp-st]:has(> svg)::before,:root:not(#cc-t0) #cc-staff .ccs-pill.st:has(.ccp-kw)::before{display:none!important}',
+      ':root:not(#cc-t0) #cc-staff .ccp-nx{align-self:flex-start!important;justify-self:start!important;flex:0 0 auto!important;width:fit-content!important}',
+      '@media (min-width:760px){:root:not(#cc-t0) #cc-staff #ccs-main .tq-days .ccs-daycell > span{font-size:13px!important}:root:not(#cc-t0) #cc-staff #ccs-main .tq-days .ccs-daycell > em{font-size:0!important;line-height:0!important}:root:not(#cc-t0) #cc-staff #ccs-main .tq-days .ccs-daycell > em[data-n]::after{content:attr(data-n);display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:22px;padding:0 6px;border-radius:999px;background:#E8F0F8;color:#1A4570;font-size:13px;font-weight:600;line-height:22px;margin-top:4px}}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main .tp-nb.ccp-nx[data-ccp-tone="amber"]:not(#cc-heartbeat *){background:#FDF0D9!important;color:#8A4504!important;border:1px solid #E9C27F!important}',
+      '@media (min-width:760px){:root:not(#cc-t0) #cc-staff #ccs-main .tq-days .ccs-daycell > em:not(#cc-heartbeat *){font-size:0!important;line-height:0!important;color:transparent!important;display:block!important}:root:not(#cc-t0) #cc-staff #ccs-main .tq-days .ccs-daycell > em[data-n]:not(#cc-heartbeat *)::after{color:#1A4570!important;line-height:22px!important}:root:not(#cc-t0) #cc-staff #ccs-main .tq-days .ccs-daycell > span:not(#cc-heartbeat *){font-size:13px!important;overflow:hidden;text-overflow:clip;white-space:nowrap}}',
+      '@media (max-width:759px){:root:not(#cc-t0) #cc-staff #ccs-sheet .os-detail > .ccs-secbar > .ccs-secbtn{flex-direction:column!important;gap:2px!important;padding:6px 2px!important;font-size:13px!important;min-height:56px!important;line-height:1.1!important}:root:not(#cc-t0) #cc-staff #ccs-sheet .os-detail > .ccs-secbar > .ccs-secbtn .ccp-ic{margin:0!important}}',
+      ':root:not(#cc-t0) #cc-staff .ccs-prow-f:has(> svg)::before,:root:not(#cc-t0) #cc-staff .ccs-prow-f:has(> svg)::after{content:none!important;display:none!important}',
+      ':root:not(#cc-t0) #cc-staff .ccs-prow-f:has(> svg){padding:4px 10px!important}:root:not(#cc-t0) #cc-staff .ccs-prow-m > span{white-space:nowrap!important}',
+      '@media (min-width:760px){:root:not(#cc-t0) #cc-staff #ccs-main .tq-days .ccs-daycell:not(#cc-heartbeat *){display:flex!important;flex-direction:column!important;justify-content:flex-start!important;align-items:center!important}:root:not(#cc-t0) #cc-staff #ccs-main .tq-days .ccs-daycell:not(:has(> em)):not(#cc-heartbeat *)::after{content:"";display:block;height:26px}}',
+      ':root:not(#cc-t0) #cc-staff #ccs-main .tq-left:not(#cc-heartbeat *){display:inline-block!important;width:auto!important;max-width:100%!important;justify-self:start!important;align-self:flex-start!important}',
+      // order details: four tabs, the rest under More
+      ':root:not(#cc-t0) #cc-staff #ccs-sheet .os-detail > .ccs-secbar:not(.ccp-tabs-open) > .ccs-secbtn.ccp-xtab{display:none!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-sheet .os-detail > .ccs-secbar{grid-template-columns:repeat(4,minmax(0,1fr))!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-sheet .ccs-secbar > .ccp-tabmore{display:inline-flex!important;align-items:center;justify-content:center;gap:6px;order:99}:root:not(#cc-t0) #cc-staff #ccs-sheet .ccs-secbar > .ccp-tabmore .ccp-ic{width:16px;height:16px}:root:not(#cc-t0) #cc-staff #ccs-sheet .ccs-secbar.ccp-tabs-open > .ccp-tabmore .ccp-ic{transform:rotate(180deg)}',
+      '@media (min-width:760px){:root:not(#cc-t0) #cc-staff #ccs-sheet .os-detail > .ccs-secbar{display:flex!important}}',
       // Treat orders board: the same card language
       '#cc-staff #cc-to .cc-to-sum.ccp-sum{display:flex;align-items:center;gap:12px}',
       '#cc-staff #cc-to .cc-to-sum .cl-tile{flex:none;width:38px;height:38px;border-radius:11px;display:inline-flex;align-items:center;justify-content:center}',
@@ -920,7 +1051,7 @@
       if (/^orders/.test(scr) || main.querySelector('.ccs-list .ccs-card')) orders(main);
       if (main.querySelector('.ccs-setnav')) settings(main);
       if (main.querySelector('.cat-page, .dx-filters')) analytics(main);
-      refine(main); sheet(); sheetFlow(); custFlow(); pulseName();
+      refine(main); sheet(); sheetFlow(); custFlow(); sheetTabs(); sheetNextOnce(); var shx = doc.getElementById('ccs-sheet'); if (shx) words(shx); var popx = doc.querySelectorAll('#cc-staff .tx-pop, #cc-staff [class*="-pop"]'); [].forEach.call(popx, function (x) { if (!main.contains(x)) words(x); }); pulseName();
       seasonal(); treatBoard();
     } catch (e) { warn('update', e); }
   }
@@ -940,6 +1071,7 @@
     if (wm) { e.preventDefault(); e.stopPropagation(); var k0 = wm.getAttribute('data-k'); warnOpen[k0] = !warnOpen[k0]; run(); return; }
     var i = t.closest('.ccp-i');
     if (i) { e.preventDefault(); e.stopPropagation(); var f = doc.querySelector('#ccs-main .ccp-fine'); var on = i.getAttribute('aria-expanded') !== 'true'; i.setAttribute('aria-expanded', String(on)); if (f) f.classList.toggle('is-open', on); return; }
+    if (t.closest('.ccp-tabmore')) { e.preventDefault(); e.stopPropagation(); tabsOpen = !tabsOpen; run(); return; }
     if (t.closest('.ccp-cmore')) { e.preventDefault(); custMore = !custMore; run(); return; }
     if (t.closest('.ccp-more-b')) { e.preventDefault(); var shp = doc.getElementById('ccs-sheet'), rk = (shp && shp.__ccpRef) || 'x'; moreOpen[rk] = !moreOpen[rk]; run(); return; }
     if (t.closest('.ccp-flag-b')) { e.preventDefault(); flagOpen = !flagOpen; run(); return; }

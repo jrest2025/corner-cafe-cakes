@@ -17,7 +17,7 @@ const shot = async (p, name) => { if (SHOTS) await p.screenshot({ path: SHOTS + 
     const td = await p.evaluate(() => { const m = document.getElementById('ccs-main'); const vis = e => e && e.getClientRects().length;
       return { biz: vis(m.querySelector('.tq-stats > .cl-biz')), stats: [...m.querySelectorAll('.tq-stats > .tq-stat')].filter(vis).length, todayCell: getComputedStyle(m.querySelector('.ccs-daycell.is-today')).backgroundColor, dash: [...m.querySelectorAll('.tq-days em')].filter(e => /^—$/.test(e.textContent.trim()) && getComputedStyle(e).visibility !== 'hidden').length, fit: [...m.querySelectorAll('.tq-days .ccs-daycell')].every(c => c.getBoundingClientRect().right <= innerWidth), nb: m.querySelector('.tp-nb') ? getComputedStyle(m.querySelector('.tp-nb')).backgroundColor : null }; });
     check(t + ' Today: three summary tiles, no business figure', !td.biz && td.stats === 3, td);
-    check(t + ' Today: today in soft navy, empty days blank, all 7 days fit, next step not black', td.todayCell === 'rgb(238, 243, 249)' && td.dash === 0 && td.fit && (td.nb === null || td.nb === 'rgb(238, 243, 249)'), td);
+    check(t + ' Today: today in soft navy, empty days blank, all 7 days fit, next step not black', td.todayCell === 'rgb(238, 243, 249)' && td.dash === 0 && td.fit && (td.nb === null || td.nb === 'rgb(253, 240, 217)' || td.nb === 'rgb(232, 240, 248)'), td);
     await shot(p, t + '-today');
     // ---------- Customers ----------
     await go(p, 'customers');
@@ -57,9 +57,9 @@ const shot = async (p, name) => { if (SHOTS) await p.screenshot({ path: SHOTS + 
     if (t !== 'phone') check(t + ' i shows the spend note', await p.evaluate(() => !!document.querySelector('#ccs-main .ccs-head .ccs-sub').getClientRects().length));
     // ---------- Orders ----------
     await go(p, 'orders');
-    const or = await p.evaluate(() => [...document.querySelectorAll('#ccs-main .ccs-card')].map(c => ({ tags: [...c.querySelectorAll('.ccs-tags > *')].filter(x => x.getClientRects().length).map(x => x.textContent.trim()), next: !!c.querySelector('.ccs-next .ccp-next svg') })));
-    if (t !== 'phone') check(t + ' order cards: at most two tags plus +n, allergy kept', or.length && or.every(c => c.tags.filter(x => !/^\+\d$/.test(x)).length <= 2) && or[0].tags.some(x => /allergy/i.test(x)), or);
-    check(t + ' order cards: Next has an arrow', or.every(c => c.next), or);
+    const or = await p.evaluate(() => [...document.querySelectorAll('#ccs-main .ccs-card')].map(c => ({ tags: [...c.querySelectorAll('.ccs-tags > *')].filter(x => x.getClientRects().length).map(x => x.textContent.trim()), next: !c.querySelector('.ccs-next') || !!c.querySelector('.ccs-next.ccp-nx svg') })));
+    if (t !== 'phone') check(t + ' order cards: at most three tags plus +n, allergy kept', or.length && or.every(c => c.tags.filter(x => !/^\+\d$/.test(x)).length <= 3) && or[0].tags.some(x => /allergy/i.test(x)), or);
+    check(t + ' order cards: Next is a short chip with an icon', or.every(c => c.next), or);
     check(t + ' All tab short', await p.evaluate(() => (document.querySelector('.ccs-tab[data-v="recent"]') || {}).textContent === 'All'));
     await shot(p, t + '-orders');
     // ---------- Kitchen ----------

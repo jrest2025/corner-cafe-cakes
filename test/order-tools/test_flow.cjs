@@ -20,6 +20,8 @@ const state = p => p.evaluate(() => { const sh = document.getElementById('ccs-sh
     check(t + ' completed: Correct and Delete wait behind More options (closed)', s.more.includes('Correct this order') && s.more.some(x => /Delete/.test(x)) && s.moreClosed && !s.out.length, s);
     await p.evaluate(() => document.querySelector('#ccs-sheet .ccp-more-b').click()); await p.waitForTimeout(400);
     check(t + ' More options opens', await p.evaluate(() => [...document.querySelectorAll('#ccs-sheet .ccp-mitem')].filter(x => x.getClientRects().length).length >= 2));
+    const tb = await p.evaluate(() => { const sh = document.getElementById('ccs-sheet'), vis = e => !!(e && e.getClientRects().length); return { tabs: [...sh.querySelectorAll('.os-detail > .ccs-secbar > .ccs-secbtn')].filter(vis).map(x => x.textContent.trim()), cake2: vis(sh.querySelector('.os-phcake')), done: (sh.querySelector('.ccp-done') || {}).textContent, st: (sh.querySelector('.ccs-sheet-head .ccs-pill.st') || {}).textContent }; });
+    check(t + ' details: four tabs (rest under More), cake shown once, "Done" and "All done"', tb.tabs.length === 4 && /More/.test(tb.tabs[3]) && !tb.cake2 && /All done/.test(tb.done || '') && /^Done$/.test((tb.st || '').trim()), tb);
     await openOrder(p, 'o1'); s = await state(p);
     check(t + ' check order: amber strip (matches the warning), main button navy, feedback in More', /pf-amber/.test(s.band) && s.good === 'rgb(36, 95, 153)' && !s.fbVis && s.more.includes('Customer feedback'), s);
     check(t + ' check order: money owed in amber', s.owe.some(x => /^To pay.*\*$/.test(x)), s);
@@ -28,6 +30,10 @@ const state = p => p.evaluate(() => { const sh = document.getElementById('ccs-sh
     await p.evaluate(() => { const x = document.createElement('button'); x.setAttribute('data-act', 'open-customer'); x.setAttribute('data-id', 'c1'); document.getElementById('ccs-main').appendChild(x); x.click(); x.remove(); }); await p.waitForTimeout(1700);
     const c = await p.evaluate(() => { const sh = document.getElementById('ccs-sheet'), vis = e => !!(e && e.getClientRects().length); return { del: vis(sh.querySelector('.cd-ask')), more: vis(sh.querySelector('.ccp-cmore')), fav: !!sh.querySelector('.ccs-sheet-head > .ccp-fav'), cards: [...sh.querySelectorAll('.rm-metric')].filter(vis).map(x => x.querySelector('.rm-metric-label').textContent.trim()), wa: (sh.querySelector('a.ccs-btn[href*="wa.me"]') ? getComputedStyle(sh.querySelector('a.ccs-btn[href*="wa.me"]')).color : null) }; });
     check(t + ' customer: Delete customer behind More options, heart in header, two plain cards, WhatsApp green', !c.del && c.more && c.fav && c.cards.join() === 'Orders,Collected spend' && (!c.wa || c.wa === 'rgb(11, 122, 62)'), c);
+    await p.evaluate(() => { const c = document.querySelector('#ccs-sheet .ccs-x'); if (c) c.click(); }); await p.waitForTimeout(600);
+    await p.evaluate(() => [...document.querySelectorAll('#cc-staff [data-tab="today"]')].filter(x => x.getClientRects().length)[0].click()); await p.waitForTimeout(1500);
+    const td = await p.evaluate(() => { const m = document.getElementById('ccs-main'), vis = e => !!(e && e.getClientRects().length); return { cards: vis(m.querySelector('.ccb-list')), backup: vis(m.querySelector(':scope > .ccs-mirnote')), next: [...m.querySelectorAll('.ccs-next, .tp-nb')].filter(vis).map(x => x.textContent.replace('Next: ', '').trim()) }; });
+    check(t + ' Today: no repeated summary cards or backup notice; next steps are 2-4 words', !td.cards && !td.backup && (t === "phone" || td.next.length) && td.next.every(x => x.split(/\s+/).length <= 4), td);
     const bad = errors.filter(e => !/length|filter|Unlisted/.test(e)); check(t + ' no page errors', !bad.length, bad);
     await p.close();
   }
