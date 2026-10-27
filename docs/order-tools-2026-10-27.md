@@ -163,3 +163,9 @@ Screens:
 - Fix on the way: the "i" button works with today's add-ons (the header status is read without the button).
 - Checks: test_admin 122/122 (desktop, iPad portrait and landscape, manager, phone).
 - Rollback: remove ccOrderToolsLoader34, add ccOrderToolsLoader33 (footer, 1.0.33), publish.
+
+## Welcome screen — live 27 Oct 2026, 7:59 PM (approved: "deploy")
+- `ccOrderToolsLoader35` (footer, 1.0.35) replaces loader 34: the same 12 files plus `staff.welcome.js` (fingerprint f1b26ebe…) at commit ff0f0ac2.
+- Espresso welcome around the app's own sign-in form: counter scene, Fiji time-of-day greeting and light, show password, Caps Lock note, last email on the device filled in ("Welcome back."), short fade into the app. Sign-in, messages and Practice mode unchanged.
+- Checks: test_welcome 17/17 (desktop, iPad, phone: wrong password, sign in, show password, returning staff, Practice mode).
+- Rollback: remove ccOrderToolsLoader35, add ccOrderToolsLoader34 (footer, 1.0.34), publish.
