@@ -328,9 +328,12 @@ Screens:
 - Test: test/order-tools/test_order_card.cjs 19 pass (computer, iPad, phone); test_flow 20 pass. Live check on CC-1140: CC-1140 only, labels 600, tabs Cake / Payment / More, Collection Sunday 1 November at 4:00 PM.
 - Rollback: remove ccordertoolsloader53, add ccordertoolsloader51 (1.0.51, footer), publish.
 
-## Design foundation (enterprise design brief, items 1-3) — PREVIEW (28 Oct 2026)
+## Design foundation (enterprise design brief, items 1-3) — LIVE (28 Oct 2026, 11:13 AM)
 - Brief: Jack's Enterprise Design System master prompt (10:47 AM). Decisions: Corner Café Service Hub first; Roneel's own text and button sizes stay (brief's 14-16px text and 44px buttons not applied).
 - Audit (12 screens x computer / iPad landscape / iPad upright, test data): 11 font weights (up to 800), 15+ near-identical grey borders, ~15 corner sizes, up to 6 shadow styles per screen; headings differ (Kitchen uppercase eyebrow, Register no icon); harsh selections (Handover thick black, Analytics solid teal); Calendar rainbow weekdays and system dropdowns; Analytics 10-12px text and uppercase headings; Settings 12px uppercase group names; actions that look like plain text; iPad upright Orders tabs cut off; boxes inside boxes on Today. No sideways scrolling anywhere.
 - Preview (src/staff.polish.js, block __ccDesign20261028): one pass over the app's own style sheets: weights 650-900 -> 600; light neutral greys and line tokens -> #E4E7EC; corners 7->8, 9/11->10, 13-18/22->12; resting shadows -> one quiet shadow (menus, sheets, pop-ups, focus rings kept); headings h1-h6/b/th 600; no eyebrow above page titles; every page title carries its sidebar icon; Handover cards and Analytics categories select in soft navy.
 - Measured after: weights 400/500/600 only on every screen; one neutral border colour; shadows one style plus meaningful rings; no sideways scrolling; Calendar, Analytics and Settings items 4-6 not touched.
 - Tests: test_polish 148 pass (corner expectation 14px -> 12px), test_flow 20, test_order_card 19, test_ipad 91.
+- Approved by Roneel ("deploy", 11:12 AM). `ccordertoolsloader54` (1.0.54) replaces loader 53: commit d91a992e, new fingerprint for staff.polish.js only.
+- Live check (real data): Today, Calendar, Register, Kitchen show weights 400/500/600 only, one neutral border grey (#E4E7EC), page title icons (Today keeps its greeting), no sideways scrolling.
+- Rollback: remove ccordertoolsloader54, add ccordertoolsloader53 (1.0.53, footer), publish.
