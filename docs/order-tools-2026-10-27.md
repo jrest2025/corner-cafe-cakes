@@ -170,3 +170,14 @@ Screens:
 - Checks: test_welcome 17/17 (desktop, iPad, phone: wrong password, sign in, show password, returning staff, Practice mode).
 - Rollback: remove ccOrderToolsLoader35, add ccOrderToolsLoader34 (footer, 1.0.34), publish.
 - 8:03 PM: rolled back to ccOrderToolsLoader34 at Roneel's request ("looks horrible"). Welcome screen off; Admin console stays.
+
+## Sign-in splash, Marketing Central format (loader 36, 27 Oct 2026, 9:24 PM)
+
+- Approved by Roneel ("deploy", 9:20 PM) after the preview with the meal line and bottom strip removed.
+- `ccOrderToolsLoader36` (footer, 1.0.36) replaces loader 34: the same 12 files (fingerprints unchanged) plus
+  `staff.signin.js` (fingerprint b55775a4…) at commit e360f8b7. Built by `build/staff_signin.py`; test
+  `test/order-tools/test_signin.cjs` 16/16 (desktop, iPad, phone: wrong password, show password, sign-in, Practice mode).
+- Espresso room lit from below, motes and steam, the logo brushed in, SERVICE HUB, white card rising; the light follows
+  the service by Fiji time without naming it. The app's own sign-in form, sign-in and Practice mode are unchanged.
+- Site published to cornercafefiji.com and www.cornercafefiji.com.
+- Rollback: remove ccOrderToolsLoader36, add ccOrderToolsLoader34 (footer, 1.0.34), publish.
