@@ -151,3 +151,8 @@ Screens:
 - src/staff.flow.js: number tiles and Needs attention islands share one icon box (40px), number size (26px) and label size (16px), icon left with number over words on computers and iPads; cards sharing a row share a height on computers (Needs attention ↔ This week, Due today ↔ Waiting on you); order names inside islands end with "…" instead of spilling out.
 - Tests: test_ipad 86/86, test_polish 148/148 with the file loaded.
 - Rollback: remove ccOrderToolsLoader31, add ccOrderToolsLoader30 (footer, 1.0.30), publish.
+
+## Today: Act now (loader 32, commit 01810743) — live 27 Oct 2026, 4:37 PM
+- src/staff.flow.js: one "Act now" list (urgent first) built from the app's own attention items, plus any Waiting on you or waiting online order not already listed; replaces the online-order banner, the Needs attention islands and Waiting on you. Waiting time shown on the order's line. Due today and Next 7 days tiles removed (week heading shows "N this week"); Payments to collect beside the week; summary sentence hidden. Same order on computers, iPads and phones.
+- Tests: new test_act_now.cjs 42/42 (each order once, nothing overlaps, tapping a line opens the order). The older Today checks in test_ipad/test_polish describe the previous Today and still pass without staff.flow.js loaded; to be updated.
+- Rollback: remove ccOrderToolsLoader32, add ccOrderToolsLoader31 (footer, 1.0.31), publish.
