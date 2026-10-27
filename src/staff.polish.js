@@ -494,6 +494,9 @@
   function orders(main) {
     var all = main.querySelector('.ccs-tab[data-act="filter"][data-v="recent"]');
     if (all && !all.querySelector('.ccs-n') && txt(all) !== 'All') { all.title = txt(all); all.textContent = 'All'; }
+    // narrow screens (iPad upright, phones): the filter tabs no longer fit; one "Show" dropdown instead (28 Oct 2026)
+    var ft = main.querySelector(':scope > .ccs-tabs');
+    if (ft && ft.querySelector('.ccs-tab[data-act="filter"]')) dd(ft, { label: 'Show', item: '.ccs-tab[data-act="filter"]', hideClass: 'ccp-narrowsrc', cls: 'ccp-narrow ccdd-wide', icons: { '*': 'filter' } });
     tags(main);
   }
   // At most two tags on an order card: allergy first, then the most useful other one. The rest stay in the order.
@@ -1050,6 +1053,7 @@
       if (/^kitchen/.test(scr)) kitchen(main);
       if (/^orders/.test(scr) || main.querySelector('.ccs-list .ccs-card')) orders(main);
       if (main.querySelector('.ccs-setnav')) settings(main);
+      if (scr === 'calendar') [['cal-status', 'Show', 'filter'], ['cal-type', 'Type', 'box']].forEach(function (c) { var s = doc.getElementById(c[0]); if (s && s.tagName === 'SELECT') dd(s, { label: c[1], hide: s.closest('label') || s, icons: { '*': c[2] } }); });
       if (main.querySelector('.cat-page, .dx-filters')) analytics(main);
       refine(main); sheet(); sheetFlow(); custFlow(); sheetTabs(); sheetNextOnce(); var shx = doc.getElementById('ccs-sheet'); if (shx) words(shx); var popx = doc.querySelectorAll('#cc-staff .tx-pop, #cc-staff [class*="-pop"]'); [].forEach.call(popx, function (x) { if (!main.contains(x)) words(x); }); pulseName();
       seasonal(); treatBoard();
@@ -1133,6 +1137,8 @@
   var SIDES = ['top', 'right', 'bottom', 'left'];
   function fix(rule) {
     var st = rule.style, sel = rule.selectorText || '';
+    var fs = st.getPropertyValue('font-size');
+    if (/^(9|10|11|12)(\.\d+)?px$/.test(fs.trim()) && !/nav|side|brand|logo/i.test(sel)) st.setProperty('font-size', '13px', st.getPropertyPriority('font-size'));
     var w = st.getPropertyValue('font-weight');
     if (w && (/^(bold|bolder)$/i.test(w) || (+w >= 650 && +w <= 900))) st.setProperty('font-weight', '600', st.getPropertyPriority('font-weight'));
     SIDES.forEach(function (s) {
@@ -1171,7 +1177,24 @@
     // selections: the soft navy of the Orders tabs
     '#cc-staff #ccs-main .ap-island.is-open{border-color:' + NAVY + '!important;background:' + SOFT + '!important;box-shadow:0 0 0 1px ' + NAVY + '!important}',
     '#cc-staff .cc-nav5 > button[aria-pressed="true"]{background:' + SOFT + '!important;color:' + NAVY + '!important;border-color:' + NAVY + '!important;box-shadow:none!important}',
-    '#cc-staff .cc-nav5 > button[aria-pressed="true"] *{color:inherit!important}'
+    '#cc-staff .cc-nav5 > button[aria-pressed="true"] *{color:inherit!important}',
+    // ---- items 4-8 (28 Oct 2026) ----
+    // no uppercase labels in the content (sidebar group names stay)
+    'html:not(#ccd0) body:not(#ccd1) #cc-staff :is(#ccs-main,#ccs-sheet) *{text-transform:none!important;letter-spacing:normal}',
+    // Calendar: plain weekday row (colour only where it means something), number cards without coloured edges
+    'html:not(#ccd0) body:not(#ccd1) #cc-staff #ccs-main .ccs-mhead span{background:#F9FAFB!important;border-bottom:1px solid ' + BORDER + '!important;color:#475467!important}',
+    'html:not(#ccd0) body:not(#ccd1) #cc-staff #ccs-main .ccv-stat{border-left:1px solid ' + BORDER + '!important;box-shadow:' + SHADOW + '!important;background-image:none!important}',
+    'html:not(#ccd0) body:not(#ccd1) #cc-staff #ccs-main .ccv-stat::before,html:not(#ccd0) body:not(#ccd1) #cc-staff #ccs-main .ccv-stat::after{display:none!important}',
+    'html:not(#ccd0) body:not(#ccd1) #cc-staff #ccs-main .kw-day em{font-size:13px!important}',
+    // Settings: group names readable, sentence case
+    'html:not(#ccd0) body:not(#ccd1) #cc-staff .cca-menu .cca-mh{font-size:15px!important;font-weight:600!important;color:#475467!important}',
+    // actions written as words look tappable: navy, underlined (red ones stay red)
+    'html:not(#ccd0) body:not(#ccd1) #cc-staff :is(#ccs-main,#ccs-sheet) .ccs-link:not(.ccs-red){color:' + NAVY + '!important}',
+    'html:not(#ccd0) body:not(#ccd1) #cc-staff :is(#ccs-main,#ccs-sheet) .ccs-link{text-decoration:underline!important;text-decoration-thickness:1px!important;text-underline-offset:3px!important;text-decoration-color:currentColor!important}',
+    'html:not(#ccd0) body:not(#ccd1) #cc-staff :is(#ccs-main,#ccs-sheet) .ccs-link:hover{text-decoration-thickness:2px!important}',
+    // Orders filter tabs: tabs on wide screens, one Show dropdown when narrow
+    '#cc-staff .ccp-narrow{display:none!important}',
+    '@media (max-width:899px){#cc-staff #ccs-main .ccp-narrow{display:inline-flex!important;margin:0}#cc-staff #ccs-main .ccp-narrowsrc{display:none!important}}'
   ].join('');
   function styles() { if (doc.getElementById('ccd-style')) return; var s = doc.createElement('style'); s.id = 'ccd-style'; s.textContent = CSS; doc.head.appendChild(s); }
   function titleIcon() {

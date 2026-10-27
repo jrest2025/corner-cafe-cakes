@@ -337,3 +337,8 @@ Screens:
 - Approved by Roneel ("deploy", 11:12 AM). `ccordertoolsloader54` (1.0.54) replaces loader 53: commit d91a992e, new fingerprint for staff.polish.js only.
 - Live check (real data): Today, Calendar, Register, Kitchen show weights 400/500/600 only, one neutral border grey (#E4E7EC), page title icons (Today keeps its greeting), no sideways scrolling.
 - Rollback: remove ccordertoolsloader54, add ccordertoolsloader53 (1.0.53, footer), publish.
+
+## Design brief items 4-8 — PREVIEW (28 Oct 2026)
+- src/staff.polish.js: Orders filter tabs become one "Show" dropdown under 900px wide (iPad upright, phones); Calendar Show and Type use the app dropdown; no uppercase in the content (sidebar group names stay); Calendar weekday row neutral, number cards without coloured edges; Settings group names 15px sentence case; ".ccs-link" actions navy and underlined (red ones stay red); text floor 13px in the content (sidebar untouched); Kitchen week strip 13px.
+- Not touched: chart axis numbers inside the Heartbeat/Daily cake demand chart (11px, chart standard), the Heartbeat month dropdown.
+- Tests: test_polish 148, test_ipad 91, test_flow 20, test_order_card 19.
