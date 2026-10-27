@@ -105,6 +105,56 @@
     Hx('.cc-ipad-land.cc-ipad-short') + ' #cc-staff .ccs-side .csc-group + .csc-group{border-top:1px solid rgba(255,255,255,.12)!important;margin-top:3px!important;padding-top:3px!important}',
     Hx('.cc-ipad-land') + ' #cc-staff .ccs-side :is(.ccs-nav-item,.ccp-nav){height:44px!important;min-height:44px!important;line-height:1.2!important}',
     '@media (max-height:800px){' + Hx('.cc-ipad-land') + ' #cc-staff .ccs-side .ccs-brand{transform:scale(.7)!important;margin-bottom:-26px!important}}',
+    // ---------- Today: one logical flow, no gaps (act first, then today's work, then what is coming) ----------
+    // header: greeting left, New order / Find an order right, one row
+    S + ' #ccs-main[data-screen="today"] > .ccs-dash-head{display:flex!important;flex-wrap:wrap!important;align-items:center!important;justify-content:space-between!important;gap:8px 16px!important;margin:0!important;min-height:0!important;height:auto!important}',
+    S + ' #ccs-main[data-screen="today"] > .ccs-dash-head > div:first-child{flex:1 1 280px;min-width:0}',
+    S + ' #ccs-main[data-screen="today"] > .ccs-dash-head .tq-tools{flex:0 0 auto;margin:0!important;display:flex!important;gap:10px!important;align-items:center}',
+    S + ' #ccs-main[data-screen="today"] > .ccs-dash-head h1,' + S + ' #ccs-main[data-screen="today"] > .ccs-dash-head h2{margin:0!important}',
+    // online-order banner: full width, one slim line (title · order · Open); the long sentence goes
+    S + ' #ccs-main[data-screen="today"] > .cc-st-alert{display:flex!important;flex-wrap:wrap!important;align-items:center!important;gap:6px 14px!important;padding:10px 14px!important;margin:0!important;min-height:0!important;border-radius:12px!important}',
+    S + ' #ccs-main[data-screen="today"] > .cc-st-alert > h3{margin:0!important;font-size:17px!important;flex:0 0 auto}',
+    S + ' #ccs-main[data-screen="today"] > .cc-st-alert > p:not(:last-child),' + S + ' #ccs-main[data-screen="today"] > .cc-st-alert > p:first-of-type{display:none!important}',
+    S + ' #ccs-main[data-screen="today"] > .cc-st-alert > .cc-st-row{flex:1 1 320px!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;margin:0!important;padding:0!important;border:0!important}',
+    S + ' #ccs-main[data-screen="today"] > .cc-st-alert > .cc-st-row > span{display:flex!important;flex-wrap:wrap;align-items:baseline;gap:2px 10px;min-width:0}',
+    S + ' #ccs-main[data-screen="today"] > .cc-st-alert .ccs-btn{min-height:44px!important;padding:0 18px!important;flex:none}',
+    // numbers: one slim row, each tile only as tall as its number
+    S + ' #ccs-main[data-screen="today"] > .tq-stats{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:10px!important;margin:0!important;height:auto!important;align-items:stretch!important}',
+    S + ' #ccs-main[data-screen="today"] > .tq-stats > .tq-stat{min-height:0!important;height:auto!important;padding:10px 14px!important}',
+    // the two Today lists become their own blocks so they can sit in the columns
+    S + ' #ccs-main[data-screen="today"] > .tq-main{display:contents!important}',
+    S + ' #ccs-main[data-screen="today"] > .tq-main > .ccs-panel-card{margin:0!important;min-height:0!important;height:auto!important;align-self:start!important}',
+    S + ' #ccs-main[data-screen="today"] > :is(.tq-warn,.tq-week){margin:0!important;align-self:start!important}',
+    // landscape: two columns — left now (Needs attention, Due today), right coming (This week, Waiting on you)
+    Hx('.cc-ipad-land') + ' #cc-staff #ccs-main[data-screen="today"]{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;grid-template-areas:"head head" "alert alert" "stats stats" "warn week" "due wait"!important;grid-template-rows:repeat(5,max-content)!important;grid-auto-rows:max-content!important;gap:12px!important;align-content:start!important;align-items:start!important}',
+    Hx('.cc-ipad-land') + ' #cc-staff #ccs-main[data-screen="today"] > .ccs-dash-head{grid-area:head!important}',
+    Hx('.cc-ipad-land') + ' #cc-staff #ccs-main[data-screen="today"] > .cc-st-alert{grid-area:alert!important}',
+    Hx('.cc-ipad-land') + ' #cc-staff #ccs-main[data-screen="today"] > .tq-stats{grid-area:stats!important}',
+    Hx('.cc-ipad-land') + ' #cc-staff #ccs-main[data-screen="today"] > .tq-warn{grid-area:warn!important}',
+    Hx('.cc-ipad-land') + ' #cc-staff #ccs-main[data-screen="today"] > .tq-week{grid-area:week!important}',
+    Hx('.cc-ipad-land') + ' #cc-staff #ccs-main[data-screen="today"] > .tq-main > .ccs-panel-card:not(.tp-needs){grid-area:due!important}',
+    Hx('.cc-ipad-land') + ' #cc-staff #ccs-main[data-screen="today"] > .tq-main > .ccs-panel-card.tp-needs{grid-area:wait!important}',
+    Hx('.cc-ipad-land') + ' #cc-staff #ccs-main[data-screen="today"] > :not(.ccs-dash-head):not(.cc-st-alert):not(.tq-stats):not(.tq-warn):not(.tq-week):not(.tq-main){grid-column:1 / -1!important}',
+    S + ' #ccs-main[data-screen="today"] > :is(.ccs-dash-head,.cc-st-alert,.tq-stats,.tq-warn,.tq-week),' + S + ' #ccs-main[data-screen="today"] > .tq-main > .ccs-panel-card{min-height:max-content!important;flex-shrink:0!important}',
+    Hx('.cc-ipad-port') + ' #cc-staff #ccs-main[data-screen="today"] > :is(.tq-warn,.tq-week),' + Hx('.cc-ipad-port') + ' #cc-staff #ccs-main[data-screen="today"] > .tq-main > .ccs-panel-card{align-self:stretch!important;width:auto!important}',
+    // landscape masonry (set once the heights are measured): each column stacks with no gaps
+    Hx('.cc-ipad-land') + ' #cc-staff #ccs-main[data-screen="today"].cc-ipad-mas{grid-template-areas:none!important;grid-template-rows:none!important;grid-auto-rows:4px!important;row-gap:0!important;column-gap:12px!important;grid-auto-flow:row dense!important}',
+    Hx('.cc-ipad-land') + ' #cc-staff #ccs-main[data-screen="today"].cc-ipad-mas > :is(.ccs-dash-head,.cc-st-alert,.tq-stats,.tq-warn,.tq-week),' + Hx('.cc-ipad-land') + ' #cc-staff #ccs-main[data-screen="today"].cc-ipad-mas > .tq-main > .ccs-panel-card{grid-area:auto!important;margin:0 0 12px!important}',
+    Hx('.cc-ipad-land') + ' #cc-staff #ccs-main[data-screen="today"].cc-ipad-mas > :is(.ccs-dash-head,.cc-st-alert,.tq-stats){grid-column:1 / -1!important}',
+    Hx('.cc-ipad-land') + ' #cc-staff #ccs-main[data-screen="today"].cc-ipad-mas > *{order:8;grid-column:1 / -1}',
+    Hx('.cc-ipad-land') + ' #cc-staff #ccs-main[data-screen="today"].cc-ipad-mas > .ccs-dash-head{order:1}' + Hx('.cc-ipad-land') + ' #cc-staff #ccs-main[data-screen="today"].cc-ipad-mas > .cc-st-alert{order:2}' + Hx('.cc-ipad-land') + ' #cc-staff #ccs-main[data-screen="today"].cc-ipad-mas > .tq-stats{order:3}',
+    Hx('.cc-ipad-land') + ' #cc-staff #ccs-main[data-screen="today"].cc-ipad-mas > .tq-warn{grid-column:1!important;order:4}' + Hx('.cc-ipad-land') + ' #cc-staff #ccs-main[data-screen="today"].cc-ipad-mas > .tq-week{grid-column:2!important;order:5}',
+    Hx('.cc-ipad-land') + ' #cc-staff #ccs-main[data-screen="today"].cc-ipad-mas > .tq-main > .ccs-panel-card:not(.tp-needs){grid-column:1!important;order:6}' + Hx('.cc-ipad-land') + ' #cc-staff #ccs-main[data-screen="today"].cc-ipad-mas > .tq-main > .ccs-panel-card.tp-needs{grid-column:2!important;order:7}',
+    // portrait: one column in the same order (left column first)
+    Hx('.cc-ipad-port') + ' #cc-staff #ccs-main[data-screen="today"]{display:flex!important;flex-direction:column!important;gap:12px!important}',
+    Hx('.cc-ipad-port') + ' #cc-staff #ccs-main[data-screen="today"] > *{order:9}',
+    Hx('.cc-ipad-port') + ' #cc-staff #ccs-main[data-screen="today"] > .ccs-dash-head{order:1}',
+    Hx('.cc-ipad-port') + ' #cc-staff #ccs-main[data-screen="today"] > .cc-st-alert{order:2}',
+    Hx('.cc-ipad-port') + ' #cc-staff #ccs-main[data-screen="today"] > .tq-stats{order:3}',
+    Hx('.cc-ipad-port') + ' #cc-staff #ccs-main[data-screen="today"] > .tq-warn{order:4}',
+    Hx('.cc-ipad-port') + ' #cc-staff #ccs-main[data-screen="today"] > .tq-main > .ccs-panel-card:not(.tp-needs){order:5}',
+    Hx('.cc-ipad-port') + ' #cc-staff #ccs-main[data-screen="today"] > .tq-week{order:6}',
+    Hx('.cc-ipad-port') + ' #cc-staff #ccs-main[data-screen="today"] > .tq-main > .ccs-panel-card.tp-needs{order:7}',
     // ---------- 5. Density: cards, headings, filters and toolbars a step tighter ----------
     S + ' #ccs-main :is(.ccs-head,.cdir-heading){margin-bottom:10px!important}',
     S + ' #ccs-main :is(.ccs-card,.cat-card,.dx-card,.ccs-panel-card,.kw-sec,.cw-metric,.tq-stat,.cat-k){padding:12px 14px!important}',
@@ -191,15 +241,36 @@
 
   // ---------- Rotation and Safari toolbar changes: re-read once things settle; no animation of the shell ----------
   var rT = 0;
-  function settle() { clearTimeout(rT); rT = setTimeout(function () { apply(); resetScroll(); }, 120); }
+  function settle() { clearTimeout(rT); rT = setTimeout(function () { apply(); resetScroll(); schedMas(); }, 120); }
   if (mqT && mqT.addEventListener) mqT.addEventListener('change', settle);
   if (mqP && mqP.addEventListener) mqP.addEventListener('change', settle);
   win.addEventListener('orientationchange', settle, { passive: true });
   win.addEventListener('resize', settle, { passive: true });
   win.addEventListener('scroll', function () { if (on && !root.classList.contains('cc-ipad-kb')) resetScroll(); }, { passive: true });
 
+  // ---------- Today on a landscape iPad: masonry spans from each block's natural height ----------
+  var masRO = win.ResizeObserver ? new ResizeObserver(function () { schedMas(); }) : null, masWatched = [], masT = 0;
+  function schedMas() { clearTimeout(masT); masT = setTimeout(mas, 30); }
+  function mas() {
+    var main = doc.querySelector('#cc-staff #ccs-main');
+    if (!main) return;
+    var land = on && root.classList.contains('cc-ipad-land') && main.getAttribute('data-screen') === 'today';
+    var blocks = land ? [].slice.call(main.querySelectorAll(':scope > .ccs-dash-head, :scope > .cc-st-alert, :scope > .tq-stats, :scope > .tq-warn, :scope > .tq-week, :scope > .tq-main > .ccs-panel-card')).filter(function (b) { return b.getClientRects().length; }) : [];
+    if (!land || blocks.length < 3) {
+      if (main.classList.contains('cc-ipad-mas')) { main.classList.remove('cc-ipad-mas'); [].forEach.call(main.querySelectorAll('[data-ipad-span]'), function (b) { b.style.removeProperty('grid-row-end'); b.removeAttribute('data-ipad-span'); }); }
+      return;
+    }
+    blocks.forEach(function (b) {
+      var h = b.getBoundingClientRect().height, n = Math.max(1, Math.ceil((h + 12) / 4));
+      if (b.getAttribute('data-ipad-span') !== String(n)) { b.setAttribute('data-ipad-span', n); b.style.setProperty('grid-row-end', 'span ' + n, 'important'); }
+      if (masRO && masWatched.indexOf(b) < 0) { masRO.observe(b); masWatched.push(b); }
+    });
+    masWatched = masWatched.filter(function (b) { if (doc.contains(b)) return true; if (masRO) masRO.unobserve(b); return false; });
+    main.classList.add('cc-ipad-mas');
+  }
+
   // The app renders later (and re-renders): keep the menu button and shade in place.
-  var mo = new MutationObserver(function () { if (on) railButton(); else if (doc.getElementById('cc-staff')) apply(); });
+  var mo = new MutationObserver(function () { if (on) { railButton(); schedMas(); } else if (doc.getElementById('cc-staff')) apply(); });
   function start() { apply(); mo.observe(doc.body, { childList: true, subtree: true }); }
   if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', start); else start();
 })();

@@ -79,6 +79,17 @@ const swipe = async (p, x, y, dy) => { await p.mouse.move(x, y); await p.mouse.w
     const bad = errors.filter(e => !/length|filter|Unlisted/.test(e)); check(t + ' no page errors', !bad.length, bad);
     await p.close();
   }
+  // Today: logical order and no gaps (header, banner, numbers full width; landscape columns stack with no holes)
+  for (const [w, h] of [[1180, 820], [1024, 768], [820, 1180]]) {
+    const banner = '<script>setInterval(function(){var m=document.querySelector(\'#ccs-main[data-screen="today"]\');if(!m||m.querySelector(".cc-st-alert"))return;var b=document.createElement("section");b.className="cc-st-alert";b.innerHTML="<h3>An online order is waiting</h3><p>Customers are waiting to hear back.</p><div class=cc-st-row><span><b>CC-1107 · Isa</b><small>Needs a price · waiting 5 days</small></span><button type=button class=ccs-btn>Open</button></div>";var hd=m.querySelector(".ccs-dash-head");m.insertBefore(b,hd?hd.nextSibling:m.firstChild)},300)</script>';
+    const { p } = await open(b, w, h, { extraFoot: loader + banner, ipad: true }); await p.waitForTimeout(3200);
+    const L = await p.evaluate(() => { const m = document.getElementById('ccs-main'), r = s => { const e = m.querySelector(s); if (!e) return null; const b = e.getBoundingClientRect(); return { l: Math.round(b.left), t: Math.round(b.top), w: Math.round(b.width), b: Math.round(b.bottom) }; };
+      return { mw: Math.round(m.clientWidth), head: r(':scope > .ccs-dash-head'), alert: r(':scope > .cc-st-alert'), stats: r(':scope > .tq-stats'), warn: r(':scope > .tq-warn'), week: r(':scope > .tq-week'), due: r('.tq-main > .ccs-panel-card:not(.tp-needs)'), wait: r('.tq-main > .ccs-panel-card.tp-needs'), p: (m.querySelector('.cc-st-alert > p') || { getClientRects: () => [] }).getClientRects().length }; });
+    const full = x => x && x.w >= L.mw - 48, order = L.head.b <= L.alert.t && L.alert.b <= L.stats.t && L.stats.b <= L.warn.t;
+    if (w > h) check(w + 'x' + h + ' Today: header, banner, numbers full width in that order; left Needs attention → Due today, right This week → Waiting on you, no gaps', full(L.alert) && full(L.stats) && order && L.warn.l < L.week.l && L.due.l === L.warn.l && L.wait.l === L.week.l && L.due.t - L.warn.b <= 16 && L.wait.t - L.week.b <= 16 && !L.p, L);
+    else check(w + 'x' + h + ' Today portrait: one column in the same order (Needs attention, Due today, This week, Waiting on you)', full(L.alert) && order && L.warn.b <= L.due.t && L.due.b <= L.week.t && L.week.b <= L.wait.t && full(L.warn), L);
+    await p.close();
+  }
   // software keyboard: Safari shrinks the visual viewport; the scroll areas make room and the page never moves
   { const fake = 'window.__vvH=null;(function(){var L=[];var o={get height(){return window.__vvH==null?innerHeight:window.__vvH},offsetTop:0,width:innerWidth,addEventListener:function(t,f){L.push(f)},removeEventListener:function(){}};Object.defineProperty(window,"visualViewport",{value:o,configurable:true});window.__vvFire=function(){L.forEach(function(f){f()})}})();';
     const { p } = await open(b, 820, 1180, { extraFoot: loader, ipad: true, pre: fake }); await p.waitForTimeout(2500);
