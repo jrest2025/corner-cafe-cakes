@@ -48,7 +48,6 @@ begin
       v_new := v_new || jsonb_build_array(jsonb_build_object('code', x #>> '{}', 'label', coalesce((select y->>'label' from jsonb_array_elements(v_old) y where y->>'code' = x #>> '{}'), initcap(replace(x #>> '{}', '_', ' '))), 'active', false));
     end if;
   end loop;
-  select value::jsonb into v_old from public.app_config where key = 'payment_methods';
   update public.app_config set value = v_new::text where key = 'payment_methods';
   insert into public.audit_log (actor_id, table_name, row_id, action, old_data, new_data)
   values (auth.uid(), 'app_config', 'payment_methods', 'update', jsonb_build_object('methods', v_old), jsonb_build_object('methods', v_new));

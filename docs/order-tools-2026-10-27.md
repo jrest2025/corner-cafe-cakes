@@ -288,3 +288,11 @@ Screens:
 - Loader 49 (commit 7e6c822d): Settings > Data and safety > Settings history.
 - Checked live: history loads (40 latest, "Show earlier changes"), before/after in plain words, Put back offered on 14 of 40.
 - Rollback: supabase/sql/release_c_20261028_rollback.sql; page scripts back to ccordertoolsloader48 1.0.48; publish.
+
+## Release D — payment methods and lead-time groups from Settings (live 28 Oct 2026, 1:57 AM)
+- Approved by Roneel ("deploy and then fix", 1:51 AM).
+- Database: supabase/sql/release_d_20261028.sql applied (app_config rows payment_methods and lead_bands; get_order_setup returns both; settings_payment_methods_save and settings_lead_bands_save with history rows). Checked live: setup returns 5 methods (Other off) and 5 groups.
+- Staff footer: bundle staff-app.d1c119f6f0.js @bd90f95e (SRI sha384-V8nwa4…); written and read back identical (md5 2b3cecff97971c069c6a9dc778374bae).
+- `ccordertoolsloader50` (footer, 1.0.50) replaces loader 49: commit bd90f95e, new fingerprints for staff.admin.js and staff.pickups.js.
+- Live check: new bundle and loader loaded; payment list and groups come from Settings; Today screen normal.
+- Rollback: supabase/sql/release_d_20261028_rollback.sql; staff footer from docs/rollback/staff-footer-before-release-d-2026-10-28.html; remove ccordertoolsloader50, add ccordertoolsloader49 (1.0.49, footer); publish.
