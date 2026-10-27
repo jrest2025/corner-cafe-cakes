@@ -156,3 +156,10 @@ Screens:
 - src/staff.flow.js: one "Act now" list (urgent first) built from the app's own attention items, plus any Waiting on you or waiting online order not already listed; replaces the online-order banner, the Needs attention islands and Waiting on you. Waiting time shown on the order's line. Due today and Next 7 days tiles removed (week heading shows "N this week"); Payments to collect beside the week; summary sentence hidden. Same order on computers, iPads and phones.
 - Tests: new test_act_now.cjs 42/42 (each order once, nothing overlaps, tapping a line opens the order). The older Today checks in test_ipad/test_polish describe the previous Today and still pass without staff.flow.js loaded; to be updated.
 - Rollback: remove ccOrderToolsLoader32, add ccOrderToolsLoader31 (footer, 1.0.31), publish.
+
+## Admin console Step A — live 27 Oct 2026, 7:45 PM (approved: "deploy")
+- Registered script `ccOrderToolsLoader34` (footer, 1.0.34) replaces loader 33: the same 11 files (fingerprints unchanged) plus `staff.admin.js` (fingerprint 08ce240e…) at commit 1870847c.
+- Settings opens on an overview: six groups with live status, search, Needs attention, group tabs with a path back, longer explanations behind "i". Sections, saving and permissions unchanged.
+- Fix on the way: the "i" button works with today's add-ons (the header status is read without the button).
+- Checks: test_admin 122/122 (desktop, iPad portrait and landscape, manager, phone).
+- Rollback: remove ccOrderToolsLoader34, add ccOrderToolsLoader33 (footer, 1.0.33), publish.
