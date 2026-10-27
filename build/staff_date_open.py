@@ -36,7 +36,7 @@ CSS = ('#cc-staff .ccs-cal{max-width:440px;border:1px solid #D0D5DD;border-radiu
        'html.ccs-tablet-mode #cc-staff .ccs-cal{max-width:520px}html.ccs-tablet-mode #cc-staff .ccs-cal-d{min-height:52px;font-size:18px}'
        '@media(max-width:759px){#cc-staff .ccs-cal{max-width:none;padding:10px}#cc-staff .ccs-cal-d{min-height:44px}}')
 
-CAL = ('function Kc(d){if(!document.getElementById("ccs-cal-style")){var st=document.createElement("style");st.id="ccs-cal-style";st.textContent=' + json.dumps(CSS) + ';document.head.appendChild(st)}'
+CAL = ('function ccsMonth(d){if(!document.getElementById("ccs-cal-style")){var st=document.createElement("style");st.id="ccs-cal-style";st.textContent=' + json.dumps(CSS) + ';document.head.appendChild(st)}'
        'var L=y.setup.location,td=Dt(),mx=jt(td,L.max_days_ahead),cl=y.setup.closed_dates||[],m=V.calM||(V.date&&V.date>=td?V.date:td).slice(0,7),'
        'y0=+m.slice(0,4),m0=+m.slice(5,7)-1,f=m+"-01",dim=new Date(Date.UTC(y0,m0+1,0)).getUTCDate(),ld=(new Date(f+"T12:00:00Z").getUTCDay()+6)%7,'
        'pm=new Date(Date.UTC(y0,m0-1,1)).toISOString().slice(0,7),nm=new Date(Date.UTC(y0,m0+1,1)).toISOString().slice(0,7),'
@@ -56,7 +56,7 @@ FIXES = [
     # Date step: paper slips keep the chips and date field; new cakes get the open calendar
     ('h+=\'<div class="ccs-field"><span class="ccs-label">\'+(d?"Delivery date":"Collection date")+\'</span><div class="ccs-chips ccs-datechips\'',
      'V.old?h+=\'<div class="ccs-field"><span class="ccs-label">\'+(d?"Delivery date":"Collection date")+\'</span><div class="ccs-chips ccs-datechips\''),
-    ('+")</span></div>",x&&(h+=\'<div class="ccs-row">', '+")</span></div>":h+=Kc(d),V.old&&x&&(h+=\'<div class="ccs-row">'),
+    ('+")</span></div>",x&&(h+=\'<div class="ccs-row">', '+")</span></div>":h+=ccsMonth(d),V.old&&x&&(h+=\'<div class="ccs-row">'),
     # No short-notice box
     ('vr()&&!l&&(h+=\'<div class="ccs-panel"><b>This is short notice.</b>', '!1&&vr()&&!l&&(h+=\'<div class="ccs-panel"><b>This is short notice.</b>'),
     # Nothing to fill in for short notice
