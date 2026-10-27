@@ -229,3 +229,12 @@ Screens:
   cards and the Gross profit note are hidden; the answer line, Sales by day, pickups timeline, moved cards, Sales by
   channel, Money and Details stay. Test test_pickups 43/43. Checked live in Chrome.
 - Rollback: remove ccOrderToolsLoader41, add ccOrderToolsLoader40 (footer, 1.0.40), publish.
+
+## Daily cake demand moved to Cake sales (loader 42, 27 Oct 2026, 10:56 PM)
+
+- Approved by Roneel ("deploy", 10:55 PM). `ccOrderToolsLoader42` (footer, 1.0.42) replaces loader 41: same files,
+  `staff.pickups.js` updated (fingerprint a232785e…) at commit d46621b6. The protected Daily cake demand is mounted on
+  Cake sales above Sales by day with the same mount calls, orders and date (numbers checked day for day against the
+  Overview); on the Overview it is hidden and By booking time shows on its own (switch hidden). Test test_pickups 46/46.
+  Checked live in Chrome.
+- Rollback: remove ccOrderToolsLoader42, add ccOrderToolsLoader41 (footer, 1.0.41), publish.
