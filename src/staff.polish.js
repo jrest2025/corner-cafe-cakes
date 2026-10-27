@@ -993,7 +993,7 @@
       // kitchen week: an empty day is just a dash
       '#cc-staff #ccs-main .kw-day.is-zero > :last-child{visibility:hidden}',
       // Today week cells on tablet and computer: count as a small pill, cells no taller than needed
-      '@media (min-width:760px){:root:not(#cc-t0) #cc-staff #ccs-main .tq-week{align-self:start!important}:root:not(#cc-t0) #cc-staff #ccs-main .tq-days .ccs-daycell{min-height:0!important;height:auto!important;padding:10px 4px!important}}',
+      '@media (min-width:1280px) and (min-height:760px){:root:not(#cc-t0) #cc-staff #ccs-main[data-screen="today"] > .tq-week{align-self:start!important}}@media (min-width:760px){:root:not(#cc-t0) #cc-staff #ccs-main .tq-days .ccs-daycell{min-height:0!important;height:auto!important;padding:10px 4px!important}}',
       ':root:not(#cc-t0) #cc-staff .ccs-pill.st[data-ccp-st]:has(> svg)::before,:root:not(#cc-t0) #cc-staff .ccs-pill.st:has(.ccp-kw)::before{display:none!important}',
       ':root:not(#cc-t0) #cc-staff .ccp-nx{align-self:flex-start!important;justify-self:start!important;flex:0 0 auto!important;width:fit-content!important}',
       '@media (min-width:760px){:root:not(#cc-t0) #cc-staff #ccs-main .tq-days .ccs-daycell > span{font-size:13px!important}:root:not(#cc-t0) #cc-staff #ccs-main .tq-days .ccs-daycell > em{font-size:0!important;line-height:0!important}:root:not(#cc-t0) #cc-staff #ccs-main .tq-days .ccs-daycell > em[data-n]::after{content:attr(data-n);display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:22px;padding:0 6px;border-radius:999px;background:#E8F0F8;color:#1A4570;font-size:13px;font-weight:600;line-height:22px;margin-top:4px}}',
