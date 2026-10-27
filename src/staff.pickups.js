@@ -333,7 +333,16 @@
 
   var queued = false;
   function schedule() { if (queued) return; queued = true; setTimeout(function () { queued = false; try { mount(); } catch (e) { warn('not shown', e); } }, 30); }
-  function start() { new MutationObserver(schedule).observe(doc.body, { childList: true, subtree: true }); schedule(); }
+  // Roneel, 27 Oct 2026 10:27 PM ("remove this, only this section"): the Overview's Performance snapshot (its heading,
+  // 7/30/90 day buttons and the six number cards) is hidden. Popular cake types, Booking channels, Customer mix, the
+  // Heartbeat and every other part of the Overview stay as they are.
+  function hideSnapshot() {
+    if (doc.getElementById('ccpk-snap')) return;
+    var s = doc.createElement('style'); s.id = 'ccpk-snap';
+    s.textContent = ':root:not(#cc-p1) #cc-staff .hb-v2 .hb-k-heading,:root:not(#cc-p1) #cc-staff .hb-v2 .hb-k-kpis{display:none!important}';
+    doc.head.appendChild(s);
+  }
+  function start() { hideSnapshot(); new MutationObserver(schedule).observe(doc.body, { childList: true, subtree: true }); schedule(); }
   if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', start, { once: true }); else start();
   win.CCCakePickups = { build: build, summary: summary, lead: lead, insight: insight, eventsOn: eventsOn, _hol: HOL };
 })(window, document);

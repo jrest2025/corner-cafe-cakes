@@ -9,14 +9,16 @@ const sales = async p => { await tap(p, '#cc-staff [data-tab="dash"]', 3000); aw
 (async () => {
   const b = await chromium.launch();
   // Daily cake demand unchanged
-  const hb = [];
+  const hb = [], snap = [];
   for (const extra of ['', add('answers') + add('pickups')]) {
     const { p } = await open(b, 1440, 900, { extraFoot: fs.readFileSync(__dirname + '/loader.html', 'utf8').replace('SHA_OT', '0000000') + extra });
     await p.waitForTimeout(2500); await tap(p, '#cc-staff [data-tab="dash"]', 3500);
     hb.push(await p.evaluate(() => { const r = document.getElementById('cc-demand-scroll-rail'); return r ? r.outerHTML.replace(/\d{1,2}:\d{2}\s?[AP]M/g, '') : ''; }));
+    snap.push(await p.evaluate(() => { const v = s => [...document.querySelectorAll(s)].filter(e => e.getClientRects().length).length; return { head: v('.hb-v2 .hb-k-heading'), kpis: v('.hb-v2 .hb-k-kpis'), panels: v('.hb-v2 .hb-k-panels'), view: !!document.getElementById('cc-demand-views') }; }));
     await p.context().close();
   }
   check('Daily cake demand is identical with the timeline add-on', hb[0].length > 1000 && hb[0] === hb[1], [hb[0].length, hb[1].length]);
+  check('Performance snapshot (heading, day buttons, six numbers) hidden; the cards below and the By booking time view stay', snap[0].head && snap[0].kpis && !snap[1].head && !snap[1].kpis && snap[1].panels === snap[0].panels && snap[1].view === snap[0].view, snap);
   for (const [w, h, t] of [[1440, 900, 'desktop'], [1180, 820, 'ipad'], [390, 844, 'phone']]) {
     const { p, errors } = await open(b, w, h, { extraFoot: base, ipad: t === 'ipad' });
     await p.waitForTimeout(2500); await sales(p);
