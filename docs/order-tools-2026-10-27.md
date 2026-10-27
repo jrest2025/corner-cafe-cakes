@@ -146,3 +146,8 @@ Screens:
 - Phone More menu: icon tiles with the words underneath (same icons as the side menu), Practice mode as a tile, password and sign out side by side.
 - Tests: test_ipad 86/86, test_polish 148/148, test_flow 20/20 with the new file loaded.
 - Rollback: remove ccOrderToolsLoader30, add ccOrderToolsLoader29 (footer, 1.0.29), publish.
+
+## Island alignment and sizing (loader 31, commit 326a4a5a) — live 27 Oct 2026, 4:22 PM
+- src/staff.flow.js: number tiles and Needs attention islands share one icon box (40px), number size (26px) and label size (16px), icon left with number over words on computers and iPads; cards sharing a row share a height on computers (Needs attention ↔ This week, Due today ↔ Waiting on you); order names inside islands end with "…" instead of spilling out.
+- Tests: test_ipad 86/86, test_polish 148/148 with the file loaded.
+- Rollback: remove ccOrderToolsLoader31, add ccOrderToolsLoader30 (footer, 1.0.30), publish.
