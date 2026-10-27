@@ -33,7 +33,7 @@ const words = p => p.evaluate(() => { const m = document.querySelector('#ccs-mai
       check(t + ' ' + v + ': What to do comes first', st && st.todoFirst, st);
       check(t + ' ' + v + ': secondary charts moved to Details', st && st.moved.length >= 1, st);
       check(t + ' ' + v + ': at most 4 charts on the page', st && st.visCards.length <= 4, st);
-      if (v === 'sl') check(t + ' sl: only the Still owed second line', st.caps.length === 1 && /owe/.test(st.caps[0]), st.caps);
+      if (v === 'sl') check(t + ' sl: second lines only on Net cake sales (VAT) and Still owed', st.caps.length === 2 && st.caps.some(c => /VAT/.test(c)) && st.caps.some(c => /owe/.test(c)), st.caps);
       if (v === 'sd') {
         const sd = await p.evaluate(() => ({ tog: (document.querySelector('.ccf-ftog') || {}).textContent, fOpen: !!(document.querySelector('.oi-filters') || {}).getClientRects().length, bars: document.querySelectorAll('.ccf-month .cat-col').length, peak: (document.querySelector('.ccf-month .cat-peak') || {}).textContent, kpis: [...document.querySelectorAll('.oi-kpis .ccs-kpi')].filter(x => x.getClientRects().length).length }));
         check(t + ' Occasions: filters behind one button, 12 month bars, 4 numbers', /^Filter/.test(sd.tog || '') && !sd.fOpen && sd.bars === 12 && /Busiest: Oct/.test(sd.peak || '') && sd.kpis === 4, sd);
