@@ -317,3 +317,7 @@ Screens:
 - `ccordertoolsloader52` (footer, 1.0.52) replaces loader 51: commit 0702f06e; fetch code shortened (helper g(), same jsDelivr then GitHub fallback, same marker check and manifest) to fit the 2,000-character limit (1,984); new file staff.enquiries.js; staff.admin.js fingerprint changed (inert Two-step row code, shows nothing without the parked add-on). Tested before going live: all 17 files load.
 - Live check: all add-ons loaded, New order hook in place, Enquiries tab reads the real database (0 enquiries), New enquiry opens and closes (nothing saved), order tabs return.
 - Rollback: remove ccordertoolsloader52, add ccordertoolsloader51 (1.0.51, footer), publish; database: supabase/sql/release_f1_enquiries_20261028_rollback.sql (copy any real enquiries first).
+
+## Cake Enquiries hidden (28 Oct 2026, 6:35 AM)
+- Roneel: worried it would confuse staff; chose "Hide it for now". Staff page back on `ccordertoolsloader51` (1.0.51), published; checked live: no Enquiries tab or button, all other add-ons load.
+- Kept for later: the enquiry tables and functions in the database (empty, unused), loader 52 (registered, not applied), src/staff.enquiries.js and its test. To bring it back: apply ccordertoolsloader52 and publish (consider the safeguards discussed: hint to use New order, "is this a confirmed order?" check, one button on Orders only).
