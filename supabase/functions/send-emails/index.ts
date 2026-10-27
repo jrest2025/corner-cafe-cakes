@@ -320,6 +320,19 @@ async function testSlip() {
     `<p style="margin:0 0 10px;font-size:15px">Print the attached PDF, check it comes out the right size, then throw it away. <b>Do not bake.</b></p></div></body></html>`;
   return { subject, html, attachments: [{ filename: `TEST-001 Test slip ${paper} v1.pdf`, content: b64(pdf) }] };
 }
+// Design photos for the kitchen slip (from the slip's own snapshot): up to 4. JPG and PNG go on the slip; anything else is
+// left out and the slip says to open the order in the app.
+async function slipPhotos(paths: unknown): Promise<{ bytes: Uint8Array }[]> {
+  const list = Array.isArray(paths) ? (paths as string[]).slice(0, 4) : [];
+  const out: { bytes: Uint8Array }[] = [];
+  for (const p of list) {
+    try {
+      const r = await fetch(`${SB_URL}/storage/v1/object/cake-references/${String(p).split("/").map(encodeURIComponent).join("/")}`, { headers: { Authorization: `Bearer ${SB_KEY}`, apikey: SB_KEY } });
+      if (r.ok) out.push({ bytes: new Uint8Array(await r.arrayBuffer()) });
+    } catch (_e) { /* this photo is left out */ }
+  }
+  return out;
+}
 async function kitchenSlip(m: any, d: any) {
   const o = d.order, c = d.customer ?? {};
   const v = Number(((m.dedupe_key || "").match(/:v(\d+)$/) || [])[1]);
@@ -337,7 +350,7 @@ async function kitchenSlip(m: any, d: any) {
     taken_by: takenBy, ordered_at: o.created_at, source: o.source, method: o.fulfilment_method,
     address: o.fulfilment_method === "delivery" ? o.delivery_address : null, receiver: o.fulfilment_method === "delivery" ? o.delivery_contact : null };
   const PDFLib = await import("npm:pdf-lib@1.17.1");
-  const pdf = await buildSlipPdf(PDFLib, { snapshot: s, slip, version: v, changes: br.changes || [], printedAt: br.printed_at, logoPng: await slipLogo(), location: d.location, paper: await slipPaper() });
+  const pdf = await buildSlipPdf(PDFLib, { snapshot: s, slip, version: v, changes: br.changes || [], printedAt: br.printed_at, logoPng: await slipLogo(), location: d.location, paper: await slipPaper(), photos: await slipPhotos(s.photos) });
   const name = slipFileName(s, slip, v);
   const dl = s.method === "delivery";
   const when = `${new Date(s.date + "T12:00:00Z").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" }).replace(",", "")} ${t12(s.time)}`;

@@ -31,9 +31,10 @@ CSS = ('#cc-staff .ccs-cal{max-width:440px;border:1px solid #D0D5DD;border-radiu
        '#cc-staff .ccs-cal-d:hover:not(:disabled){border-color:#98A2B3}'
        '#cc-staff .ccs-cal-d.is-today{border-color:#98A2B3}'
        '#cc-staff .ccs-cal-d:disabled{background:none;color:#B0B7C3;cursor:default;text-decoration:line-through}'
+       '#cc-staff .ccs-cal-d.is-past:disabled{color:#C8CDD5;text-decoration:none}'
        '#cc-staff .ccs-cal-d[aria-pressed=true]{background:var(--ds-select-bg,#EAF0FB);color:var(--ds-select-text,#1E3A6E);border-color:var(--ds-primary,#2F4F86);box-shadow:inset 0 0 0 1px var(--ds-primary,#2F4F86);font-weight:600}'
        '#cc-staff .ccs-cal-d:focus-visible,#cc-staff .ccs-cal-nav:focus-visible{outline:3px solid #537b9d;outline-offset:2px}'
-       'html.ccs-tablet-mode #cc-staff .ccs-cal{max-width:520px}html.ccs-tablet-mode #cc-staff .ccs-cal-d{min-height:52px;font-size:18px}'
+       'html.ccs-tablet-mode #cc-staff .ccs-cal{max-width:520px}html.ccs-tablet-mode #cc-staff .ccs-cal-d{min-height:46px;font-size:18px}'
        '@media(max-width:759px){#cc-staff .ccs-cal{max-width:none;padding:10px}#cc-staff .ccs-cal-d{min-height:44px}}')
 
 CAL = ('function ccsMonth(d){if(!document.getElementById("ccs-cal-style")){var st=document.createElement("style");st.id="ccs-cal-style";st.textContent=' + json.dumps(CSS) + ';document.head.appendChild(st)}'
@@ -47,7 +48,7 @@ CAL = ('function ccsMonth(d){if(!document.getElementById("ccs-cal-style")){var s
        '+["M","T","W","T","F","S","S"].map(function(e){return\'<span class="ccs-cal-dow" aria-hidden="true">\'+e+"</span>"}).join("");'
        'for(var i=0;i<ld;i++)h+=\'<span aria-hidden="true"></span>\';'
        'for(var k=1;k<=dim;k++){var v=m+"-"+String(k).padStart(2,"0"),off=v<td||v>mx||cl.indexOf(v)>-1;'
-       'h+=\'<button type="button" class="ccs-cal-d\'+(v===td?" is-today":"")+\'" data-act="n-date" data-v="\'+v+\'" aria-pressed="\'+(V.date===v)+\'" aria-label="\'+Tt(Mt(v,!0))+(v===td?", today":"")+(off?", closed":"")+\'"\'+(off?" disabled":"")+">"+k+"</button>"}'
+       'h+=\'<button type="button" class="ccs-cal-d\'+(v<td?" is-past":"")+(v===td?" is-today":"")+\'" data-act="n-date" data-v="\'+v+\'" aria-pressed="\'+(V.date===v)+\'" aria-label="\'+Tt(Mt(v,!0))+(v===td?", today":"")+(off?(v<td?", past":", closed"):"")+\'"\'+(off?" disabled":"")+">"+k+"</button>"}'
        'return h+"</div></div></div>"}')
 
 FIXES = [
