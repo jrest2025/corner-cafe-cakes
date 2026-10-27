@@ -55,7 +55,7 @@ async function makeSlip(p) {
   const b = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH, args: ['--no-sandbox', '--disable-dev-shm-usage'] });
   const SH = process.env.SHOTS || '';
   try {
-    for (const [paper, w, h, np] of [['A5', 1280, 900, 2], ['DL', 1280, 900, 1], ['A5', 390, 844, 0]]) {
+    for (const [paper, w, h, np] of [['A5', 1280, 900, 2], ['DL', 1280, 900, 1], ['DL', 1280, 900, 0], ['A5', 390, 844, 0]]) {
       NPHOTO = np; const label = paper + ' ' + np + ' photo' + (np === 1 ? '' : 's') + (w < 760 ? ' phone' : '');
       const { ctx, p, errors } = await page(b, w, h, paper);
       const s = await makeSlip(p);
@@ -67,7 +67,7 @@ async function makeSlip(p) {
       if (np) {
         check(label + ': photo slip with the logo top left', pr && pr.photoSlip && pr.logoLeft && !pr.oldSlip, pr && { photoSlip: pr.photoSlip, logoLeft: pr.logoLeft });
         check(label + ': cake, photo and details in order', pr && pr.ph && pr.more === np - 1 && JSON.stringify(pr.labels) === JSON.stringify(['Cake', 'Size', 'Design', 'Inscription', 'Candles', 'Occasion', 'Allergy']), pr && pr.labels);
-      } else check(label + ': no photo keeps the slip as it was', pr && pr.oldSlip && !pr.photoSlip, pr && { oldSlip: pr.oldSlip });
+      } else check(label + ': no photo: new slip, Cake and Size side by side, larger type', pr && pr.photoSlip && pr.logoLeft && !pr.oldSlip && !pr.ph && JSON.stringify(pr.labels) === JSON.stringify(['Cake', 'Size', 'Design', 'Inscription', 'Candles', 'Occasion', 'Allergy']), pr && { labels: pr.labels });
       check(label + ': no Short notice tag', pr && !/short notice/i.test(pr.text));
       if (SH) { await p.emulateMedia({ media: 'print' }); await p.screenshot({ path: path.join(SH, 'print-' + paper + '-' + np + '.png'), fullPage: true }); await p.emulateMedia({ media: 'screen' }); }
       const [dl] = await Promise.all([p.waitForEvent('download', { timeout: 15000 }), js(p, '#ccs-sheet [data-act=brief-pdf]', 300)]);

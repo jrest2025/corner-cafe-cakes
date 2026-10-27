@@ -1,4 +1,6 @@
-"""Kitchen slip, 27 Oct 2026: orders with an inspiration photo get the photo slip (logo top left with the order number,
+"""Kitchen slip, 27 Oct 2026 (final): every slip uses the new layout, space used to the full. With an inspiration photo:
+the photo beside Cake and Size; without: Cake and Size side by side and larger type. No Short notice tag.
+Earlier: orders with an inspiration photo get the photo slip (logo top left with the order number,
 larger type, photo beside Cake and Size); orders without a photo keep the slip as it was. No Short notice tag anywhere.
 (Earlier draft text below.)
 
@@ -25,7 +27,7 @@ def swap(text, old, new, n=1):
 
 # 1a. Slip layout: the shared file, exports removed, inside the same module slot
 lay = (ROOT / 'supabase/functions/send-emails/slip_pdf.js').read_text()
-assert 'renderSlipPhoto' in lay and 'SHORT NOTICE' not in lay, 'slip_pdf.js is not the photo layout'
+assert 'hasPhoto: stack' in lay and 'SHORT NOTICE' not in lay and 'renderSlipPlain' not in lay, 'slip_pdf.js is not the new layout'
 lay = lay.replace('export const ', 'const ').replace('export async function ', 'async function ').replace('export function ', 'function ')
 a = s.index('me=function(){const e=72/25.4;')
 b = s.index('},slipFileName:s}}()', a) + len('},slipFileName:s}}()')
@@ -52,11 +54,11 @@ HTML = ('function ccsSlipPhotoHtml(t,a,n,v){var s=v.s,r=v.r,dl=v.o,T=v.at,'
   'taken=("online"===r.source&&!r.taken_by?"Website order":"")+(r.taken_by||"")+(r.source&&("online"!==r.source||r.taken_by)?" ("+(v.N[r.source]||r.source)+")":"")+(when?" · "+when:""),'
   'row=function(k,x){return x?\'<div class="slp-l"><span>\'+k+"</span><b>"+Tt(x)+"</b></div>":""},'
   'cell=function(k,x,cls,sub,big){return\'<div class="slp-c\'+(cls?" "+cls:"")+\'"><span>\'+k+"</span>"+(big?"<b>"+Tt(x)+"</b>":"<p>"+Tt(x)+"</p>")+(sub?"<small>"+Tt(sub)+"</small>":"")+"</div>"};'
-  'return\'<div class="ccs-slip ccs-slip-\'+n+\' slp"><div class="slp-top"><div class="slp-logo">\'+P+\'</div><div class="slp-no"><span>Order</span><b>\'+Tt(s.reference)+"</b><i>v"+t.version+"</i></div></div>"'
-  '+\'<div class="slp-meta"><span>Kitchen slip v\'+t.version+" · Printed "+Tt(Rt((new Date).toISOString()))+"</span><b>"+(1===a.length?"1 design photo":a.length+" design photos")+"</b></div>"'
+  'return\'<div class="ccs-slip ccs-slip-\'+n+\' slp\'+(a.length?"":" slp-big")+\'"><div class="slp-top"><div class="slp-logo">\'+P+\'</div><div class="slp-no"><span>Order</span><b>\'+Tt(s.reference)+"</b><i>v"+t.version+"</i></div></div>"'
+  '+\'<div class="slp-meta"><span>Kitchen slip v\'+t.version+" · Printed "+Tt(Rt((new Date).toISOString()))+"</span><b>"+(a.length?1===a.length?"1 design photo":a.length+" design photos":"")+"</b></div>"'
   '+(t.version>1&&v.p.length?\'<div class="sl-changed">Changed since v\'+(t.version-1)+": "+Tt(v.p.join(", "))+". Throw away the old slip.</div>":"")+v.q'
-  '+\'<div class="slp-grid">\'+cell("Cake",cake||"Not given","slp-cake","custom"===s.finish?"Custom design":"Standard finish",1)'
-  '+\'<figure class="slp-ph"><img src="\'+Tt(a[0])+\'" alt="Design photo"><figcaption>\'+(a.length>1?"Photo 1 of "+a.length:"Design photo")+"</figcaption></figure>"'
+  '+\'<div class="slp-grid\'+(a.length?"":" no-ph")+\'">\'+cell("Cake",cake||"Not given","slp-cake","custom"===s.finish?"Custom design":"Standard finish",1)'
+  '+(a.length?\'<figure class="slp-ph"><img src="\'+Tt(a[0])+\'" alt="Design photo"><figcaption>\'+(a.length>1?"Photo 1 of "+a.length:"Design photo")+"</figcaption></figure>":"")'
   '+cell("Size",size||"Not given","slp-size",serves,1)+"</div>"'
   '+("custom"===s.finish&&s.design?cell("Design",s.design):"")+cell("Inscription",s.message?"“"+s.message+"”":"None","slp-msg","",1)'
   '+\'<div class="slp-two">\'+cell("Candles",s.candles||"None")+cell("Occasion",s.occasion||"Not given")+"</div>"'
@@ -80,11 +82,14 @@ CSS = ('.slp .slp-top{display:flex;align-items:center;justify-content:space-betw
   '.slp .slp-must{background:#000;color:#fff}.slp .slp-must>span{color:#fff}.slp .slp-diet{border-width:2.5pt}'
   '.slp .slp-lines{display:grid;gap:4pt;margin-top:7pt}.slp .slp-l{display:flex;gap:6pt;align-items:baseline}.slp .slp-l span{flex:0 0 17mm;font-size:10pt;font-weight:700}'
   '.slp .slp-l b{flex:1;font-size:11.5pt;font-weight:500;border-bottom:.75pt solid #999;padding-bottom:1pt;overflow-wrap:anywhere}'
+  '.slp .slp-grid.no-ph{grid-template-areas:"c s"}.slp .slp-grid.no-ph .slp-size{margin-left:-1pt}'
+  '.slp.slp-big .slp-c>span{font-size:9.5pt}.slp.slp-big .slp-c>b{font-size:19pt}.slp.slp-big .slp-cake>b{font-size:22pt}.slp.slp-big .slp-msg>b{font-size:20pt}'
+  '.slp.slp-big .slp-c>p{font-size:15pt}.slp.slp-big .slp-c>small{font-size:14pt}.slp.slp-big .slp-l span{flex-basis:21mm;font-size:12.5pt}.slp.slp-big .slp-l b{font-size:14pt}'
   '.slp .slp-more{display:flex;gap:3pt;margin-top:5pt}.slp .slp-more img{flex:1;min-width:0;height:22mm;object-fit:cover;border:.75pt solid #000}')
 HTML = HTML.replace('CCS_SLP', json.dumps(CSS))
 s = swap(s, 'function Wn(){var e=y.briefDone;', HTML + 'function Wn(){var e=y.briefDone;')
 s = swap(s, "return'<div class=\"ccs-slip ccs-slip-'+n+'\"><div class=\"sl-ordno\">",
-         "if(a.length)return ccsSlipPhotoHtml(t,a,n,{s:s,r:r,o:o,p:p,h:h,pay:_,q:q,at:T,N:N});return'<div class=\"ccs-slip ccs-slip-'+n+'\"><div class=\"sl-ordno\">")
+         "return ccsSlipPhotoHtml(t,a,n,{s:s,r:r,o:o,p:p,h:h,pay:_,q:q,at:T,N:N});return'<div class=\"ccs-slip ccs-slip-'+n+'\"><div class=\"sl-ordno\">")
 s = swap(s, '(s.rush?"<em>Short notice</em>":"")', '""')
 assert '</script' not in s.lower()
 
