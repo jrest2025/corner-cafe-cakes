@@ -244,3 +244,8 @@ Screens:
 - Seasonal booking buildup moved to Planning & Forecasting (same module, same numbers).
 - Pickups timeline: two-letter day above a bold date.
 - Rollback: remove ccordertoolsloader43, add ccordertoolsloader42 (1.0.42, footer), publish.
+
+## Loader 44 (commit 97a9336f) — live 27 Oct 2026, 11:29 PM
+- "Old orders" in the sidebar (under Orders) and first in More on phones; opens the existing Old order (paper slip) form directly. Same form, checks and server function; nothing new saved.
+- Loader messages shortened to stay under Webflow's 2,000-character limit.
+- Rollback: remove ccordertoolsloader44, add ccordertoolsloader43 (1.0.43, footer), publish.
