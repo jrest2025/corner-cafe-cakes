@@ -296,3 +296,9 @@ Screens:
 - `ccordertoolsloader50` (footer, 1.0.50) replaces loader 49: commit bd90f95e, new fingerprints for staff.admin.js and staff.pickups.js.
 - Live check: new bundle and loader loaded; payment list and groups come from Settings; Today screen normal.
 - Rollback: supabase/sql/release_d_20261028_rollback.sql; staff footer from docs/rollback/staff-footer-before-release-d-2026-10-28.html; remove ccordertoolsloader50, add ccordertoolsloader49 (1.0.49, footer); publish.
+
+## Orders header fix (live 28 Oct 2026, 2:10 AM)
+- Approved by Roneel ("deploy", 2:09 AM). Long lists squeezed the heading row to nothing, so the title slid under the search. staff.flow.js: Orders, Customers (follow-ups), Kitchen and Register grids size rows to their content.
+- `ccordertoolsloader51` (footer, 1.0.51) replaces loader 50: commit 852b6ca7, new fingerprint for staff.flow.js only.
+- Live check: Upcoming list — heading 92px tall, search and tabs below it.
+- Rollback: remove ccordertoolsloader51, add ccordertoolsloader50 (1.0.50, footer), publish.
