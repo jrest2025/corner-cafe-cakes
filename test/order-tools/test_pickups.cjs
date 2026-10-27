@@ -14,14 +14,16 @@ const sales = async p => { await tap(p, '#cc-staff [data-tab="dash"]', 3000); aw
   for (const extra of ['', add('answers') + add('pickups')]) {
     const { p } = await open(b, 1440, 900, { extraFoot: fs.readFileSync(__dirname + '/loader.html', 'utf8').replace('SHA_OT', '0000000') + extra });
     await p.waitForTimeout(2500); await tap(p, '#cc-staff [data-tab="dash"]', 3500);
-    snap.push(await p.evaluate(() => { const v = s => [...document.querySelectorAll(s)].filter(e => e.getClientRects().length).length; return { head: v('.hb-v2 .hb-k-heading'), kpis: v('.hb-v2 .hb-k-kpis'), panels: v('.hb-v2 .hb-k-panels'), view: !!document.getElementById('cc-demand-views'), rail: v('.hb-v2 #cc-demand-scroll-rail'), lead: v('#cc-cake-lead-time') }; }));
+    snap.push(await p.evaluate(() => { const L = window.CCAnalyticsAnswers && window.CCAnalyticsAnswers.last(); const ov = [...document.querySelectorAll('#ccs-main .an-mods [data-v="ov"], #ccs-main .cc-nav5 button')].filter(e => e.textContent.trim() === 'Overview' && e.getClientRects().length).length; return { mod: L ? L.mod : (document.querySelector('.an-mods [aria-current="page"]') || {}).dataset?.v, ov }; }));
+    if (extra) { await p.evaluate(() => [...document.querySelectorAll('.an-mods button')].find(x => x.dataset.v === 'pl').click()); await p.waitForTimeout(2500); snap.push(await p.evaluate(() => ({ season: !!document.querySelector('.cat-page[data-cat="pl"] .pk-season .ccsd-season'), daily: !!document.querySelector('.pk-season .ccsd-daily'), rows: document.querySelectorAll('.pk-season .ccsd-pace tr').length }))); }
     if (extra) { await p.evaluate(() => { const b = [...document.querySelectorAll('#ccs-main button')].find(x => x.textContent.trim() === 'Sales & Products'); b && b.click(); }); await p.waitForTimeout(3500); }
     hb.push(await p.evaluate(dayNums));
     await p.context().close();
   }
   const same = Object.keys(hb[0].m).filter(d => hb[1].m[d] != null), diffs = same.filter(d => hb[0].m[d] !== hb[1].m[d]);
   check('Daily cake demand on Cake sales shows the same numbers as on the Overview', same.length >= 7 && !diffs.length && hb[0].foot === hb[1].foot, { same: same.length, diffs, f0: hb[0].foot, f1: hb[1].foot });
-  check('Overview: Performance snapshot, its three cards and Daily cake demand hidden (moved to Cake sales); By booking time shown on its own', snap[0].head && snap[0].kpis && snap[0].panels && snap[0].rail && !snap[1].head && !snap[1].kpis && !snap[1].panels && !snap[1].rail && snap[1].lead === 1, snap);
+  check('Overview tab gone; Analytics opens on Cake sales (without the add-on it still opens on the Overview)', snap[0].mod === 'ov' && snap[0].ov === 2 && snap[1].mod === 'sl' && snap[1].ov === 0, snap);
+  check('Seasonal booking buildup on Planning, on its own', snap[2].season && !snap[2].daily && snap[2].rows >= 2, snap[2]);
   for (const [w, h, t] of [[1440, 900, 'desktop'], [1180, 820, 'ipad'], [390, 844, 'phone']]) {
     const { p, errors } = await open(b, w, h, { extraFoot: base, ipad: t === 'ipad' });
     await p.waitForTimeout(2500); await sales(p);

@@ -114,7 +114,7 @@
         '" data-pk="' + d + '" aria-label="' + esc(longDay(d) + ': ' + c + pl(c, ' cake', ' cakes') + (ev.length ? ', ' + ev.map(function (e) { return e.name; }).join(', ') : '')) + '">' +
         (first ? '<span class="pk-mo">' + MON[+d.slice(5, 7) - 1] + ' ' + d.slice(0, 4) + '</span>' : '') +
         '<span class="pk-n">' + (c || '') + '</span><span class="pk-track">' + stack(D, d, c) + tick(D, d) + '</span>' +
-        '<span class="pk-d">' + (+d.slice(8)) + '</span><span class="pk-w">' + WD[wd(d)].charAt(0) + '</span>' +
+        '<span class="pk-w">' + WD[wd(d)].slice(0, 2) + '</span><span class="pk-d">' + (+d.slice(8)) + '</span>' +
         '<span class="pk-ev">' + (ev.length ? '<em class="is-' + ev[0].k + '" style="max-width:' + room(evDays, i) + 'px" data-pk="' + d + '" title="' + esc(ev.map(function (e) { return e.name; }).join(', ')) + '">' + esc(ev[0].name) + '</em>' : '') + '</span></button>');
     }
     return '<section class="cat-card pk" aria-label="Cake pickups by day"><header><h3>Cake pickups by day</h3><span>Tap a day for its cakes, occasions and booking times</span></header>' + summaryStrip(D) +
@@ -371,7 +371,7 @@
       P + ' .pk-key i{width:12px;height:12px;border-radius:3px;display:inline-block}' + P + ' .pk-key .k-next{background:#E9EEF5;border:1px solid #C9D3E0}' + P + ' .pk-key .k-hol{background:#955ca1;border-radius:50%}',
       P + ' .pk-nav{display:flex;gap:6px}' + P + ' .pk-btn{min-width:44px;height:40px;padding:0 12px;border:1px solid #D0D5DD;border-radius:10px;background:#fff;color:#1D2939;font:inherit;font-size:15px;font-weight:500;cursor:pointer}',
       P + ' .pk-rail{display:flex;overflow-x:auto;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity;padding:22px 2px 4px;scrollbar-width:thin;outline:none}',
-      P + ' .pk-col{position:relative;flex:0 0 44px;display:grid;grid-template-rows:18px 132px 20px 16px 22px;justify-items:center;align-items:end;padding:0 3px;border:0;background:none;cursor:pointer;scroll-snap-align:start;font:inherit;color:#1D2939;border-radius:10px}',
+      P + ' .pk-col{position:relative;flex:0 0 44px;display:grid;grid-template-rows:18px 132px 18px 22px 22px;justify-items:center;align-items:end;padding:0 3px;border:0;background:none;cursor:pointer;scroll-snap-align:start;font:inherit;color:#1D2939;border-radius:10px}',
       P + ' .pk-col:hover,' + P + ' .pk-col:focus-visible{background:#F2F4F7;outline:none}' + P + ' .pk-col.is-on{background:#E8F1F8;box-shadow:inset 0 0 0 2px #548fc0}',
       P + ' .pk-col.is-hol .pk-track{background:repeating-linear-gradient(135deg,#F7F0F9 0 6px,#fff 6px 12px)}',
       P + ' .pk-mo{position:absolute;top:-20px;left:4px;font-size:12px;font-weight:600;color:#475467;white-space:nowrap}',
@@ -389,7 +389,7 @@
       '@media (max-width:760px){' + P + ' .pk-mixleg{grid-template-columns:repeat(2,minmax(0,1fr))}}',
       P + ' .pk-col.is-over .pk-stack{border-top:4px solid #0b3d29}' + P + ' .pk-col.is-over .pk-n{color:#0b3d29}',
       P + ' .pk-col.is-today .pk-track{box-shadow:0 0 0 2px #1D2939}' + P + ' .pk-col.is-today .pk-d{background:#1D2939;color:#fff;border-radius:999px;padding:0 6px}',
-      P + ' .pk-d{font-size:14px;font-weight:600;line-height:20px}' + P + ' .pk-w{font-size:12px;color:#667085}' + P + ' .pk-col:nth-child(7n) {}',
+      P + ' .pk-d{font-size:16px;font-weight:600;line-height:22px;color:#1D2939}' + P + ' .pk-w{font-size:13px;line-height:18px;color:#475467}' + P + ' .pk-col:nth-child(7n) {}',
       P + ' .pk-ev{width:44px;height:22px;position:relative;overflow:visible}',
       P + ' .pk-ev em{position:absolute;left:4px;top:3px;max-width:128px;font-style:normal;font-size:12px;line-height:16px;padding:0 6px;border-radius:999px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:#F4EBF6;color:#5B2F66;z-index:1}',
       P + ' .pk-ev em.is-h{background:#EDE3F0;color:#4A2453;font-weight:600}',
