@@ -90,3 +90,23 @@ Roneel: "the same philosophy applied across the board"; "proceed and deploy" (ph
 - Badges are soft navy (plain information), WhatsApp keeps its green; slightly bolder strokes so they never blend in.
 - "Collect balance first" tag is amber (money owed) instead of blue.
 - Rollback: remove ccOrderToolsLoader25, add ccOrderToolsLoader24 (footer, 1.0.24), publish.
+
+## Order details and customer profile flow (loader 26, commit 9e91dd28) — staged
+
+Order details (every state):
+- Top colour strip follows the colour rule and matches the warning: red urgent, amber to do, green completed, grey cancelled (was amber on completed orders, red on amber warnings).
+- Payment said once: the Paid / Part paid chip in the header goes; the payment line stays. "To pay" reads amber when money is owed; a cancelled order shows its figures in grey and no "To pay".
+- Status dot takes its chip colour (green on Completed).
+- Next step first: completed orders lead with Customer feedback; other orders keep it in More options unless a concern is waiting.
+- Risky or rare actions behind one "More options" line (closed by default, dangerous last, red outline): Delete order, Cancel order, and Correct this order on finished orders. Duplicate Delete links at the bottom hidden.
+- Main buttons (Confirm order, Order completed) solid navy instead of near-black.
+- Call row: number on one line; WhatsApp a compact green button beside it.
+- Soft lines on the cake card; selected detail tab soft navy; when-tile navy.
+
+Customer profile:
+- Mark as favourite becomes a heart in the header (pink when on).
+- Number cards: Orders and Collected spend as plain white cards (average moved under the total); Usually orders and Occasions cards hidden (listed just below).
+- WhatsApp button green; "+ +" on New order fixed; pink eyebrow and avatar calmed to grey/navy.
+- Delete customer behind More options, red outline (was a solid navy main button).
+
+No data, rules or permissions changed. Rollback: remove ccOrderToolsLoader26, add ccOrderToolsLoader25 (footer, 1.0.25), publish.
