@@ -12,6 +12,7 @@
   win.__ccAdmin20261027 = true;
 
   var I = {"globe": "<circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M12 3a13 13 0 0 0 0 18 13 13 0 0 0 0-18M3 12h18\"/>", "cake": "<path d=\"M20 21v-8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8\"/><path d=\"M4 16s.5-1 2-1 2.5 2 4 2 2.5-2 4-2 2.5 2 4 2 2-1 2-1\"/><path d=\"M2 21h20M7 8v3M12 8v3M17 8v3\"/>", "cal": "<rect x=\"3\" y=\"4\" width=\"18\" height=\"17\" rx=\"2\"/><path d=\"M16 2v4M8 2v4M3 10h18\"/>", "bell": "<path d=\"M10.3 21a2 2 0 0 0 3.4 0M3.3 15.3A1 1 0 0 0 4 17h16a1 1 0 0 0 .7-1.7C19.4 14 18 12.5 18 8A6 6 0 0 0 6 8c0 4.5-1.4 6-2.7 7.3\"/>", "users": "<path d=\"M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2\"/><circle cx=\"9\" cy=\"7\" r=\"4\"/><path d=\"M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8\"/>", "shield": "<path d=\"M20 13c0 5-3.5 7.5-7.7 9a1 1 0 0 1-.6 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.2-2.7a1.2 1.2 0 0 1 1.6 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1z\"/>", "db": "<ellipse cx=\"12\" cy=\"5\" rx=\"8\" ry=\"3\"/><path d=\"M4 5v14a8 3 0 0 0 16 0V5M4 12a8 3 0 0 0 16 0\"/>", "chev": "<path d=\"m6 9 6 6 6-6\"/>", "arrow": "<path d=\"M5 12h14M13 6l6 6-6 6\"/>", "alert": "<path d=\"m21.7 18-8-14a2 2 0 0 0-3.4 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3M12 9v4M12 17h.01\"/>", "printer": "<path d=\"M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 9V3h12v6\"/><rect x=\"6\" y=\"14\" width=\"12\" height=\"8\" rx=\"1\"/>", "flag": "<path d=\"M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1zM4 22v-7\"/>", "star": "<path d=\"M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z\"/>", "truck": "<path d=\"M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2M15 18H9\"/><path d=\"M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.62l-3.48-4.35A1 1 0 0 0 17.52 8H14\"/><circle cx=\"17\" cy=\"18\" r=\"2\"/><circle cx=\"7\" cy=\"18\" r=\"2\"/>", "clock": "<circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M12 7v5l3 2\"/>", "calx": "<rect x=\"3\" y=\"4\" width=\"18\" height=\"17\" rx=\"2\"/><path d=\"M16 2v4M8 2v4M3 10h18M10 14l4 4M14 14l-4 4\"/>", "gift": "<rect x=\"3\" y=\"8\" width=\"18\" height=\"4\" rx=\"1\"/><path d=\"M12 8v13M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7M7.5 8a2.5 2.5 0 0 1 0-5C10 3 12 8 12 8s2-5 4.5-5a2.5 2.5 0 0 1 0 5\"/>", "layers": "<path d=\"m12 2 10 5-10 5L2 7zM2 17l10 5 10-5M2 12l10 5 10-5\"/>", "search": "<circle cx=\"11\" cy=\"11\" r=\"7\"/><path d=\"m20 20-3.5-3.5\"/>", "back": "<path d=\"m15 18-6-6 6-6\"/>", "info": "<circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M12 11v5M12 8h.01\"/>", "trash": "<path d=\"M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14\"/>", "mail": "<rect x=\"2\" y=\"4\" width=\"20\" height=\"16\" rx=\"2\"/><path d=\"m22 7-9 5.7a2 2 0 0 1-2 0L2 7\"/>"};
+  I.card = '<rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 10h19M6 15h4"/>'; I.bars = '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>';
   I.history = '<path d="M3 12a9 9 0 1 0 2.6-6.4L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/>';
   function svg(k, c) { return I[k] ? '<svg class="cca-ic' + (c ? ' ' + c : '') + '" viewBox="0 0 24 24" aria-hidden="true" focusable="false">' + I[k] + '</svg>' : ''; }
   function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -21,9 +22,10 @@
   var GROUPS = [
     // Kazumi Service Hub format (Roneel, 28 Oct 2026): full words, grouped by job
     { k: 'ordering', t: 'Ordering and availability', ic: 'globe', s: ['Online orders', 'Notice and collection hours', 'Closed days'] },
-    { k: 'menu', t: 'Menu and pricing', ic: 'cake', s: ['Cakes and prices', 'Seasonal items', 'Delivery areas'] },
+    { k: 'menu', t: 'Menu and pricing', ic: 'cake', s: ['Cakes and prices', 'Seasonal items', 'Delivery areas', 'Payment methods'] },
     { k: 'calendar', t: 'Calendar', ic: 'cal', s: ['Occasions and special dates', 'Events and public holidays'] },
     { k: 'alerts', t: 'Alerts and communications', ic: 'bell', s: ['Order alerts', 'Kitchen printing', 'Communications'] },
+    { k: 'reports', t: 'Reports', ic: 'bars', s: ['Lead-time groups'] },
     { k: 'team', t: 'People and access', ic: 'users', s: ['Team and access', 'What each level can do'] },
     { k: 'data', t: 'Data and safety', ic: 'shield', s: ['Settings history', 'Backup and business continuity', 'Deleted orders', 'Remove Settings entries'] }
   ];
@@ -71,7 +73,7 @@
       var st = info.status || ''; if (/^administrators?$/i.test(st) || (st.split(' ').length > 4 && !/\d/.test(st))) st = '';
       var bic = b.querySelector('svg'); return { k: k, b: b, d: info.d, status: st, flag: extra, ic: SEC_IC[k] ? svg(SEC_IC[k]) : bic ? bic.outerHTML : svg(DEF_IC[k] || 'layers') };
     }).filter(function (s) { return s.k !== 'Remove Settings entries'; })   // retired 28 Oct 2026: off sale or archive instead
-      .concat(commsRow(set, btns)).concat(histRow());
+      .concat(commsRow(set, btns)).concat(virtRows());
   }
   // Email templates (22 Oct) sit in the old Settings list, which this home hides: shown here as Communications,
   // opening the email templates window directly (Roneel, 27 Oct 2026 11:52 PM: "its not there")
@@ -84,6 +86,79 @@
   var H = { allowed: null, entries: [], more: false, area: '', busy: false, err: null, arm: null, msg: null, areas: [] };
   function histRow() { return H.allowed ? [{ k: 'Settings history', b: null, d: null, status: '', flag: '', ic: svg('history'), hist: true }] : []; }
   function bc() { return win.__ccsBc && typeof win.__ccsBc.rpc === 'function' ? win.__ccsBc : null; }
+  // ---------- Payment methods and Lead-time groups (Release D, 28 Oct 2026) ----------
+  var V2 = { setup: null, busy: false, msg: null, err: null, pay: null, bands: null, dirty: false };
+  function virtRows() {
+    var r = histRow(); if (!H.allowed) return r;
+    return r.concat([{ k: 'Payment methods', b: null, d: null, status: V2.setup ? (V2.setup.payment_methods || []).filter(function (m) { return m.active; }).length + ' on' : '', flag: '', ic: svg('card'), virt: true },
+      { k: 'Lead-time groups', b: null, d: null, status: V2.setup ? (V2.setup.lead_bands || []).length + ' groups' : '', flag: '', ic: svg('bars'), virt: true }]);
+  }
+  function v2Load() {
+    if (V2.busy || !bc()) return; V2.busy = true;
+    bc().rpc('get_order_setup', { p_location: 'corner-cafe' }).then(function (r) { V2.busy = false; var d = r && r.data; if (d && d.ok) { V2.setup = d; V2.pay = null; V2.bands = null; } else V2.err = 'Could not load. Check the internet connection.'; schedule(); }, function () { V2.busy = false; V2.err = 'Could not load. Check the internet connection.'; schedule(); });
+  }
+  function bandLabel(lo, hi) { return hi == null ? lo + ' or more days' : lo === hi ? (lo ? lo + (lo === 1 ? ' day' : ' days') : 'Same day') : lo + ' to ' + hi + ' days'; }
+  function applyLive(d) {
+    try {
+      var p = (d.payment_methods || []); if (p.length) { win.__ccsPayAll = p.map(function (m) { return [m.code, m.label]; }); var on = p.filter(function (m) { return m.active; }); if (on.length && win.__ccsPay) { win.__ccsPay.length = 0; on.forEach(function (m) { win.__ccsPay.push([m.code, m.label]); }); } }
+      var b = (d.lead_bands || []); if (b.length && win.__ccsBands) { win.__ccsBands.length = 0; b.forEach(function (x) { var lo = +x.min, hi = x.max == null ? 9999 : +x.max; win.__ccsBands.push([hi === 9999 ? lo + '+ days' : lo === hi ? (lo ? lo + (lo === 1 ? ' day' : ' days') : 'Same day') : lo + '–' + hi + ' days', lo, hi]); }); }
+    } catch (e) {}
+  }
+  function payHtml() {
+    if (!V2.setup) return '<p class="cca-hnone">Loading…</p>';
+    var list = V2.pay || (V2.setup.payment_methods || []).map(function (m) { return { code: m.code, label: m.label, active: !!m.active }; }); V2.pay = list;
+    return '<div class="cca-hh"><h2>Payment methods</h2></div><p class="cca-vhint">Shown on the order and payment screens, in this order. Past payments keep their method.</p>' +
+      '<ol class="cca-vlist">' + list.map(function (m, i) {
+        return '<li class="cca-vrow"><span class="cca-vmove"><button type="button" data-v2pay-up="' + i + '" aria-label="Move up"' + (i ? '' : ' disabled') + '>↑</button><button type="button" data-v2pay-down="' + i + '" aria-label="Move down"' + (i < list.length - 1 ? '' : ' disabled') + '>↓</button></span>' +
+          '<input class="cca-vin" data-v2pay-label="' + i + '" maxlength="30" value="' + esc(m.label) + '" aria-label="Name">' +
+          '<label class="cca-vsw"><input type="checkbox" data-v2pay-on="' + i + '"' + (m.active ? ' checked' : '') + '><span>' + (m.active ? 'On' : 'Off') + '</span></label></li>';
+      }).join('') + '</ol>' + v2Foot('v2pay-save');
+  }
+  function bandsHtml() {
+    if (!V2.setup) return '<p class="cca-hnone">Loading…</p>';
+    var b = V2.bands || (V2.setup.lead_bands || []).slice(0, -1).map(function (x) { return x.max; }); V2.bands = b;
+    var rows = [], lo = 0;
+    b.forEach(function (hi, i) { rows.push('<li class="cca-vrow"><span class="cca-vgl">' + lo + ' to</span><input class="cca-vin cca-vnum" inputmode="numeric" maxlength="3" data-v2band="' + i + '" value="' + esc(hi) + '" aria-label="Last day of group ' + (i + 1) + '"><span class="cca-vgl">days</span>' + (b.length > 1 ? '<button type="button" class="cca-vx" data-v2band-del="' + i + '" aria-label="Remove this group">×</button>' : '') + '</li>'); lo = (+hi || 0) + 1; });
+    rows.push('<li class="cca-vrow"><span class="cca-vgl">' + lo + ' or more days</span></li>');
+    return '<div class="cca-hh"><h2>Lead-time groups</h2></div><p class="cca-vhint">How far ahead cakes were ordered, as grouped on every Analytics chart. Order dates never change.</p>' +
+      '<ol class="cca-vlist">' + rows.join('') + '</ol>' + (b.length < 6 ? '<button type="button" class="cca-hmore" data-v2band-add>Add a group</button>' : '') + v2Foot('v2band-save');
+  }
+  function v2Foot(act) {
+    return (V2.err ? '<p class="cca-herr" role="alert">' + esc(V2.err) + '</p>' : '') + (V2.msg ? '<p class="cca-hmsg" role="status">' + esc(V2.msg) + '</p>' : '') +
+      '<div class="cca-vfoot"><button type="button" class="cca-vsave" data-' + act + '>Save</button></div>';
+  }
+  function v2View(main, key) {
+    var box = main.querySelector(':scope > .cca-hist');
+    if (!box) { box = doc.createElement('section'); box.className = 'cca-hist'; main.appendChild(box); }
+    box.setAttribute('aria-label', key);
+    var h = '<button type="button" class="cca-back cca-hback" data-cca-home>' + svg('back') + '<span>All settings</span></button>' + (key === 'Payment methods' ? payHtml() : bandsHtml());
+    if (box.getAttribute('data-h') === h) return;
+    var f = doc.activeElement, sel = null, pos = 0;
+    if (f && box.contains(f)) { ['data-v2pay-label', 'data-v2band'].forEach(function (k) { if (f.hasAttribute(k)) sel = '[' + k + '="' + f.getAttribute(k) + '"]'; }); try { pos = f.selectionStart; } catch (e) {} }
+    box.innerHTML = h; box.setAttribute('data-h', h);
+    if (sel) { var g = box.querySelector(sel); if (g) { g.focus(); try { g.setSelectionRange(pos, pos); } catch (e) {} } }
+  }
+  function v2Save(kind) {
+    if (!bc()) return; V2.err = null; V2.msg = null;
+    var fn = kind === 'pay' ? 'settings_payment_methods_save' : 'settings_lead_bands_save', arg = kind === 'pay' ? V2.pay : V2.bands.map(function (x) { return String(x).trim(); });
+    if (kind === 'bands' && arg.some(function (x) { return !/^\d{1,3}$/.test(x); })) { V2.err = 'Use whole days.'; schedule(); return; }
+    bc().rpc(fn, { p: kind === 'pay' ? arg : arg.map(Number) }).then(function (r) {
+      var d = r && r.data;
+      if (!d || !d.ok) { V2.err = (d && d.message) || 'Nothing was saved.'; schedule(); return; }
+      if (kind === 'pay') { V2.setup.payment_methods = d.payment_methods; V2.pay = null; } else { V2.setup.lead_bands = d.lead_bands; V2.bands = null; }
+      applyLive(V2.setup); V2.msg = 'Saved. Shown everywhere from now on.'; schedule();
+    }, function () { V2.err = 'Nothing was saved. Check the internet connection.'; schedule(); });
+  }
+  doc.addEventListener('input', function (e) {
+    var t = e.target; if (!t || !t.getAttribute) return;
+    var i = t.getAttribute('data-v2pay-label'); if (i != null && V2.pay) { V2.pay[+i].label = t.value; V2.msg = null; return; }
+    var j = t.getAttribute('data-v2band'); if (j != null && V2.bands) { V2.bands[+j] = t.value; V2.msg = null; }
+  }, true);
+  doc.addEventListener('change', function (e) {
+    var t = e.target; if (!t || !t.getAttribute) return;
+    var i = t.getAttribute('data-v2pay-on'); if (i != null && V2.pay) { V2.pay[+i].active = t.checked; V2.msg = null; schedule(); }
+    if (t.getAttribute('data-v2band') != null) schedule();
+  }, true);
   function histCheck() {
     if (H.allowed !== null || !bc()) return; H.allowed = false;
     bc().rpc('settings_history', { p_limit: 1 }).then(function (r) { var d = r && r.data; H.allowed = !!(d && d.ok); if (H.allowed) schedule(); }, function () {});
@@ -249,6 +324,9 @@
     histCheck();
     var hist = view === 'Settings history' && H.allowed;
     main.classList.toggle('cca-hist-on', !!hist);
+    if (H.allowed && !V2.setup && !V2.busy) v2Load();
+    var v2 = (view === 'Payment methods' || view === 'Lead-time groups') && H.allowed;
+    if (v2) { main.classList.add('cca-hist-on'); main.classList.remove('cca-home-on'); main.classList.add('cca-sec-on'); if (!V2.setup && !V2.busy) v2Load(); menu(main, list, view); v2View(main, view); return; }
     if (hist) { main.classList.remove('cca-home-on'); main.classList.add('cca-sec-on'); menu(main, list, view); if (!H.loaded && !H.busy && !H.err) histLoad(false); histView(main); return; }
     var oh = main.querySelector(':scope > .cca-hist'); if (oh) oh.remove();
     var cur = list.filter(function (s) { return s.d && s.d.classList.contains('is-cur'); })[0] || list[0];
@@ -267,6 +345,12 @@
     if (o && o.getAttribute('data-cca-open') === 'Communications' && doc.querySelector('#cc-staff .ccs-set > #et-comm') && win.CCEmailTemplates) { e.preventDefault(); try { win.CCEmailTemplates.open(); } catch (er) {} return; }
     var rs = t.closest('[data-cca-restore]'); if (rs) { e.preventDefault(); histRestore(+rs.getAttribute('data-cca-restore')); return; }
     if (t.closest('[data-cca-hmore]')) { e.preventDefault(); histLoad(true); return; }
+    if (o && (o.getAttribute('data-cca-open') === 'Payment methods' || o.getAttribute('data-cca-open') === 'Lead-time groups')) { e.preventDefault(); setView(o.getAttribute('data-cca-open')); V2.msg = null; V2.err = null; V2.pay = null; V2.bands = null; schedule(); var mv = doc.getElementById('ccs-main'); if (mv) mv.scrollTop = 0; return; }
+    var pu = t.closest('[data-v2pay-up],[data-v2pay-down]'); if (pu && V2.pay) { e.preventDefault(); var ix = +(pu.getAttribute('data-v2pay-up') || pu.getAttribute('data-v2pay-down')), dn = pu.hasAttribute('data-v2pay-down'), jx = dn ? ix + 1 : ix - 1; if (jx >= 0 && jx < V2.pay.length) { var tmp = V2.pay[ix]; V2.pay[ix] = V2.pay[jx]; V2.pay[jx] = tmp; V2.msg = null; schedule(); } return; }
+    if (t.closest('[data-v2pay-save]')) { e.preventDefault(); v2Save('pay'); return; }
+    if (t.closest('[data-v2band-save]')) { e.preventDefault(); v2Save('bands'); return; }
+    var bd = t.closest('[data-v2band-del]'); if (bd && V2.bands) { e.preventDefault(); V2.bands.splice(+bd.getAttribute('data-v2band-del'), 1); V2.msg = null; schedule(); return; }
+    if (t.closest('[data-v2band-add]') && V2.bands) { e.preventDefault(); var last = +V2.bands[V2.bands.length - 1] || 0; V2.bands.push(String(last + 7)); V2.msg = null; schedule(); return; }
     if (o && o.getAttribute('data-cca-open') === 'Settings history') { e.preventDefault(); setView('Settings history'); H.loaded = false; H.entries = []; H.msg = null; schedule(); var mh = doc.getElementById('ccs-main'); if (mh) mh.scrollTop = 0; return; }
     if (o) { e.preventDefault(); var k = o.getAttribute('data-cca-open'); setView(k); var b = doc.querySelector('#ccs-main .ccs-setnav [data-setk="' + (win.CSS && CSS.escape ? CSS.escape(k) : k) + '"]'); if (b) b.click(); schedule(); var m = doc.getElementById('ccs-main'); if (m) m.scrollTop = 0; return; }
     if (t.closest('[data-cca-home]')) { e.preventDefault(); setView('home'); schedule(); var m2 = doc.getElementById('ccs-main'); if (m2) m2.scrollTop = 0; return; }
@@ -384,6 +468,14 @@
     S + ' .cca-hmore{margin:12px 0 0;min-height:44px;padding:0 16px;border:1px solid #D0D5DD;border-radius:10px;background:#fff;font:inherit;font-weight:600;color:#1D2939;cursor:pointer}',
     S + ' .cca-hmsg{margin:0 0 10px;padding:10px 12px;border-radius:10px;background:#E3F4EA;color:#05603A}' + S + ' .cca-herr{margin:0 0 10px;color:#B42318}' + S + ' .cca-hnone{color:#475467;font-style:italic}',
     S + ' .cca-hback{margin:0 0 12px}',
+    S + ' .cca-vhint{margin:0 0 12px;font-size:14px;font-style:italic;color:#667085}',
+    S + ' .cca-vlist{list-style:none;margin:0;padding:0;background:#fff;border:1px solid #E4E7EC;border-radius:14px;overflow:hidden;max-width:640px}',
+    S + ' .cca-vrow{display:flex;align-items:center;gap:12px;padding:10px 14px;border-top:1px solid #F2F4F7;min-height:60px}' + S + ' .cca-vrow:first-child{border-top:0}',
+    S + ' .cca-vin{flex:1 1 auto;min-width:0;min-height:44px;padding:0 12px;border:1px solid #D0D5DD;border-radius:10px;font:inherit;font-size:16px;color:#1D2939;background:#fff}' + S + ' .cca-vnum{flex:0 0 5.5em;text-align:center}',
+    S + ' .cca-vgl{font-size:16px;color:#344054;white-space:nowrap}',
+    S + ' .cca-vmove{display:inline-flex;gap:4px}' + S + ' .cca-vmove button,' + S + ' .cca-vx{width:40px;height:40px;border:1px solid #D0D5DD;border-radius:10px;background:#fff;color:#344054;font:inherit;font-size:16px;cursor:pointer}' + S + ' .cca-vmove button:disabled{opacity:.35;cursor:default}' + S + ' .cca-vx{margin-left:auto}',
+    S + ' .cca-vsw{display:inline-flex;align-items:center;gap:8px;font-size:15px;color:#344054;cursor:pointer}' + S + ' .cca-vsw input{width:22px;height:22px;accent-color:#245F99}',
+    S + ' .cca-vfoot{margin:14px 0 0}' + S + ' .cca-vsave{min-height:48px;padding:0 22px;border:0;border-radius:10px;background:#245F99;color:#fff;font:inherit;font-size:16px;font-weight:600;cursor:pointer}',
     '@media (min-width:1100px){' + S + ' .cca-hback{display:none}}',
     '@media (max-width:759px){' + S + ' .cca-he{grid-template-columns:1fr}' + S + ' .cca-hw{align-items:flex-start;text-align:left}}',
     ':root:not(#cct0) #cc-staff .cct12-src{position:absolute!important;width:1px!important;height:1px!important;opacity:0!important;pointer-events:none!important;overflow:hidden!important}',
