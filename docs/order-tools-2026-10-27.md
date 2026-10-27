@@ -135,3 +135,14 @@ Screens:
 - Landscape columns use a measured masonry (each block spans its own height) so neither column leaves a hole; portrait is one column in the same order.
 - Computers and phones unchanged. Tests: test_ipad 91/91 (new Today order and no-gap checks at 1180×820, 1024×768, 820×1180), test_polish 148/148.
 - Rollback: remove ccOrderToolsLoader29, add ccOrderToolsLoader28 (footer, 1.0.28), publish.
+
+## One flow on every screen and device (loader 30, commit 8d869027) — staged, not published
+- New add-on src/staff.flow.js (marker __ccFlow20261027). Layout only; data, saving, permissions untouched.
+- Today (computers, phones): online-order banner one slim full-width line under the header; phones run header → banner → numbers → Needs attention → Due today → This week → Waiting on you.
+- Orders (computers, iPads): search and status tabs on one row; order cards two across on wide screens and iPad landscape.
+- Customers: one-line top bar, reminders as a bell with its count; Follow-ups due beside the numbers on wide screens (duplicate "Follow-ups due today" number hidden); table fits narrower screens; phones show the three numbers in one slim row.
+- Handover: header first, then the waiting-note line; count tiles in one slim row (5 / 3 / 2 across by width); notes beside the write box on wide screens.
+- Kitchen: Today/Board switch and the late-cakes line share one row (computers, iPads). Register: numbers and review tabs share one row (computers, iPad landscape).
+- Phone More menu: icon tiles with the words underneath (same icons as the side menu), Practice mode as a tile, password and sign out side by side.
+- Tests: test_ipad 86/86, test_polish 148/148, test_flow 20/20 with the new file loaded.
+- Rollback: remove ccOrderToolsLoader30, add ccOrderToolsLoader29 (footer, 1.0.29), publish.
