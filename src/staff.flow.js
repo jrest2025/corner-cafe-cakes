@@ -75,6 +75,39 @@
     NI + M('today') + ' > .cc-st-alert > h3{font-size:16px!important;flex:1 1 100%}'
   ])));
 
+  // ============ ISLANDS: one size, one alignment (every device) ============
+  // number tiles and Needs attention islands share the same icon box, number size and label size
+  var T = ALL + M('today');
+  css.push([
+    T + ' .tq-stat > .cl-tile,' + T + ' .tx-islands > .ap-island > .ap-icon{width:40px!important;height:40px!important;min-width:40px!important;border-radius:11px!important;flex:none!important}',
+    T + ' .tq-stat > .cl-tile svg,' + T + ' .tx-islands > .ap-island > .ap-icon svg{width:22px!important;height:22px!important}',
+    T + ' .tq-stat > b,' + T + ' .tx-islands > .ap-island > .ap-text > b{font-size:26px!important;line-height:1.1!important;font-weight:650!important}',
+    T + ' .tq-stat > span:not(.cl-tile),' + T + ' .tx-islands > .ap-island > .ap-text > span:not(.wd-prev){font-size:16px!important;line-height:1.3!important}',
+    T + ' .tx-islands > .ap-island{align-items:start!important;padding:14px 16px!important;gap:12px!important;min-height:0!important}',
+    // the orders named inside an island stay inside it
+    T + ' .tx-islands > .ap-island > .ap-text{min-width:0!important;overflow:hidden!important}',
+    T + ' .tx-islands > .ap-island .wd-prev,' + T + ' .tx-islands > .ap-island .wd-p{display:block!important;max-width:100%!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}'
+  ].join(''));
+  // computers and iPads: number tiles laid out like the islands (icon left, number over words)
+  css.push(at(WIDE, [
+    T + ' .tq-stat:not(.ccp-gone){padding:14px 16px!important;min-height:0!important;display:grid!important;grid-template-columns:40px minmax(0,1fr)!important;column-gap:12px!important;row-gap:2px!important;align-items:start!important;align-content:start!important;text-align:left!important}',
+    T + ' .tq-stat:not(.ccp-gone) > .cl-tile{grid-column:1!important;grid-row:1 / span 3!important;margin:0!important}',
+    T + ' .tq-stat:not(.ccp-gone) > :not(.cl-tile){grid-column:2!important;margin:0!important;min-width:0}'
+  ]));
+  // computers: cards that share a row share a height — Needs attention ↔ This week, Due today ↔ Waiting on you
+  css.push(at(WIDE, [
+    NI + M('today') + ' > :is(.tq-warn,.tq-week){align-self:stretch!important}',
+    NI + M('today') + ' > .tq-week{display:flex!important;flex-direction:column!important}',
+    NI + M('today') + ' > .tq-week > .tq-days{flex:1 1 auto!important;align-items:stretch!important}',
+    NI + M('today') + ' > .tq-week > .tq-days > .ccs-daycell{height:auto!important;min-height:100px!important;justify-content:center!important}',
+    NI + M('today') + ' > .tq-warn{display:flex!important;flex-direction:column!important}',
+    NI + M('today') + ' > .tq-warn > .tx-wrap{flex:1 1 auto!important}',
+    NI + M('today') + ' > .tq-warn .tx-islands{height:100%!important;align-items:stretch!important}',
+    NI + M('today') + ' > .tq-main{align-items:stretch!important}',
+    NI + M('today') + ' > .tq-main > .ccs-panel-card{display:flex!important;flex-direction:column!important;height:auto!important;align-self:stretch!important}',
+    NI + M('today') + ' > .tq-main > .ccs-panel-card > .ccs-minis{flex:1 1 auto!important}'
+  ]));
+
   // ============ ORDERS ============
   // computers and iPads: search and status tabs share one row
   var OR = [];
