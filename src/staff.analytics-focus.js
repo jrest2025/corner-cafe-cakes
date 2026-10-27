@@ -18,9 +18,9 @@
     sd: ['Occasion by month', 'Booking curve', 'Occasion by lead time', 'Year on year, by event date', 'What the data shows', 'Data gaps']
   };
   // Second lines on the number cards are kept only where they change the decision
-  var KEEP_CAP = /owed|not confirmed|to collect/i;
+  var KEEP_CAP = /owed|not confirmed|to collect|net cake sales/i;
   // Occasions: the numbers kept (the other two move behind "i")
-  var OI_KEEP = /^(Orders|Revenue|Median lead time|Peak month)$/;
+  var OI_KEEP = /^(Orders|Revenue|Order value|Median lead time|Peak month)$/;
   var open = {}, filtOpen = false;
 
   function txt(e) { return e ? e.textContent.replace(/\s+/g, ' ').trim() : ''; }
@@ -112,12 +112,27 @@
     });
   }
 
+  // Labels that must say exactly what the number counts (27 Oct 2026 analytics audit)
+  function truth(page) {
+    var all = doc.getElementById('ccs-main'), older = !!(all && /before the launch/i.test(all.textContent || ''));
+    // Occasions: the value of the orders in view (confirmed + completed by default), not completed sales
+    [].forEach.call(page.querySelectorAll('.oi-kpis .ccs-kpi .ccs-kpi-l'), function (l) { if (txt(l) === 'Revenue') l.textContent = 'Order value'; });
+    [].forEach.call(page.querySelectorAll('.oi-bar .oi-tg'), function (b) { if (txt(b) === 'Revenue') b.textContent = 'Order value'; });
+    // Planning: the business card's "Occasion not recorded" counts past completed orders, so say so
+    [].forEach.call(page.querySelectorAll('.cat-k .cat-k-top span, .bi-k span, .dx-kpi span, .ccs-kpi-l'), function (l) { if (txt(l) === 'Occasion not recorded') l.textContent = 'Past orders with no occasion'; });
+    // Slow sellers only make sense against every cake: hide them while one cake is filtered
+    var oneCake = [].some.call(doc.querySelectorAll('#ccs-main select'), function (sel) { return sel.options.length && /^All cakes$/.test(sel.options[0].text) && sel.selectedIndex > 0 && !sel.closest('.oi-filters'); });
+    [].forEach.call(page.querySelectorAll('.cat-k'), function (k) { if (/^Slow sellers$/.test(txt(k.querySelector('.cat-k-top span')))) k.classList.toggle('ccf-hide', oneCake); });
+    page.setAttribute('data-ccf-scope', older ? 'all' : 'launch');
+    return older;
+  }
+
   function occasions(page) {
     var cap = page.querySelector(':scope > p.cat-cap'); if (cap) cap.classList.add('ccf-hide');
     var f = page.querySelector('.cat-oi > .oi-filters');
     if (f) {
       var sel = [].map.call(f.querySelectorAll('select'), function (s) { return s.selectedIndex > 0 ? s.options[s.selectedIndex].text : null; }).filter(Boolean);
-      var label = 'Filter' + (sel.length ? ': ' + sel.join(', ') : ': all occasions, every year');
+      var label = 'Filter' + (sel.length ? ': ' + sel.join(', ') : ': all occasions, ' + (((doc.getElementById('ccs-main') || page).getAttribute('data-ccf-scope')) === 'all' ? 'all history' : 'since the launch'));
       var b = f.previousElementSibling && f.previousElementSibling.classList.contains('ccf-ftog') ? f.previousElementSibling : null;
       if (!b) { b = doc.createElement('button'); b.type = 'button'; b.className = 'ccs-btn ccs-ghost ccf-ftog'; f.parentNode.insertBefore(b, f); }
       if (b.textContent !== label) b.textContent = label;
@@ -135,7 +150,7 @@
       for (var i = 0; i < 12; i++) { var v = Number(txt(td[i]).replace(/[^\d.]/g, '')); if (v) sums[i] += v; }
     });
     var metric = txt(page.querySelector('.oi-bar .oi-tg[aria-pressed="true"], .oi-bar .oi-tg.is-on')) || 'Orders';
-    var money = /revenue/i.test(metric), top = Math.max.apply(null, sums.concat([1])), best = sums.indexOf(Math.max.apply(null, sums));
+    var money = /revenue|value/i.test(metric), top = Math.max.apply(null, sums.concat([1])), best = sums.indexOf(Math.max.apply(null, sums));
     var sig = metric + '|' + sums.join(','), card = oi.querySelector(':scope > .ccf-month');
     if (card && card.getAttribute('data-sig') === sig) return;
     if (!card) {
@@ -163,6 +178,7 @@
     var s = doc.createElement('style'); s.id = 'ccf-style';
     s.textContent = [
       '#ccs-main .ccf-hide{display:none!important}',
+      ':root:not(#ccf0):not(#ccf1) body:not(#ccf2) #cc-staff #ccs-main .cat-k.ccf-hide{display:none!important}',
       // explanations hidden until "i"
       '#ccs-main .ccf-card:not(.ccf-open) > header > span:not(.cat-all),#ccs-main .ccf-card:not(.ccf-open) > p.cat-foot,#ccs-main .ccf-card:not(.ccf-open) > p.an-none,#ccs-main .ccf-card:not(.ccf-open) > .oi-bar > span{display:none}',
       '#ccs-main .ccf-card:not(.ccf-open) .cci-why,#ccs-main .ccf-card:not(.ccf-open) .cci-compare{display:none}',
@@ -197,6 +213,7 @@
     try {
       css(); tabs();
       [].forEach.call(doc.querySelectorAll('#ccs-main .cat-page[data-cat]'), function (p) { if (p.getClientRects().length) tidyPage(p); });
+      var mainEl = doc.getElementById('ccs-main'); if (mainEl && /^dash/.test(mainEl.getAttribute('data-screen') || '')) truth(mainEl);
       var ins = doc.getElementById('cc-insights'); if (ins) insights(ins);
     } catch (e) { warn('update', e); }
   }
