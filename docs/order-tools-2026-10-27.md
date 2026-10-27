@@ -110,3 +110,18 @@ Customer profile:
 - Delete customer behind More options, red outline (was a solid navy main button).
 
 No data, rules or permissions changed. Rollback: remove ccOrderToolsLoader26, add ccOrderToolsLoader25 (footer, 1.0.25), publish.
+
+## Plain words round (loader 27, commit d8f48e55) — staged
+
+Word list (display only; data and rules unchanged):
+- Status: Check order → New (amber) · Needs a price → Needs price (amber) · Waiting for customer → Waiting (navy) · Waiting for deposit → Deposit due (amber) · Confirmed (navy) · Completed → Done (green) · Declined / Cancelled (grey). Kitchen stage chips drop "Kitchen:" and show a chef icon.
+- Next step (icon + 2-4 words): Check & confirm · Add price · Waiting on customer · Take deposit · Take $X / Take balance · Take $X, hand over · Hand over · Deliver · Mark completed · Waiting on kitchen · All done.
+- Phone list flag: New · Add price · Take deposit · Waiting · To pay · Paid · Due soon · Overdue · Allergy (with icons).
+- Kitchen step buttons: Plan · Prep · Bake · Baked · Decorate · To check · Ready (full sentence kept as the tooltip).
+
+Screens:
+- Orders cards: status always visible; "Confirmed" gives way to the kitchen stage; payment chip hidden when the next step says it; up to three chips plus +n.
+- Today: long greeting sentence, repeated summary cards, backup notice and the follow-ups line removed; week cells show a small count pill and no longer stretch; "Due in …" pill sized to its text.
+- Order details: next-step chip only when there is no main button (no "Take $26" twice); completed orders show "All done" first; cake summary card hidden (the Cake tab shows it); four tabs — Cake, Collection/Delivery, Payment, More (Kitchen, Customer, Feedback, History).
+- Kitchen: empty week days show only a dash.
+- Rollback: remove ccOrderToolsLoader27, add ccOrderToolsLoader26 (footer, 1.0.26), publish.
