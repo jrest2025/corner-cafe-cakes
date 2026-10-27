@@ -221,3 +221,11 @@ Screens:
   Customer mix leave the Overview and sit under the pickups timeline on Cake sales, following that page's period
   buttons, same counting rules, bars open their orders. Test test_pickups 40/40. Checked live in Chrome.
 - Rollback: remove ccOrderToolsLoader40, add ccOrderToolsLoader39 (footer, 1.0.39), publish.
+
+## Cake sales simplified (loader 41, 27 Oct 2026, 10:44 PM)
+
+- Approved by Roneel ("deploy", 10:44 PM). `ccOrderToolsLoader41` (footer, 1.0.41) replaces loader 40: same files,
+  `staff.pickups.js` updated (fingerprint f64925b0…) at commit e687ad25. On Cake sales, What to do, the four number
+  cards and the Gross profit note are hidden; the answer line, Sales by day, pickups timeline, moved cards, Sales by
+  channel, Money and Details stay. Test test_pickups 43/43. Checked live in Chrome.
+- Rollback: remove ccOrderToolsLoader41, add ccOrderToolsLoader40 (footer, 1.0.40), publish.
