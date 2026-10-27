@@ -49,7 +49,9 @@
       (by[o.pd] = by[o.pd] || []).push(o);
       if (o.pd < min) min = o.pd; if (o.pd > max) max = o.pd;
     });
-    Object.keys(by).forEach(function (d) { var c = by[d].reduce(function (s, o) { return s + cakesOf(o); }, 0); if (c > top) top = c; });
+    // bar height: scaled to a normal busy day (95th percentile), so one very large day does not flatten the rest
+    var tot = Object.keys(by).map(function (d) { return by[d].reduce(function (s, o) { return s + cakesOf(o); }, 0); }).sort(function (a, b) { return a - b; });
+    top = tot.length ? Math.max(4, tot[Math.floor((tot.length - 1) * 0.95)]) : 1;
     if (diff(min, today) > 730) min = add(today, -730);
     min = add(min, -wd(min));
     return { x: x, today: today, by: by, off: off, min: min, max: add(max, 6 - wd(max)), top: Math.max(top, 1), name: function (c) { return (x.occName && x.occName(c)) || c; } };
@@ -82,7 +84,7 @@
       d = add(D.min, i);
       var os = D.by[d] || [], c = os.reduce(function (s, o) { return s + cakesOf(o); }, 0), past = d < D.today, ev = eventsOn(d);
       var h = c ? Math.max(6, Math.round(Math.min(c, D.top) / D.top * 100)) : 0, first = d.slice(8) === '01' || i === 0;
-      cols.push('<button type="button" class="pk-col' + (d === D.today ? ' is-today' : '') + (past ? ' is-past' : ' is-next') + (c ? '' : ' is-zero') + (ev.some(function (e) { return e.k === 'h'; }) ? ' is-hol' : '') +
+      cols.push('<button type="button" class="pk-col' + (d === D.today ? ' is-today' : '') + (past ? ' is-past' : ' is-next') + (c ? '' : ' is-zero') + (c > D.top ? ' is-over' : '') + (ev.some(function (e) { return e.k === 'h'; }) ? ' is-hol' : '') +
         '" data-pk="' + d + '" aria-label="' + esc(longDay(d) + ': ' + c + pl(c, ' cake', ' cakes') + (ev.length ? ', ' + ev.map(function (e) { return e.name; }).join(', ') : '')) + '">' +
         (first ? '<span class="pk-mo">' + MON[+d.slice(5, 7) - 1] + ' ' + d.slice(0, 4) + '</span>' : '') +
         '<span class="pk-n">' + (c || '') + '</span><span class="pk-track"><i style="height:' + h + '%"></i></span>' +
@@ -103,7 +105,7 @@
     L.sort(function (a, b) { return a - b; });
     return { n: L.length, avg: L.length ? Math.round(L.reduce(function (s, v) { return s + v; }, 0) / L.length * 10) / 10 : null, min: L[0], max: L[L.length - 1], vals: L };
   }
-  function days(v) { return v == null ? '—' : (Math.round(v * 10) / 10) + (v === 1 ? ' day' : ' days'); }
+  function days(v) { if (v == null) return '—'; if (v === 0) return 'Same day'; if (v < 1) return 'Under 1 day'; v = Math.round(v); return v + (v === 1 ? ' day' : ' days'); }
   function insight(D, d, os, ev) {
     var cakes = os.reduce(function (s, o) { return s + cakesOf(o); }, 0), oc = os.filter(occ), rg = os.filter(function (o) { return !occ(o); });
     var so = stats(oc), sr = stats(rg), sa = stats(os);
@@ -243,6 +245,7 @@
       P + ' .pk-track{width:26px;height:132px;display:flex;align-items:flex-end;border-radius:6px;background:#F2F4F7}',
       P + ' .pk-track i{display:block;width:100%;border-radius:6px;background:#4fb0aa}',
       P + ' .pk-col.is-next .pk-track i{background:#fff;box-shadow:inset 0 0 0 2px #4fb0aa}',
+      P + ' .pk-col.is-over .pk-track i{border-top:4px solid #0f766e}' + P + ' .pk-col.is-over .pk-n{color:#0f766e}',
       P + ' .pk-col.is-today .pk-track{box-shadow:0 0 0 2px #1D2939}' + P + ' .pk-col.is-today .pk-d{background:#1D2939;color:#fff;border-radius:999px;padding:0 6px}',
       P + ' .pk-d{font-size:14px;font-weight:600;line-height:20px}' + P + ' .pk-w{font-size:12px;color:#667085}' + P + ' .pk-col:nth-child(7n) {}',
       P + ' .pk-ev{width:44px;height:22px;position:relative;overflow:visible}',
