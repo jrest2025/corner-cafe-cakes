@@ -1,15 +1,19 @@
 import subprocess, json, re, os
-os.chdir('/home/claude/cakes')
+# Work from the repository root (the folder above build/), wherever the repository is checked out.
+# Sources are read from src/; outputs are written to dist/.
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+os.chdir(ROOT)
+SRC = 'src/'
 def run(c): subprocess.run(c, shell=True, check=True)
-run('npx -y terser@5.31.0 guest.js -c -m -o dist/guest.min.js')
+run('npx -y terser@5.31.0 ' + SRC + 'guest.js -c -m -o dist/guest.min.js')
 # The kitchen slip PDF layout is shared with the email sender: one source file, so a downloaded slip matches the emailed one
-slip = open('/home/claude/corner-cafe-cakes/supabase/functions/send-emails/slip_pdf.js').read().replace('export const ', 'const ').replace('export async function ', 'async function ').replace('export function ', 'function ')
+slip = open('supabase/functions/send-emails/slip_pdf.js').read().replace('export const ', 'const ').replace('export async function ', 'async function ').replace('export function ', 'function ')
 assert 'export ' not in slip and 'import ' not in slip
 slipjs = 'var SlipPdf = (function () {\n' + slip + '\nreturn { buildSlipPdf: buildSlipPdf, slipFileName: slipFileName };\n})();\n'
-open('dist/staff.full.js','w').write(open('staff.js').read().replace('/*@DASH@*/', slipjs + open('staff.dash.js').read() + open('staff.bi.js').read() + open('staff.an.js').read() + open('staff.oi.js').read() + open('staff.up.js').read() + open('staff.reg.js').read() + open('staff.crm.js').read()))
+open('dist/staff.full.js','w').write(open(SRC + 'staff.js').read().replace('/*@DASH@*/', slipjs + open(SRC + 'staff.dash.js').read() + open(SRC + 'staff.bi.js').read() + open(SRC + 'staff.an.js').read() + open(SRC + 'staff.oi.js').read() + open(SRC + 'staff.up.js').read() + open(SRC + 'staff.reg.js').read() + open(SRC + 'staff.crm.js').read()))
 run('npx -y terser@5.31.0 dist/staff.full.js -c -m -o dist/staff.min.js')
-run('npx -y csso-cli@4.0.2 guest.css -o dist/guest.min.css')
-run('npx -y csso-cli@4.0.2 staff.css -o dist/staff.min.css')
+run('npx -y csso-cli@4.0.2 ' + SRC + 'guest.css -o dist/guest.min.css')
+run('npx -y csso-cli@4.0.2 ' + SRC + 'staff.css -o dist/staff.min.css')
 def fnv(t):
     h=0x811c9dc5
     for ch in t.encode('utf-16-le').decode('utf-16-le'):
@@ -32,10 +36,10 @@ open('dist/guest.footer.html','w').write(SB+'<script type="text/plain" id="cco-c
 # Staff app: one hosted file (CSS plus code), loaded from GitHub through jsDelivr, pinned to a commit and checked by fingerprint (SRI).
 import hashlib, base64, glob
 css = open('dist/staff.min.css').read().strip()
-run('npx -y csso-cli@4.0.2 staff.cal.css -o dist/staff.cal.min.css')
+run('npx -y csso-cli@4.0.2 ' + SRC + 'staff.cal.css -o dist/staff.cal.min.css')
 calcss = open('dist/staff.cal.min.css').read().strip()
 # Jack's Restaurants Hospitality UI (17 Oct 2026): loaded last, over every earlier rule
-run('npx -y csso-cli@4.0.2 staff.hospitality.css -o dist/staff.hospitality.min.css')
+run('npx -y csso-cli@4.0.2 ' + SRC + 'staff.hospitality.css -o dist/staff.hospitality.min.css')
 calcss += open('dist/staff.hospitality.min.css').read().strip()
 app = "(function(){var s=document.createElement('style');s.id='ccs-style';s.textContent=" + json.dumps(re.sub(r'font-size:(\d+(?:\.\d+)?)px', r'font-size:calc(\1*var(--u,1px))', css + calcss)) + ";document.head.appendChild(s)})();\n" + s + "\n"
 raw = app.encode('utf-8')

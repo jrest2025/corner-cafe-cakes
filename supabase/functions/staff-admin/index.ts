@@ -4,7 +4,7 @@
 // The older "create" and "reset" requests (temporary password typed by the admin) still work.
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 
-const ORIGINS = ["https://www.cornercafefiji.com", "https://cornercafefiji.com"];
+const ORIGINS = ["https://www.cornercafefiji.com", "https://cornercafefiji.com", "https://central.cornercafefiji.com"];
 const ROLES = ["admin", "manager", "front_of_house", "kitchen", "finance", "marketing"];
 const RESEND_KEY = Deno.env.get("RESEND_API_KEY") ?? "";
 

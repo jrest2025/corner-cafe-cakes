@@ -1,7 +1,8 @@
 // Corner Café Service Hub login gate (Vercel Routing Middleware, central.cornercafefiji.com).
 // Every request must carry a valid "cc_gate" cookie, set after the team password is entered on the gate page.
 // Without it, the branded gate page is returned instead, so the Service Hub page is never served to strangers.
-// Staff then sign in to the Service Hub itself with their own account and two-step code, exactly as before.
+// Staff then sign in to the Service Hub itself with their own email and password (Supabase), exactly as before.
+// There is no two-step (second factor) sign-in yet; it is planned. Idle sessions sign out after 12 hours.
 //
 // Vercel environment variables (set in Vercel, never in this repository):
 //   CC_GATE_PASSWORD  the team password staff type on the gate page
