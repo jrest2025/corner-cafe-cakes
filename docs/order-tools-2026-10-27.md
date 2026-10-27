@@ -91,7 +91,7 @@ Roneel: "the same philosophy applied across the board"; "proceed and deploy" (ph
 - "Collect balance first" tag is amber (money owed) instead of blue.
 - Rollback: remove ccOrderToolsLoader25, add ccOrderToolsLoader24 (footer, 1.0.24), publish.
 
-## Order details and customer profile flow (loader 26, commit 9e91dd28) — staged
+## Order details and customer profile flow (loader 26, commit 9e91dd28) — live 27 Oct 2026, 1:22 PM
 
 Order details (every state):
 - Top colour strip follows the colour rule and matches the warning: red urgent, amber to do, green completed, grey cancelled (was amber on completed orders, red on amber warnings).
