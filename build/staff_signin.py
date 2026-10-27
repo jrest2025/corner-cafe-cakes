@@ -144,6 +144,8 @@ js = """/* Corner Cafe Service Hub: sign-in splash in the Marketing Central form
 })();
 """ % (json.dumps(css.strip(), ensure_ascii=False), json.dumps('<div class="ccsg-bg" aria-hidden="true"><div class="ccsg-rays"></div><div class="ccsg-lamps"><i></i><i></i><i></i></div><div class="ccsg-glow"></div><div class="ccsg-motes">' + MOTES + '</div>' + STEAM + '</div>'),
        json.dumps(EYE), json.dumps(EYE_OFF), json.dumps(CAP))
-js += '\n' + (ROOT / 'build/twostep.js').read_text()   # Release E: two-step sign-in for Admins
+import os
+if os.environ.get('TWOSTEP') == '1':   # Release E (parked 28 Oct 2026): build with TWOSTEP=1 to include two-step sign-in
+    js += '\n' + (ROOT / 'build/twostep.js').read_text()
 (ROOT / 'src/staff.signin.js').write_text(js)
 print(len(js))
