@@ -1192,6 +1192,14 @@
     'html:not(#ccd0) body:not(#ccd1) #cc-staff :is(#ccs-main,#ccs-sheet) .ccs-link:not(.ccs-red){color:' + NAVY + '!important}',
     'html:not(#ccd0) body:not(#ccd1) #cc-staff :is(#ccs-main,#ccs-sheet) .ccs-link{text-decoration:underline!important;text-decoration-thickness:1px!important;text-underline-offset:3px!important;text-decoration-color:currentColor!important}',
     'html:not(#ccd0) body:not(#ccd1) #cc-staff :is(#ccs-main,#ccs-sheet) .ccs-link:hover{text-decoration-thickness:2px!important}',
+    // Today (item 9): no boxes inside boxes. Rows and day cells sit on a soft fill inside their card; coloured left
+    // edges (status) and the selected day keep their colour.
+    'html:not(#ccd0):not(#ccd1):not(#ccd2):not(#ccd3) body:not(#ccd4) #cc-staff #ccs-main[data-screen="today"] .tq-warn .cc-act-row{border-color:transparent!important;box-shadow:none!important;background:#F9FAFB!important}',
+    'html:not(#ccd0):not(#ccd1):not(#ccd2):not(#ccd3) body:not(#ccd4) #cc-staff #ccs-main[data-screen="today"] .tq-warn .cc-act-row:hover{background:#F2F4F7!important;border-color:transparent!important}',
+    'html:not(#ccd0) body:not(#ccd1) #cc-staff #ccs-main[data-screen="today"] .ccs-panel-card .ccs-mini{border-top-color:transparent!important;border-right-color:transparent!important;border-bottom-color:transparent!important;box-shadow:none!important;background:#F9FAFB!important}',
+    'html:not(#ccd0) body:not(#ccd1) #cc-staff #ccs-main[data-screen="today"] .ccs-panel-card .ccs-mini:hover{background:#F2F4F7!important}',
+    'html:not(#ccd0) body:not(#ccd1) #cc-staff #ccs-main[data-screen="today"] .tq-week .ccs-daycell:not(.is-today){border-color:transparent!important;background:#F9FAFB!important;box-shadow:none!important}',
+    'html:not(#ccd0) body:not(#ccd1) #cc-staff #ccs-main[data-screen="today"] .tq-week .ccs-daycell:not(.is-today):hover{background:#F2F4F7!important}',
     // Orders filter tabs: tabs on wide screens, one Show dropdown when narrow
     '#cc-staff .ccp-narrow{display:none!important}',
     '@media (max-width:899px){#cc-staff #ccs-main .ccp-narrow{display:inline-flex!important;margin:0}#cc-staff #ccs-main .ccp-narrowsrc{display:none!important}}'
