@@ -26,7 +26,7 @@
     { k: 'calendar', t: 'Calendar', ic: 'cal', s: ['Occasions and special dates', 'Events and public holidays'] },
     { k: 'alerts', t: 'Alerts and communications', ic: 'bell', s: ['Order alerts', 'Kitchen printing', 'Communications'] },
     { k: 'reports', t: 'Reports', ic: 'bars', s: ['Lead-time groups'] },
-    { k: 'team', t: 'People and access', ic: 'users', s: ['Team and access', 'What each level can do'] },
+    { k: 'team', t: 'People and access', ic: 'users', s: ['Team and access', 'What each level can do', 'Two-step sign-in'] },
     { k: 'data', t: 'Data and safety', ic: 'shield', s: ['Settings history', 'Backup and business continuity', 'Deleted orders', 'Remove Settings entries'] }
   ];
   var KEYWORDS = {
@@ -34,12 +34,12 @@
     'Closed days': 'closed holiday shut day off', 'Cakes and prices': 'cake price size flavour menu product', 'Seasonal items': 'festive christmas treats seasonal limited',
     'Delivery areas': 'delivery fee area zone', 'Occasions and special dates': 'occasion birthday christmas mothers day special', 'Events and public holidays': 'event public holiday calendar',
     'Order alerts': 'email alert notify new order kitchen', 'Kitchen printing': 'printer print slip kitchen paper', 'Communications': 'customer email message template',
-    'Team and access': 'staff user people level role permission access login', 'Backup and business continuity': 'backup google sheet restore continuity',
+    'Team and access': 'staff user people level role permission access login', 'Two-step sign-in': 'two step code authenticator phone security mfa 2fa', 'Backup and business continuity': 'backup google sheet restore continuity',
     'Deleted orders': 'deleted restore order', 'Remove Settings entries': 'remove delete entry'
   };
   var SEC_IC = { 'Online orders': 'globe', 'Notice and collection hours': 'clock', 'Closed days': 'calx', 'Cakes and prices': 'cake', 'Seasonal items': 'gift',
     'Delivery areas': 'truck', 'Occasions and special dates': 'star', 'Events and public holidays': 'flag', 'Order alerts': 'bell', 'Kitchen printing': 'printer',
-    'Communications': 'mail', 'Team and access': 'users', 'What each level can do': 'shield', 'Backup and business continuity': 'db', 'Deleted orders': 'trash', 'Remove Settings entries': 'trash' };
+    'Communications': 'mail', 'Team and access': 'users', 'What each level can do': 'shield', 'Two-step sign-in': 'shield', 'Backup and business continuity': 'db', 'Deleted orders': 'trash', 'Remove Settings entries': 'trash' };
   // the short name used for a setting's key fact on the overview cards
   var FACT = { 'Online orders': 'Website orders', 'Notice and collection hours': 'Notice', 'Cakes and prices': 'On sale', 'Seasonal items': 'Seasonal', 'Delivery areas': 'Delivery',
     'Order alerts': 'Alerts go to', 'Team and access': 'Staff', 'Backup and business continuity': 'Backup', 'Deleted orders': 'Deleted orders' };
@@ -73,7 +73,7 @@
       var st = info.status || ''; if (/^administrators?$/i.test(st) || (st.split(' ').length > 4 && !/\d/.test(st))) st = '';
       var bic = b.querySelector('svg'); return { k: k, b: b, d: info.d, status: st, flag: extra, ic: SEC_IC[k] ? svg(SEC_IC[k]) : bic ? bic.outerHTML : svg(DEF_IC[k] || 'layers') };
     }).filter(function (s) { return s.k !== 'Remove Settings entries'; })   // retired 28 Oct 2026: off sale or archive instead
-      .concat(commsRow(set, btns)).concat(virtRows());
+      .concat(commsRow(set, btns)).concat(virtRows()).concat(twoStepRow());
   }
   // Email templates (22 Oct) sit in the old Settings list, which this home hides: shown here as Communications,
   // opening the email templates window directly (Roneel, 27 Oct 2026 11:52 PM: "its not there")
@@ -81,6 +81,11 @@
     if (!set.querySelector(':scope > #et-comm') || !win.CCEmailTemplates || typeof win.CCEmailTemplates.open !== 'function') return [];
     if (btns.some(function (b) { return b.getAttribute('data-setk') === 'Communications'; })) return [];
     return [{ k: 'Communications', b: null, d: null, status: 'Email templates', flag: '', ic: svg('mail'), et: true }];
+  }
+  // Two-step sign-in (Release E, 28 Oct 2026): Admins only; opens the phone list from the sign-in add-on
+  function twoStepRow() {
+    var st = win.CCTwoStep && typeof win.CCTwoStep.state === 'function' ? win.CCTwoStep.state() : null;
+    return st && st.required ? [{ k: 'Two-step sign-in', b: null, d: null, status: st.enrolled ? 'On' : 'Off', flag: '', ic: svg('shield'), ts: true }] : [];
   }
   // ---------- Settings history (Release C, 28 Oct 2026): who changed which setting, when, before and after, put back ----------
   var H = { allowed: null, entries: [], more: false, area: '', busy: false, err: null, arm: null, msg: null, areas: [] };
@@ -343,6 +348,7 @@
     var t = e.target; if (!t || !t.closest) return;
     var o = t.closest('[data-cca-open]');
     if (o && o.getAttribute('data-cca-open') === 'Communications' && doc.querySelector('#cc-staff .ccs-set > #et-comm') && win.CCEmailTemplates) { e.preventDefault(); try { win.CCEmailTemplates.open(); } catch (er) {} return; }
+    if (o && o.getAttribute('data-cca-open') === 'Two-step sign-in' && win.CCTwoStep) { e.preventDefault(); try { win.CCTwoStep.open(); } catch (er) {} return; }
     var rs = t.closest('[data-cca-restore]'); if (rs) { e.preventDefault(); histRestore(+rs.getAttribute('data-cca-restore')); return; }
     if (t.closest('[data-cca-hmore]')) { e.preventDefault(); histLoad(true); return; }
     if (o && (o.getAttribute('data-cca-open') === 'Payment methods' || o.getAttribute('data-cca-open') === 'Lead-time groups')) { e.preventDefault(); setView(o.getAttribute('data-cca-open')); V2.msg = null; V2.err = null; V2.pay = null; V2.bands = null; schedule(); var mv = doc.getElementById('ccs-main'); if (mv) mv.scrollTop = 0; return; }
