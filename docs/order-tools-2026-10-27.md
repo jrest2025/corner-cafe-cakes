@@ -302,3 +302,6 @@ Screens:
 - `ccordertoolsloader51` (footer, 1.0.51) replaces loader 50: commit 852b6ca7, new fingerprint for staff.flow.js only.
 - Live check: Upcoming list — heading 92px tall, search and tabs below it.
 - Rollback: remove ccordertoolsloader51, add ccordertoolsloader50 (1.0.50, footer), publish.
+
+## Release E — two-step sign-in for Admins: PARKED (28 Oct 2026, 2:19 AM)
+- Roneel: "lets not do this now". Built and tested as a preview only (commit 931c1573): supabase/sql/release_e_20261028.sql (+ rollback), build/twostep.js appended to src/staff.signin.js, Settings row in src/staff.admin.js, test/order-tools/test_release_e.cjs (14 pass). Nothing applied to the database or the live page. Loader 51 still serves the previous staff.signin.js and staff.admin.js.
