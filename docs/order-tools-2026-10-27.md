@@ -181,3 +181,15 @@ Screens:
   the service by Fiji time without naming it. The app's own sign-in form, sign-in and Practice mode are unchanged.
 - Site published to cornercafefiji.com and www.cornercafefiji.com.
 - Rollback: remove ccOrderToolsLoader36, add ccOrderToolsLoader34 (footer, 1.0.34), publish.
+
+## Analytics that answer (loader 37, 27 Oct 2026, 9:44 PM)
+
+- Approved by Roneel ("deploy", 9:43 PM) after the preview.
+- `ccOrderToolsLoader37` (footer, 1.0.37) replaces loader 36: the same 13 files (fingerprints unchanged) plus
+  `staff.answers.js` (fingerprint 765802af…) at commit f57a24c6. Test `test/order-tools/test_answers.cjs` 86/86.
+- Each tab's question becomes a plain answer; What to do above the numbers, no "No change needed" cards (Overview
+  insights too); number cards compare with the same number of days before, from sheet records until the app has the
+  history, and show no comparison when those records are incomplete (walk-in sheet ends 14 Sep 2026) or more than 20%
+  unpriced; Business intelligence data checks in Details; Marketing's empty boxes become one line. Daily cake demand
+  checked identical.
+- Rollback: remove ccOrderToolsLoader37, add ccOrderToolsLoader36 (footer, 1.0.36), publish.
