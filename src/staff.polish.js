@@ -1103,3 +1103,87 @@
   win.__ccPolish = { run: run, dropdowns: function () { return DD.length; } };
   if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', start); else start();
 })(window, document);
+
+/* Design foundation (28 Oct 2026, Roneel: enterprise design brief, items 1-3; his text and button sizes stay).
+ * One pass over the app's own style sheets (never Webflow's), changing presentation values only:
+ *  - font weights: 650-900 and "bold" become 600 (one heavy weight across the app; headings stay semi-bold)
+ *  - light neutral grey borders (15+ near-identical greys) become one border colour, #E4E7EC
+ *  - corner sizes: 7 -> 8, 9 and 11 -> 10, 13 to 18 and 22 -> 12 (pills, circles and small chart radii untouched)
+ *  - resting card shadows become one quiet shadow; menus, sheets, pop-ups, tooltips and focus rings keep theirs
+ * Plus: page titles all carry their sidebar icon, no uppercase eyebrow over the title, and selections use the soft
+ * navy of the Orders tabs (Handover cards, Analytics categories) instead of thick black or solid teal.
+ * Sheets added later (add-ons load after the app) are processed as they appear. Undo: remove this block. */
+(function () {
+  'use strict';
+  var win = window, doc = document;
+  if (win.__ccDesign20261028) return;
+  win.__ccDesign20261028 = true;
+  var BORDER = '#E4E7EC', SHADOW = '0 1px 2px rgba(16, 24, 40, 0.05)';
+  var RAD = { '7px': '8px', '9px': '10px', '11px': '10px', '13px': '12px', '14px': '12px', '15px': '12px', '16px': '12px', '18px': '12px', '22px': '12px' };
+  var KEEP_SHADOW = /sheet|modal|dialog|menu|pop|dd-|ccdd|toast|drop|tip|tooltip|focus|hover|active|is-open|pressed|selected|is-on|is-cur|pin|sticky|bar\b|float|overlay|ring|cce-m|cc2s|drag/i;
+  function rgb(v) {
+    if (!v) return null; v = v.trim();
+    var m = v.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+    if (m) { var h = m[1].length === 3 ? m[1].replace(/./g, '$&$&') : m[1]; return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)]; }
+    m = v.match(/^rgba?\(\s*(\d+)[ ,]+(\d+)[ ,]+(\d+)\s*(?:[,/]\s*([\d.]+%?))?\)$/i);
+    if (m && (m[4] == null || parseFloat(m[4]) >= 0.99)) return [+m[1], +m[2], +m[3]];
+    return null;
+  }
+  function neutralLight(v) { var c = rgb(v); if (!c) return false; var mx = Math.max.apply(null, c), mn = Math.min.apply(null, c); return mn >= 205 && mx <= 242 && mx - mn <= 22 && !(c[0] === 228 && c[1] === 231 && c[2] === 236); }
+  var SIDES = ['top', 'right', 'bottom', 'left'];
+  function fix(rule) {
+    var st = rule.style, sel = rule.selectorText || '';
+    var w = st.getPropertyValue('font-weight');
+    if (w && (/^(bold|bolder)$/i.test(w) || (+w >= 650 && +w <= 900))) st.setProperty('font-weight', '600', st.getPropertyPriority('font-weight'));
+    SIDES.forEach(function (s) {
+      var p = 'border-' + s + '-color', v = st.getPropertyValue(p);
+      if (v && neutralLight(v)) st.setProperty(p, BORDER, st.getPropertyPriority(p));
+    });
+    ['border-top-left-radius', 'border-top-right-radius', 'border-bottom-right-radius', 'border-bottom-left-radius'].forEach(function (p) {
+      var v = st.getPropertyValue(p); if (v && RAD[v.trim()]) st.setProperty(p, RAD[v.trim()], st.getPropertyPriority(p));
+    });
+    // colour and radius tokens: only line/border-type variables, so backgrounds are never touched
+    for (var i = 0; i < st.length; i++) {
+      var n = st[i]; if (n.indexOf('--') !== 0) continue;
+      var val = st.getPropertyValue(n).trim();
+      if (/line|divider|border|stroke|edge|rule/i.test(n) && neutralLight(val)) st.setProperty(n, BORDER, st.getPropertyPriority(n));
+      else if (/radius|rad\b|-r$/i.test(n) && RAD[val]) st.setProperty(n, RAD[val], st.getPropertyPriority(n));
+    }
+    var sh = st.getPropertyValue('box-shadow');
+    if (sh && sh !== 'none' && !/inset/.test(sh) && !/\b0(px)? 0(px)? 0(px)? [1-9]/.test(sh) && !KEEP_SHADOW.test(sel)) st.setProperty('box-shadow', SHADOW, st.getPropertyPriority('box-shadow'));
+  }
+  function walk(rules) { for (var i = 0; i < rules.length; i++) { var r = rules[i]; if (r.cssRules && !r.style) walk(r.cssRules); else if (r.style && r.selectorText) { try { fix(r); } catch (e) {} } } }
+  var done = typeof WeakMap === 'function' ? new WeakMap() : null;
+  function pass() {
+    [].forEach.call(doc.querySelectorAll('style'), function (el) {
+      if (el.id === 'ccd-style' || !el.sheet) return;
+      var sig = el.textContent.length;
+      if (done && done.get(el) === sig) return;
+      try { walk(el.sheet.cssRules); } catch (e) {}
+      if (done) done.set(el, sig);
+    });
+  }
+  var NAVY = 'rgb(36, 95, 153)', SOFT = 'rgb(234, 243, 252)';
+  var CSS = [
+    '#cc-staff b,#cc-staff strong,#cc-staff h1,#cc-staff h2,#cc-staff h3,#cc-staff h4,#cc-staff h5,#cc-staff h6,#cc-staff th{font-weight:600}',
+    // page titles: no uppercase line above the title
+    '#cc-staff #ccs-main > .ccs-head .ccs-eyebrow{display:none!important}',
+    // selections: the soft navy of the Orders tabs
+    '#cc-staff #ccs-main .ap-island.is-open{border-color:' + NAVY + '!important;background:' + SOFT + '!important;box-shadow:0 0 0 1px ' + NAVY + '!important}',
+    '#cc-staff .cc-nav5 > button[aria-pressed="true"]{background:' + SOFT + '!important;color:' + NAVY + '!important;border-color:' + NAVY + '!important;box-shadow:none!important}',
+    '#cc-staff .cc-nav5 > button[aria-pressed="true"] *{color:inherit!important}'
+  ].join('');
+  function styles() { if (doc.getElementById('ccd-style')) return; var s = doc.createElement('style'); s.id = 'ccd-style'; s.textContent = CSS; doc.head.appendChild(s); }
+  function titleIcon() {
+    var main = doc.getElementById('ccs-main'); if (!main) return;
+    var h1 = main.querySelector(':scope > .ccs-head h1.ccs-title, :scope > .ccs-head .ccs-title'); if (!h1 || h1.querySelector('.ccp-tic')) return;
+    var scr = main.getAttribute('data-screen'), src = scr && doc.querySelector('#cc-staff .ccs-nav [data-tab="' + scr + '"] svg');
+    if (!src) return;
+    var c = src.cloneNode(true); c.setAttribute('class', 'ccp-tic'); c.setAttribute('aria-hidden', 'true'); h1.insertBefore(c, h1.firstChild); h1.classList.add('ccp-hast');
+  }
+  var q = false;
+  function tick() { if (q) return; q = true; setTimeout(function () { q = false; try { styles(); pass(); titleIcon(); } catch (e) { if (win.console) console.warn('[Design]', e); } }, 30); }
+  function start() { new MutationObserver(tick).observe(doc.documentElement, { childList: true, subtree: true, characterData: true }); tick(); }
+  if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', start); else start();
+  win.CCDesign = { pass: pass };
+})();
