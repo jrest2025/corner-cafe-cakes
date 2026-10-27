@@ -19,7 +19,8 @@ const goSettings = p => p.evaluate(() => { const b = [...document.querySelectorA
         status: Object.fromEntries([...m.querySelectorAll('.cca-row')].map(r => [r.getAttribute('data-cca-open'), (r.querySelector('.cca-st') || {}).textContent || ''])),
         needs: [...m.querySelectorAll('.cca-needs .cca-chip')].map(x => x.textContent), hx: document.scrollingElement.scrollWidth <= innerWidth, mainX: m.scrollWidth <= m.clientWidth + 1 }; });
     check(t + ' opens on the overview (grouped cards), flat list hidden', ov.home && !ov.flat && ov.cards.length >= 3, ov);
-    check(t + ' every section this user can see is on the overview, nothing invented', ov.rows.length === ov.nav.length && ov.nav.every(k => ov.rows.includes(k)), { rows: ov.rows, nav: ov.nav });
+    { const want = ov.nav.filter(k => k !== 'Remove Settings entries'); const extra = ov.rows.filter(k => !want.includes(k));   // Remove entries retired 28 Oct; Communications = email templates window
+    check(t + ' every section this user can see is on the overview, nothing invented', want.every(k => ov.rows.includes(k)) && extra.every(k => k === 'Communications') && !ov.rows.includes('Remove Settings entries'), { rows: ov.rows, nav: ov.nav }); }
     check(t + ' no sideways scroll', ov.hx && ov.mainX, ov);
     if (role === 'admin') {
       // statuses agree with each section's own header
@@ -29,20 +30,20 @@ const goSettings = p => p.evaluate(() => { const b = [...document.querySelectorA
       check(t + ' needs attention lists the amber/red ones (backup not set up, alerts in test mode)', ov.needs.some(x => /Backup/.test(x)) && ov.needs.some(x => /Test mode/.test(x)), ov.needs);
     }
     // search
-    await p.fill('#ccs-main [data-cca-q]', 'printer'); await p.waitForTimeout(400);
+    await p.fill('#ccs-main [data-cca-q] >> visible=true', 'printer'); await p.waitForTimeout(400);
     const sr = await p.evaluate(() => [...document.querySelectorAll('#ccs-main .cca-row')].filter(x => x.getClientRects().length).map(x => x.getAttribute('data-cca-open')));
     check(t + ' search finds a setting by what it does ("printer")', role === 'admin' ? sr.length === 1 && sr[0] === 'Kitchen printing' : sr.length <= 1, sr);
-    await p.fill('#ccs-main [data-cca-q]', 'zzzz'); await p.waitForTimeout(300);
+    await p.fill('#ccs-main [data-cca-q] >> visible=true', 'zzzz'); await p.waitForTimeout(300);
     check(t + ' search with no match says so', await p.evaluate(() => /No setting matches/.test((document.querySelector('#ccs-main .cca-empty') || {}).textContent || '')));
-    await p.fill('#ccs-main [data-cca-q]', ''); await p.waitForTimeout(300);
+    await p.fill('#ccs-main [data-cca-q] >> visible=true', ''); await p.waitForTimeout(300);
     // open every section: the app's own section shows, with path back and its group as tabs
-    const keys = ov.rows;
+    const keys = ov.rows.filter(k => k !== 'Communications'), wide = await p.evaluate(() => innerWidth >= 1100);
     for (const k of keys) {
       await p.evaluate(k => [...document.querySelectorAll('#ccs-main .cca-home .cca-row')].find(r => r.getAttribute('data-cca-open') === k).click(), k); await p.waitForTimeout(700);
       const s = await p.evaluate(() => { const m = document.getElementById('ccs-main'), vis = e => !!(e && e.getClientRects().length), cur = m.querySelector('.ccs-set > details.is-cur');
-        return { sec: m.classList.contains('cca-sec-on'), home: vis(m.querySelector('.cca-home')), cur: cur && cur.querySelector('summary').firstChild.nodeValue.trim(), curVis: vis(cur), body: vis(cur && cur.querySelector('.ccs-set-body')), crumb: (m.querySelector('.cca-crumb b') || {}).textContent, back: vis(m.querySelector('[data-cca-home]')), sel: (m.querySelector('.cca-tab[aria-selected="true"]') || {}).textContent || null }; });
-      check(t + ' ' + k + ': opens the app\'s own section with a path back', s.sec && !s.home && s.cur === k && s.curVis && s.body && s.back && (s.crumb === k || (k === 'Remove Settings entries' && s.crumb === 'Remove entries')), s);
-      await p.evaluate(() => document.querySelector('#ccs-main [data-cca-home]').click()); await p.waitForTimeout(400);
+        return { sec: m.classList.contains('cca-sec-on'), home: vis(m.querySelector('.cca-home')), cur: cur && cur.querySelector('summary').firstChild.nodeValue.trim(), curVis: vis(cur), body: vis(cur && cur.querySelector('.ccs-set-body')), crumb: (m.querySelector('.cca-crumb b') || {}).textContent, menuCur: (m.querySelector('.cca-menu .cca-mi[aria-current="page"] span') || {}).textContent, back: vis(m.querySelector('.cca-back')), sel: (m.querySelector('.cca-tab[aria-selected="true"]') || {}).textContent || null }; });
+      check(t + ' ' + k + ': opens the app\'s own section with a path back', s.sec && !s.home && s.cur === k && s.curVis && s.body && (wide ? s.menuCur === k : s.back && s.crumb === k), s);
+      await p.evaluate(() => [...document.querySelectorAll('#ccs-main [data-cca-home]')].filter(x => x.getClientRects().length)[0].click()); await p.waitForTimeout(400);
     }
     if (role === 'admin') {
       // a real change still saves through the app (closed day), and the overview updates

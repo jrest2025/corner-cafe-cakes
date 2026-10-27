@@ -69,7 +69,8 @@
       if (body && /test mode is on/i.test(body.textContent)) extra = 'Test mode';
       var st = info.status || ''; if (/^administrators?$/i.test(st) || (st.split(' ').length > 4 && !/\d/.test(st))) st = '';
       var bic = b.querySelector('svg'); return { k: k, b: b, d: info.d, status: st, flag: extra, ic: SEC_IC[k] ? svg(SEC_IC[k]) : bic ? bic.outerHTML : svg(DEF_IC[k] || 'layers') };
-    }).concat(commsRow(set, btns));
+    }).filter(function (s) { return s.k !== 'Remove Settings entries'; })   // retired 28 Oct 2026: off sale or archive instead
+      .concat(commsRow(set, btns));
   }
   // Email templates (22 Oct) sit in the old Settings list, which this home hides: shown here as Communications,
   // opening the email templates window directly (Roneel, 27 Oct 2026 11:52 PM: "its not there")
