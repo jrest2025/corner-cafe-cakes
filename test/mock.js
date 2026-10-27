@@ -409,7 +409,7 @@
       if (fn === 'admin_deleted_orders') return Promise.resolve({ data: { ok: true, orders: (window.__deleted || []).slice() } });
       if (fn === 'admin_restore_order') { calls.push(['rpc', fn, args]); var dx = (window.__deleted || []).filter(function (x) { return x.id === args.p_order; })[0]; window.__deleted = window.__deleted.filter(function (x) { return x !== dx; }); orders.push(dx.o); return Promise.resolve({ data: { ok: true, reference: dx.reference } }); }
       calls.push(['rpc', fn, args]);
-      if (fn === 'get_order_setup') return Promise.resolve({ data: window.__setupGuest ? Object.assign({}, setup, { guest_emails: true }) : setup });
+      if (fn === 'get_order_setup') { var su = window.__setupOcc ? Object.assign({}, setup, { occasions: window.__setupOcc }) : setup; return Promise.resolve({ data: window.__setupGuest ? Object.assign({}, su, { guest_emails: true }) : su }); }
       if (fn === 'staff_update_customer') {
         var pc = prof[args.p_customer], chg = args.p_changes || {};
         if (window.__custStale && !window.__custStaleDone) { window.__custStaleDone = true; pc.version += 1; return Promise.resolve({ data: { ok: false, error: 'changed', message: 'Someone else changed this customer while you had it open. Your typing is kept. Check their latest details, then save again.', current: Object.assign({}, pc) } }); }

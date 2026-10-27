@@ -289,9 +289,59 @@
       S + '.cca-sec-on > .cca-bar{display:none!important}' +
       S + ' .cca-grid{grid-template-columns:repeat(auto-fill,minmax(min(100%,380px),1fr))}' +
     '}',
-    '@media (prefers-reduced-motion:no-preference){' + S + ' .cca-home,' + S + ' .cca-bar{animation:cca-in .16s ease-out}}@keyframes cca-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}'
+    '@media (prefers-reduced-motion:no-preference){' + S + ' .cca-home,' + S + ' .cca-bar{animation:cca-in .16s ease-out}}@keyframes cca-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}',
+    ':root:not(#cct0) #cc-staff .cct12-src{position:absolute!important;width:1px!important;height:1px!important;opacity:0!important;pointer-events:none!important;overflow:hidden!important}',
+    ':root:not(#cct0) #cc-staff .cct12{display:flex;flex-wrap:wrap;align-items:center;gap:8px}',
+    ':root:not(#cct0) #cc-staff .cct12-t{width:6.5em;min-height:48px;padding:0 12px;border:1px solid #D0D5DD;border-radius:10px;background:#fff;font:inherit;font-size:17px;color:#1D2939}',
+    ':root:not(#cct0) #cc-staff .cct12-t:focus{outline:none;border-color:#245F99;box-shadow:0 0 0 3px rgba(36,95,153,.15)}',
+    ':root:not(#cct0) #cc-staff .cct12.is-bad .cct12-t{border-color:#D92D20}',
+    ':root:not(#cct0) #cc-staff .cct12-ap{display:inline-flex;border:1px solid #D0D5DD;border-radius:10px;overflow:hidden}',
+    ':root:not(#cct0) #cc-staff .cct12-ap button{min-width:54px;min-height:46px;border:0;background:#fff;color:#344054;font:inherit;font-size:16px;cursor:pointer}',
+    ':root:not(#cct0) #cc-staff .cct12-ap button[aria-pressed=true]{background:#E8F0F8;color:#1A4570;font-weight:600;box-shadow:inset 0 0 0 1px #8FAED3}',
+    ':root:not(#cct0) #cc-staff .cct12-err{flex-basis:100%;font-size:14px;font-style:italic;color:#B42318}'
   ].join('\n');
   function styles() { if (doc.getElementById('cca-style')) return; var s = doc.createElement('style'); s.id = 'cca-style'; s.textContent = css; doc.head.appendChild(s); }
-  function start() { styles(); var mo = new MutationObserver(function (m) { for (var i = 0; i < m.length; i++) { var r = m[i], n = r.target; if (n && n.closest && n.closest('.cca-home, .cca-bar, .cca-i, .cca-menu')) continue; if (r.type === 'attributes' && (n.id === 'ccs-main' && r.attributeName === 'class' || n.classList && (n.classList.contains('cca-hst') || n.classList.contains('cca-hidetext')))) continue; schedule(); return; } }); mo.observe(doc.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'open', 'data-screen'] }); schedule(); }
+  // ---------- 12-hour time fields (Settings audit, Release B, 28 Oct 2026) ----------
+  // The device time box (which can show 24-hour time) in Settings > Notice and collection hours, and the long list of
+  // every slot in Change order, become one field: type the time (8, 8:30 or 830), tap AM or PM. The app's own field
+  // stays in the page, hidden, and is what is saved, so nothing about saving changes.
+  var T12 = '#st-open, #st-close, #am-time';
+  function to12(v) { var m = /^(\d{1,2}):(\d{2})/.exec(v || ''); if (!m) return { t: '', pm: false }; var h = +m[1]; return { t: ((h % 12) || 12) + ':' + m[2], pm: h >= 12 }; }
+  function parse12(txt, pm) {
+    var s = String(txt || '').replace(/\s+/g, '').replace(/[.]/g, ':'), m = /^(\d{1,2})(?::?(\d{2}))?$/.exec(s); if (!m) return null;
+    var h = +m[1], mi = m[2] == null ? 0 : +m[2]; if (h < 1 || h > 12 || mi > 59) return null;
+    h = h % 12 + (pm ? 12 : 0); return (h < 10 ? '0' : '') + h + ':' + (mi < 10 ? '0' : '') + mi;
+  }
+  function fire(el) { ['input', 'change'].forEach(function (k) { el.dispatchEvent(new Event(k, { bubbles: true })); }); }
+  function time12() {
+    [].forEach.call(doc.querySelectorAll('#cc-staff ' + T12.split(', ').join(', #cc-staff ')), function (src) {
+      if (src.__t12 && src.__t12.isConnected) return;
+      var isSel = src.tagName === 'SELECT', cur = to12(src.value);
+      var w = doc.createElement('span'); w.className = 'cct12'; w.setAttribute('role', 'group');
+      var lab = src.id && doc.querySelector('label[for="' + src.id + '"]'); w.setAttribute('aria-label', lab ? txt(lab) : 'Time');
+      w.innerHTML = '<input type="text" inputmode="numeric" autocomplete="off" class="cct12-t" maxlength="5" placeholder="8:00" aria-label="' + esc(lab ? txt(lab) : 'Time') + '">' +
+        '<span class="cct12-ap"><button type="button" data-ap="am">AM</button><button type="button" data-ap="pm">PM</button></span>' +
+        '<em class="cct12-err" hidden></em>';
+      var inp = w.querySelector('.cct12-t'), pm = cur.pm; inp.value = cur.t;
+      function paint() { [].forEach.call(w.querySelectorAll('[data-ap]'), function (b) { b.setAttribute('aria-pressed', String((b.getAttribute('data-ap') === 'pm') === pm)); }); }
+      function commit() {
+        var v = parse12(inp.value, pm), err = w.querySelector('.cct12-err'), msg = '';
+        if (!v) msg = inp.value.trim() ? 'Type a time like 8:30' : '';
+        else if (isSel && ![].some.call(src.options, function (o) { return o.value === v; })) {
+          var opts = [].map.call(src.options, function (o) { return o.value; }).filter(Boolean);
+          msg = opts.length ? 'Collection times run ' + t12txt(opts[0]) + ' to ' + t12txt(opts[opts.length - 1]) + ', on the hour or slot' : 'Not a collection time';
+        }
+        err.textContent = msg; err.hidden = !msg; w.classList.toggle('is-bad', !!msg);
+        if (v && !msg && src.value !== v) { src.value = v; fire(src); }
+      }
+      function t12txt(v) { var x = to12(v); return x.t + ' ' + (x.pm ? 'PM' : 'AM'); }
+      paint();
+      inp.addEventListener('input', commit); inp.addEventListener('blur', function () { var v = parse12(inp.value, pm); if (v) inp.value = to12(v).t; });
+      w.addEventListener('click', function (e) { var b = e.target.closest && e.target.closest('[data-ap]'); if (!b) return; e.preventDefault(); pm = b.getAttribute('data-ap') === 'pm'; paint(); commit(); });
+      src.classList.add('cct12-src'); src.setAttribute('tabindex', '-1'); src.setAttribute('aria-hidden', 'true');
+      src.after(w); src.__t12 = w;
+    });
+  }
+  function start() { styles(); var t12q = false, mo12 = new MutationObserver(function () { if (t12q) return; t12q = true; setTimeout(function () { t12q = false; try { time12(); } catch (e) {} }, 30); }); mo12.observe(doc.body, { childList: true, subtree: true }); var mo = new MutationObserver(function (m) { for (var i = 0; i < m.length; i++) { var r = m[i], n = r.target; if (n && n.closest && n.closest('.cca-home, .cca-bar, .cca-i, .cca-menu')) continue; if (r.type === 'attributes' && (n.id === 'ccs-main' && r.attributeName === 'class' || n.classList && (n.classList.contains('cca-hst') || n.classList.contains('cca-hidetext')))) continue; schedule(); return; } }); mo.observe(doc.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'open', 'data-screen'] }); schedule(); }
   if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', start); else start();
 })();
