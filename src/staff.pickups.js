@@ -296,10 +296,31 @@
     if (b && b.getAttribute('aria-pressed') !== 'true') b.click();
   }
 
+  // ---------- No Overview tab (Roneel, 27 Oct 2026 11:05 PM) ----------
+  // Analytics opens on Sales & Products. Seasonal booking buildup moves to Planning & Forecasting, mounted by the
+  // same CCCakeSeasonalStage.mount the Overview used (same orders, same date); only its place on screen changes.
+  function noOverview() {
+    var on = doc.querySelector('#cc-staff #ccs-main .an-mods [data-v="ov"][aria-current="page"]'),
+      sl = on && doc.querySelector('#cc-staff #ccs-main .an-mods [data-v="sl"]');
+    if (sl) sl.click();
+  }
+  function season(pg, x) {
+    if (pg.querySelector('.pk-season')) return;
+    var S = win.CCCakeSeasonalStage, orders = x.data && (x.data.allOrders || x.data.orders);
+    if (!S || typeof S.mount !== 'function' || !orders) return;
+    var w = doc.createElement('div'); w.className = 'pk-season';
+    var anchor = pg.querySelector(':scope > details.cat-more'); if (anchor) anchor.before(w); else pg.appendChild(w);
+    try { S.mount(w, orders, { today: x.today() }); } catch (e) { warn('Seasonal booking buildup not shown here', e); }
+    [].forEach.call(w.querySelectorAll('.ccsd-daily, .ccsd-manager-kpis, .ccsd-manager-panels'), function (e) { e.remove(); });
+    if (!w.querySelector('.ccsd-season')) w.remove();
+  }
+
   // ---------- the Cake sales page ----------
   function last() { var A = win.CCAnalyticsAnswers; return A && typeof A.last === 'function' ? A.last() : null; }
   function mount() {
     var pg = doc.querySelector('#cc-staff #ccs-main .cat-page[data-cat="sl"]'), L = last();
+    var pl = doc.querySelector('#cc-staff #ccs-main .cat-page[data-cat="pl"]');
+    if (pl && L && L.mod === 'pl') { try { season(pl, L.x); } catch (e) { warn('Seasonal booking buildup not moved', e); } }
     if (pg && L && L.mod === 'sl') { try { demand(pg, L.x); } catch (e) { warn('Daily cake demand not moved', e); } var dw = pg.querySelector('.pk-demand'); if (dw && dw.querySelector('#cc-demand-views, #cc-cake-lead-time')) tidyDemand(dw); }
     if (!pg || !L || L.mod !== 'sl' || pg.querySelector('.pk')) return;
     styles();
@@ -399,7 +420,7 @@
   }
 
   var queued = false;
-  function schedule() { if (queued) return; queued = true; setTimeout(function () { queued = false; try { overviewLead(); mount(); } catch (e) { warn('not shown', e); } }, 30); }
+  function schedule() { if (queued) return; queued = true; setTimeout(function () { queued = false; try { noOverview(); overviewLead(); mount(); } catch (e) { warn('not shown', e); } }, 30); }
   // Roneel, 27 Oct 2026 10:27 PM ("remove this, only this section"): the Overview's Performance snapshot (its heading,
   // 7/30/90 day buttons and the six number cards) is hidden. Popular cake types, Booking channels, Customer mix, the
   // Heartbeat and every other part of the Overview stay as they are.
@@ -411,6 +432,8 @@
     s.textContent = ':root:not(#cc-p1) #cc-staff #ccs-main .hb-v2 #cc-demand-scroll-rail,:root:not(#cc-p1) #cc-staff #ccs-main .hb-v2 #cc-demand-views,' +
       ':root:not(#cc-p1) #cc-staff .hb-v2 .hb-k-heading,:root:not(#cc-p1) #cc-staff .hb-v2 .hb-k-kpis,:root:not(#cc-p1) #cc-staff .hb-v2 .hb-k-panels,' +
       SL + '.cat-todo,' + SL + '.cat-kpis,' + SL + 'p.cat-flag{display:none!important}' +
+      ':root:not(#cc-p1) #cc-staff #ccs-main .an-mods [data-v="ov"],:root:not(#cc-p1) #cc-staff #ccs-main .cc-nav5 > button:first-child,:root:not(#cc-p1) .ccdd-list[aria-label="Section"] > li[data-i="0"]{display:none!important}' +
+      ':root:not(#cc-p1) #cc-staff #ccs-main .pk-season{margin:0 0 16px}' +
       ':root:not(#cc-p1):not(#cc-p2) #cc-staff #ccs-main .pk-demand #cc-demand-scroll-rail.ccdr{display:block!important}:root:not(#cc-p1) #cc-staff #ccs-main .pk-demand{margin:0 0 16px}';
     doc.head.appendChild(s);
   }
