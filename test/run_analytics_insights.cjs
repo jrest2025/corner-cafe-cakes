@@ -73,13 +73,14 @@ seq = 0;
 orders = [];
 const cakesList = ['Mudcake', 'Mudcake', 'Mudcake', 'Cheesecake', 'Cheesecake', 'Red Velvet', 'Mudcake', 'White Forest', 'Mudcake', 'Cheesecake', 'Red Velvet', 'Mudcake'];
 cakesList.forEach((c, i) => orders.push(order({ od: add(T, -(i * 2)), pd: add(T, -(i * 2) + 6), it: [['g', c, 8, 1, 60]], src: i % 3 === 0 ? 'Online' : 'Walk-in', c: 'cust' + (i % 12) })));
-for (let i = 0; i < 12; i++) orders.push(order({ od: add(T, -32 - i * 2), pd: add(T, -32 - i * 2 + 2), src: 'Walk-in', c: 'cust' + i }));
+// earlier completed cakes from the same customers: they had ordered before (agreed definition, 27 Oct 2026)
+for (let i = 0; i < 12; i++) orders.push(order({ od: add(T, -32 - i * 2), pd: add(T, -32 - i * 2 + 2), src: 'Walk-in', c: 'cust' + i, st: 'completed', cp: 'recorded' }));
 out = E.analyse(orders, T);
 const top = find(out, 'top-cake'), ch = find(out, 'channel'), lead = find(out, 'lead'), back = find(out, 'returning');
 check('the most booked cake is named with its share', top && /Mudcake/.test(top.title) && top.big === '50%', top);
 check('the online share is worked out from the channel', ch && ch.big === '33%' && /online was 0%/.test(ch.why), ch);
 check('lead time is compared with the 30 days before', lead && lead.big === '6 days' && /Previous 30 days: 2 days/.test(lead.why) && /planning earlier/.test(lead.action), lead);
-check('returning customers are counted from repeat identities', back && back.big === '100%' && /regulars/.test(back.action), back);
+check('returning customers are those who had a completed order before the 30 days', back && back.big === '100%' && /regulars/.test(back.action), back);
 seq = 0;
 orders = [];
 const per = [3, 3, 9, 3, 9, 9, 12];
