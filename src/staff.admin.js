@@ -62,7 +62,14 @@
       if (body && /test mode is on/i.test(body.textContent)) extra = 'Test mode';
       var st = info.status || ''; if (/^administrators?$/i.test(st) || (st.split(' ').length > 4 && !/\d/.test(st))) st = '';
       var bic = b.querySelector('svg'); return { k: k, b: b, d: info.d, status: st, flag: extra, ic: bic ? bic.outerHTML : svg(DEF_IC[k] || 'layers') };
-    });
+    }).concat(commsRow(set, btns));
+  }
+  // Email templates (22 Oct) sit in the old Settings list, which this home hides: shown here as Communications,
+  // opening the email templates window directly (Roneel, 27 Oct 2026 11:52 PM: "its not there")
+  function commsRow(set, btns) {
+    if (!set.querySelector(':scope > #et-comm') || !win.CCEmailTemplates || typeof win.CCEmailTemplates.open !== 'function') return [];
+    if (btns.some(function (b) { return b.getAttribute('data-setk') === 'Communications'; })) return [];
+    return [{ k: 'Communications', b: null, d: null, status: 'Email templates', flag: '', ic: svg('mail'), et: true }];
   }
   function groupOf(k) { for (var i = 0; i < GROUPS.length; i++) if (GROUPS[i].s.indexOf(k) > -1) return GROUPS[i]; return { k: 'other', t: 'Other', ic: 'layers', s: [] }; }
 
@@ -140,6 +147,7 @@
   doc.addEventListener('click', function (e) {
     var t = e.target; if (!t || !t.closest) return;
     var o = t.closest('[data-cca-open]');
+    if (o && o.getAttribute('data-cca-open') === 'Communications' && doc.querySelector('#cc-staff .ccs-set > #et-comm') && win.CCEmailTemplates) { e.preventDefault(); try { win.CCEmailTemplates.open(); } catch (er) {} return; }
     if (o) { e.preventDefault(); var k = o.getAttribute('data-cca-open'); setView(k); var b = doc.querySelector('#ccs-main .ccs-setnav [data-setk="' + (win.CSS && CSS.escape ? CSS.escape(k) : k) + '"]'); if (b) b.click(); schedule(); var m = doc.getElementById('ccs-main'); if (m) m.scrollTop = 0; return; }
     if (t.closest('[data-cca-home]')) { e.preventDefault(); setView('home'); schedule(); var m2 = doc.getElementById('ccs-main'); if (m2) m2.scrollTop = 0; return; }
     var i = t.closest('.cca-i');
