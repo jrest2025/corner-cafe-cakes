@@ -270,3 +270,13 @@ Screens:
   rights removed from staff logins, Remove Settings entries no longer runnable by staff.
 - Loader 47 (commit af60a5b0): Settings no longer lists Remove Settings entries.
 - Rollback: supabase/sql/release_a_20261028_rollback.sql; page scripts back to ccordertoolsloader46 1.0.46, publish.
+
+## Release B (Settings audit) — live 28 Oct 2026, 1:01 AM
+- Database migration release_b_20261028: get_order_setup returns `occasions` (Settings, shown on forms); first collection 8:00 AM;
+  Baby shower and Graduation shown on forms; Birthday first.
+- Staff footer: app bundle staff-app.5d6e1635b4.js @947432f3 (SRI sha384-ULdXgI…); website order page footer: guest-app.cdf126b4b7.js
+  @947432f3 (SRI sha384-zIEbGV…). Both read back identical before publishing. Built by build/release_b_occasions.py.
+- Loader 48 (commit cc339bf7): 12-hour time fields in Settings collection hours and Change order.
+- Checked live: staff list and website list come from Settings; Settings shows 8:00 AM to 9:00 PM.
+- Rollback: supabase/sql/release_b_20261028_rollback.sql; footers from docs/rollback/*-before-release-b-2026-10-28.html;
+  page scripts back to ccordertoolsloader47 1.0.47; publish.
