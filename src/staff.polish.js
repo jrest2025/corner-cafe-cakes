@@ -292,6 +292,88 @@
     [hb].concat([].slice.call(hb.querySelectorAll('[aria-label*="Heartbeat"]'))).forEach(function (e) { var a = e.getAttribute('aria-label'); if (a && /Cake Heartbeat/.test(a)) e.setAttribute('aria-label', a.replace(/Cake Heartbeat/g, 'Cake Pulse')); });
     var w = doc.createTreeWalker(hb, 4), n; while ((n = w.nextNode())) if (n.nodeValue.indexOf('Cake Heartbeat') > -1) n.nodeValue = n.nodeValue.replace(/Cake Heartbeat/g, 'Cake Pulse');
   }
+  // Order details flow: the colour strip says the same thing as the page, the next step leads, risky actions wait behind "More options"
+  var moreOpen = {};
+  function sheetFlow() {
+    var sh = doc.getElementById('ccs-sheet'); if (!sh || !sh.classList.contains('ccs-open')) return;
+    var head = sh.querySelector('.ccs-sheet-head'), pill = head && head.querySelector('.ccs-pill.st'), band = head && head.querySelector('.os-band');
+    var ref = txt(head && head.querySelector('.os-tph small')).split('·')[0].trim() || 'x';
+    var done = !!(pill && pill.classList.contains('s-done')), off = !!(pill && pill.classList.contains('s-off'));
+    var review = !!(pill && /^(Check order|Needs a price|Price to set|Waiting|Quote|Approve)/i.test(txt(pill)));
+    // 1. one colour rule for the strip: red = urgent, amber = to do, green = done, grey = cancelled
+    if (band) {
+      var tone = off ? 'pf-none' : done ? 'pf-green' : sh.querySelector('.os-warn .os-w.is-red') ? 'pf-red' : (sh.querySelector('.os-warn .os-w.is-amber') || review) ? 'pf-amber' : null;
+      if (tone && !band.classList.contains(tone)) { band.classList.remove('pf-red', 'pf-amber', 'pf-green', 'pf-none'); band.classList.add(tone); }
+    }
+    // 2. money said once (the payment line), in its meaning colour; a cancelled order owes nothing
+    var strip = sh.querySelector('.ccs-ostrip');
+    if (strip) [].forEach.call(strip.querySelectorAll(':scope > div'), function (d) {
+      var l = txt(d.querySelector(':scope > span')); if (!/^(To pay|Price|Paid)$/.test(l)) return;
+      d.classList.add('ccp-money'); d.classList.toggle('ccp-owe', l === 'To pay' && num(txt(d.querySelector('b'))) > 0 && !off); d.classList.toggle('ccp-gone', off && l === 'To pay'); strip.classList.toggle('ccp-off', off);
+    });
+    // 3. next step first: a finished order leads with Customer feedback; on other orders feedback waits in More unless there is a concern to put right
+    var acts = sh.querySelector('.os-main > .ccs-actions'), fb = sh.querySelector('.os-main > .fb-cta');
+    var concern = !!(fb && fb.querySelector('.fb-n'));
+    if (done && fb && acts && fb.nextElementSibling !== acts) acts.parentNode.insertBefore(fb, acts);
+    if (!acts) {
+      if (!fb) return;
+      acts = doc.createElement('div'); acts.className = 'ccs-actions ccp-made'; fb.parentNode.insertBefore(acts, fb.nextSibling);
+    }
+    // 4. risky or rare actions go behind one quiet "More options" button
+    var risky = [].slice.call(acts.querySelectorAll('[data-act="panel"][data-v="cancel"], [data-act="panel"][data-v="cancel-locked"], [data-act="panel"][data-v="delete"], [data-act="go-other"]'));
+    if (done || off) risky = risky.concat([].slice.call(acts.querySelectorAll('[data-act="panel"][data-v="amend"]')));
+    if (!done && fb && !concern) risky.unshift(fb.querySelector('button'));
+    risky = risky.filter(Boolean);
+    [].forEach.call(sh.querySelectorAll('.os-phdanger, .os-dkdanger'), function (d) { d.classList.add('ccp-gone'); });
+    var box = acts.querySelector(':scope > .ccp-more');
+    if (box && !risky.length && box.querySelector('.ccp-mitem')) risky = [].slice.call(box.querySelectorAll('.ccp-mitem'));
+    if (!risky.length) { if (box) box.remove(); if (fb && fb.querySelector('button')) fb.classList.remove('ccp-gone'); return; }
+    if (!box) {
+      box = doc.createElement('div'); box.className = 'ccp-more';
+      box.innerHTML = '<button type="button" class="ccp-more-b" aria-expanded="false">' + svg('chev') + '<span>More options</span></button><div class="ccp-more-l"></div>';
+      acts.appendChild(box);
+    }
+    var list = box.querySelector('.ccp-more-l');
+    risky.forEach(function (b) {
+      if (b.parentNode === list) return;
+      if (b.classList.contains('fb-cta-btn')) { b.closest('.fb-cta').classList.add('ccp-gone'); }
+      if (/^Delete order$/.test(txt(b)) || b.getAttribute('data-act') === 'go-other') b.classList.add('ccs-red');
+      b.classList.add('ccp-mitem'); list.appendChild(b);
+    });
+    // most dangerous last
+    [].slice.call(list.children).sort(function (a, b) { var w = function (x) { return /Delete/.test(txt(x)) ? 3 : /Cancel/.test(txt(x)) ? 2 : 1; }; return w(a) - w(b); }).forEach(function (x) { list.appendChild(x); });
+    var open = !!moreOpen[ref]; box.classList.toggle('is-open', open); box.querySelector('.ccp-more-b').setAttribute('aria-expanded', String(open));
+    [].forEach.call(acts.querySelectorAll(':scope > .ccs-actions-row'), function (r) { if (!r.children.length) r.classList.add('ccp-gone'); });
+    sh.__ccpRef = ref;
+  }
+  // Customer profile: same flow. One main action, figures said once, delete waits behind "More options"
+  var custMore = false;
+  function custFlow() {
+    var sh = doc.getElementById('ccs-sheet'); if (!sh || !sh.classList.contains('rm-profile')) return;
+    var head = sh.querySelector('.ccs-sheet-head'), fav = sh.querySelector('.ccs-sheet-body > .vr-fav-toggle');
+    // favourite: a small heart in the header instead of a big pink bar
+    if (fav && head && fav.parentNode !== head) { var lab = txt(fav); fav.setAttribute('aria-label', lab); fav.title = lab; fav.classList.add('ccp-fav'); head.insertBefore(fav, head.querySelector('.ccs-x')); }
+    if (fav) [].forEach.call(fav.childNodes, function (n) { if (n.nodeType === 3 && n.nodeValue.trim()) { var sp = doc.createElement('span'); sp.className = 'ccp-sr'; sp.textContent = n.nodeValue.trim(); fav.replaceChild(sp, n); } });
+    if (fav) { var on = /Remove|Favourite customer|Unmark/i.test(fav.getAttribute('aria-label') || '') || fav.getAttribute('aria-pressed') === 'true'; fav.classList.toggle('is-on', on); }
+    // the four coloured cards: keep Orders and Spend (the rest is listed just below), as plain white cards
+    [].forEach.call(sh.querySelectorAll('.rm-metrics > .rm-metric'), function (m) {
+      var l = txt(m.querySelector('.rm-metric-label'));
+      if (/^(Usually orders|Occasions)$/.test(l)) { m.classList.add('ccp-gone'); return; }
+      m.classList.add('ccp-rmk');
+      var v = m.querySelector('.rm-metric-value'), d = m.querySelector('.rm-metric-desc');
+      if (v && !v.getAttribute('data-ccp') && /,\s*average\s*/i.test(v.textContent)) { var parts = v.textContent.split(/,\s*average\s*/i); v.setAttribute('data-ccp', '1'); v.textContent = parts[0]; if (d) d.textContent = 'Average ' + parts[1] + ' · completed orders'; }
+      else if (v && !v.getAttribute('data-ccp')) { v.setAttribute('data-ccp', '1'); if (d && /Customer order history/.test(d.textContent)) d.textContent = ''; }
+    });
+    var met = sh.querySelector('.rm-metrics'); if (met) met.setAttribute('data-ccp-n', [].filter.call(met.children, function (x) { return !x.classList.contains('ccp-gone'); }).length);
+    // delete customer: behind More options, red outline when shown
+    var zone = sh.querySelector('.cd-zone');
+    if (zone) {
+      var ask = zone.querySelector('.cd-ask'), busy = !ask || zone.querySelectorAll('button:not(.ccp-more-b)').length > 1;
+      var b = zone.querySelector(':scope > .ccp-more-b');
+      if (!b) { zone.insertAdjacentHTML('afterbegin', '<button type="button" class="ccp-more-b ccp-cmore" aria-expanded="false">' + svg('chev') + '<span>More options</span></button>'); b = zone.firstChild; }
+      var open = custMore || busy; zone.classList.add('ccp-zone'); zone.classList.toggle('is-open', open); b.setAttribute('aria-expanded', String(open));
+    }
+  }
   function kitchenCounts(main) {
     [].forEach.call(main.querySelectorAll('.kw-counts > .kw-count'), function (c) { var em = c.querySelector('em'); c.classList.toggle('ccp-zero', !!em && !/^[1-9]/.test(txt(em))); });
   }
@@ -746,6 +828,56 @@
       ':root:not(#cc-t0) #cc-staff .tq-w:has(> .cc-ch.ccp-chi){grid-template-columns:10px minmax(0,1fr) auto!important;column-gap:12px!important;align-items:start!important}',
       ':root:not(#cc-t0) #cc-staff .tq-w > .cc-ch.ccp-chi.ccp-chi{grid-column:3!important;grid-row:1 / span 4!important;align-self:center!important;margin:0!important}',
       ':root:not(#cc-t0) #cc-staff .tq-w:has(> .cc-ch.ccp-chi) > :not(i):not(.cc-ch){grid-column:2!important}',
+      // ---------- Order details: one flow for every order ----------
+      // the colour strip follows the same colour rule as everything else
+      ':root:not(#cc-t0) #cc-staff #ccs-sheet .os-band.pf-amber{background:#E2AE5C!important}:root:not(#cc-t0) #cc-staff #ccs-sheet .os-band.pf-red{background:#D9483B!important}:root:not(#cc-t0) #cc-staff #ccs-sheet .os-band.pf-green{background:#3DA56B!important}:root:not(#cc-t0) #cc-staff #ccs-sheet .os-band.pf-none{background:#D0D5DD!important}',
+      // payment is said once (in the payment line), so the chip in the header goes
+      ':root:not(#cc-t0) #cc-staff #ccs-sheet .ccs-sheet-head .ccs-pay{display:none!important}',
+      // status dot takes its chip colour (grey only for cancelled)
+      ':root:not(#cc-t0) #cc-staff #ccs-sheet .ccs-sheet-head .ccs-pill.st:not(.s-off)::before{background:currentColor!important}',
+      // money owed reads amber; a cancelled order shows its figures quietly and nothing "to pay"
+      ':root:not(#cc-t0) #cc-staff #ccs-sheet .ccs-ostrip > .ccp-money.ccp-owe > b{color:#8A4504!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-sheet .ccs-ostrip > .ccp-money.ccp-gone{display:none!important}:root:not(#cc-t0) #cc-staff #ccs-sheet .ccs-ostrip.ccp-off > .ccp-money > b{color:#667085!important}',
+      // main action: solid navy, never near-black
+      ':root:not(#cc-t0) #cc-staff :is(#ccs-sheet,#ccs-main) .ccs-btn.ccs-good:not([disabled]):not(.ccs-ghost){background:#245F99!important;border-color:#245F99!important;color:#fff!important}',
+      ':root:not(#cc-t0) #cc-staff :is(#ccs-sheet,#ccs-main) .ccs-btn.ccs-good[disabled]{background:#EEF1F5!important;border-color:#D0D5DD!important;color:#667085!important}',
+      // call row: the number on one line, WhatsApp a compact green button beside it
+      ':root:not(#cc-t0) #cc-staff #ccs-sheet .os-callrow{display:grid!important;grid-template-columns:minmax(0,1fr) 76px!important;gap:10px!important}',
+      '@media (min-width:760px){:root:not(#cc-t0) #cc-staff #ccs-sheet .os-callrow{grid-template-columns:max-content 56px!important;gap:8px!important}:root:not(#cc-t0) #cc-staff #ccs-sheet .os-callrow .ccp-call:not(.ccp-ionly){padding:0 16px!important;overflow:visible!important}:root:not(#cc-t0) #cc-staff #ccs-sheet .os-callrow .ccp-call:not(.ccp-ionly) > span{overflow:visible!important;text-overflow:clip!important}}',
+      ':root:not(#cc-t0) #cc-staff #ccs-sheet .os-callrow .ccp-call:not(.ccp-ionly){white-space:nowrap!important;font-variant-numeric:tabular-nums;justify-content:center!important;gap:10px!important;min-width:0!important;overflow:hidden}',
+      ':root:not(#cc-t0) #cc-staff #ccs-sheet .os-callrow .ccp-call:not(.ccp-ionly) > span{white-space:nowrap!important;overflow:hidden;text-overflow:ellipsis}',
+      // when tile: plain information, navy
+      ':root:not(#cc-t0) #cc-staff #ccs-sheet .os-when .ccp-wl{background:#CADAEE!important;color:#1A4570!important;box-shadow:inset 0 0 0 1px #8FAED3!important}',
+      // soft lines only; selected tab soft navy
+      ':root:not(#cc-t0) #cc-staff #ccs-sheet .os-phcake{border:1px solid var(--ccp-line)!important}',
+      ':root:not(#cc-t0) #cc-staff :is(#ccs-sheet,#ccs-main) .ccs-secbtn[aria-selected="true"]{background:#E8F0F8!important;color:#1A4570!important;box-shadow:inset 0 0 0 1px #8FAED3!important;border-color:#8FAED3!important}',
+      // finished order: Customer feedback leads
+      ':root:not(#cc-t0) #cc-staff #ccs-sheet .os-main > .fb-cta{margin:4px 0 12px!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-sheet .fb-cta.ccp-gone,:root:not(#cc-t0) #cc-staff #ccs-sheet .ccp-gone{display:none!important}',
+      // More options: one quiet line; opens a short list, most dangerous last
+      ':root:not(#cc-t0) #cc-staff #ccs-sheet .ccs-actions > .ccp-more{display:block!important;grid-column:1 / -1!important;width:100%!important;margin:6px 0 0!important;border-top:1px solid var(--ccp-line);padding-top:6px}',
+      '#cc-staff #ccs-sheet .ccp-more-b{display:inline-flex;align-items:center;gap:8px;min-height:48px;padding:0 4px;background:none;border:0;color:#344054;font:inherit;font-weight:500;cursor:pointer}',
+      '#cc-staff #ccs-sheet .ccp-more-b .ccp-ic{width:18px;height:18px;transition:transform .15s}#cc-staff #ccs-sheet .ccp-more.is-open .ccp-more-b .ccp-ic{transform:rotate(180deg)}',
+      '#cc-staff #ccs-sheet .ccp-more-l{display:none;flex-direction:column;gap:8px;padding:4px 0 8px}#cc-staff #ccs-sheet .ccp-more.is-open .ccp-more-l{display:flex}',
+      ':root:not(#cc-t0) #cc-staff #ccs-sheet .ccp-more-l > .ccp-mitem{width:100%!important;min-height:52px!important;justify-content:center!important;margin:0!important;background:#fff!important;border:1px solid var(--ccp-line-2)!important;border-radius:12px!important;color:#1D2939!important;text-decoration:none!important;display:inline-flex!important;align-items:center!important;gap:8px!important;font-weight:500!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-sheet .ccp-more-l > .ccp-mitem.ccs-red,:root:not(#cc-t0) #cc-staff #ccs-sheet .ccp-more-l > .ccp-mitem[data-v^="cancel"]{color:#B42318!important;border-color:#F3B8B2!important}',
+      // ---------- Customer profile ----------
+      ':root:not(#cc-t0) #cc-staff #ccs-sheet .ccs-sheet-head > .vr-fav-toggle.ccp-fav{width:48px!important;height:48px!important;min-height:0!important;padding:0!important;border-radius:50%!important;font-size:0!important;gap:0!important;flex:none!important;display:inline-flex!important;align-items:center;justify-content:center;background:#fff!important;border:1px solid var(--ccp-line-2)!important;color:#475467!important;margin-left:auto!important;margin-right:8px!important;width:48px!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-sheet .ccs-sheet-head > .vr-fav-toggle.ccp-fav svg{width:22px!important;height:22px!important;margin:0!important}',
+      '@media (min-width:760px){:root:not(#cc-t0) #cc-staff #ccs-sheet.rm-profile .ccs-sheet-head > .rm-identity{flex:1 1 0!important;min-width:0!important}:root:not(#cc-t0) #cc-staff #ccs-sheet.rm-profile .ccs-sheet-head{flex-wrap:nowrap!important;align-items:flex-start!important}}',
+      ':root:not(#cc-t0) #cc-staff #ccs-sheet .ccs-sheet-head > .vr-fav-toggle.ccp-fav.is-on{color:#A63E6D!important;border-color:#E7A9C4!important;background:#FFF4F8!important}:root:not(#cc-t0) #cc-staff #ccs-sheet .ccs-sheet-head > .vr-fav-toggle.ccp-fav.is-on svg{fill:currentColor}',
+      ':root:not(#cc-t0) #cc-staff #ccs-sheet.rm-profile .rm-eyebrow{color:#475467!important}:root:not(#cc-t0) #cc-staff #ccs-sheet.rm-profile .rm-avatar{background:#E8F0F8!important;color:#1A4570!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-sheet [data-act="cust-neworder"] > .rm-icon{display:none!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-sheet a.ccs-btn[href*="wa.me"]{background:#E3F6EA!important;border-color:#9FDDB6!important;color:#0B7A3E!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-sheet .rm-metrics[data-ccp-n="2"]{grid-template-columns:repeat(2,minmax(0,1fr))!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-sheet .rm-metric.ccp-rmk{background:#fff!important;border:1px solid var(--ccp-line)!important;box-shadow:none!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-sheet .rm-metric.ccp-rmk .rm-icon{color:#1A4570!important;background:#CADAEE!important;box-shadow:inset 0 0 0 1px #8FAED3!important;border-radius:10px!important;width:34px!important;height:34px!important;display:inline-flex!important;align-items:center;justify-content:center}',
+      ':root:not(#cc-t0) #cc-staff #ccs-sheet .rm-metric.ccp-rmk .rm-metric-value{font-size:26px!important;line-height:1.15!important;overflow-wrap:normal!important;word-break:normal!important;color:#1D2939!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-sheet .rm-metric.ccp-rmk .rm-metric-label{color:#344054!important}:root:not(#cc-t0) #cc-staff #ccs-sheet .rm-metric.ccp-rmk .rm-metric-desc:empty{display:none!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-sheet .cd-zone.ccp-zone{background:none!important;border:0!important;border-top:1px solid var(--ccp-line)!important;border-radius:0!important;box-shadow:none!important;padding:6px 0 0!important}',
+      ':root:not(#cc-t0) #cc-staff #ccs-sheet .cd-zone.ccp-zone:not(.is-open) > :not(.ccp-more-b){display:none!important}',
+      '#cc-staff #ccs-sheet .cd-zone .ccp-more-b{display:inline-flex;align-items:center;gap:8px;min-height:48px;padding:0 4px;background:none;border:0;color:#344054;font:inherit;font-weight:500;cursor:pointer}#cc-staff #ccs-sheet .cd-zone .ccp-more-b .ccp-ic{width:18px;height:18px}#cc-staff #ccs-sheet .cd-zone.is-open .ccp-more-b .ccp-ic{transform:rotate(180deg)}',
+      ':root:not(#cc-t0) #cc-staff #ccs-sheet .cd-zone .cd-ask{width:100%!important;min-height:52px!important;background:#fff!important;color:#B42318!important;border:1px solid #F3B8B2!important;border-radius:12px!important;box-shadow:none!important}',
       // Treat orders board: the same card language
       '#cc-staff #cc-to .cc-to-sum.ccp-sum{display:flex;align-items:center;gap:12px}',
       '#cc-staff #cc-to .cc-to-sum .cl-tile{flex:none;width:38px;height:38px;border-radius:11px;display:inline-flex;align-items:center;justify-content:center}',
@@ -788,7 +920,7 @@
       if (/^orders/.test(scr) || main.querySelector('.ccs-list .ccs-card')) orders(main);
       if (main.querySelector('.ccs-setnav')) settings(main);
       if (main.querySelector('.cat-page, .dx-filters')) analytics(main);
-      refine(main); sheet(); pulseName();
+      refine(main); sheet(); sheetFlow(); custFlow(); pulseName();
       seasonal(); treatBoard();
     } catch (e) { warn('update', e); }
   }
@@ -808,6 +940,8 @@
     if (wm) { e.preventDefault(); e.stopPropagation(); var k0 = wm.getAttribute('data-k'); warnOpen[k0] = !warnOpen[k0]; run(); return; }
     var i = t.closest('.ccp-i');
     if (i) { e.preventDefault(); e.stopPropagation(); var f = doc.querySelector('#ccs-main .ccp-fine'); var on = i.getAttribute('aria-expanded') !== 'true'; i.setAttribute('aria-expanded', String(on)); if (f) f.classList.toggle('is-open', on); return; }
+    if (t.closest('.ccp-cmore')) { e.preventDefault(); custMore = !custMore; run(); return; }
+    if (t.closest('.ccp-more-b')) { e.preventDefault(); var shp = doc.getElementById('ccs-sheet'), rk = (shp && shp.__ccpRef) || 'x'; moreOpen[rk] = !moreOpen[rk]; run(); return; }
     if (t.closest('.ccp-flag-b')) { e.preventDefault(); flagOpen = !flagOpen; run(); return; }
     if (t.closest('.ccp-fu-all')) { var fb = doc.querySelector('#ccs-main .ccs-secbtn[data-g="crm"][data-v="fu"]'); if (fb) fb.click(); return; }
     var r = t.closest('.ccp-rem');
