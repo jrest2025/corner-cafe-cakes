@@ -69,3 +69,13 @@ Decisions applied (recommended defaults, approved with "proceed"): number cards 
 - Tests: test_metrics 18/18 (hand-made orders with known answers), test_act_now 42/42, test_polish 148/148, test_flow 20/20, test_birthday 39/39, test_analytics_focus 72/75 (3 failures pre-existing: "empty tabs hidden").
 - Still to do (stage 2b, main app bundle): D8 refunds in Cakes ranked and with a cake filter, D9 "To collect" status rule, D15 order-date basis, mixed-cake attribution, data explorer (every number opens its orders), period-over-period comparisons, exports.
 - Rollback: remove ccOrderToolsLoader33, add ccOrderToolsLoader32 (footer, 1.0.32), publish.
+
+## 7. Release 27 Oct 2026, 7:14 PM (approved: "deploy")
+
+- Staff page footer: app `dist/app/staff-app.e0a7470c8a.js` at commit d2052bd8 (`dist/staff.footer.cal-slip.html`). Contains:
+  - Stage 2b analytics fixes (D8 refunds in Cakes ranked and under a cake filter, D8b priced-only average, D9 To collect = confirmed, D5 Occasions caption).
+  - New order: open month calendar on the date step; no short-notice questions (the form sends "Booked by staff" and the signed-in name, which the database requires).
+  - Kitchen slip, every way it comes out: logo top left with the order number, larger type, space used to the full; inspiration photo beside Cake and Size (more photos on page 2); without a photo Cake and Size side by side and the slip drawn as large as it fits; no Short notice tag.
+- Email function send-emails v29 imports commit d2052bd8 (kitchen slip PDF with photos, no short-notice line in the kitchen email).
+- Website order form unchanged.
+- Rollback: staff footer `docs/rollback/staff-footer-before-analytics-fix-2026-10-27.html`, publish; send-emails import back to d447eafbb70cbc40be08af5d604cf760a72567ac.
