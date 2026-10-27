@@ -213,3 +213,11 @@ Screens:
   snapshot (heading, 7/30/90 buttons, six number cards) hidden; Popular cake types, Booking channels, Customer mix and
   the By booking time view stay. Test test_pickups 37/37. Checked live in Chrome after publishing.
 - Rollback: remove ccOrderToolsLoader39, add ccOrderToolsLoader38 (footer, 1.0.38), publish.
+
+## Overview cards moved to Cake sales (loader 40, 27 Oct 2026, 10:39 PM)
+
+- Approved by Roneel ("deploy", 10:38 PM). `ccOrderToolsLoader40` (footer, 1.0.40) replaces loader 39: same files,
+  `staff.pickups.js` updated (fingerprint aa16dae5…) at commit 6f0b3625. Popular cake types, Booking channels and
+  Customer mix leave the Overview and sit under the pickups timeline on Cake sales, following that page's period
+  buttons, same counting rules, bars open their orders. Test test_pickups 40/40. Checked live in Chrome.
+- Rollback: remove ccOrderToolsLoader40, add ccOrderToolsLoader39 (footer, 1.0.39), publish.
