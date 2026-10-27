@@ -263,3 +263,10 @@ Screens:
 - Email editor: registered script ccemailtemplates2 (dist/app/email-templates.82a1c537ec.js @17dbfb9d, SRI sha384-R0FyBq…)
   replaces ccemailtemplates; fields inside a link address stay as fields (fixed the broken phone link in previews/published templates).
 - Rollback: page scripts back to ccemailtemplates 1.0.0 and ccordertoolsloader45 1.0.45, publish.
+
+## Release A (Settings audit) — live 28 Oct 2026, 12:44 AM
+- Database migration release_a_20261028 (supabase/sql/release_a_20261028.sql): staff_profiles direct writes removed
+  (read kept for staff.users holders), locations max_days_ahead >= notice, active sizes priced above $0, app_config
+  rights removed from staff logins, Remove Settings entries no longer runnable by staff.
+- Loader 47 (commit af60a5b0): Settings no longer lists Remove Settings entries.
+- Rollback: supabase/sql/release_a_20261028_rollback.sql; page scripts back to ccordertoolsloader46 1.0.46, publish.
