@@ -129,3 +129,9 @@ Screens:
 ## Live 27 Oct 2026, 2:51 PM: loader 28 (commit 8d9e0515) = plain words round + iPad shell
 - Files: the eight add-ons plus src/staff.ipad.js (marker __ccIpad20261027). Details: docs/ipad-shell-2026-10-27.md.
 - Rollback: remove ccOrderToolsLoader28, add ccOrderToolsLoader26 (footer, 1.0.26), publish. (Loader 27 = plain words only, without the iPad shell, if only the iPad part needs undoing.)
+
+## iPad Today layout (loader 29, commit e04c2e71) — staged
+- iPad only (src/staff.ipad.js). Order: header in one row (greeting left, New order / Find an order right) → online-order banner full width, one slim line (title · order · Open; the explanation sentence hidden) → numbers row (Due today, Payments to collect, Next 7 days) → two columns: left Needs attention then Due today; right This week then Waiting on you.
+- Landscape columns use a measured masonry (each block spans its own height) so neither column leaves a hole; portrait is one column in the same order.
+- Computers and phones unchanged. Tests: test_ipad 91/91 (new Today order and no-gap checks at 1180×820, 1024×768, 820×1180), test_polish 148/148.
+- Rollback: remove ccOrderToolsLoader29, add ccOrderToolsLoader28 (footer, 1.0.28), publish.
