@@ -238,3 +238,9 @@ Screens:
   Overview); on the Overview it is hidden and By booking time shows on its own (switch hidden). Test test_pickups 46/46.
   Checked live in Chrome.
 - Rollback: remove ccOrderToolsLoader42, add ccOrderToolsLoader41 (footer, 1.0.41), publish.
+
+## Loader 43 (commit a497acdb) — live 27 Oct 2026, 11:15 PM
+- Overview tab removed; Analytics opens on Sales & Products.
+- Seasonal booking buildup moved to Planning & Forecasting (same module, same numbers).
+- Pickups timeline: two-letter day above a bold date.
+- Rollback: remove ccordertoolsloader43, add ccordertoolsloader42 (1.0.42, footer), publish.
