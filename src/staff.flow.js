@@ -108,6 +108,88 @@
     NI + M('today') + ' > .tq-main > .ccs-panel-card > .ccs-minis{flex:1 1 auto!important}'
   ]));
 
+  // ============ TODAY: ACT NOW — every order once, where it is acted on ============
+  // One full-width list replaces the online-order banner, the Needs attention islands and Waiting on you.
+  // Due today and Next 7 days tiles go (the Due today list and the week strip say it); Payments to collect stays beside the week.
+  var A = ALL + M('today') + '.cc-act-on';
+  css.push([
+    A + ' > .tq-warn > :not(.cc-act){display:none!important}',
+    A + ' > .cc-st-alert,' + A + ' > .tq-main > .tp-needs,' + A + ' .ccs-dash-head .ccb-sum{display:none!important}',
+    A + ' > .tq-stats > .tq-stat:is([data-v="today"],[data-v="upcoming"]){display:none!important}',
+    A + ' > .tq-stats{grid-template-columns:minmax(0,1fr)!important}',
+    A + ' > .tq-warn{padding:14px 16px!important;height:auto!important;min-height:max-content!important;flex-shrink:0!important;max-height:none!important;overflow:visible!important}',
+    A + ' .cc-act-h{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;margin:0 0 10px}',
+    A + ' .cc-act-h h2{margin:0!important;font-size:18px!important;font-weight:600!important;color:#1D2939}',
+    A + ' .cc-act-h .cc-act-n{font-size:15px;font-weight:600}',
+    A + ' .cc-act-h .cc-act-n .r{color:#B42318}' + A + ' .cc-act-h .cc-act-n .a{color:#B54708}',
+    A + ' .cc-act-ic{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:9px;background:#FDF0D9;color:#8A4504;box-shadow:inset 0 0 0 1px #E9C27F;flex:none}',
+    A + ' .cc-act-ic.is-ok{background:#E3F4EA;color:#05603A;box-shadow:inset 0 0 0 1px #9ED2B3}',
+    A + ' .cc-act-ic svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}',
+    A + ' .cc-act-list{display:flex;flex-direction:column;gap:6px}',
+    A + ' .cc-act-row{display:grid!important;grid-template-columns:4px minmax(0,1fr) auto 18px;align-items:center;gap:12px;width:100%;min-height:54px;margin:0!important;padding:6px 12px 6px 0!important;border:1px solid #E4E7EC!important;border-radius:12px!important;background:#fff!important;color:#1D2939;text-align:left;font:inherit;cursor:pointer;overflow:hidden;box-shadow:none!important}',
+    A + ' .cc-act-row:hover{border-color:#B8CDE4!important;background:#FBFCFE!important}',
+    A + ' .cc-act-row:focus-visible{outline:2px solid #245F99;outline-offset:2px}',
+    A + ' .cc-act-bar{align-self:stretch;width:4px;margin:-6px 0;background:#F79009}',
+    A + ' .cc-act-row.is-red .cc-act-bar{background:#D92D20}',
+    A + ' .cc-act-tx{display:flex;align-items:baseline;gap:4px 14px;min-width:0}',
+    A + ' .cc-act-tx > b{flex:0 0 auto;max-width:45%;font-size:16px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    A + ' .cc-act-tx > span{flex:1 1 auto;min-width:0;font-size:15px;color:#475467;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    A + ' .cc-act-row.is-red .cc-act-tx > span{color:#B42318}',
+    A + ' .cc-act-meta{display:flex;align-items:center;gap:8px;flex:none}',
+    A + ' .cc-act-meta .cc-ch{margin:0!important}',
+    A + ' .cc-act-meta .cc-ch > span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}',
+    A + ' .cc-act-wait{display:inline-flex;align-items:center;min-height:26px;padding:0 10px;border-radius:999px;background:#FDF0D9;color:#8A4504;border:1px solid #E9C27F;font-size:13px;font-weight:600;white-space:nowrap}',
+    A + ' .cc-act-go{width:18px;height:18px;color:#98A2B3;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}',
+    A + ' .cc-act-clear{display:flex;align-items:center;gap:10px;font-size:16px;color:#05603A;font-weight:600}',
+    A + ' .tq-weekh .cc-act-wk{margin-left:8px;font-size:15px;font-weight:500;color:#475467}'
+  ].join(''));
+  // computers: Act now full width, then Payments beside the week, then Due today across the full width
+  css.push(at(WIDE, [
+    NI + M('today') + '.cc-act-on{grid-template-columns:minmax(220px,1fr) minmax(0,2.4fr)!important;grid-template-areas:"head head" "warn warn" "stats week" "main main" "fu fu"!important}',
+    NI + M('today') + '.cc-act-on:has(> .ccs-note){grid-template-areas:"head head" "note note" "warn warn" "stats week" "main main" "fu fu"!important}',
+    NI + M('today') + '.cc-act-on > :is(.ccs-dash-head,.tq-stats,.tq-week,.tq-main){min-height:max-content!important}',
+    NI + M('today') + '.cc-act-on > .tq-warn{grid-area:warn!important}',
+    NI + M('today') + '.cc-act-on{grid-template-rows:repeat(5,max-content)!important;grid-auto-rows:max-content!important;align-content:start!important}',
+    NI + M('today') + '.cc-act-on:has(> .ccs-note){grid-template-rows:repeat(6,max-content)!important}',
+    NI + M('today') + '.cc-act-on > .tq-stats{grid-area:stats!important;align-self:stretch!important}',
+    NI + M('today') + '.cc-act-on > .tq-stats > .tq-stat{height:100%!important;align-content:center!important}',
+    NI + M('today') + '.cc-act-on > .tq-week{grid-area:week!important}',
+    NI + M('today') + '.cc-act-on > .tq-main{grid-template-columns:minmax(0,1fr)!important}'
+  ]));
+  css.push(at(DESK, [NI + M('today') + '.cc-act-on > .tq-main > .ccs-panel-card:not(.tp-needs) > .ccs-minis{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;align-items:start!important}']));
+  // phones: header → Act now → Payments → This week → Due today; each Act now line shows the order over what to do
+  css.push(at(PHONE, [
+    NI + M('today') + '.cc-act-on > .tq-warn{order:2!important}',
+    NI + M('today') + '.cc-act-on > .tq-stats{order:4!important}',
+    NI + M('today') + '.cc-act-on > .tq-week{order:5!important}',
+    NI + M('today') + '.cc-act-on > .tq-main > .ccs-panel-card:not(.tp-needs){order:6!important}',
+    A + ' .cc-act-tx{flex-direction:column;align-items:flex-start;gap:2px}',
+    A + ' .cc-act-tx > b{max-width:100%}',
+    A + ' .cc-act-tx > span{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}',
+    A + ' .cc-act-row{grid-template-columns:4px minmax(0,1fr) auto 16px!important;grid-template-areas:"bar tx meta go"!important;gap:10px!important;padding:8px 10px 8px 0!important}',
+    A + ' .cc-act-meta{flex-direction:column!important;align-items:flex-end!important;gap:4px!important}',
+    A + ' .cc-act-bar{grid-area:bar;margin:-8px 0!important}' + A + ' .cc-act-tx{grid-area:tx}' + A + ' .cc-act-meta{grid-area:meta}' + A + ' .cc-act-go{grid-area:go}',
+    A + ' .cc-act-meta:empty{display:none}'
+  ]));
+  // iPads (extra weight over the iPad Today rules): Act now first and full width; Payments and the week side by side in landscape
+  var IPX = 'html.cc-ipad:not(#fl4)' + Z, IPLX = 'html.cc-ipad.cc-ipad-land:not(#fl4)' + Z, IPPX = 'html.cc-ipad.cc-ipad-port:not(#fl4)' + Z;
+  css.push([
+    IPLX + M('today') + '.cc-act-on.cc-ipad-mas > .tq-warn{grid-column:1 / -1!important;order:3!important}',
+    IPLX + M('today') + '.cc-act-on.cc-ipad-mas > .tq-stats{grid-column:1!important;order:4!important}',
+    IPLX + M('today') + '.cc-act-on.cc-ipad-mas > .tq-week{grid-column:2!important;order:5!important}',
+    IPLX + M('today') + '.cc-act-on.cc-ipad-mas > .tq-main > .ccs-panel-card:not(.tp-needs){grid-column:1 / -1!important;order:6!important}',
+    IPLX + M('today') + '.cc-act-on:not(.cc-ipad-mas){grid-template-areas:"head head" "alert alert" "warn warn" "stats week" "due due"!important}',
+    IPLX + M('today') + '.cc-act-on:not(.cc-ipad-mas) > .tq-warn{grid-area:warn!important}',
+    IPLX + M('today') + '.cc-act-on:not(.cc-ipad-mas) > .tq-stats{grid-area:stats!important}',
+    IPLX + M('today') + '.cc-act-on:not(.cc-ipad-mas) > .tq-week{grid-area:week!important}',
+    IPLX + M('today') + '.cc-act-on:not(.cc-ipad-mas) > .tq-main > .ccs-panel-card:not(.tp-needs){grid-area:due!important}',
+    IPPX + M('today') + '.cc-act-on > .tq-warn{order:3!important}',
+    IPPX + M('today') + '.cc-act-on > .tq-stats{order:4!important}',
+    IPPX + M('today') + '.cc-act-on > .tq-week{order:5!important}',
+    IPPX + M('today') + '.cc-act-on > .tq-main > .ccs-panel-card:not(.tp-needs){order:6!important}',
+    IPX + M('today') + '.cc-act-on > .tq-stats > .tq-stat{height:100%!important}'
+  ].join(''));
+
   // ============ ORDERS ============
   // computers and iPads: search and status tabs share one row
   var OR = [];
@@ -293,8 +375,63 @@
     var t = e.target && e.target.closest && e.target.closest('#ccs-sheet .ccp-mt-practice'); if (!t) return;
     var pr = doc.querySelector('#ccs-sheet button.ccp-more[data-ccp-go]'); if (pr) { e.preventDefault(); pr.click(); }
   });
+  // ---------- Today: build Act now from the app's own items (their buttons keep doing what they did) ----------
+  var ACT_ALERT = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>';
+  var ACT_OK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
+  var ACT_GO = '<svg class="cc-act-go" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>';
+  function escH(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function txt(e) { return e ? (e.textContent || '').replace(/\s+/g, ' ').trim() : ''; }
+  function dataAttrs(el) { return [].filter.call(el.attributes, function (a) { return /^data-(act|id|v)$/.test(a.name); }).map(function (a) { return ' ' + a.name + '="' + escH(a.value) + '"'; }).join(''); }
+  function actNow() {
+    var main = doc.querySelector('#cc-staff #ccs-main[data-screen="today"]');
+    var old = doc.querySelectorAll('#cc-staff #ccs-main:not([data-screen="today"]).cc-act-on');
+    [].forEach.call(old, function (m) { m.classList.remove('cc-act-on'); });
+    if (!main) return;
+    var warn = main.querySelector(':scope > .tq-warn');
+    if (!warn) { main.classList.remove('cc-act-on'); return; }
+    var rows = [], seen = {};
+    // 1. the app's attention items
+    [].forEach.call(warn.querySelectorAll(':scope > .tq-w'), function (b) {
+      var id = b.getAttribute('data-id') || ''; if (id) seen[id] = rows.length;
+      var ch = b.querySelector('.cc-ch');
+      rows.push({ red: b.classList.contains('is-red'), attrs: dataAttrs(b), who: txt(b.querySelector(':scope > b')), what: txt(b.querySelector(':scope > span:not(.cc-ch)')), ch: ch ? ch.outerHTML : '', wait: '' });
+    });
+    // 2. Waiting on you orders not already listed
+    [].forEach.call(main.querySelectorAll(':scope > .tq-main > .tp-needs .ccs-minis > [data-id]'), function (b) {
+      var id = b.getAttribute('data-id'); if (seen[id] != null) return;
+      var m = b.querySelector('.ccs-prow-m'), f = b.querySelector('.ccs-prow-f');
+      seen[id] = rows.length;
+      rows.push({ red: b.classList.contains('is-red'), attrs: dataAttrs(b), who: m ? (txt(m.querySelector('span')) + ' ' + txt(m.querySelector('b'))).trim() : '', what: f ? txt(f) : 'Waiting on you', ch: '', wait: '' });
+    });
+    // 3. online orders waiting to hear back: a "waiting" chip on their line (or their own line)
+    [].forEach.call(main.querySelectorAll(':scope > .cc-st-alert .cc-st-row'), function (r) {
+      var btn = r.querySelector('[data-cc-wait-open]'), id = btn && btn.getAttribute('data-cc-wait-open'), sm = txt(r.querySelector('small')), w = (sm.match(/waiting [^·]+/i) || [''])[0].trim();
+      if (!id) return;
+      if (seen[id] != null) { rows[seen[id]].wait = w; return; }
+      seen[id] = rows.length;
+      rows.push({ red: false, attrs: ' data-act="open-order" data-id="' + escH(id) + '"', who: txt(r.querySelector('b')).replace(/\s*·\s*/, ' '), what: sm.replace(/\s*·?\s*waiting [^·]+/i, '') || 'Website order waiting', ch: '', wait: w });
+    });
+    rows.sort(function (a, b) { return (b.red ? 1 : 0) - (a.red ? 1 : 0); });
+    var nr = rows.filter(function (r) { return r.red; }).length, na = rows.length - nr;
+    var h = '<div class="cc-act-h"><span class="cc-act-ic' + (rows.length ? '' : ' is-ok') + '" aria-hidden="true">' + (rows.length ? ACT_ALERT : ACT_OK) + '</span><h2>' + (rows.length ? 'Act now' : 'All clear') + '</h2>' +
+      (rows.length ? '<span class="cc-act-n">' + (nr ? '<span class="r">' + nr + ' urgent</span>' : '') + (nr && na ? ' · ' : '') + (na ? '<span class="a">' + na + ' to do</span>' : '') + '</span>' : '') + '</div>';
+    h += rows.length ? '<div class="cc-act-list" role="list">' + rows.map(function (r) {
+      return '<button type="button" role="listitem" class="cc-act-row' + (r.red ? ' is-red' : '') + '"' + r.attrs + '><span class="cc-act-bar" aria-hidden="true"></span><span class="cc-act-tx"><b>' + escH(r.who) + '</b><span>' + escH(r.what) + '</span></span><span class="cc-act-meta">' + (r.wait ? '<span class="cc-act-wait">' + escH(r.wait) + '</span>' : '') + r.ch + '</span>' + ACT_GO + '</button>';
+    }).join('') + '</div>' : '<p class="cc-act-clear">Nothing needs you right now.</p>';
+    var box = warn.querySelector(':scope > .cc-act');
+    if (!box) { box = doc.createElement('div'); box.className = 'cc-act'; warn.appendChild(box); }
+    if (box.getAttribute('data-h') !== h) { box.innerHTML = h; box.setAttribute('data-h', h); }
+    if (!main.classList.contains('cc-act-on')) main.classList.add('cc-act-on');
+    // the week strip says how many are coming (the Next 7 days number moves here)
+    var up = main.querySelector(':scope > .tq-stats > .tq-stat[data-v="upcoming"] > b'), wh = main.querySelector(':scope > .tq-week .tq-weekh h2');
+    if (wh) {
+      var n = up ? txt(up) : '', tag = wh.querySelector('.cc-act-wk'), want = n ? n + ' this week' : '';
+      if (!want) { if (tag) tag.remove(); }
+      else { if (!tag) { tag = doc.createElement('span'); tag.className = 'cc-act-wk'; wh.appendChild(tag); } if (tag.textContent !== want) tag.textContent = want; }
+    }
+  }
   var q = false;
-  function tick() { if (q) return; q = true; (win.requestAnimationFrame || setTimeout)(function () { q = false; try { remBadge(); moreTiles(); } catch (e) { if (win.console) console.warn('[Flow]', e); } }); }
-  function start() { styles(); new MutationObserver(tick).observe(doc.body, { childList: true, subtree: true }); tick(); }
+  function tick() { if (q) return; q = true; (win.requestAnimationFrame || setTimeout)(function () { q = false; try { remBadge(); moreTiles(); actNow(); } catch (e) { if (win.console) console.warn('[Flow]', e); } }); }
+  function start() { styles(); new MutationObserver(tick).observe(doc.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-screen'] }); tick(); }
   if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', start); else start();
 })();
