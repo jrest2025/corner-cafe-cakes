@@ -203,3 +203,13 @@ Screens:
   `staff.pickups.js` (fingerprint 84a62ce4…) at commit be065ebf. Test `test/order-tools/test_pickups.cjs` 35/35;
   `test_answers.cjs` 86/86 re-run.
 - Rollback: remove ccOrderToolsLoader38, add ccOrderToolsLoader37 (footer, 1.0.37), publish.
+
+## Booking-time bars and Performance snapshot hidden (loader 39, 27 Oct 2026, 10:29 PM)
+
+- Approved by Roneel ("deploy", 10:25 PM; "remove ... only this section", 10:27 PM).
+- `ccOrderToolsLoader39` (footer, 1.0.39) replaces loader 38: same files, `staff.pickups.js` updated (fingerprint
+  62a07f21…) at commit d90e0ef7. Pickups bars split by booking time (same groups and colours as By booking time), usual
+  weekday tick, booking-time summary with 30/90/year/all chips, bars scaled to a normal busy day. Overview Performance
+  snapshot (heading, 7/30/90 buttons, six number cards) hidden; Popular cake types, Booking channels, Customer mix and
+  the By booking time view stay. Test test_pickups 37/37. Checked live in Chrome after publishing.
+- Rollback: remove ccOrderToolsLoader39, add ccOrderToolsLoader38 (footer, 1.0.38), publish.
