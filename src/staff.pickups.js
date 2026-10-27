@@ -381,7 +381,10 @@
   function hideSnapshot() {
     if (doc.getElementById('ccpk-snap')) return;
     var s = doc.createElement('style'); s.id = 'ccpk-snap';
-    s.textContent = ':root:not(#cc-p1) #cc-staff .hb-v2 .hb-k-heading,:root:not(#cc-p1) #cc-staff .hb-v2 .hb-k-kpis,:root:not(#cc-p1) #cc-staff .hb-v2 .hb-k-panels{display:none!important}';
+    // Roneel, 27 Oct 10:41 PM: on Cake sales, What to do and the four number cards (with the Gross profit note) go too
+    var SL = ':root:not(#cc-p1) #cc-staff #ccs-main .cat-page[data-cat="sl"] > ';
+    s.textContent = ':root:not(#cc-p1) #cc-staff .hb-v2 .hb-k-heading,:root:not(#cc-p1) #cc-staff .hb-v2 .hb-k-kpis,:root:not(#cc-p1) #cc-staff .hb-v2 .hb-k-panels,' +
+      SL + '.cat-todo,' + SL + '.cat-kpis,' + SL + 'p.cat-flag{display:none!important}';
     doc.head.appendChild(s);
   }
   function start() { hideSnapshot(); new MutationObserver(schedule).observe(doc.body, { childList: true, subtree: true }); schedule(); }
