@@ -8,17 +8,20 @@ let n = 0, fails = 0; const check = (s, v, d) => { if (v) { n++; console.log('PA
 const sales = async p => { await tap(p, '#cc-staff [data-tab="dash"]', 3000); await p.evaluate(() => { const b = [...document.querySelectorAll('#ccs-main button')].find(x => x.textContent.trim() === 'Sales & Products'); b && b.click(); }); await p.waitForTimeout(3000); };
 (async () => {
   const b = await chromium.launch();
-  // Daily cake demand unchanged
+  // Daily cake demand unchanged: the same numbers per day on the Overview (without the add-on) and on Cake sales (with it)
   const hb = [], snap = [];
+  const dayNums = () => { const r = document.querySelector('#cc-demand-scroll-rail'); const t = r ? r.innerText.replace(/\s+/g, ' ') : ''; const m = {}; t.replace(/(\w{3}, \d{1,2} \w{3}) (\d+) due (\S+) booked/g, (a, d, due, bk) => { m[d] = due + '/' + bk; }); return { m, foot: (t.match(/\w{3}, \d+ \w{3} \d{4} · [^·]+· [^A]+/) || [''])[0].trim() }; };
   for (const extra of ['', add('answers') + add('pickups')]) {
     const { p } = await open(b, 1440, 900, { extraFoot: fs.readFileSync(__dirname + '/loader.html', 'utf8').replace('SHA_OT', '0000000') + extra });
     await p.waitForTimeout(2500); await tap(p, '#cc-staff [data-tab="dash"]', 3500);
-    hb.push(await p.evaluate(() => { const r = document.getElementById('cc-demand-scroll-rail'); return r ? r.outerHTML.replace(/\d{1,2}:\d{2}\s?[AP]M/g, '') : ''; }));
-    snap.push(await p.evaluate(() => { const v = s => [...document.querySelectorAll(s)].filter(e => e.getClientRects().length).length; return { head: v('.hb-v2 .hb-k-heading'), kpis: v('.hb-v2 .hb-k-kpis'), panels: v('.hb-v2 .hb-k-panels'), view: !!document.getElementById('cc-demand-views') }; }));
+    snap.push(await p.evaluate(() => { const v = s => [...document.querySelectorAll(s)].filter(e => e.getClientRects().length).length; return { head: v('.hb-v2 .hb-k-heading'), kpis: v('.hb-v2 .hb-k-kpis'), panels: v('.hb-v2 .hb-k-panels'), view: !!document.getElementById('cc-demand-views'), rail: v('.hb-v2 #cc-demand-scroll-rail'), lead: v('#cc-cake-lead-time') }; }));
+    if (extra) { await p.evaluate(() => { const b = [...document.querySelectorAll('#ccs-main button')].find(x => x.textContent.trim() === 'Sales & Products'); b && b.click(); }); await p.waitForTimeout(3500); }
+    hb.push(await p.evaluate(dayNums));
     await p.context().close();
   }
-  check('Daily cake demand is identical with the timeline add-on', hb[0].length > 1000 && hb[0] === hb[1], [hb[0].length, hb[1].length]);
-  check('Overview: Performance snapshot and its three cards hidden (moved to Cake sales); the By booking time view stays', snap[0].head && snap[0].kpis && snap[0].panels && !snap[1].head && !snap[1].kpis && !snap[1].panels && snap[1].view === snap[0].view, snap);
+  const same = Object.keys(hb[0].m).filter(d => hb[1].m[d] != null), diffs = same.filter(d => hb[0].m[d] !== hb[1].m[d]);
+  check('Daily cake demand on Cake sales shows the same numbers as on the Overview', same.length >= 7 && !diffs.length && hb[0].foot === hb[1].foot, { same: same.length, diffs, f0: hb[0].foot, f1: hb[1].foot });
+  check('Overview: Performance snapshot, its three cards and Daily cake demand hidden (moved to Cake sales); By booking time shown on its own', snap[0].head && snap[0].kpis && snap[0].panels && snap[0].rail && !snap[1].head && !snap[1].kpis && !snap[1].panels && !snap[1].rail && snap[1].lead === 1, snap);
   for (const [w, h, t] of [[1440, 900, 'desktop'], [1180, 820, 'ipad'], [390, 844, 'phone']]) {
     const { p, errors } = await open(b, w, h, { extraFoot: base, ipad: t === 'ipad' });
     await p.waitForTimeout(2500); await sales(p);
@@ -28,6 +31,8 @@ const sales = async p => { await tap(p, '#cc-staff [data-tab="dash"]', 3000); aw
         busiest: [...document.querySelectorAll('section.cat-card[aria-label="Busiest pickup days"]')].filter(e => e.getClientRects().length).length, scrolls: rail.scrollWidth > rail.clientWidth, side: document.documentElement.scrollWidth - innerWidth }; });
     check(t + ' timeline on Cake sales, past and upcoming days, today in view, scrolls sideways inside itself', s && s.cols > 100 && s.past && s.next && s.todayVisible && s.scrolls && s.side <= 0, s);
     check(t + ' replaces Busiest pickup days', s && s.busiest === 0, s);
+    const dm = await p.evaluate(() => { const w = document.querySelector('#ccs-main .cat-page[data-cat="sl"] > .pk-demand'), r = w && w.querySelector('#cc-demand-scroll-rail'); return { rail: !!(r && r.getClientRects().length), only: w && [...w.querySelectorAll('.ccsd-season, #cc-demand-views, #cc-cake-lead-time')].length, beforeSales: w && w.nextElementSibling && w.nextElementSibling.classList.contains('cat-main') }; });
+    check(t + ' Daily cake demand sits on Cake sales above Sales by day, on its own', dm.rail && dm.only === 0 && dm.beforeSales, dm);
     const gone = await p.evaluate(() => { const pg = document.querySelector('#ccs-main .cat-page[data-cat="sl"]'), v = q => [...pg.querySelectorAll(q)].filter(e => e.getClientRects().length).length; return { todo: v(':scope > .cat-todo'), kpis: v(':scope > .cat-kpis'), flag: v(':scope > p.cat-flag'), main: v(':scope > .cat-main') }; });
     check(t + ' Cake sales: What to do, the four number cards and Gross profit note hidden; charts stay', !gone.todo && !gone.kpis && !gone.flag && gone.main === 1, gone);
     const trio = await p.evaluate(() => { const r = document.querySelector('#ccs-main .cat-page[data-cat="sl"] .pk-trio'); return r && { titles: [...r.querySelectorAll('h3')].map(h => h.textContent), rows: r.querySelectorAll('.cat-br, .cat-bars > *').length, afterPk: r.previousElementSibling && r.previousElementSibling.classList.contains('pk') }; });

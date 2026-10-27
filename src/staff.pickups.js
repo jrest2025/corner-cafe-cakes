@@ -272,10 +272,35 @@
     return '<div class="cat-row cat-n3 pk-trio">' + rows.join('') + '</div>';
   }
 
+  // ---------- Daily cake demand on Cake sales (moved from the Overview, Roneel 27 Oct 10:45 PM) ----------
+  // The protected module is mounted exactly as the Overview mounts it (CCCakeSeasonalStage.mount, then
+  // CCCakeDemandRail.mount, the same orders and date); nothing inside it is changed. Only its place on screen moves.
+  function demand(pg, x) {
+    if (pg.querySelector('.pk-demand')) return;
+    var S = win.CCCakeSeasonalStage, R = win.CCCakeDemandRail, orders = x.data && (x.data.allOrders || x.data.orders);
+    if (!S || !R || typeof S.mount !== 'function' || typeof R.mount !== 'function' || !orders) return;
+    var w = doc.createElement('div'); w.className = 'pk-demand';
+    var anchor = pg.querySelector(':scope > .cat-main'); if (anchor) anchor.before(w); else pg.appendChild(w);
+    var opts = { today: x.today() };
+    try { S.mount(w, orders, opts); R.mount(w, orders, opts); } catch (e) { warn('Daily cake demand not shown here', e); }
+    tidyDemand(w);
+    if (!w.querySelector('#cc-demand-scroll-rail')) w.remove();
+  }
+  function tidyDemand(w) {
+    [].forEach.call(w.querySelectorAll('.ccsd-season, .ccsd-daily, #cc-demand-views, #cc-cake-lead-time, .ccsd-manager-kpis, .ccsd-manager-panels'), function (e) { e.remove(); });
+    var r = w.querySelector('#cc-demand-scroll-rail'); if (r) r.classList.remove('ccdv-off');
+  }
+  // The Overview keeps its "By booking time" chart, now shown on its own (the switch had nothing left to switch to)
+  function overviewLead() {
+    var sw = doc.querySelector('#ccs-main .hb-v2 #cc-demand-views'), b = sw && sw.querySelector('[data-view="lead"]');
+    if (b && b.getAttribute('aria-pressed') !== 'true') b.click();
+  }
+
   // ---------- the Cake sales page ----------
   function last() { var A = win.CCAnalyticsAnswers; return A && typeof A.last === 'function' ? A.last() : null; }
   function mount() {
     var pg = doc.querySelector('#cc-staff #ccs-main .cat-page[data-cat="sl"]'), L = last();
+    if (pg && L && L.mod === 'sl') { try { demand(pg, L.x); } catch (e) { warn('Daily cake demand not moved', e); } var dw = pg.querySelector('.pk-demand'); if (dw && dw.querySelector('#cc-demand-views, #cc-cake-lead-time')) tidyDemand(dw); }
     if (!pg || !L || L.mod !== 'sl' || pg.querySelector('.pk')) return;
     styles();
     data = build(L.x);
@@ -374,7 +399,7 @@
   }
 
   var queued = false;
-  function schedule() { if (queued) return; queued = true; setTimeout(function () { queued = false; try { mount(); } catch (e) { warn('not shown', e); } }, 30); }
+  function schedule() { if (queued) return; queued = true; setTimeout(function () { queued = false; try { overviewLead(); mount(); } catch (e) { warn('not shown', e); } }, 30); }
   // Roneel, 27 Oct 2026 10:27 PM ("remove this, only this section"): the Overview's Performance snapshot (its heading,
   // 7/30/90 day buttons and the six number cards) is hidden. Popular cake types, Booking channels, Customer mix, the
   // Heartbeat and every other part of the Overview stay as they are.
@@ -383,8 +408,10 @@
     var s = doc.createElement('style'); s.id = 'ccpk-snap';
     // Roneel, 27 Oct 10:41 PM: on Cake sales, What to do and the four number cards (with the Gross profit note) go too
     var SL = ':root:not(#cc-p1) #cc-staff #ccs-main .cat-page[data-cat="sl"] > ';
-    s.textContent = ':root:not(#cc-p1) #cc-staff .hb-v2 .hb-k-heading,:root:not(#cc-p1) #cc-staff .hb-v2 .hb-k-kpis,:root:not(#cc-p1) #cc-staff .hb-v2 .hb-k-panels,' +
-      SL + '.cat-todo,' + SL + '.cat-kpis,' + SL + 'p.cat-flag{display:none!important}';
+    s.textContent = ':root:not(#cc-p1) #cc-staff #ccs-main .hb-v2 #cc-demand-scroll-rail,:root:not(#cc-p1) #cc-staff #ccs-main .hb-v2 #cc-demand-views,' +
+      ':root:not(#cc-p1) #cc-staff .hb-v2 .hb-k-heading,:root:not(#cc-p1) #cc-staff .hb-v2 .hb-k-kpis,:root:not(#cc-p1) #cc-staff .hb-v2 .hb-k-panels,' +
+      SL + '.cat-todo,' + SL + '.cat-kpis,' + SL + 'p.cat-flag{display:none!important}' +
+      ':root:not(#cc-p1):not(#cc-p2) #cc-staff #ccs-main .pk-demand #cc-demand-scroll-rail.ccdr{display:block!important}:root:not(#cc-p1) #cc-staff #ccs-main .pk-demand{margin:0 0 16px}';
     doc.head.appendChild(s);
   }
   function start() { hideSnapshot(); new MutationObserver(schedule).observe(doc.body, { childList: true, subtree: true }); schedule(); }
