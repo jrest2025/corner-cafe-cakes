@@ -18,12 +18,13 @@
 
   // Groups, built only from sections the app actually shows this user (permissions decide what appears)
   var GROUPS = [
-    { k: 'ordering', t: 'Ordering & availability', ic: 'globe', s: ['Online orders', 'Notice and collection hours', 'Closed days'] },
-    { k: 'menu', t: 'Menu & pricing', ic: 'cake', s: ['Cakes and prices', 'Seasonal items', 'Delivery areas'] },
+    // Kazumi Service Hub format (Roneel, 28 Oct 2026): full words, grouped by job
+    { k: 'ordering', t: 'Ordering and availability', ic: 'globe', s: ['Online orders', 'Notice and collection hours', 'Closed days'] },
+    { k: 'menu', t: 'Menu and pricing', ic: 'cake', s: ['Cakes and prices', 'Seasonal items', 'Delivery areas'] },
     { k: 'calendar', t: 'Calendar', ic: 'cal', s: ['Occasions and special dates', 'Events and public holidays'] },
-    { k: 'alerts', t: 'Alerts & printing', ic: 'bell', s: ['Order alerts', 'Kitchen printing', 'Communications'] },
-    { k: 'team', t: 'Team & access', ic: 'users', s: ['Team and access'] },
-    { k: 'data', t: 'Data & safety', ic: 'shield', s: ['Backup and business continuity', 'Deleted orders', 'Remove Settings entries'] }
+    { k: 'alerts', t: 'Alerts and communications', ic: 'bell', s: ['Order alerts', 'Kitchen printing', 'Communications'] },
+    { k: 'team', t: 'People and access', ic: 'users', s: ['Team and access', 'What each level can do'] },
+    { k: 'data', t: 'Data and safety', ic: 'shield', s: ['Backup and business continuity', 'Deleted orders', 'Remove Settings entries'] }
   ];
   var KEYWORDS = {
     'Online orders': 'website pause stop accept online form', 'Notice and collection hours': 'lead time days notice pickup collection hours slots limit per day',
@@ -33,6 +34,12 @@
     'Team and access': 'staff user people level role permission access login', 'Backup and business continuity': 'backup google sheet restore continuity',
     'Deleted orders': 'deleted restore order', 'Remove Settings entries': 'remove delete entry'
   };
+  var SEC_IC = { 'Online orders': 'globe', 'Notice and collection hours': 'clock', 'Closed days': 'calx', 'Cakes and prices': 'cake', 'Seasonal items': 'gift',
+    'Delivery areas': 'truck', 'Occasions and special dates': 'star', 'Events and public holidays': 'flag', 'Order alerts': 'bell', 'Kitchen printing': 'printer',
+    'Communications': 'mail', 'Team and access': 'users', 'What each level can do': 'shield', 'Backup and business continuity': 'db', 'Deleted orders': 'trash', 'Remove Settings entries': 'trash' };
+  // the short name used for a setting's key fact on the overview cards
+  var FACT = { 'Online orders': 'Website orders', 'Notice and collection hours': 'Notice', 'Cakes and prices': 'On sale', 'Seasonal items': 'Seasonal', 'Delivery areas': 'Delivery',
+    'Order alerts': 'Alerts go to', 'Team and access': 'Staff', 'Backup and business continuity': 'Backup', 'Deleted orders': 'Deleted orders' };
   var DEF_IC = { 'Order alerts': 'mail', 'Team and access': 'users', 'Deleted orders': 'trash', 'Remove Settings entries': 'trash', 'Communications': 'mail', 'Kitchen printing': 'printer' };
   // status colour by meaning
   function tone(s) {
@@ -61,7 +68,7 @@
       var body = info.d && info.d.querySelector('.ccs-set-body'), extra = '';
       if (body && /test mode is on/i.test(body.textContent)) extra = 'Test mode';
       var st = info.status || ''; if (/^administrators?$/i.test(st) || (st.split(' ').length > 4 && !/\d/.test(st))) st = '';
-      var bic = b.querySelector('svg'); return { k: k, b: b, d: info.d, status: st, flag: extra, ic: bic ? bic.outerHTML : svg(DEF_IC[k] || 'layers') };
+      var bic = b.querySelector('svg'); return { k: k, b: b, d: info.d, status: st, flag: extra, ic: SEC_IC[k] ? svg(SEC_IC[k]) : bic ? bic.outerHTML : svg(DEF_IC[k] || 'layers') };
     }).concat(commsRow(set, btns));
   }
   // Email templates (22 Oct) sit in the old Settings list, which this home hides: shown here as Communications,
@@ -75,8 +82,35 @@
 
   function rowHtml(s) {
     var st = s.flag || s.status, tn = tone(st), name = s.k === 'Remove Settings entries' ? 'Remove entries' : s.k;
+    var fact = FACT[s.k] && !q;   // shown in the card's key facts instead
     return '<button type="button" class="cca-row" data-cca-open="' + esc(s.k) + '"><span class="cca-ric">' + s.ic + '</span><span class="cca-rx"><span class="cca-rt">' + esc(name) + '</span>' +
-      (st && !/^Checking/i.test(st) ? '<span class="cca-st" data-tone="' + tn + '">' + esc(st) + '</span>' : '') + '</span>' + svg('chev', 'cca-go') + '</button>';
+      (st && !fact && s.k !== 'Communications' && !/^Checking/i.test(st) ? '<span class="cca-st" data-tone="' + tn + '">' + esc(st) + '</span>' : '') + '</span>' + svg('chev', 'cca-go') + '</button>';
+  }
+  function factHtml(s) {
+    var v = s.flag || s.status, tn = tone(v);
+    return '<div class="cca-fact"><dt>' + esc(FACT[s.k]) + '</dt><dd>' + (/red|amber|green/.test(tn) ? '<span class="cca-st" data-tone="' + tn + '">' + esc(v) + '</span>' : esc(v)) + '</dd></div>';
+  }
+  function linkName(k) { return k === 'Remove Settings entries' ? 'Remove entries' : k; }
+  // Kazumi's settings menu: Overview, then each group's settings, always beside the page on computers
+  function menu(main, list, curKey) {
+    var m = main.querySelector(':scope > .cca-menu');
+    var groups = [], others = [];
+    GROUPS.forEach(function (g) { var items = list.filter(function (s) { return g.s.indexOf(s.k) > -1; }); if (items.length) groups.push({ g: g, items: items }); });
+    list.forEach(function (s) { if (groupOf(s.k).k === 'other') others.push(s); });
+    if (others.length) groups.push({ g: { k: 'other', t: 'Other' }, items: others });
+    var h = '<label class="cca-search cca-msearch">' + svg('search') + '<input type="search" placeholder="Find a setting" value="' + esc(q) + '" aria-label="Find a setting" data-cca-q></label>' +
+      '<button type="button" class="cca-mi cca-mov" data-cca-home aria-current="' + (curKey === 'home' ? 'page' : 'false') + '">' + svg('layers') + '<span>Overview</span></button>' +
+      groups.map(function (x) {
+        return '<p class="cca-mh">' + esc(x.g.t) + '</p>' + x.items.map(function (s) {
+          return '<button type="button" class="cca-mi" data-cca-open="' + esc(s.k) + '" aria-current="' + (curKey === s.k ? 'page' : 'false') + '">' + s.ic + '<span>' + esc(linkName(s.k)) + '</span></button>';
+        }).join('');
+      }).join('');
+    if (!m) { m = doc.createElement('nav'); m.className = 'cca-menu'; m.setAttribute('aria-label', 'Settings'); var head = main.querySelector(':scope > .ccs-head'); if (head) head.after(m); else main.insertBefore(m, main.firstChild); }
+    if (m.getAttribute('data-h') !== h) {
+      var hadFocus = doc.activeElement && m.contains(doc.activeElement) && doc.activeElement.hasAttribute('data-cca-q'), pos = hadFocus ? doc.activeElement.selectionStart : 0;
+      m.innerHTML = h; m.setAttribute('data-h', h);
+      if (hadFocus) { var inp = m.querySelector('[data-cca-q]'); inp.focus(); try { inp.setSelectionRange(pos, pos); } catch (e) {} }
+    }
   }
   function home(main, set, list) {
     var box = main.querySelector(':scope > .cca-home');
@@ -92,7 +126,10 @@
     var shown = 0;
     h += '<div class="cca-grid">' + groups.map(function (x) {
       var items = x.items.filter(match); shown += items.length; if (!items.length) return '';
-      return '<section class="cca-card" data-cca-g="' + x.g.k + '"><header><span class="cca-gic">' + svg(x.g.ic) + '</span><h2>' + esc(x.g.t) + '</h2></header><div class="cca-rows">' + items.map(rowHtml).join('') + '</div></section>';
+      var facts = ql ? [] : items.filter(function (s) { return FACT[s.k] && (s.flag || s.status); });
+      return '<section class="cca-card" data-cca-g="' + x.g.k + '"><button type="button" class="cca-ch" data-cca-open="' + esc(items[0].k) + '"><span class="cca-gic">' + svg(x.g.ic) + '</span><h2>' + esc(x.g.t) + '</h2>' + svg('chev', 'cca-go') + '</button>' +
+        (facts.length ? '<dl class="cca-facts">' + facts.map(factHtml).join('') + '</dl>' : '') +
+        '<div class="cca-rows">' + items.map(rowHtml).join('') + '</div></section>';
     }).join('') + '</div>';
     if (!shown) h += '<p class="cca-empty">No setting matches “' + esc(q) + '”.</p>';
     if (!box) { box = doc.createElement('div'); box.className = 'cca-home'; main.insertBefore(box, set); }
@@ -131,7 +168,7 @@
   function render() {
     var main = doc.getElementById('ccs-main'); if (!main) return;
     var set = main.getAttribute('data-screen') === 'settings' && main.querySelector(':scope > .ccs-set');
-    if (!set) { main.classList.remove('cca-on', 'cca-home-on', 'cca-sec-on'); return; }
+    if (!set) { main.classList.remove('cca-on', 'cca-home-on', 'cca-sec-on'); var om = main.querySelector(':scope > .cca-menu'); if (om) om.remove(); return; }
     var list = sections(set); if (!list.length) return;
     main.classList.add('cca-on');
     headerTone(list);
@@ -139,6 +176,7 @@
     if (view !== 'home' && cur.k !== view) { var want = list.filter(function (s) { return s.k === view; })[0]; if (want) { want.b.click(); return; } setView('home'); }
     var isHome = view === 'home';
     main.classList.toggle('cca-home-on', isHome); main.classList.toggle('cca-sec-on', !isHome);
+    menu(main, list, isHome ? 'home' : cur.k);
     if (isHome) home(main, set, list); else { sectionBar(main, set, list, cur); quiet(cur); }
   }
   var queued = false;
@@ -155,7 +193,7 @@
     // the sidebar Settings item always starts at the overview
     if (t.closest('#cc-staff [data-tab="settings"]')) { setView('home'); q = ''; schedule(); }
   }, true);
-  doc.addEventListener('input', function (e) { var t = e.target; if (t && t.hasAttribute && t.hasAttribute('data-cca-q')) { q = t.value; schedule(); } });
+  doc.addEventListener('input', function (e) { var t = e.target; if (t && t.hasAttribute && t.hasAttribute('data-cca-q')) { q = t.value; if (view !== 'home') setView('home'); schedule(); } });
   doc.addEventListener('keydown', function (e) {
     var t = e.target;
     if (t && t.hasAttribute && t.hasAttribute('data-cca-q') && e.key === 'Enter') { var first = doc.querySelector('#ccs-main .cca-home .cca-row'); if (first) first.click(); }
@@ -225,9 +263,34 @@
     S + ' .cca-ic{fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}',
     // phones: one column, bigger rows
     '@media (max-width:759px){' + S + ' .cca-grid{grid-template-columns:1fr}' + S + ' .cca-row{min-height:56px}' + S + ' .cca-st{max-width:140px}' + S + ' .cca-crumb span{display:none}}',
+    // Kazumi format: overview card header, key facts (label left, value right)
+    S + ' .cca-ch{display:flex;align-items:center;gap:12px;width:100%;padding:14px 16px;border:0;border-bottom:1px solid #EAECF0;background:none;font:inherit;text-align:left;cursor:pointer;color:#1D2939}',
+    S + ' .cca-ch h2{flex:1 1 auto;font-size:18px}' + S + ' .cca-ch:hover{background:#F9FAFB}' + S + ' .cca-ch:focus-visible{outline:2px solid #245F99;outline-offset:-2px}',
+    S + ' .cca-card > header{display:none}',
+    S + ' .cca-facts{margin:0;padding:6px 16px;border-bottom:1px solid #EAECF0}',
+    S + ' .cca-fact{display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:40px;border-top:1px dashed #EAECF0}' + S + ' .cca-fact:first-child{border-top:0}',
+    S + ' .cca-fact dt{color:#475467;font-size:15px}' + S + ' .cca-fact dd{margin:0;color:#1D2939;font-size:15px;font-weight:500;text-align:right;min-width:0}',
+    S + ' .cca-rows{padding:4px 6px 6px}' + S + ' .cca-row{min-height:48px}',
+    S + ' .cca-menu{display:none}',
+    // computers: the settings menu beside the page, as in Kazumi
+    '@media (min-width:1100px){' +
+      S + ' > *:not(.ccs-head):not(.cca-menu){margin-left:268px!important;min-width:0}' +
+      S + ' > .ccs-head{padding-bottom:12px!important;margin-bottom:18px!important;border-bottom:1px solid #E4E7EC}' +
+      S + ' > .cca-menu{display:flex;flex-direction:column;gap:2px;float:left;width:240px;position:sticky;top:0}' +
+      S + ' .cca-msearch{height:44px;margin:0 0 10px;max-width:none}' + S + ' .cca-msearch input{font-size:15px}' +
+      S + ' .cca-mh{margin:14px 12px 4px;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#667085}' +
+      S + ' .cca-mi{display:flex;align-items:center;gap:12px;width:100%;min-height:44px;padding:0 12px;border:1px solid transparent;border-radius:10px;background:none;color:#1D2939;font:inherit;font-size:16px;text-align:left;cursor:pointer}' +
+      S + ' .cca-mi .cca-ic,' + S + ' .cca-mi svg{width:18px;height:18px;flex:none;color:#475467}' +
+      S + ' .cca-mi:hover{background:#F2F4F7}' + S + ' .cca-mi:focus-visible{outline:2px solid #245F99;outline-offset:1px}' +
+      S + ' .cca-mi[aria-current="page"]{background:#E8F0F8;border-color:#8FAED3;color:#1A4570;font-weight:600}' + S + ' .cca-mi[aria-current="page"] svg{color:#1A4570}' +
+      S + ' .cca-mov{margin:0 0 4px}' +
+      S + ' > .cca-home > .cca-top{display:none}' +
+      S + '.cca-sec-on > .cca-bar{display:none!important}' +
+      S + ' .cca-grid{grid-template-columns:repeat(auto-fill,minmax(min(100%,380px),1fr))}' +
+    '}',
     '@media (prefers-reduced-motion:no-preference){' + S + ' .cca-home,' + S + ' .cca-bar{animation:cca-in .16s ease-out}}@keyframes cca-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}'
   ].join('\n');
   function styles() { if (doc.getElementById('cca-style')) return; var s = doc.createElement('style'); s.id = 'cca-style'; s.textContent = css; doc.head.appendChild(s); }
-  function start() { styles(); var mo = new MutationObserver(function (m) { for (var i = 0; i < m.length; i++) { var r = m[i], n = r.target; if (n && n.closest && n.closest('.cca-home, .cca-bar, .cca-i')) continue; if (r.type === 'attributes' && (n.id === 'ccs-main' && r.attributeName === 'class' || n.classList && (n.classList.contains('cca-hst') || n.classList.contains('cca-hidetext')))) continue; schedule(); return; } }); mo.observe(doc.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'open', 'data-screen'] }); schedule(); }
+  function start() { styles(); var mo = new MutationObserver(function (m) { for (var i = 0; i < m.length; i++) { var r = m[i], n = r.target; if (n && n.closest && n.closest('.cca-home, .cca-bar, .cca-i, .cca-menu')) continue; if (r.type === 'attributes' && (n.id === 'ccs-main' && r.attributeName === 'class' || n.classList && (n.classList.contains('cca-hst') || n.classList.contains('cca-hidetext')))) continue; schedule(); return; } }); mo.observe(doc.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'open', 'data-screen'] }); schedule(); }
   if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', start); else start();
 })();
