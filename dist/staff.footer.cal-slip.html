@@ -1,0 +1,414 @@
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>(function(){var f="gh/jrest2025/corner-cafe-cakes@584196fa11fce7bb9b7a1afe429063a33249839f/dist/app/staff-app.1b4d78464d.js",h=['https://cdn.jsdelivr.net/','https://fastly.jsdelivr.net/'],k="sha384-Hd/2AmIfUnk/XaB112tHMkxxICZLv0mPx9aNHHCEhd1207IOX5HG6nh+H5NKtptG",i=0;function go(){if(i>=h.length){var m=document.getElementById('cc-staff');if(m)m.innerHTML='<p style="padding:30px;font-family:Arial,sans-serif">The staff app did not load. Check the internet connection, then refresh the page.</p>';console.error('staff app did not load');return}var s=document.createElement('script');s.src=h[i++]+f;s.crossOrigin='anonymous';s.onerror=go;document.body.appendChild(s)}go()})();</script>
+<script>/* Corner Cafe UX nav-only refinement 2026-10-18; reversible by removing this block. */
+(function(){var root=document.getElementById('cc-staff');if(!root)return;var busy=false;function fix(){if(busy)return;busy=true;try{var nav=root.querySelector('.ccs-nav');if(!nav)return;function label(id,title,group){var btn=nav.querySelector('[data-tab="'+id+'"]');if(!btn)return;var sp=btn.querySelector('span');if(sp&&sp.textContent!==title)sp.textContent=title;btn.title=title;btn.setAttribute('aria-label',id==='tablet'?'Service view - full-screen counter workflow':title);if(group&&!btn.previousElementSibling?.matches('.ccs-navh[data-ux-group="'+id+'"]')){var heading=nav.querySelector('.ccs-navh[data-ux-group="'+id+'"]');if(!heading){heading=document.createElement('p');heading.className='ccs-navh';heading.setAttribute('aria-hidden','true');heading.dataset.uxGroup=id;heading.textContent=group;}btn.before(heading);}}label('calendar','Calendar','Planning');label('tablet','Service view','Quick service');}finally{busy=false;}}var pending=false;var obs=new MutationObserver(function(){if(pending)return;pending=true;queueMicrotask(function(){pending=false;fix()})});obs.observe(root,{childList:true,subtree:true});fix();})();</script>
+<script id="cc-heartbeat-loader">(function(){var base=["https://fastly.jsdelivr.net/gh/jrest2025/corner-cafe-cakes@3fb6a2e1f548bbf0de6b5796eb76aa432931111e/dist/analytics/approved-dashboard-stable","https://raw.githubusercontent.com/jrest2025/corner-cafe-cakes/3fb6a2e1f548bbf0de6b5796eb76aa432931111e/dist/analytics/approved-dashboard-stable"];function read(u){return fetch(u).then(function(r){if(!r.ok)throw Error('Asset HTTP '+r.status);return r.text()})}function get(suffix){return read(base[0]+suffix).catch(function(){return read(base[1]+suffix)})}function mount(js,css){var style=document.createElement('style');style.id='cc-heartbeat-style';style.textContent=css;document.head.appendChild(style);var script=document.createElement('script');script.id='cc-analytics-stable-bundle';script.text=js;document.body.appendChild(script)}Promise.all([get('.js'),get('.css')]).then(function(core){Promise.all([read('https://raw.githubusercontent.com/jrest2025/corner-cafe-cakes/71758a893197746fcca5a1027e4d40450c3dcb26/src/seasonal-demand-staging.js'),read('https://raw.githubusercontent.com/jrest2025/corner-cafe-cakes/71758a893197746fcca5a1027e4d40450c3dcb26/src/seasonal-demand-staging.css'),read('https://raw.githubusercontent.com/jrest2025/corner-cafe-cakes/fd6e6fa612a29ece7e14005dcf1885819c63607a/src/staff.demand-rail.locked.js').catch(function(e){console.warn('[Daily Demand] Using previous chart: rail JS unavailable',e);return ''}),read('https://raw.githubusercontent.com/jrest2025/corner-cafe-cakes/fd6e6fa612a29ece7e14005dcf1885819c63607a/src/staff.demand-rail.locked.css').catch(function(e){console.warn('[Daily Demand] Using previous chart: rail CSS unavailable',e);return ''}),read('https://raw.githubusercontent.com/jrest2025/corner-cafe-cakes/71758a893197746fcca5a1027e4d40450c3dcb26/src/staff.analytics-insights.js').catch(function(e){console.warn('[Cake insights] Not loaded; Heartbeat unchanged',e);return ''}),read('https://raw.githubusercontent.com/jrest2025/corner-cafe-cakes/71758a893197746fcca5a1027e4d40450c3dcb26/src/staff.analytics-insights.css').catch(function(e){console.warn('[Cake insights] Not loaded; Heartbeat unchanged',e);return ''})]).then(function(extra){var anchor="      mount.classList.toggle('hb-m-ready',!!DX.data&&!DX.error);";if(core[0].split(anchor).length!==2)throw Error('Approved analytics integration point changed');var injected=core[0].replace(anchor,function(){return anchor+"\n      if(DX.data&&!DX.error&&window.CCCakeSeasonalStage){try{window.CCCakeSeasonalStage.mount(mount,DX.data.orders,{today:today()});if(window.CCCakeDemandRail){window.CCCakeDemandRail.mount(mount,DX.data.orders,{today:today()});}}catch(seasonErr){console.warn('[Cake seasonal analysis] Supplemental panel unavailable',seasonErr);}}\n      if(DX.data&&!DX.error&&window.CCCakeInsights){try{window.CCCakeInsights.mount(mount,DX.data,{today:today()});}catch(insightErr){console.warn('[Cake insights] Not available; Heartbeat unchanged',insightErr);}}"});var railReady=!!(extra[2]&&extra[3]);var insReady=!!(extra[4]&&extra[5]);var combined=extra[0]+"\n"+(railReady?extra[2]:"")+"\n"+(insReady?extra[4]:"")+"\n"+injected;new Function(combined);return {js:combined,css:core[1]+"\n"+extra[1]+(railReady?"\n"+extra[3]:"")+(insReady?"\n"+extra[5]:"")}}).catch(function(err){console.warn('[Cake seasonal analysis] Add-on not loaded; approved dashboard retained',err);return {js:core[0],css:core[1]}}).then(function(result){mount(result.js,result.css)})}).catch(function(err){console.error('[Corner Cafe Analytics] Approved dashboard assets failed',err)})})();</script>
+<style id="cc-hide-needs-attention-nav">#cc-staff .ccs-nav .ccs-nav-item[data-tab="attn"]{display:none!important}</style>
+<style id="cc-analytics-ops-cleanup">#cc-staff #ccs-main[data-screen="dash"] .dx-ov{display:flex!important;flex-direction:column!important;align-items:stretch!important;flex:0 0 auto!important;height:auto!important;min-height:0!important;grid-template-columns:none!important;grid-template-rows:none!important;gap:12px!important}#cc-staff #ccs-main[data-screen="dash"] .dx-ov>.bi-ov-row{display:none!important}#cc-staff #ccs-main[data-screen="dash"] .dx-ov>:is(.ov-kpis,.bi-ov-trend,.an-grid){flex:0 0 auto!important;width:100%!important;min-width:0!important}#cc-staff #ccs-main[data-screen="dash"] .dx-ov>.bi-ov-trend{margin-top:0!important}#cc-staff #ccs-main[data-screen="dash"] .dx-ov>.an-grid{margin:0!important}</style>
+<script id="cc-calendar-dashboard-loader">(function(){var u="https://cdn.jsdelivr.net/gh/jrest2025/corner-cafe-cakes@fe3704f76a03a2391819630318230dca0f7541a5/src/";Promise.all(["staff.calendar-dashboard.css","staff.calendar-dashboard.js"].map(function(p){return fetch(u+p).then(function(r){if(!r.ok)throw Error("Calendar "+p);return r.text()})})).then(function(a){var style=document.createElement("style");style.id="cc-calendar-dashboard-style";style.textContent=a[0];document.head.appendChild(style);var el=document.createElement("script");el.text=a[1];document.body.appendChild(el)}).catch(function(e){console.error("Calendar dashboard upgrade",e)})})();</script>
+<script id="cc-customer-directory-loader">(function(){
+"use strict";
+if(window.__ccCustomerDirectoryLoaderR2)return;
+window.__ccCustomerDirectoryLoaderR2=true;
+var bases=["https://cdn.jsdelivr.net/gh/jrest2025/corner-cafe-cakes@17e9a1396eb653f157d3ea51491bf1793ae7e7da/src/","https://raw.githubusercontent.com/jrest2025/corner-cafe-cakes/17e9a1396eb653f157d3ea51491bf1793ae7e7da/src/"],release="20261019-r2";
+function asset(name,index){
+ if(index>=bases.length)return Promise.reject(new Error("Unable to fetch "+name+" from both sources"));
+ return fetch(bases[index]+name+"?release="+release,{cache:"no-store"})
+  .then(function(r){if(!r.ok)throw new Error(name+" HTTP "+r.status);return r.text()})
+  .catch(function(){return asset(name,index+1)});
+}
+function notifyFailure(error){
+ console.error("[Corner Cafe Customers] Directory enhancement failed; native directory preserved.",error);
+ function show(){
+  var m=document.querySelector('#cc-staff #ccs-main[data-screen="customers-all"],#cc-staff #ccs-main[data-screen="customers-search"]');
+  if(!m||!m.querySelector('.ccs-table-wrap'))return;
+  if(m.querySelector('#cc-customers-load-notice'))return;
+  var n=document.createElement("p");n.id="cc-customers-load-notice";n.setAttribute("role","status");
+  n.textContent="Customer directory styling could not load. The original customer list still works. Please refresh or report this to support.";
+  n.style.cssText="padding:11px 13px;border:1px solid #e7c6ad;border-radius:9px;background:#fff7f1;color:#795437;font:600 12px/1.5 Arial,sans-serif";
+  m.querySelector('.ccs-table-wrap').before(n);
+ }
+ show();
+ var root=document.getElementById('cc-staff');
+ if(root){var ob=new MutationObserver(show);ob.observe(root,{childList:true,subtree:true});}
+}
+Promise.all([asset("staff.customer-directory-v3.css",0),asset("staff.customer-directory-v3.js",0)])
+.then(function(a){
+ new Function(a[1]);
+ var css=document.createElement("style");css.id="cc-customer-directory-style";css.setAttribute("data-release",release);css.textContent=a[0];document.head.appendChild(css);
+ var js=document.createElement("script");js.id="cc-customer-directory-v3";js.setAttribute("data-release",release);js.text=a[1];document.body.appendChild(js);
+ console.info("[Corner Cafe Customers] Enhanced All customers directory release "+release+" installed");
+})
+.catch(notifyFailure);
+})();</script>
+<script id="cc-relationship-profile-loader">(function(){var u="https://cdn.jsdelivr.net/gh/jrest2025/corner-cafe-cakes@40e1cf19543dc7c5ed65ec63fd5dac4ecf33009f/src/";Promise.all(["staff.relationship-profile.css","staff.relationship-profile.js"].map(function(n){return fetch(u+n).then(function(r){if(!r.ok)throw Error("Customer profile "+n);return r.text()})})).then(function(a){var s=document.createElement("style");s.id="cc-relationship-profile-style";s.textContent=a[0];document.head.appendChild(s);var j=document.createElement("script");j.text=a[1];document.body.appendChild(j)}).catch(function(e){console.error("Customer relationship profile",e)})})();</script>
+<script id="cc-new-order-clarity-20261019">(function(){'use strict';var path='jrest2025/corner-cafe-cakes@0af0f630e592b57a046b0d4165c9888280528566/src/staff.new-order-clarity.css';var urls=['https://cdn.jsdelivr.net/gh/'+path,'https://raw.githubusercontent.com/jrest2025/corner-cafe-cakes/0af0f630e592b57a046b0d4165c9888280528566/src/staff.new-order-clarity.css'];function load(i){if(i>=urls.length){console.error('New Order clarity stylesheet unavailable; native staff form remains in place.');return;}fetch(urls[i],{cache:'force-cache'}).then(function(r){if(!r.ok)throw Error('CSS HTTP '+r.status);return r.text()}).then(function(css){if(css.indexOf('Corner Cafe / New Order clarity')<0)throw Error('Unexpected order clarity asset');var style=document.createElement('style');style.id='cc-new-order-clarity-style';style.textContent=css;document.head.appendChild(style)}).catch(function(){load(i+1)})}load(0)})();</script>
+<script id="cc-finish-flow-20261019">(function(){'use strict';var base='jrest2025/corner-cafe-cakes@7103cd832bedf3751dd0ca98be04e9116424baba/src/',files=['staff.finish-flow.css','staff.finish-flow.js'];function load(name){var paths=['https://cdn.jsdelivr.net/gh/'+base+name,'https://raw.githubusercontent.com/jrest2025/corner-cafe-cakes/7103cd832bedf3751dd0ca98be04e9116424baba/src/'+name];return fetch(paths[0]).then(function(r){if(!r.ok)throw Error(r.status);return r.text()}).catch(function(){return fetch(paths[1]).then(function(r){if(!r.ok)throw Error(r.status);return r.text()})})}Promise.all(files.map(load)).then(function(c){if(c[1].indexOf('__ccFinish20261019')<0||c[0].indexOf('cc-f-review')<0)throw Error('Finish flow asset mismatch');var style=document.createElement('style');style.id='cc-finish-flow-style';style.textContent=c[0];document.head.appendChild(style);var script=document.createElement('script');script.id='cc-finish-flow-code';script.text=c[1];document.body.appendChild(script)}).catch(function(e){console.error('Finish order enhancement unavailable; native saving remains active.',e)})})();</script>
+<style id="cc-customer-cockpit-unified-20261019">
+/* Unified responsive customer styling; cascade order preserved. */
+
+/* Presentation-only customer cockpit refinement: do not alter CRM workflows. */
+#cc-staff #ccs-main.cdir-v3-ready:is([data-screen="customers-all"],[data-screen="customers-search"]){--cdir-quiet:#586d61;--cdir-line:#dce5de}
+#cc-staff #ccs-main.cdir-v3-ready .ccs-head h1{font-size:clamp(24px,1.7vw,30px);line-height:1.2}
+#cc-staff #ccs-main.cdir-v3-ready .ccs-head .ccs-sub{font-size:13px;line-height:1.5;color:#586d61}
+#cc-staff #ccs-main.cdir-v3-ready .ccs-ctool{margin:8px 0 10px;padding:10px 13px;gap:8px 12px;flex-wrap:wrap}
+#cc-staff #ccs-main.cdir-v3-ready .cdir-search-field{max-width:min(530px,100%);flex:1 1 310px}
+#cc-staff #ccs-main.cdir-v3-ready .cdir-search-field input{font-size:14px;min-height:44px}
+#cc-staff #ccs-main.cdir-v3-ready .ccs-ctool .ccs-btn,
+#cc-staff #ccs-main.cdir-v3-ready .ccs-ctool .ccs-show select,
+#cc-staff #ccs-main.cdir-v3-ready [data-act="cust-new"]{font-size:14px;min-height:42px}
+#cc-staff #ccs-main.cdir-v3-ready .cdir-segments{flex-wrap:wrap;overflow:visible;gap:7px;padding:0;margin:4px 0 10px}
+#cc-staff #ccs-main.cdir-v3-ready .cdir-segment{font-size:13px;min-height:38px;padding:9px 13px}
+#cc-staff #ccs-main.cdir-v3-ready .cdir-heading{margin:9px 0 10px;align-items:center}
+#cc-staff #ccs-main.cdir-v3-ready .cdir-heading-title{font-size:18px}
+#cc-staff #ccs-main.cdir-v3-ready .cdir-heading-summary,
+#cc-staff #ccs-main.cdir-v3-ready .cdir-sort-label,
+#cc-staff #ccs-main.cdir-v3-ready .cdir-sort{font-size:13px}
+#cc-staff #ccs-main.cdir-v3-ready .cdir-sort{min-height:40px}
+#cc-staff #ccs-main.cdir-v3-ready .ccs-table-wrap{width:100%;max-width:100%;border-radius:13px;overflow-x:auto}
+#cc-staff #ccs-main.cdir-v3-ready .ccs-table{width:100%;table-layout:auto}
+#cc-staff #ccs-main.cdir-v3-ready .ccs-table thead th{font-size:12px;padding:12px;line-height:1.35;color:#526858}
+#cc-staff #ccs-main.cdir-v3-ready .ccs-table tbody tr td{font-size:14px;line-height:1.4;padding:11px 12px}
+#cc-staff #ccs-main.cdir-v3-ready .cdir-person-copy>b{font-size:14px}
+#cc-staff #ccs-main.cdir-v3-ready .cdir-avatar{width:39px;height:39px;font-size:12px}
+#cc-staff #ccs-main.cdir-v3-ready .cdir-name-cell{min-width:195px}
+#cc-staff #ccs-main.cdir-v3-ready .cdir-repeat-tag,
+#cc-staff #ccs-main.cdir-v3-ready .cdir-person-copy .ccs-pill{font-size:11px}
+#cc-staff #ccs-main.cdir-v3-ready .cdir-open-profile{min-width:36px;min-height:36px;margin-left:6px}
+#cc-staff #ccs-main.cdir-v3-ready .cdir-pager,
+#cc-staff #ccs-main.cdir-v3-ready .cdir-page-index,
+#cc-staff #ccs-main.cdir-v3-ready .cdir-page-btn,
+#cc-staff #ccs-main.cdir-v3-ready .cdir-size-label{font-size:13px}
+#cc-staff #ccs-main.cdir-v3-ready .cdir-page-btn{min-height:40px}
+#cc-staff #ccs-main.cdir-v3-ready :is(button,select,input):focus-visible{outline:3px solid #537b9d;outline-offset:2px}
+@media(min-width:1600px){#cc-staff #ccs-main.cdir-v3-ready .cdir-search-field{max-width:620px}#cc-staff #ccs-main.cdir-v3-ready .ccs-table tbody tr td{padding-top:13px;padding-bottom:13px}}
+@media(min-width:760px) and (max-width:1199px){#cc-staff #ccs-main.cdir-v3-ready .cdir-name-cell{min-width:175px}#cc-staff #ccs-main.cdir-v3-ready .ccs-table{min-width:820px}#cc-staff #ccs-main.cdir-v3-ready .ccs-table thead th,#cc-staff #ccs-main.cdir-v3-ready .ccs-table tbody tr td{padding-left:9px;padding-right:9px}}
+@media(max-width:759px){
+#cc-staff #ccs-main.cdir-v3-ready .ccs-ctool{padding:10px;gap:9px}
+#cc-staff #ccs-main.cdir-v3-ready .cdir-search-field{flex-basis:100%;max-width:none}
+#cc-staff #ccs-main.cdir-v3-ready .cdir-segments{flex-wrap:nowrap;overflow-x:auto;padding-bottom:8px;scroll-snap-type:x proximity}
+#cc-staff #ccs-main.cdir-v3-ready .cdir-segment{scroll-snap-align:start;min-height:42px}
+#cc-staff #ccs-main.cdir-v3-ready .ccs-table{min-width:0}
+#cc-staff #ccs-main.cdir-v3-ready .ccs-table-wrap{overflow:visible}
+#cc-staff #ccs-main.cdir-v3-ready .ccs-table tbody tr.cdir-row{padding:8px 12px;margin-bottom:10px}
+#cc-staff #ccs-main.cdir-v3-ready .ccs-table tbody tr.cdir-row td{font-size:14px;line-height:1.45}
+#cc-staff #ccs-main.cdir-v3-ready .cdir-name-cell{min-width:0}
+#cc-staff #ccs-main.cdir-v3-ready .cdir-sort-label{justify-content:flex-start}
+#cc-staff #ccs-main.cdir-v3-ready .cdir-pager-right{gap:7px}
+}
+@media(max-width:380px){#cc-staff #ccs-main.cdir-v3-ready .cdir-pager-right{justify-content:space-between;width:100%}}
+@media(prefers-reduced-motion:reduce){#cc-staff #ccs-main.cdir-v3-ready .ccs-table tbody tr td{transition:none}}
+
+
+/* Customer directory readable font scale; responsive and presentation-only. */
+#cc-staff #ccs-main.cdir-v3-ready .ccs-head h1{font-size:clamp(28px,2vw,34px)!important}
+#cc-staff #ccs-main.cdir-v3-ready .ccs-head .ccs-sub{font-size:15px!important}
+#cc-staff #ccs-main.cdir-v3-ready .cdir-heading-title{font-size:21px!important}
+#cc-staff #ccs-main.cdir-v3-ready .cdir-heading-summary{font-size:14px!important}
+#cc-staff #ccs-main.cdir-v3-ready .cdir-search-field input{font-size:16px!important;min-height:48px}
+#cc-staff #ccs-main.cdir-v3-ready .ccs-ctool .ccs-btn,
+#cc-staff #ccs-main.cdir-v3-ready .ccs-ctool .ccs-show select,
+#cc-staff #ccs-main.cdir-v3-ready [data-act="cust-new"]{font-size:15px!important;min-height:45px}
+#cc-staff #ccs-main.cdir-v3-ready .ccs-ctool .ccs-ccount{font-size:14px!important}
+#cc-staff #ccs-main.cdir-v3-ready .cdir-segment{font-size:14px!important;min-height:43px}
+#cc-staff #ccs-main.cdir-v3-ready .cdir-sort-label,
+#cc-staff #ccs-main.cdir-v3-ready .cdir-sort{font-size:14px!important}
+#cc-staff #ccs-main.cdir-v3-ready .ccs-table thead th{font-size:13px!important;line-height:1.45}
+#cc-staff #ccs-main.cdir-v3-ready .ccs-table tbody tr td{font-size:15px!important;line-height:1.5}
+#cc-staff #ccs-main.cdir-v3-ready .cdir-person-copy>b{font-size:16px!important}
+#cc-staff #ccs-main.cdir-v3-ready .cdir-repeat-tag,
+#cc-staff #ccs-main.cdir-v3-ready .cdir-person-copy .ccs-pill{font-size:12px!important}
+#cc-staff #ccs-main.cdir-v3-ready .cdir-pager,
+#cc-staff #ccs-main.cdir-v3-ready .cdir-page-index,
+#cc-staff #ccs-main.cdir-v3-ready .cdir-page-btn,
+#cc-staff #ccs-main.cdir-v3-ready .cdir-size-label{font-size:14px!important}
+@media(max-width:759px){#cc-staff #ccs-main.cdir-v3-ready .ccs-table tbody tr.cdir-row td{font-size:15px!important}#cc-staff #ccs-main.cdir-v3-ready .cdir-heading-title{font-size:19px!important}}
+
+</style>
+
+<script id="cc-date-picker-loader-20261019">(function(){'use strict';if(window.__ccDatePickerLoader20261019)return;window.__ccDatePickerLoader20261019=true;var base='jrest2025/corner-cafe-cakes@e414d14d6b53045a75b8c28656a9f89290bad466/src/',files=['staff.date-picker.css','staff.date-picker.js'];function load(name){var urls=['https://cdn.jsdelivr.net/gh/'+base+name,'https://raw.githubusercontent.com/jrest2025/corner-cafe-cakes/e414d14d6b53045a75b8c28656a9f89290bad466/src/'+name];return fetch(urls[0],{cache:'force-cache'}).then(function(r){if(!r.ok)throw Error(name+' HTTP '+r.status);return r.text()}).catch(function(){return fetch(urls[1],{cache:'force-cache'}).then(function(r){if(!r.ok)throw Error(name+' HTTP '+r.status);return r.text()})})}Promise.all(files.map(load)).then(function(a){if(a[0].indexOf('Shared, non-native date picker')<0||a[1].indexOf('__ccDatePicker20261019')<0)throw Error('Date picker asset mismatch');new Function(a[1]);var style=document.createElement('style');style.id='cc-date-picker-style';style.textContent=a[0];document.head.appendChild(style);var script=document.createElement('script');script.id='cc-date-picker-code';script.text=a[1];document.body.appendChild(script)}).catch(function(e){console.error('CRM date picker unavailable; native date fields remain active.',e)})})();</script>
+
+
+<script id="cc-customers-empty-reminder-collapse-20261019">(function(){'use strict';
+if(window.__ccEmptyReminderCollapse20261019)return;window.__ccEmptyReminderCollapse20261019=true;
+var root=document.getElementById('cc-staff');if(!root)return;
+var pending=false;
+function update(){pending=false;var main=root.querySelector('#ccs-main');if(!main)return;
+var isDirectory=/^(customers-all|customers-search)$/.test(main.getAttribute('data-screen')||'');
+var rem=main.querySelector('.ccs-rem');if(!rem)return;
+var empty=isDirectory&&/No reminders due\./i.test(rem.textContent||'')&&!rem.querySelector('button,a,input,select,textarea');
+var want=empty?'none':'';
+if(rem.style.display!==want)rem.style.display=want;
+}
+new MutationObserver(function(){if(!pending){pending=true;queueMicrotask(update)}}).observe(root,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['data-screen']});
+update();
+})();</script>
+<style id="cc-customer-table-hero-20261019">
+/* Customer-directory-first hierarchy; never alter table layout, scroll containment, DOM or paging. */
+#cc-staff #ccs-main.cdir-v3-ready:is([data-screen="customers-all"],[data-screen="customers-search"]) .ccs-head{margin-bottom:8px!important;gap:8px 14px!important}
+#cc-staff #ccs-main.cdir-v3-ready .ccs-head .ccs-sub{margin-top:3px!important}
+#cc-staff #ccs-main.cdir-v3-ready .ccs-ctool{margin:6px 0 8px!important;padding:9px 12px!important;gap:8px 10px!important}
+#cc-staff #ccs-main.cdir-v3-ready .cdir-segments{margin:4px 0 5px!important;padding-bottom:5px!important;gap:6px!important}
+#cc-staff #ccs-main.cdir-v3-ready .cdir-segment{min-height:40px!important;padding:8px 12px!important}
+#cc-staff #ccs-main.cdir-v3-ready .cdir-heading{margin:5px 0 8px!important;align-items:center!important}
+#cc-staff #ccs-main.cdir-v3-ready .cdir-heading-title{font-size:22px!important;font-weight:780!important;color:#243f32!important}
+#cc-staff #ccs-main.cdir-v3-ready .cdir-heading-summary{font-size:14px!important;margin:0!important}
+#cc-staff #ccs-main.cdir-v3-ready .ccs-table-wrap{border:1px solid #cddbd1!important;box-shadow:0 4px 16px rgba(39,67,48,.08)!important;border-radius:13px!important;background:#fff!important}
+#cc-staff #ccs-main.cdir-v3-ready .ccs-table thead th{background:#edf4ef!important;color:#375446!important;font-size:13px!important}
+#cc-staff #ccs-main.cdir-v3-ready .ccs-table tbody tr td{font-size:15px!important}
+#cc-staff #ccs-main.cdir-v3-ready .cdir-person-copy>b{font-size:17px!important;color:#233a30!important}
+#cc-staff #ccs-main.cdir-v3-ready .cdir-open-profile{background:#edf6fa!important;color:#285f7b!important;border-color:#c9e0ea!important;min-width:40px!important;min-height:40px!important}
+#cc-staff #ccs-main.cdir-v3-ready .cdir-open-profile:focus-visible{outline:3px solid #477f9d!important;outline-offset:2px}
+#cc-staff #ccs-main.cdir-v3-ready .cdir-pager{margin-top:5px!important}
+@media(max-width:759px){#cc-staff #ccs-main.cdir-v3-ready .ccs-table-wrap{border:0!important;box-shadow:none!important;background:transparent!important}#cc-staff #ccs-main.cdir-v3-ready .cdir-heading-title{font-size:20px!important}}
+</style>
+
+<style id="cc-crm-overview-live-fix-20261019">
+/* Native overview markup: no dependence on optional enhancement classes. */
+#cc-staff #ccs-main:has(.crm-kpis) .crm-kpis{gap:12px!important}
+#cc-staff #ccs-main:has(.crm-kpis) .crm-kpis>.crm-kpi{position:relative;overflow:hidden;min-height:130px!important;padding:16px 17px!important;border:1px solid #dce6e0!important;border-top:4px solid var(--cc-tone,#708b83)!important;border-radius:13px!important;background:linear-gradient(135deg,var(--cc-tint,#eff6f2),#fff 72%)!important;box-shadow:0 4px 16px #223f3410!important}
+#cc-staff #ccs-main:has(.crm-kpis) .crm-kpi:nth-child(1){--cc-tone:#785795;--cc-tint:#f1e8f7}
+#cc-staff #ccs-main:has(.crm-kpis) .crm-kpi:nth-child(2){--cc-tone:#b68a2d;--cc-tint:#fff3d9}
+#cc-staff #ccs-main:has(.crm-kpis) .crm-kpi:nth-child(3){--cc-tone:#51885e;--cc-tint:#eaf5eb}
+#cc-staff #ccs-main:has(.crm-kpis) .crm-kpi:nth-child(4){--cc-tone:#a66386;--cc-tint:#f9e9f1}
+#cc-staff #ccs-main:has(.crm-kpis) .crm-kpi:nth-child(5){--cc-tone:#447ca6;--cc-tint:#e8f2fa}
+#cc-staff #ccs-main:has(.crm-kpis) .crm-kpi:nth-child(6){--cc-tone:#378989;--cc-tint:#e8f6f3}
+#cc-staff #ccs-main:has(.crm-kpis) .crm-kpi:nth-child(7){--cc-tone:#ad7640;--cc-tint:#fff1e3}
+#cc-staff #ccs-main:has(.crm-kpis) .crm-kpi:nth-child(8){--cc-tone:#78619e;--cc-tint:#f1edfc}
+#cc-staff #ccs-main:has(.crm-kpis) .crm-kpi .ov-kl{color:#364e42!important;font-size:15px!important;font-weight:700!important}
+#cc-staff #ccs-main:has(.crm-kpis) .crm-kpi .ov-kv{color:#1f372c!important;font-size:30px!important;font-weight:800!important;line-height:1.15}
+#cc-staff #ccs-main:has(.crm-kpis) .crm-kpi .ov-ks{color:#506657!important;font-size:13px!important;line-height:1.45}
+#cc-staff #ccs-main:has(.crm-kpis) .crm-row{gap:14px!important;align-items:start!important}
+#cc-staff #ccs-main:has(.crm-kpis) .crm-row>.dx-card{min-height:0!important;height:auto!important;align-self:start!important;border:1px solid #dce6e0!important;border-radius:14px!important;box-shadow:0 4px 15px #243e3610!important;background:#fff}
+#cc-staff #ccs-main:has(.crm-kpis) .crm-row .dx-card-h h2{font-size:20px!important;color:#21392d!important}
+#cc-staff #ccs-main:has(.crm-kpis) .ov-att .ov-arow{border:1px solid #e0e9e3!important;border-radius:12px!important;padding:12px!important;min-height:78px;background:#fdfefd!important}
+#cc-staff #ccs-main:has(.crm-kpis) .ov-att .ov-at b{font-size:15px!important;color:#273e31!important}
+#cc-staff #ccs-main:has(.crm-kpis) .ov-att .ov-at{font-size:14px!important;color:#5a6c60!important}
+#cc-staff #ccs-main:has(.crm-kpis) .ov-rec .ov-ev{padding:12px 8px!important;border-bottom:1px solid #e6ede7!important}
+#cc-staff #ccs-main:has(.crm-kpis) .ov-rec .ov-et b{font-size:15px!important}
+#cc-staff #ccs-main:has(.crm-kpis) .ov-rec .ov-et{font-size:14px!important}
+#cc-staff #ccs-main:has(.crm-kpis) .ov-rec .ov-ew{font-size:13px!important}
+@media(max-width:999px){#cc-staff #ccs-main:has(.crm-kpis) .crm-row{grid-template-columns:minmax(0,1fr)!important}}
+@media(max-width:600px){#cc-staff #ccs-main:has(.crm-kpis) .crm-kpis>.crm-kpi{min-height:116px!important;padding:12px!important}#cc-staff #ccs-main:has(.crm-kpis) .crm-kpi .ov-kv{font-size:26px!important}}
+</style>
+
+
+<script id="cc-crm-dashboard-drilldown-v2-20261019">(function(){'use strict';
+if(window.__ccDashboardDrillV2)return;window.__ccDashboardDrillV2=true;
+var root=document.getElementById('cc-staff');if(!root)return;
+var metrics=['customers','new','returning','repeat','revenue','due_today','overdue','contacts'];
+var labels=['Customers','New this month','Returning this month','Repeat purchase rate','Revenue from returning customers','Follow-ups due today','Overdue follow-ups','Contacts this month'];
+var descriptions=['Customers with at least one qualifying order','First qualifying order this month','Previously purchased customers with a completed order this month','Customers with two or more completed orders','Completed orders this month where the customer had a previous completed order','Open follow-ups due today','Open follow-ups past their due date','Customer contact records this month'];
+var icons=['♙','✦','↻','◉','$','◷','!','✉'];var open=false,active='',records=[],search='',error='',busy=false,request=0;
+var shade=document.createElement('div');shade.className='ccdr-shade';shade.hidden=true;shade.innerHTML='<aside class="ccdr-panel" role="dialog" aria-modal="true" aria-label="Customer KPI details"><header class="ccdr-head"><div><small>Customer insights</small><h2 id="ccdr-title"></h2><p id="ccdr-desc"></p></div><button class="ccdr-close" type="button" aria-label="Close customer insights">×</button></header><div class="ccdr-body"><div class="ccdr-summary" id="ccdr-summary"></div><label class="ccdr-search">Search matching customers<input type="search" id="ccdr-query" placeholder="Customer name or mobile" autocomplete="off"></label><div class="ccdr-list" id="ccdr-list" aria-live="polite"></div></div></aside>';document.body.appendChild(shade);
+function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function money(n){return '$'+Number(n||0).toLocaleString('en-FJ',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function nice(n){return n?new Date(n+'T12:00:00Z').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'}):''}
+function decorate(){var main=root.querySelector('#ccs-main');if(!main)return;var cards=main.querySelectorAll('.crm-kpis .crm-kpi');if(cards.length!==8)return;cards.forEach(function(c,i){if(c.dataset.ccdr===metrics[i])return;c.dataset.ccdr=metrics[i];c.setAttribute('role','button');c.tabIndex=0;c.setAttribute('aria-label','View '+labels[i]+' details');c.setAttribute('title','View the records behind this number');c.style.cursor='pointer';var icon=c.querySelector('.cv-icon');if(!icon){icon=document.createElement('span');icon.className='ccdr-icon';icon.setAttribute('aria-hidden','true');icon.textContent=icons[i];c.appendChild(icon)}var cue=c.querySelector('.ccdr-cue');if(!cue){cue=document.createElement('span');cue.className='ccdr-cue';cue.textContent='View records ↗';c.appendChild(cue)}})}
+function render(){var i=metrics.indexOf(active),items=records.filter(function(x){return (x.full_name+' '+x.phone+' '+x.customer_no).toLowerCase().includes(search.toLowerCase())});shade.querySelector('#ccdr-title').textContent=labels[i]||'Customer details';shade.querySelector('#ccdr-desc').textContent=descriptions[i]||'';shade.querySelector('#ccdr-summary').textContent=busy?'Loading customer records…':error?'Could not load records':records.length+' matching customer'+(records.length===1?'':'s')+(records.length>=300?' · showing first 300':'');var list=shade.querySelector('#ccdr-list');if(busy){list.innerHTML='<p class="ccdr-empty">Loading…</p>';return}if(error){list.innerHTML='<p class="ccdr-error">'+esc(error)+'</p><button type="button" class="ccdr-retry">Try again</button>';return}if(!items.length){list.innerHTML='<p class="ccdr-empty">'+(search?'No customers match this search.':'No matching customers for this period.')+'</p>';return}list.innerHTML=items.map(function(x){var detail=active==='new'?'First order '+nice(x.event_date):active==='revenue'?'Returning revenue '+money(x.amount):active==='contacts'?x.amount+' contact'+(x.amount===1?'':'s'):active==='due_today'||active==='overdue'?x.amount+' follow-up'+(x.amount===1?'':'s'):active==='repeat'?x.orders_count+' orders':active==='returning'?'Returning customer':'Customer';return '<button class="ccdr-person" type="button" data-customer="'+esc(x.id)+'"><span class="ccdr-avatar">'+esc((x.full_name||'C').trim().split(/\s+/).slice(0,2).map(function(v){return v.charAt(0)}).join('').toUpperCase())+'</span><span class="ccdr-person-info"><b>'+esc(x.full_name)+'</b><small>'+esc(detail)+' · '+esc(x.phone||'No mobile')+'</small></span><span class="ccdr-chevron" aria-hidden="true">›</span></button>'}).join('')}
+function fetchData(){var token=++request;busy=true;error='';records=[];render();if(!window.supabase){busy=false;error='Customer connection unavailable';render();return}var client=window.supabase.createClient('https://ilbrfwxblhidtlsjgxlh.supabase.co','sb_publishable_4c9NdubC5PYevEOSMYH0ag_mv1LJ76E',{auth:{persistSession:true,storageKey:'cc-cakes-staff'}});client.rpc('crm_kpi_customers',{p_metric:active,p_limit:300}).then(function(r){if(token!==request)return;busy=false;if(r.error||!r.data||!r.data.ok){error=(r.data&&r.data.message)||(r.error&&r.error.message)||'Please try again.'}else records=r.data.rows||[];render()}).catch(function(e){if(token!==request)return;busy=false;error='Unable to load customers. Please retry.';render()})}
+function show(key){active=key;search='';open=true;shade.hidden=false;document.body.classList.add('ccdr-open');shade.querySelector('#ccdr-query').value='';fetchData();shade.querySelector('.ccdr-close').focus()}
+function close(){open=false;request++;shade.hidden=true;document.body.classList.remove('ccdr-open')}
+root.addEventListener('click',function(e){var c=e.target.closest('.crm-kpi[data-ccdr]');if(!c)return;e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();show(c.dataset.ccdr)},true);
+root.addEventListener('keydown',function(e){if((e.key==='Enter'||e.key===' ')&&e.target.matches('.crm-kpi[data-ccdr]')){e.preventDefault();e.stopImmediatePropagation();show(e.target.dataset.ccdr)}},true);
+shade.addEventListener('click',function(e){if(e.target===shade||e.target.closest('.ccdr-close')){close();return}if(e.target.closest('.ccdr-retry')){fetchData();return}var b=e.target.closest('[data-customer]');if(!b)return;var id=b.dataset.customer;close();var native=root.querySelector('[data-act="open-customer"][data-id="'+id+'"]');if(native){native.click();return}var sec=root.querySelector('[data-g="crm"][data-v="all"]');if(sec)sec.click();var attempts=0;function find(){var n=root.querySelector('[data-act="open-customer"][data-id="'+id+'"]');if(n){n.click();return}if(++attempts<12)setTimeout(find,100)}setTimeout(find,100)});
+shade.querySelector('#ccdr-query').addEventListener('input',function(e){search=e.target.value;render()});
+document.addEventListener('keydown',function(e){if(open&&e.key==='Escape')close()});
+var queued=false;new MutationObserver(function(){if(!queued){queued=true;queueMicrotask(function(){queued=false;decorate()})}}).observe(root,{childList:true,subtree:true});decorate();
+})();</script>
+<style id="cc-crm-dashboard-drilldown-style-v2-20261019">
+#cc-staff #ccs-main .crm-kpi[data-ccdr]{position:relative;cursor:pointer;transition:box-shadow .15s,transform .15s;padding-bottom:34px!important}
+#cc-staff #ccs-main .crm-kpi[data-ccdr]:hover{transform:translateY(-2px);box-shadow:0 9px 25px #234a3420!important}
+#cc-staff #ccs-main .crm-kpi[data-ccdr]:focus-visible{outline:3px solid #397e8e;outline-offset:3px}
+#cc-staff #ccs-main .crm-kpi[data-ccdr] .ccdr-cue{position:absolute;bottom:11px;left:17px;font-size:12px;font-weight:750;color:#426d60}
+#cc-staff #ccs-main .crm-kpi[data-ccdr] .ccdr-icon{position:absolute;top:10px;right:12px;font-size:24px;font-weight:750;color:var(--cc-tone,#588475);opacity:.65}
+#cc-staff #ccs-main .crm-kpi[data-ccdr]::after{display:none!important}
+.ccdr-shade[hidden]{display:none!important}.ccdr-shade{position:fixed;inset:0;z-index:2147483600;background:#152b2690;display:flex;justify-content:flex-end}
+.ccdr-panel{width:min(560px,100%);height:100%;background:#f6f9f7;display:flex;flex-direction:column;box-shadow:-16px 0 42px #10281e35;color:#1e3830;font-family:inherit}
+.ccdr-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;background:#fff;padding:25px 25px 20px;border-bottom:1px solid #dae6df}
+.ccdr-head small{color:#598273;text-transform:uppercase;letter-spacing:.08em;font-size:12px;font-weight:800}
+.ccdr-head h2{font-size:26px;line-height:1.2;margin:7px 0 6px;font-weight:800}
+.ccdr-head p{margin:0;color:#52695e;font-size:14px}
+.ccdr-close{background:#edf4ef;border:1px solid #d1e1d6;border-radius:12px;font-size:25px;width:42px;height:42px;cursor:pointer}
+.ccdr-body{padding:20px 24px;overflow:auto;flex:1}
+.ccdr-summary{font-weight:750;font-size:15px;margin-bottom:15px}
+.ccdr-search{font-size:13px;font-weight:750;display:block;color:#3a5b4b}
+.ccdr-search input{box-sizing:border-box;display:block;width:100%;padding:13px;border:1px solid #cbded2;border-radius:12px;margin:7px 0 14px;font-size:16px;background:#fff;color:#1d352b}
+.ccdr-person{width:100%;display:flex;align-items:center;gap:12px;padding:13px;text-align:left;border:1px solid #dce9df;border-radius:13px;background:#fff;margin-bottom:9px;cursor:pointer;color:inherit}
+.ccdr-person:hover{background:#f0f8f3;border-color:#8fbea3}
+.ccdr-avatar{flex:none;width:43px;height:43px;display:grid;place-items:center;border-radius:11px;background:#e8f0e9;color:#39674b;font-weight:800;font-size:13px}
+.ccdr-person-info{display:grid;gap:4px;flex:1;min-width:0}.ccdr-person-info b{font-size:16px;overflow-wrap:anywhere}.ccdr-person-info small{font-size:13px;color:#60766a;overflow-wrap:anywhere}
+.ccdr-chevron{font-size:25px;color:#668579}.ccdr-empty,.ccdr-error{padding:30px 15px;text-align:center;color:#61756b;font-size:15px}
+.ccdr-retry{border:0;border-radius:10px;background:#315f49;color:#fff;padding:12px 18px;cursor:pointer}
+body.ccdr-open{overflow:hidden}
+@media(max-width:600px){.ccdr-head{padding:19px 16px}.ccdr-body{padding:16px}.ccdr-head h2{font-size:22px}}
+@media(prefers-reduced-motion:reduce){#cc-staff #ccs-main .crm-kpi[data-ccdr]{transition:none}}
+</style>
+<script id="cc-customer-header-consolidated-20261019">(function(){'use strict';
+if(window.__ccCustomerHeaderConsolidated)return;window.__ccCustomerHeaderConsolidated=true;
+var root=document.getElementById('cc-staff');if(!root)return;
+var scheduled=false;
+function isAll(m){return m&&m.getAttribute('data-screen')==='customers-all'&&m.classList.contains('cdir-v3-ready');}
+function fit(){
+ scheduled=false;
+ var m=root.querySelector('#ccs-main');if(!isAll(m))return;
+ var toolbar=m.querySelector('.ccs-toolbar'),bar=m.querySelector('.crm-bar'),
+     tools=m.querySelector('.ccs-ctool'),segments=m.querySelector('.cdir-segments');
+ if(!toolbar||!bar||!tools||!segments)return;
+ var wide=window.innerWidth>=1080,wideFilters=window.innerWidth>=1320;
+ if(wide&&bar.parentElement!==toolbar)toolbar.appendChild(bar);
+ else if(!wide&&bar.parentElement===toolbar)toolbar.insertAdjacentElement('afterend',bar);
+ if(wideFilters&&segments.parentElement!==tools)tools.appendChild(segments);
+ else if(!wideFilters&&segments.parentElement===tools)tools.insertAdjacentElement('afterend',segments);
+}
+function schedule(){if(scheduled)return;scheduled=true;queueMicrotask(fit);}
+new MutationObserver(schedule).observe(root,{childList:true,subtree:true});
+window.addEventListener('resize',schedule,{passive:true});
+schedule();
+})();</script>
+<style id="cc-customer-header-consolidated-style-20261019">
+/* Customer directory only: consolidate control bands; never change table, pager or profile DOM. */
+@media(min-width:1080px){
+#cc-staff #ccs-main.cdir-v3-ready[data-screen="customers-all"] .ccs-toolbar{display:flex!important;flex-wrap:nowrap!important;align-items:center!important;gap:10px!important;min-width:0;margin:0 0 2px!important}
+#cc-staff #ccs-main.cdir-v3-ready[data-screen="customers-all"] .ccs-toolbar>.cdir-search-field{flex:1 1 320px!important;width:auto!important;max-width:660px!important;min-width:190px!important}
+#cc-staff #ccs-main.cdir-v3-ready[data-screen="customers-all"] .ccs-toolbar>.cdir-search-field .ccs-search{display:block!important;max-width:none!important;width:100%!important;box-sizing:border-box}
+#cc-staff #ccs-main.cdir-v3-ready[data-screen="customers-all"] .ccs-toolbar>[data-act="cust-new"]{flex:0 0 auto!important;white-space:nowrap!important}
+#cc-staff #ccs-main.cdir-v3-ready[data-screen="customers-all"] .ccs-toolbar>.crm-bar{flex:0 0 auto!important;margin:0 0 0 auto!important;min-width:0!important}
+#cc-staff #ccs-main.cdir-v3-ready[data-screen="customers-all"] .ccs-toolbar>.crm-bar .ccs-secbar{display:flex;gap:4px!important;padding:4px!important;margin:0!important;white-space:nowrap}
+#cc-staff #ccs-main.cdir-v3-ready[data-screen="customers-all"] .ccs-toolbar>.crm-bar .ccs-secbtn{min-height:41px!important;padding:0 11px!important;font-size:14px!important}
+}
+@media(min-width:1320px){
+#cc-staff #ccs-main.cdir-v3-ready[data-screen="customers-all"] .ccs-ctool{display:flex!important;flex-wrap:wrap!important;align-items:center!important;gap:8px!important;padding:9px 12px!important;margin:4px 0 6px!important}
+#cc-staff #ccs-main.cdir-v3-ready[data-screen="customers-all"] .ccs-ctool>.ccs-show{width:auto!important;flex:0 0 auto!important;gap:7px!important;font-size:14px!important}
+#cc-staff #ccs-main.cdir-v3-ready[data-screen="customers-all"] .ccs-ctool>.ccs-show select{width:167px!important;min-width:167px!important;min-height:39px!important;padding:6px 30px 6px 10px!important}
+#cc-staff #ccs-main.cdir-v3-ready[data-screen="customers-all"] .ccs-ctool>.ccs-ccount{flex:0 0 auto!important;white-space:nowrap!important;font-size:13px!important;margin-right:3px!important}
+#cc-staff #ccs-main.cdir-v3-ready[data-screen="customers-all"] .ccs-ctool>.cdir-segments{order:4;flex:0 1 auto!important;display:flex!important;flex-wrap:nowrap!important;overflow-x:auto!important;min-width:0!important;gap:5px!important;padding:0!important;margin:0!important}
+#cc-staff #ccs-main.cdir-v3-ready[data-screen="customers-all"] .ccs-ctool>.cdir-segments .cdir-segment{min-height:37px!important;padding:7px 9px!important;font-size:12px!important;white-space:nowrap!important}
+#cc-staff #ccs-main.cdir-v3-ready[data-screen="customers-all"] .ccs-ctool>.cdir-segments .cdir-segment-icon svg{width:14px;height:14px}
+#cc-staff #ccs-main.cdir-v3-ready[data-screen="customers-all"] .ccs-ctool>.ccs-ctool-actions{order:5;flex:0 0 auto!important;margin-left:auto!important}
+#cc-staff #ccs-main.cdir-v3-ready[data-screen="customers-all"] .ccs-ctool>.ccs-btn{flex:none!important;min-height:39px!important;padding:7px 10px!important;font-size:14px!important}
+#cc-staff #ccs-main.cdir-v3-ready[data-screen="customers-all"] .cdir-heading{margin:3px 0 6px!important;gap:10px!important}
+#cc-staff #ccs-main.cdir-v3-ready[data-screen="customers-all"] .cdir-heading-copy{gap:1px!important}
+#cc-staff #ccs-main.cdir-v3-ready[data-screen="customers-all"] .cdir-heading-title{font-size:20px!important}
+#cc-staff #ccs-main.cdir-v3-ready[data-screen="customers-all"] .cdir-heading-summary{font-size:13px!important}
+}
+</style>
+<script id="cc-semantic-colour-20261019">(function(){'use strict';if(window.__ccSemanticColour20261019)return;window.__ccSemanticColour20261019=true;var sha='e7a032ecd58c6ebe50148d008a418acfe78ec5fd',name='staff.semantic-colour.css',urls=['https://cdn.jsdelivr.net/gh/jrest2025/corner-cafe-cakes@'+sha+'/src/'+name,'https://raw.githubusercontent.com/jrest2025/corner-cafe-cakes/'+sha+'/src/'+name];function load(i){if(i>=urls.length){console.error('Semantic colour stylesheet unavailable; the existing CRM remains usable.');return;}fetch(urls[i],{cache:'force-cache'}).then(function(r){if(!r.ok)throw Error('CSS HTTP '+r.status);return r.text()}).then(function(css){if(css.indexOf('Cake CRM semantic colour layer')<0)throw Error('Unexpected semantic colour asset');var prior=document.getElementById('cc-semantic-colour-style');if(prior)prior.remove();var style=document.createElement('style');style.id='cc-semantic-colour-style';style.textContent=css;document.head.appendChild(style)}).catch(function(){load(i+1)})}load(0)})();</script>
+<script id="cc-compact-entry-20261019">
+/* Presentation only: retain the original controls, events, validation and draft values. */
+(function () {
+  'use strict';
+  if (window.__ccCompactEntry) return;
+  window.__ccCompactEntry = true;
+  var root, observer, pending = false, serial = 0;
+  var mobile = window.matchMedia('(max-width: 991px)');
+  var redundant = /^(Type the number first: a returning customer comes up with their details\.|Only a clear yes is recorded as permission\. It is saved with the order\.|The time you save this entry is recorded automatically\.|The CRM separately records when staff save this entry\.)$/;
+  function make(group, title, kind) {
+    if (!group || group.closest('.cc-entry')) return;
+    var heading = group.previousElementSibling;
+    var nodes = [group];
+    if (kind === 'date') {
+      if (heading && heading.matches('.ccs-hint')) {
+        heading.hidden = true;
+        heading = heading.previousElementSibling;
+      }
+      var after = group.nextElementSibling;
+      if (after && after.matches('.tk-sub')) nodes.push(after);
+    }
+    if (heading && heading.matches('.sl-k,.ccs-label')) heading.hidden = true;
+    var wrap = document.createElement('div'); wrap.className = 'cc-entry'; wrap.dataset.kind = kind;
+    var trigger = document.createElement('button'); trigger.type = 'button'; trigger.className = 'cc-entry-trigger';
+    var caption = document.createElement('span'); caption.textContent = title;
+    var value = document.createElement('strong'); value.className = 'cc-entry-value';
+    trigger.append(caption, value); trigger.setAttribute('aria-expanded', 'false');
+    var panel = document.createElement('dialog'); panel.className = 'cc-entry-panel'; panel.id = 'cc-entry-' + (++serial);
+    trigger.setAttribute('aria-controls', panel.id);
+    var top = document.createElement('div'); top.className = 'cc-entry-top';
+    var label = document.createElement('b'); label.id = panel.id + '-label'; label.textContent = title;
+    panel.setAttribute('aria-labelledby', label.id);
+    var close = document.createElement('button'); close.type = 'button'; close.className = 'cc-entry-close'; close.textContent = 'Done';
+    top.append(label, close); panel.append(top);
+    group.before(wrap); wrap.append(trigger, panel);
+    if (kind === 'consent' && heading) {
+      var question = heading.cloneNode(true); question.hidden = false; panel.append(question);
+    }
+    nodes.forEach(function (node) { panel.append(node); });
+    function sync() {
+      var selected = group.querySelector('[aria-pressed="true"]');
+      var date = panel.querySelector('[data-n="takenDate"]');
+      var text = selected ? (kind === 'date' && selected.dataset.v === 'other' && date && date.value ? date.value : selected.textContent.trim()) : 'Select · Required';
+      if (value.textContent !== text) value.textContent = text;
+      if (wrap.classList.contains('cc-entry-unset') !== !selected) wrap.classList.toggle('cc-entry-unset', !selected);
+    }
+    function hide() {
+      if (panel.open && panel.matches(':modal')) panel.close();
+      else panel.removeAttribute('open');
+      trigger.setAttribute('aria-expanded', 'false');
+      trigger.focus({preventScroll: true});
+    }
+    trigger.addEventListener('click', function () {
+      if (panel.open) return hide();
+      if (mobile.matches) panel.showModal(); else panel.setAttribute('open', '');
+      trigger.setAttribute('aria-expanded', 'true');
+    });
+    close.addEventListener('click', hide);
+    panel.addEventListener('close', function () { trigger.setAttribute('aria-expanded', 'false'); });
+    panel.addEventListener('click', function (e) {
+      if (e.target === panel) {
+        var rect = panel.getBoundingClientRect();
+        if (e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom) hide();
+      }
+      var option = e.target.closest('[data-act]');
+      if (option && kind === 'source') setTimeout(function () { sync(); if (wrap.isConnected) hide(); }, 0);
+    });
+    panel.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); e.preventDefault(); hide(); } });
+    wrap._ccSync = sync; sync();
+    var customDate = panel.querySelector('[data-n="takenDate"]');
+    if (kind === 'date' && customDate && !customDate.value) {
+      if (mobile.matches) panel.showModal(); else panel.setAttribute('open', '');
+      trigger.setAttribute('aria-expanded', 'true');
+    }
+  }
+  function update() {
+    observer.disconnect();
+    try {
+      root.querySelectorAll('.ccs-hint').forEach(function (el) {
+        if (redundant.test(el.textContent.trim())) el.hidden = true;
+      });
+      root.querySelectorAll('.ccs-nextline,.ccs-next').forEach(function (el) {
+        if (/Kitchen: start the cake|Counter: take|any time before handover/.test(el.textContent)) el.hidden = true;
+      });
+      root.querySelectorAll('.cc-f-next').forEach(function (el) {
+        el.hidden = /^(Paid in full\. |Deposit recorded\. |Customer agreed; payment can be collected later\. )Next: make/.test(el.textContent.trim());
+      });
+      root.querySelectorAll('.cc-f-review>p').forEach(function (el) {
+        if (el.textContent.trim() === 'Check these details. Choose Change only if something is wrong.') el.hidden = true;
+      });
+      [].forEach(function (entry) {
+        root.querySelectorAll('[data-act="' + entry[0] + '"]').forEach(function (button) {
+          make(button.closest('.ccs-chips'), entry[1], entry[2]);
+        });
+      });
+      root.querySelectorAll('.cc-entry').forEach(function (el) { if (el._ccSync) el._ccSync(); });
+    } finally { observer.observe(root, {childList: true, subtree: true, attributes: true, attributeFilter: ['aria-pressed']}); }
+  }
+  function start() {
+    root = document.getElementById('cc-staff'); if (!root) return;
+    if (!window.HTMLDialogElement || !HTMLDialogElement.prototype.showModal) return;
+    observer = new MutationObserver(function () {
+      if (pending) return; pending = true;
+      queueMicrotask(function () { pending = false; update(); });
+    });
+    root.addEventListener('input', function (e) { var wrap = e.target.closest('.cc-entry'); if (wrap && wrap._ccSync) wrap._ccSync(); });
+    mobile.addEventListener('change', function () {
+      root.querySelectorAll('.cc-entry-panel[open]').forEach(function (panel) {
+        if (panel.matches(':modal')) panel.close(); else panel.removeAttribute('open');
+        panel.previousElementSibling.setAttribute('aria-expanded', 'false');
+      });
+    });
+    update();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, {once: true}); else start();
+})();
+
+</script>
