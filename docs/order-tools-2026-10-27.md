@@ -136,7 +136,7 @@ Screens:
 - Computers and phones unchanged. Tests: test_ipad 91/91 (new Today order and no-gap checks at 1180×820, 1024×768, 820×1180), test_polish 148/148.
 - Rollback: remove ccOrderToolsLoader29, add ccOrderToolsLoader28 (footer, 1.0.28), publish.
 
-## One flow on every screen and device (loader 30, commit 8d869027) — staged, not published
+## One flow on every screen and device (loader 30, commit 8d869027) — live 27 Oct 2026, 4:05 PM
 - New add-on src/staff.flow.js (marker __ccFlow20261027). Layout only; data, saving, permissions untouched.
 - Today (computers, phones): online-order banner one slim full-width line under the header; phones run header → banner → numbers → Needs attention → Due today → This week → Waiting on you.
 - Orders (computers, iPads): search and status tabs on one row; order cards two across on wide screens and iPad landscape.
