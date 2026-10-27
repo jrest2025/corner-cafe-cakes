@@ -193,3 +193,13 @@ Screens:
   unpriced; Business intelligence data checks in Details; Marketing's empty boxes become one line. Daily cake demand
   checked identical.
 - Rollback: remove ccOrderToolsLoader37, add ccOrderToolsLoader36 (footer, 1.0.36), publish.
+
+## Cake pickups by day (loader 38, 27 Oct 2026, 10:11 PM)
+
+- Approved by Roneel ("deploy", 10:10 PM) after the preview. Brief: Interactive Daily Pickup Timeline & Booking
+  Lead-Time Analytics; decisions: new timeline on Analytics > Cake sales replacing Busiest pickup days (Daily cake
+  demand untouched), lead times from verified order dates only.
+- `ccOrderToolsLoader38` (footer, 1.0.38) replaces loader 37: the same 14 files (fingerprints unchanged) plus
+  `staff.pickups.js` (fingerprint 84a62ce4…) at commit be065ebf. Test `test/order-tools/test_pickups.cjs` 35/35;
+  `test_answers.cjs` 86/86 re-run.
+- Rollback: remove ccOrderToolsLoader38, add ccOrderToolsLoader37 (footer, 1.0.37), publish.
