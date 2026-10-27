@@ -85,11 +85,11 @@ begin
       'id', x.id, 'at', x.at, 'area', x.area,
       'who', case when x.actor_id is null then 'System' else coalesce((select s.full_name from public.staff_profiles s where s.user_id = x.actor_id), 'Former staff member') end,
       'action', x.action,
-      'item', public._settings_item(x.table_name, coalesce(x.new_data, x.old_data)),
+      'item', coalesce(public._settings_item(x.table_name, coalesce(x.new_data, x.old_data)), initcap(replace(x.row_id, '_', ' '))),
       'changes', case when x.action = 'update' and x.old_data is not null and x.new_data is not null then (
           select coalesce(jsonb_agg(jsonb_build_object('field', k,
-              'before', case when x.table_name = 'app_config' and coalesce(x.new_data->>'key', '') ~ '_key$' then to_jsonb('(hidden)'::text) else x.old_data->k end,
-              'after',  case when x.table_name = 'app_config' and coalesce(x.new_data->>'key', '') ~ '_key$' then to_jsonb('(hidden)'::text) else x.new_data->k end) order by k), '[]')
+              'before', case when x.table_name = 'app_config' and coalesce(x.new_data->>'key', x.row_id, '') ~ '_key$' then to_jsonb('(hidden)'::text) else x.old_data->k end,
+              'after',  case when x.table_name = 'app_config' and coalesce(x.new_data->>'key', x.row_id, '') ~ '_key$' then to_jsonb('(hidden)'::text) else x.new_data->k end) order by k), '[]')
           from jsonb_object_keys(x.new_data) k
           where k not in ('updated_at', 'created_at', 'version', 'updated_by', 'id') and (x.old_data->k) is distinct from (x.new_data->k))
         else '[]'::jsonb end,
