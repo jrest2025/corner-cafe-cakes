@@ -11,3 +11,13 @@ dist/*.min.js
 dist/*.min.css
 dist/staff.full.js
 tests/shots*/
+
+# Vercel site for central.cornercafefiji.com (these must be kept although *.json and *.png are ignored above)
+!/vercel.json
+!/package.json
+!/package-lock.json
+!/tests/package.json
+!/test/package.json
+!/central/app/manifest.json
+!/central/cc-logo.png
+central/dist/
