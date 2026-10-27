@@ -169,3 +169,4 @@ Screens:
 - Espresso welcome around the app's own sign-in form: counter scene, Fiji time-of-day greeting and light, show password, Caps Lock note, last email on the device filled in ("Welcome back."), short fade into the app. Sign-in, messages and Practice mode unchanged.
 - Checks: test_welcome 17/17 (desktop, iPad, phone: wrong password, sign in, show password, returning staff, Practice mode).
 - Rollback: remove ccOrderToolsLoader35, add ccOrderToolsLoader34 (footer, 1.0.34), publish.
+- 8:03 PM: rolled back to ccOrderToolsLoader34 at Roneel's request ("looks horrible"). Welcome screen off; Admin console stays.
