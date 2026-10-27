@@ -106,19 +106,30 @@ function moneyRows(d: any, confirmed: boolean): Row[] {
 // 2. cards matched to the cake's occasion
 // 3. one sister restaurant, rotated by order number
 function pickCards(d: any): any[] {
+  // Roneel, 27 Oct 2026: Corner Café's own services (private dining, catering, High Tea) go in every confirmation and
+  // thank-you email; sister restaurants only for customers who agreed to offers from Jack's Restaurants (cross_sell_ok).
+  // A customer who said no or unsubscribed (offers_declined) gets no cards at all.
+  if (d.offers_declined) return [];
+  const ok = !!d.cross_sell_ok;
   const cards: any[] = (d.promo_cards ?? []).filter((c: any) => c && c.is_active !== false && c.title && c.link_url);
   const occ = String(d.item?.occasion || "").toLowerCase();
-  const always = cards.filter((c) => (c.occasions || []).includes("*"));
-  const special = cards.filter((c) => !always.includes(c) && (c.occasions || []).some((x: string) => occ && occ.includes(String(x).toLowerCase())));
-  const venues = cards.filter((c) => !(c.occasions || []).length);
+  const isAlways = (c: any) => (c.occasions || []).includes("*");
+  const own = (c: any) => isAlways(c) || c.venue_code === "corner_cafe";
+  const always = cards.filter((c) => isAlways(c) && (ok || own(c)));
+  const special = cards.filter((c) => !isAlways(c) && (ok || own(c)) && (c.occasions || []).some((x: string) => occ && occ.includes(String(x).toLowerCase())));
+  const venues = ok ? cards.filter((c) => !(c.occasions || []).length) : [];
   const n = Number(String(d.order.reference || "").replace(/\D/g, "")) || 0;
   const rotated = venues.length ? venues.map((_, k) => venues[(k + n) % venues.length]) : [];
-  const picked = [...always, ...special].slice(0, 2);
-  return [...picked, ...rotated.slice(0, 1)].slice(0, 3);
+  return [...always.slice(0, 2), ...special.slice(0, 1), ...rotated.slice(0, 1)].slice(0, 3);
 }
 function tagged(url: string, kind: string) {
   try { const u = new URL(url); if (!u.searchParams.has("utm_source")) { u.searchParams.set("utm_source", "cornercafe_cakes_email"); u.searchParams.set("utm_medium", "email"); u.searchParams.set("utm_campaign", kind); } return u.toString(); }
   catch { return url; }
+}
+function promoHead(cards: any[]): [string, string] {
+  return cards.some((c) => !((c.occasions || []).includes("*") || c.venue_code === "corner_cafe"))
+    ? ["More to enjoy from Jack's Restaurants", "Parties, group bookings and catering from our family of restaurants."]
+    : ["Planning your next celebration?", "Private dining, catering and more for your next occasion."];
 }
 function promoHtml(cards: any[], kind: string) {
   if (!cards.length) return "";
@@ -131,13 +142,13 @@ function promoHtml(cards: any[], kind: string) {
       <a href="${esc(tagged(c.link_url, kind))}" style="font:bold 14px ${FONT};color:${GREEN};text-decoration:none">${esc(c.link_label)}</a>
     </td></tr></table></td></tr>`;
   return `<tr><td style="padding:4px 28px 14px"><div style="border-top:1px solid ${LINE};padding-top:22px">
-    <div style="font:bold 19px/1.3 ${FONT};color:${INK};margin:0 0 4px">More to enjoy from Jack's Restaurants</div>
-    <div style="font:14px/1.6 ${FONT};color:${MUTED};margin:0 0 14px">Parties, group bookings and catering from our family of restaurants.</div></div>
+    <div style="font:bold 19px/1.3 ${FONT};color:${INK};margin:0 0 4px">${esc(promoHead(cards)[0])}</div>
+    <div style="font:14px/1.6 ${FONT};color:${MUTED};margin:0 0 14px">${esc(promoHead(cards)[1])}</div></div>
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${cards.map(card).join("")}</table></td></tr>`;
 }
 function promoText(cards: any[], kind: string) {
   if (!cards.length) return "";
-  return "\n\nMore to enjoy from Jack's Restaurants\n" + cards.map((c) => `- ${c.title}: ${c.blurb} ${tagged(c.link_url, kind)}`).join("\n");
+  return "\n\n" + promoHead(cards)[0] + "\n" + cards.map((c) => `- ${c.title}: ${c.blurb} ${tagged(c.link_url, kind)}`).join("\n");
 }
 
 // ---------- the shell (tables and inline styles, so Gmail, Outlook and Apple Mail agree) ----------
@@ -170,7 +181,7 @@ const para = (s: string, extra = "") => `<p style="margin:0 0 14px;font:16px/1.6
 
 function render(d: any, m: Mail): { subject: string; html: string; text: string } {
   const loc = d.location;
-  const cards = m.promo && d.cross_sell_ok ? pickCards(d) : [];
+  const cards = m.promo ? pickCards(d) : [];
   const tel = String(loc.phone || "").replace(/[^\d+]/g, "");
   const body = (m.hero ? "" : (m.chip ? chip(m.chip[0], m.chip[1]) : "") +
     `<h1 style="margin:${m.chip ? "14px" : "0"} 0 10px;font:bold 26px/1.25 ${FONT};color:${INK}">${esc(m.heading)}</h1>`) +
@@ -498,7 +509,7 @@ export function sampleData(kind: string, base: any): any {
     customer: { full_name: "Mere Tikoduadua", preferred_contact: "email" },
     location: base?.location ?? { name: "Corner Café", email: "cornercafe@jacksfiji.com", phone: "+679 892 2760", address: "401–403 Queens Road, Nadi Town (behind Jacks of Fiji)", order_page_url: "https://www.cornercafefiji.com/order-cake" },
     paid_total: kind === "guest_confirmed" || kind === "guest_updated" ? 40 : 0,
-    config: base?.config ?? {}, cross_sell_ok: true, promo_cards: base?.promo_cards ?? [],
+    config: base?.config ?? {}, cross_sell_ok: true, offers_declined: false, promo_cards: base?.promo_cards ?? [],
     unsub: { page: "https://www.cornercafefiji.com/", post: "https://www.cornercafefiji.com/" },
   };
 }
