@@ -35,6 +35,11 @@
   function time12(t) { var m = /^(\d{1,2}):(\d{2})/.exec(t || ''); if (!m) return ''; var h = +m[1]; return (h % 12 || 12) + ':' + m[2] + ' ' + (h < 12 ? 'AM' : 'PM'); }
   function warn(w, e) { try { console.warn('[Cake pickups] ' + w, e); } catch (_) {} }
 
+  // How far ahead cakes were booked: the same groups and colours as the "By booking time" chart (CCCakeLeadTime)
+  var BUCKETS = [['weeks', '8 or more days ahead', '#1f5f3f'], ['week', '3 to 7 days ahead', '#3f8a5f'], ['days', '1 to 2 days ahead', '#7dbb92'], ['same', 'Same day', '#c4e3cd'], ['unknown', 'Booking date not known', '#cbd2d9']];
+  function bucket(v) { return v == null ? 'unknown' : v === 0 ? 'same' : v <= 2 ? 'days' : v <= 7 ? 'week' : 'weeks'; }
+  var RANGES = [['30', 'Last 30 days'], ['90', 'Last 90 days'], ['year', 'This year'], ['all', 'All time']], range = '30';
+
   // ---------- the orders, counted the same way as the Daily cake demand ----------
   function cakesOf(o) { var it = Array.isArray(o.it) ? o.it : []; if (!it.length) return 1; return it.reduce(function (s, i) { return s + (num(i[3]) || 1); }, 0); }
   function live(o) { return o && iso(o.pd) && ['cancelled', 'declined', 'not_confirmed'].indexOf(o.st) < 0; }
@@ -54,7 +59,28 @@
     top = tot.length ? Math.max(4, tot[Math.floor((tot.length - 1) * 0.95)]) : 1;
     if (diff(min, today) > 730) min = add(today, -730);
     min = add(min, -wd(min));
-    return { x: x, today: today, by: by, off: off, min: min, max: add(max, 6 - wd(max)), top: Math.max(top, 1), name: function (c) { return (x.occName && x.occName(c)) || c; } };
+    var bk = {}, total = {}, first = null;
+    Object.keys(by).forEach(function (d) {
+      var b = bk[d] = {}; total[d] = 0;
+      by[d].forEach(function (o) { var k = bucket(lead(o)), q = cakesOf(o); b[k] = (b[k] || 0) + q; total[d] += q; });
+      if (!first || d < first) first = d;
+    });
+    return { x: x, today: today, by: by, bk: bk, total: total, first: first, off: off, min: min, max: add(max, 6 - wd(max)), top: Math.max(top, 1), name: function (c) { return (x.occName && x.occName(c)) || c; } };
+  }
+  // Usual cakes for that weekday: average of the same weekday over the 8 weeks before (before today for upcoming days),
+  // the same rule as the "By booking time" chart
+  function usual(D, d) {
+    var ref = d > D.today ? D.today : add(d, -1), sum = 0, n = 0, w = wd(d);
+    for (var x = ref; n < 8 && D.first && x >= D.first; x = add(x, -1)) { if (wd(x) !== w) continue; sum += D.total[x] || 0; n++; }
+    return n >= 4 ? sum / n : null;
+  }
+  // The booking-time summary for a period of past pickups
+  function mix(D) {
+    var to = D.today, from = range === '30' ? add(to, -29) : range === '90' ? add(to, -89) : range === 'year' ? to.slice(0, 4) + '-01-01' : '0000';
+    var t = {}, all = 0, known = 0, top = null;
+    Object.keys(D.bk).forEach(function (d) { if (d < from || d > to) return; BUCKETS.forEach(function (b) { var v = D.bk[d][b[0]] || 0; t[b[0]] = (t[b[0]] || 0) + v; all += v; if (b[0] !== 'unknown') known += v; }); });
+    BUCKETS.forEach(function (b) { if (b[0] !== 'unknown' && (t[b[0]] || 0) > (top ? t[top[0]] : 0)) top = b; });
+    return { t: t, all: all, known: known, top: top };
   }
 
   // ---------- holidays and events: the same lists the Daily cake demand shows (read only) ----------
@@ -87,16 +113,32 @@
       cols.push('<button type="button" class="pk-col' + (d === D.today ? ' is-today' : '') + (past ? ' is-past' : ' is-next') + (c ? '' : ' is-zero') + (c > D.top ? ' is-over' : '') + (ev.some(function (e) { return e.k === 'h'; }) ? ' is-hol' : '') +
         '" data-pk="' + d + '" aria-label="' + esc(longDay(d) + ': ' + c + pl(c, ' cake', ' cakes') + (ev.length ? ', ' + ev.map(function (e) { return e.name; }).join(', ') : '')) + '">' +
         (first ? '<span class="pk-mo">' + MON[+d.slice(5, 7) - 1] + ' ' + d.slice(0, 4) + '</span>' : '') +
-        '<span class="pk-n">' + (c || '') + '</span><span class="pk-track"><i style="height:' + h + '%"></i></span>' +
+        '<span class="pk-n">' + (c || '') + '</span><span class="pk-track">' + stack(D, d, c) + tick(D, d) + '</span>' +
         '<span class="pk-d">' + (+d.slice(8)) + '</span><span class="pk-w">' + WD[wd(d)].charAt(0) + '</span>' +
         '<span class="pk-ev">' + (ev.length ? '<em class="is-' + ev[0].k + '" style="max-width:' + room(evDays, i) + 'px" data-pk="' + d + '" title="' + esc(ev.map(function (e) { return e.name; }).join(', ')) + '">' + esc(ev[0].name) + '</em>' : '') + '</span></button>');
     }
-    return '<section class="cat-card pk" aria-label="Cake pickups by day"><header><h3>Cake pickups by day</h3><span>Tap a day for its cakes, occasions and booking times</span></header>' +
-      '<div class="pk-bar"><div class="pk-key"><span><i class="k-past"></i>Collected</span><span><i class="k-next"></i>Scheduled</span><span><i class="k-hol"></i>Holiday or event</span></div>' +
+    return '<section class="cat-card pk" aria-label="Cake pickups by day"><header><h3>Cake pickups by day</h3><span>Tap a day for its cakes, occasions and booking times</span></header>' + summaryStrip(D) +
+      '<div class="pk-bar"><div class="pk-key"><span><i class="k-next"></i>Upcoming</span><span><i class="k-tick"></i>Usual for the weekday</span><span><i class="k-hol"></i>Holiday or event</span></div>' +
       '<div class="pk-nav"><button type="button" class="pk-btn" data-pkgo="-7" aria-label="Earlier">‹</button><button type="button" class="pk-btn pk-today" data-pkgo="0">Today</button><button type="button" class="pk-btn" data-pkgo="7" aria-label="Later">›</button></div></div>' +
       '<div class="pk-rail" tabindex="0" aria-label="Pickups by day, scroll sideways">' + cols.join('') + '</div></section>';
   }
 
+  function stack(D, d, c) {
+    if (!c) return '';
+    var b = D.bk[d] || {}, scale = Math.min(c, D.top) / c, out = '';
+    for (var i = BUCKETS.length - 1; i >= 0; i--) { var v = b[BUCKETS[i][0]]; if (v) out += '<i style="height:' + (v * scale / D.top * 100).toFixed(2) + '%;background:' + BUCKETS[i][2] + '"></i>'; }
+    return '<span class="pk-stack">' + out + '</span>';
+  }
+  function tick(D, d) { var u = usual(D, d); return u == null ? '' : '<b class="pk-tick" style="bottom:' + Math.min(100, u / D.top * 100).toFixed(2) + '%" title="Usual for a ' + WDF[wd(d)] + ': ' + (Math.round(u * 10) / 10) + ' cakes"></b>'; }
+  function summaryStrip(D) {
+    var m = mix(D), pct = function (v) { return m.all ? Math.round(v / m.all * 100) : 0; };
+    var same = pct(m.t.same || 0), lab = RANGES.filter(function (r) { return r[0] === range; })[0][1].toLowerCase();
+    return '<div class="pk-sum"><div class="pk-chips" role="group" aria-label="Period for the booking summary">' + RANGES.map(function (r) { return '<button type="button" class="pk-chip" data-pkr="' + r[0] + '" aria-pressed="' + (r[0] === range) + '">' + r[1] + '</button>'; }).join('') + '</div>' +
+      (m.all ? '<p class="pk-lead-line">' + (m.top ? 'Most cakes are booked <b>' + esc(m.top[1].replace(/ ahead$/, '') + (m.top[0] === 'same' ? '' : ' ahead')) + '</b>.' : 'No booking dates known yet.') + (same && m.top && m.top[0] !== 'same' ? ' ' + same + '% are same-day orders.' : '') + '</p>' +
+      '<div class="pk-mix" role="img" aria-label="' + esc(BUCKETS.map(function (b) { return b[1] + ' ' + pct(m.t[b[0]] || 0) + '%'; }).join(', ')) + '">' + BUCKETS.map(function (b) { var v = m.t[b[0]] || 0; return v ? '<i style="flex:' + v + ';background:' + b[2] + '"></i>' : ''; }).join('') + '</div>' +
+      '<div class="pk-mixleg">' + BUCKETS.map(function (b) { var v = m.t[b[0]] || 0; return '<span><em><i style="background:' + b[2] + '"></i>' + esc(b[1]) + '</em><b>' + pct(v) + '%</b><small>' + v + pl(v, ' cake', ' cakes') + '</small></span>'; }).join('') + '</div>' +
+      '<p class="pk-note">' + m.all + pl(m.all, ' cake', ' cakes') + ' picked up, ' + esc(lab) + '.</p>' : '<p class="pk-lead-line">No cakes picked up, ' + esc(lab) + '.</p>') + '</div>';
+  }
   // an event name may run under the next days, up to the next event
   function room(evDays, i) { var k = evDays.indexOf(i), nx = evDays[k + 1]; return Math.max(36, Math.min(160, (nx == null ? 4 : nx - i) * 44 - 8)); }
   // ---------- the day summary ----------
@@ -139,7 +181,9 @@
     h += '<div class="pk-sec"><h4>Occasions</h4><div class="pk-seg" role="img" aria-label="' + esc(parts.map(function (p) { return p.l + ' ' + p.v; }).join(', ')) + '">' +
       parts.map(function (p) { return '<i style="flex:' + p.v + ';background:' + p.c + '"></i>'; }).join('') + '</div><div class="pk-leg">' +
       parts.map(function (p) { return '<span><i style="background:' + p.c + '"></i>' + esc(p.l) + ' <b>' + p.v + '</b></span>'; }).join('') + '</div></div>';
-    h += '<div class="pk-sec"><h4>Booked ahead</h4>' + (sa.n ? '<div class="pk-lead"><span><b>' + days(sa.avg) + '</b><em>average</em></span><span><b>' + days(sa.min) + '</b><em>shortest</em></span><span><b>' + days(sa.max) + '</b><em>longest</em></span></div>' +
+    var bk = D.bk[d] || {};
+    h += '<div class="pk-sec"><h4>Booked ahead</h4><div class="pk-seg">' + BUCKETS.map(function (b) { return bk[b[0]] ? '<i style="flex:' + bk[b[0]] + ';background:' + b[2] + '"></i>' : ''; }).join('') + '</div><div class="pk-leg">' +
+      BUCKETS.map(function (b) { return bk[b[0]] ? '<span><i style="background:' + b[2] + '"></i>' + esc(b[1]) + ' <b>' + bk[b[0]] + '</b></span>' : ''; }).join('') + '</div>' + (sa.n ? '<div class="pk-lead" style="margin-top:10px"><span><b>' + days(sa.avg) + '</b><em>average</em></span><span><b>' + days(sa.min) + '</b><em>shortest</em></span><span><b>' + days(sa.max) + '</b><em>longest</em></span></div>' +
       (so.n >= 2 && sr.n >= 2 ? '<p class="pk-cmp">Occasion <b>' + days(so.avg) + '</b> · Regular <b>' + days(sr.avg) + '</b></p>' : '') : '') +
       '<p class="pk-note">' + (known === cakes ? 'Booking date known for every cake.' : 'Booking date known for ' + known + ' of ' + cakes + pl(cakes, ' cake', ' cakes') + '.') + '</p></div>';
     h += '<p class="pk-ins">' + esc(insight(D, d, os, ev)) + '</p>' + (off ? '<p class="pk-note">' + off + pl(off, ' cancelled order is', ' cancelled orders are') + ' not counted.</p>' : '');
@@ -213,6 +257,8 @@
 
   doc.addEventListener('click', function (e) {
     var t = e.target && e.target.closest ? e.target : null; if (!t) return;
+    var chip = t.closest('#ccs-main .pk [data-pkr]');
+    if (chip) { e.preventDefault(); range = chip.getAttribute('data-pkr'); var old = doc.querySelector('#ccs-main .pk-sum'), tmp = doc.createElement('div'); tmp.innerHTML = summaryStrip(data); if (old) old.replaceWith(tmp.firstChild); return; }
     var nav = t.closest('#ccs-main .pk [data-pkgo]');
     if (nav) { e.preventDefault(); go(doc.querySelector('#ccs-main .pk-rail'), +nav.getAttribute('data-pkgo')); return; }
     var col = t.closest('#ccs-main .pk [data-pk]');
@@ -234,7 +280,7 @@
       P + ' .pk{overflow:hidden}',
       P + ' .pk-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 0 8px}',
       P + ' .pk-key{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:#475467}' + P + ' .pk-key span{display:inline-flex;align-items:center;gap:6px}',
-      P + ' .pk-key i{width:12px;height:12px;border-radius:3px;display:inline-block}' + P + ' .pk-key .k-past{background:#4fb0aa}' + P + ' .pk-key .k-next{background:#fff;border:2px solid #4fb0aa}' + P + ' .pk-key .k-hol{background:#955ca1;border-radius:50%}',
+      P + ' .pk-key i{width:12px;height:12px;border-radius:3px;display:inline-block}' + P + ' .pk-key .k-next{background:#E9EEF5;border:1px solid #C9D3E0}' + P + ' .pk-key .k-hol{background:#955ca1;border-radius:50%}',
       P + ' .pk-nav{display:flex;gap:6px}' + P + ' .pk-btn{min-width:44px;height:40px;padding:0 12px;border:1px solid #D0D5DD;border-radius:10px;background:#fff;color:#1D2939;font:inherit;font-size:15px;font-weight:500;cursor:pointer}',
       P + ' .pk-rail{display:flex;overflow-x:auto;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity;padding:22px 2px 4px;scrollbar-width:thin;outline:none}',
       P + ' .pk-col{position:relative;flex:0 0 44px;display:grid;grid-template-rows:18px 132px 20px 16px 22px;justify-items:center;align-items:end;padding:0 3px;border:0;background:none;cursor:pointer;scroll-snap-align:start;font:inherit;color:#1D2939;border-radius:10px}',
@@ -243,9 +289,17 @@
       P + ' .pk-mo{position:absolute;top:-20px;left:4px;font-size:12px;font-weight:600;color:#475467;white-space:nowrap}',
       P + ' .pk-n{font-size:13px;font-weight:600;color:#344054;align-self:end}',
       P + ' .pk-track{width:26px;height:132px;display:flex;align-items:flex-end;border-radius:6px;background:#F2F4F7}',
-      P + ' .pk-track i{display:block;width:100%;border-radius:6px;background:#4fb0aa}',
-      P + ' .pk-col.is-next .pk-track i{background:#fff;box-shadow:inset 0 0 0 2px #4fb0aa}',
-      P + ' .pk-col.is-over .pk-track i{border-top:4px solid #0f766e}' + P + ' .pk-col.is-over .pk-n{color:#0f766e}',
+      P + ' .pk-track{position:relative}' + P + ' .pk-stack{display:flex;flex-direction:column;width:100%;height:100%;justify-content:flex-end;border-radius:5px;overflow:hidden}' + P + ' .pk-stack i{display:block;width:100%;flex:none}',
+      P + ' .pk-col.is-next .pk-track{background:#E9EEF5}' + P + ' .pk-col.is-next .pk-stack{opacity:.9}',
+      P + ' .pk-tick{position:absolute;left:-5px;right:-5px;height:2px;background:#1D2939;border-radius:2px;pointer-events:none}',
+      P + ' .pk-key .k-tick{width:16px;height:2px;border-radius:2px;background:#1D2939}',
+      P + ' .pk-sum{margin:2px 0 14px}' + P + ' .pk-chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}',
+      P + ' .pk-chip{min-height:40px;padding:0 14px;border:1px solid #D0D5DD;border-radius:10px;background:#fff;color:#1D2939;font:inherit;font-size:15px;font-weight:500;cursor:pointer}' + P + ' .pk-chip[aria-pressed=true]{background:#EEF2F8;border-color:#2E4A70;color:#1F3556}',
+      P + ' .pk-lead-line{margin:0 0 8px;font-size:17px;color:#1D2939}' + P + ' .pk-lead-line b{font-weight:600}',
+      P + ' .pk-mix{display:flex;height:14px;border-radius:999px;overflow:hidden;gap:2px}' + P + ' .pk-mix i{display:block;min-width:4px}',
+      P + ' .pk-mixleg{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:8px 0 0}' + P + ' .pk-mixleg span{display:flex;flex-direction:column}' + P + ' .pk-mixleg em{font-style:normal;font-size:13px;color:#475467;display:flex;align-items:center;gap:6px}' + P + ' .pk-mixleg em i{width:12px;height:12px;border-radius:3px;display:inline-block;flex:none}' + P + ' .pk-mixleg b{font-size:20px;font-weight:600}' + P + ' .pk-mixleg small{font-size:12.5px;color:#667085}',
+      '@media (max-width:760px){' + P + ' .pk-mixleg{grid-template-columns:repeat(2,minmax(0,1fr))}}',
+      P + ' .pk-col.is-over .pk-stack{border-top:4px solid #0b3d29}' + P + ' .pk-col.is-over .pk-n{color:#0b3d29}',
       P + ' .pk-col.is-today .pk-track{box-shadow:0 0 0 2px #1D2939}' + P + ' .pk-col.is-today .pk-d{background:#1D2939;color:#fff;border-radius:999px;padding:0 6px}',
       P + ' .pk-d{font-size:14px;font-weight:600;line-height:20px}' + P + ' .pk-w{font-size:12px;color:#667085}' + P + ' .pk-col:nth-child(7n) {}',
       P + ' .pk-ev{width:44px;height:22px;position:relative;overflow:visible}',

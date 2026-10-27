@@ -60,12 +60,13 @@ const sales = async p => { await tap(p, '#cc-staff [data-tab="dash"]', 3000); aw
     const J = e => [...e.children].map(c => c.textContent.trim()).join(' '); const st = [...el.querySelectorAll('.pk-st')].map(J);
     const fut = Object.assign({}, x, { today: () => '2027-02-10' }), F = P.build(fut), f = document.createElement('div'); f.innerHTML = P.summary(F, '2027-02-14');
     return { st, lead: [...el.querySelectorAll('.pk-lead > span')].map(J).join(' '), note: [...el.querySelectorAll('.pk-note')].map(e => e.textContent), ins: el.querySelector('.pk-ins').textContent,
-      leg: [...el.querySelectorAll('.pk-leg > span')].map(e => e.textContent.trim()).join(' | '), fut: [...f.querySelectorAll('.pk-st')].map(J) };
+      leg: [...el.querySelectorAll('.pk-leg > span')].map(e => e.textContent.trim()).join(' | '), fut: [...f.querySelectorAll('.pk-st')].map(J), bk: D.bk['2027-02-14'], seg: [...el.querySelectorAll('.pk-sec')][1].querySelectorAll('.pk-seg i').length };
   });
   check('4 cakes from 3 live orders; the cancelled order is left out', k.st[0] === 'Cakes 4 3 orders' && k.note.some(x => /1 cancelled order is not counted/.test(x)), k);
   check('collected = recorded only (3 of 4); occasion 3, regular 1', /^Collected 3 1 not marked collected/.test(k.st[1]) && /^Occasion 3/.test(k.st[2]) && /^Regular 1/.test(k.st[3]), k.st);
   check('lead times from verified order dates only: 8 and 2 days', /5 days average 2 days shortest 8 days longest/.test(k.lead) && k.note.some(x => /known for 3 of 4 cakes/.test(x)), k);
   check("a cake collected on Valentine's Day is not called a Valentine's cake unless recorded", /1 of 4 cakes was ordered for Valentine's Day/.test(k.ins) && /Valentine's Day 1/.test(k.leg) && /Birthday 2/.test(k.leg) && /Regular or not recorded 1/.test(k.leg), k);
+  check('bars split by booking time: 1 cake 8+ days, 2 cakes 1 to 2 days, 1 not known (cancelled left out)', k.bk.weeks === 1 && k.bk.days === 2 && k.bk.unknown === 1 && !k.bk.week && !k.bk.same && k.seg === 3, k.bk);
   check('future day: scheduled, not counted as collected', /^Collected — upcoming/.test(k.fut[1]), k.fut);
   await b.close(); console.log(n + ' passed, ' + fails + ' failed'); process.exit(fails ? 1 : 0);
 })();
