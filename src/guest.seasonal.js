@@ -192,7 +192,7 @@
   // leave the current cake form separate". Saved as a treat order (T-1001…) for the Treat orders board in the Service Hub.
   // Shows only while the section is On in the Service Hub and something is on sale; otherwise nothing is added to the page.
   var T = (function () {
-    var KEYT = 'cct-draft-v1', host = null, st = null;
+    var KEYT = 'cct-draft-v1', host = null, st = null, preDone = false;
     function blank() { return { q: {}, step: 1, moreDays: false, noteOpen: false, day: null, time: null, name: '', phone: '', note: '', key: null, err: null, msg: null, done: null, sending: false }; }
     function load() { try { var d = JSON.parse(win.localStorage.getItem(KEYT) || 'null'); if (d && d.at && Date.now() - d.at < 3 * 864e5) { var b = blank(); ['q', 'step', 'day', 'time', 'name', 'phone', 'note', 'key'].forEach(function (k) { if (d[k] != null) b[k] = d[k]; }); if (d.open && !d.step) b.step = 2; return b; } } catch (_) {} return blank(); }
     function save() { try { if (st.done) win.localStorage.removeItem(KEYT); else win.localStorage.setItem(KEYT, JSON.stringify({ at: Date.now(), q: st.q, step: st.step, day: st.day, time: st.time, name: st.name, phone: st.phone, note: st.note, key: st.key })); } catch (_) {} }
@@ -298,10 +298,24 @@
       var has = menu && items().length;
       if (!has && !st.done) { host.hidden = true; return; }
       if (!st.done) checkDay();
+      // (28 Oct 2026) arriving from the festive page: /order-cake?treat=Mince%20Pies#cc-treat-order adds that treat
+      // once and brings this section into view. Only on the first step, and only if the customer has not picked it yet.
+      var go = null;
+      if (!preDone) {
+        preDone = true;
+        var pre = null; try { pre = new URLSearchParams(win.location.search).get('treat'); } catch (_) {}
+        if (pre || win.location.hash === '#cc-treat-order') {
+          go = true;
+          var nk = function (s) { return String(s || '').toLowerCase().replace(/[^a-z0-9]/g, ''); };
+          var hit = pre ? items().filter(function (i) { return nk(i.name) === nk(pre); })[0] : null;
+          if (hit && !st.done && st.step === 1 && !(st.q[hit.id] > 0)) { st.q[hit.id] = 1; save(); }
+        }
+      }
       var a = doc.activeElement, keep = focusSel || (a && host.contains(a) ? keyOf(a) : null), h = html();
       host.hidden = false;
       if (host.getAttribute('data-h') === h) return;
       host.innerHTML = h; host.setAttribute('data-h', h);
+      if (go) setTimeout(function () { try { host.scrollIntoView({ block: 'start' }); } catch (_) {} }, 60);
       if (keep) { var f = host.querySelector(keep); if (f && f.disabled) f = f.parentNode.querySelector('button:not(:disabled)'); if (f) f.focus({ preventScroll: true }); }
     }
     function keyOf(el) {
