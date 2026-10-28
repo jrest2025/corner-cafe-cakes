@@ -497,7 +497,7 @@
   function nextStep(o) {
     var st = o.order_status, owing = o.payment_status !== 'paid', dl = o.fulfilment_method === 'delivery';
     if (st === 'awaiting_review') return ['Check it, then confirm', 'you'];
-    if (st === 'awaiting_quote') return ['Add the price', 'you'];
+    if (st === 'awaiting_quote') return [/^Requested add-ons:/i.test(o.customer_notes || '') ? 'Review the add-on charges' : 'Add the price', 'you'];
     if (st === 'awaiting_approval') return ['Waiting for the customer to say yes to the price', 'wait'];
     if (st === 'awaiting_deposit') return ['Record the deposit', 'you'];
     if (st !== 'confirmed') return null;
@@ -4803,6 +4803,11 @@
             var dep0 = num(val('ccs-dep'));
             if (dep0 != null && (dep0 < 0 || dep0 > Number(od0.final_total))) { S.panelErr = 'The deposit must be between zero and the price.'; renderSheet(); break; }
             act('confirm', { p_final_total: Number(od0.final_total), p_deposit: dep0, p_note: S.cfmHow === 'email' ? 'Customer accepted by email' : 'Customer confirmed verbally' }); break;
+          }
+          if (addOnCurrent(od0)) {
+            var adep = num(val('ccs-dep'));
+            if (adep != null && (adep < 0 || adep > Number(od0.final_total))) { S.panelErr = 'Check the deposit against the agreed price.'; renderSheet(); break; }
+            act('confirm', { p_final_total: Number(od0.final_total), p_deposit: adep, p_note: 'Customer accepted itemized add-on quotation' }); break;
           }
           var price = num(val('ccs-price')), dep = num(val('ccs-dep'));
           if (price == null || price < 0) { S.panelErr = 'Enter the price.'; renderSheet(); break; }
