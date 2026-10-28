@@ -1218,3 +1218,57 @@
   if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', start); else start();
   win.CCDesign = { pass: pass };
 })();
+
+/* Corner Café: phase 1 of the Kazumi standard (28 Oct 2026). Marker __ccPhase1_20261028.
+ * Roneel: "whatever we have done for kazumi looks immaculate; apply the same to corner cafe crm while maintaining its
+ * functionality" and, for main buttons, "Deep Green". Presentation only: no data, saving, workflow or permission change.
+ *  1. The hub's name in the side menu: Marketing & Business Intelligence Hub.
+ *  2. Orders filter tabs turn into the Show dropdown whenever they do not fit (iPad landscape included), not only under 900px.
+ *  3. Analytics: no New order button in its header (New order stays on Today, Orders and the side menu).
+ *  4. Main actions (New order, Save, Confirm and the other filled buttons) in Corner Café deep green; selections keep
+ *     the soft navy. Ghost buttons and red (danger) buttons are unchanged. */
+(function () {
+  'use strict';
+  var win = window, doc = document;
+  if (win.__ccPhase1_20261028) return;
+  win.__ccPhase1_20261028 = true;
+  var NAME = 'Marketing & Business Intelligence Hub';
+  var G = '#3D5230', GH = '#32441F', P = 'html:not(#ccq0) body:not(#ccq1) #cc-staff';
+  var CSS = [
+    'html:not(#ccq0) body:not(#ccq1) #cc-staff#cc-staff .ccs-brand > small.ccq-src{display:none!important}',
+    'html:not(#ccq0) body:not(#ccq1) #cc-staff#cc-staff .ccs-brand > .ccq-hub{display:block;margin-top:6px;font:600 9.5px/1.6 Arial,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#C9B9A8;white-space:nowrap;text-align:inherit}',
+    'html:not(#ccq0) body:not(#ccq1) #cc-staff#cc-staff .ccs-app.is-mini .ccs-brand > .ccq-hub{display:none}',
+    '@media (max-width:700px){html:not(#ccq0) body:not(#ccq1) #cc-staff#cc-staff .ccs-brand > .ccq-hub{display:none}}',
+    'html:not(#ccq0) body:not(#ccq1) #cc-staff#cc-staff .ccs-topbrand small.ccq-name{white-space:nowrap!important}',
+    '@media (max-width:700px){html:not(#ccq0) body:not(#ccq1) #cc-staff#cc-staff .ccs-topbrand small.ccq-name{display:none!important}}',
+    P + ' .ccs-nav .cc-t-new{background:' + G + '!important;border-color:' + G + '!important;color:#fff!important}',
+    P + ' :is(#ccs-main,#ccs-sheet) .ccs-btn.ccs-good:not([disabled]):not(.ccs-ghost),' + P + ' #ccs-main [data-act="cust-new"],' + P + ' .ccs-btn.tq-new,' + P + ' .ccs-btn.ccs-newtop,' + P + ' .ccs-btn.ccs-topnew{background:' + G + '!important;border-color:' + G + '!important;color:#fff!important}',
+    P + ' :is(#ccs-main,#ccs-sheet) .ccs-btn.ccs-good:not([disabled]):not(.ccs-ghost):hover,' + P + ' #ccs-main [data-act="cust-new"]:hover,' + P + ' .ccs-btn.tq-new:hover,' + P + ' .ccs-btn.ccs-newtop:hover{background:' + GH + '!important;border-color:' + GH + '!important}',
+    P + ' :is(#ccs-main,#ccs-sheet) .ccs-btn.ccs-good:focus-visible,' + P + ' .ccs-btn.tq-new:focus-visible,' + P + ' .ccs-btn.ccs-newtop:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(61,82,48,.25)!important}',
+    P + ' #ccs-main[data-screen="dash"] .ccs-btn.ccs-newtop{display:none!important}',
+    P + ' #ccs-main.ccq-tight .ccp-narrow{display:inline-flex!important;margin:0}' + P + ' #ccs-main.ccq-tight .ccp-narrowsrc{display:none!important}'
+  ].join('\n');
+  function styles() { if (doc.getElementById('ccq-style')) return; var s = doc.createElement('style'); s.id = 'ccq-style'; s.textContent = CSS; doc.head.appendChild(s); }
+  function name() {
+    [].forEach.call(doc.querySelectorAll('#cc-staff .ccs-topbrand small'), function (s) { if (s.textContent !== NAME) { s.textContent = NAME; s.classList.add('ccq-name'); } });
+    // side menu: the app's own SERVICE HUB line is hidden and our two-line name sits in its place
+    [].forEach.call(doc.querySelectorAll('#cc-staff .ccs-brand'), function (br) {
+      var sm = br.querySelector(':scope > small'); if (sm && sm.style.getPropertyValue('display') !== 'none') { sm.classList.add('ccq-src'); sm.style.setProperty('display', 'none', 'important'); }
+      if (!br.querySelector(':scope > .ccq-hub')) { var n = doc.createElement('span'); n.className = 'ccq-hub'; n.innerHTML = 'Marketing &amp; Business<br>Intelligence Hub'; br.appendChild(n); }
+    });
+  }
+  var need = 0;
+  function tabs() {
+    var main = doc.getElementById('ccs-main'); if (!main) return;
+    var ft = main.querySelector(':scope > .ccs-tabs');
+    if (!ft || !ft.querySelector('.ccs-tab[data-act="filter"]') || !main.querySelector('.ccp-narrow')) { if (main.classList.contains('ccq-tight')) main.classList.remove('ccq-tight'); return; }
+    if (innerWidth < 900) { main.classList.remove('ccq-tight'); return; }   // the 899px rule already applies
+    if (!main.classList.contains('ccq-tight')) {
+      if (ft.scrollWidth > ft.clientWidth + 2) { need = ft.scrollWidth; main.classList.add('ccq-tight'); }
+    } else if (need && ft.clientWidth >= need + 8) { main.classList.remove('ccq-tight'); }
+  }
+  var t = null;
+  function tick() { if (t) return; t = setTimeout(function () { t = null; try { styles(); name(); tabs(); } catch (e) { if (win.console) console.warn('[Phase 1]', e); } }, 40); }
+  function start() { new MutationObserver(tick).observe(doc.documentElement, { childList: true, subtree: true }); addEventListener('resize', tick); tick(); }
+  if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', start); else start();
+})();
