@@ -235,6 +235,18 @@ export function buildGuest(kind: string, d: any): { subject: string; html: strin
           `<strong>Your order isn't confirmed yet.</strong> We'll ${c.preferred_contact === "whatsapp" ? "message you on WhatsApp or " : ""}email you once it is.`],
         rows: orderRows(d), money: moneyRows(d, false), after: [reply] });
     case "guest_quote":
+      if (d.addon_quote && Array.isArray(d.addon_quote.lines)) {
+        const q = d.addon_quote;
+        const breakdown: Row[] = [["Original cake and existing charges", money(q.base_total)],
+          ...q.lines.map((line: any): Row => [`${line.description} × ${line.quantity}`, money(line.line_total)]),
+          ["Add-ons total", money(q.addon_total)], ["Final quoted total", money(q.quoted_total)]];
+        return R({ kind, subject: `Corner Café | Your revised cake price (${ref})`,
+          preheader: "Review the cake price and let us know if you agree.",
+          chip: ["Price for your approval", "wait"], heading: `Bula ${name}, here's your revised cake price`,
+          hero: true, lines: ["Your standard cake and requested extras have been priced separately. Please review the breakdown."],
+          rows: orderRows(d), money: breakdown,
+          after: [`<strong>This is a quotation, not a confirmed booking.</strong> Please reply to this email or call <a href="tel:${esc(tel)}" style="color:${GREEN}">${esc(loc.phone)}</a> to tell us whether you agree to this exact total. We will confirm the order only after your agreement and any deposit requirements.`] });
+      }
       return R({ kind, subject: `Corner Café | The price for your cake (${ref})`,
         preheader: "Here's your price. Let us know to go ahead.",
         chip: ["Your price is ready", "wait"], heading: `Bula ${name}, here's your price`, hero: true, tagline: "Let us know and we'll book it in.",

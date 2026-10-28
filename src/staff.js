@@ -497,7 +497,7 @@
   function nextStep(o) {
     var st = o.order_status, owing = o.payment_status !== 'paid', dl = o.fulfilment_method === 'delivery';
     if (st === 'awaiting_review') return ['Check it, then confirm', 'you'];
-    if (st === 'awaiting_quote') return ['Add the price', 'you'];
+    if (st === 'awaiting_quote') return [/^Requested add-ons:/i.test(o.customer_notes || '') ? 'Review the add-on charges' : 'Add the price', 'you'];
     if (st === 'awaiting_approval') return ['Waiting for the customer to say yes to the price', 'wait'];
     if (st === 'awaiting_deposit') return ['Record the deposit', 'you'];
     if (st !== 'confirmed') return null;
@@ -796,7 +796,7 @@
   function openOrder(id) {
     S.sheet = { type: 'order', id: id, data: null, photos: [], showHistory: false }; S.panel = null; S.panelErr = null; S.dirty = {};
     sheetOpen(); renderSheet();
-    return sb.from('orders').select('*, customers(*), order_items(*), order_events(*), order_attachments(*), payments(*), order_amendments(*)').eq('id', id).single().then(withContact).then(function (r) {
+    return sb.from('orders').select('*, customers(*), order_items(*), order_events(*), order_attachments(*), payments(*), order_amendments(*), cake_addon_quotes(*)').eq('id', id).single().then(withContact).then(function (r) {
       if (r.error) throw r.error;
       if (!S.sheet || S.sheet.id !== id) return;
       S.sheet.data = r.data;
@@ -818,7 +818,7 @@
   // Someone else changed the order: fetch the latest version but keep the open panel and the typing (A3)
   var CONFLICT = 'Someone else updated this order a moment ago. The details are now up to date: check them, then tap again. Your typing is kept.';
   function reloadOrderKeep(id) {
-    return sb.from('orders').select('*, customers(*), order_items(*), order_events(*), order_attachments(*), payments(*), order_amendments(*)').eq('id', id).single().then(withContact).then(function (r) {
+    return sb.from('orders').select('*, customers(*), order_items(*), order_events(*), order_attachments(*), payments(*), order_amendments(*), cake_addon_quotes(*)').eq('id', id).single().then(withContact).then(function (r) {
       if (r.error) throw r.error;
       if (!S.sheet || S.sheet.id !== id) return;
       S.sheet.data = r.data; renderSheet();
@@ -977,7 +977,7 @@
     h += actionsBox(o, total, paid, bal);
     h += askUpdateBox(o);
     h += fbHeadBtn(o);
-    if (!S.panel && (S.sheet.danger || []).some(function (d) { return d[0] === 'delete'; }) && secStore('order').order !== 'history') h += '<div class="os-dkdanger"><button type="button" class="ccs-link ccs-red" data-act="go-other">Delete order</button></div>';
+    // Order deletion is available in the actions section without navigating to History.
     var cut = [['cake', h.length]];
     h += '<section class="ccs-box"><h3>Cake</h3><p class="ccs-big">' + esc(cakeLine(i)) + '</p><dl class="ccs-kv">' +
       kv('Finish', i.finish === 'custom' ? 'Custom design' : 'Standard finish') + kv('Design', i.design_description) +
@@ -1027,7 +1027,7 @@
     var dz = !S.panel && S.sheet.danger && S.sheet.danger.length ? '<section class="ccs-box ccs-other"><h3>Other actions</h3><p class="ccs-hint">These change or remove the order. Each one asks before anything happens.</p><div class="ccs-actions-row ccs-more-row">' + S.sheet.danger.map(function (m) { return '<button type="button" class="ccs-link ccs-red" data-act="panel" data-v="' + m[0] + '">' + m[1] + '</button>'; }).join('') + '</div></section>' : '';
     h += '<section class="ccs-box"><h3>Activity</h3>' + (S.sheet.showHistory ? '<div class="ccs-history">' + (o.order_events || []).slice().sort(function (a, b) { return a.at < b.at ? -1 : 1; }).map(function (e) { return '<div><span>' + esc(stamp(e.at)) + '</span><span style="color:var(--ccs-ink)">' + esc(eventText(e)) + '</span></div>'; }).join('') + '</div>' : '<button type="button" class="ccs-link" data-act="history">Show history (' + (o.order_events || []).length + ')</button>') + '</section>' + dz;
     // One section at a time below the key facts and actions, so the panel fits the screen
-    var phDel = !S.panel && (S.sheet.danger || []).some(function (d) { return d[0] === 'delete'; }) && secStore('order').order !== 'history' ? '<div class="os-phdanger"><button type="button" class="ccs-link ccs-red" data-act="go-other">Delete order</button></div>' : '';
+    var phDel = ''; // Direct cancellation and deletion controls are in the order actions.
     return secSplit(h, cut, 'order', { cake: 'Cake', when: deliv ? 'Delivery' : 'Collection', kitchen: 'Kitchen', customer: 'Customer', feedback: 'Feedback', payment: 'Payment', history: 'History' }, !!S.panel) + phDel + '</div>';
   }
   // Section buttons: one section on screen at a time (fits the screen height without scrolling)
@@ -1176,10 +1176,20 @@
   }
   function actionsBox(o, total, paid, bal) {
     var orderer = canP('ord.status'), payer = canP('ord.payments');
-    if (!orderer && !payer) return '';
+    if (!orderer && !payer && !canP('ord.delete')) return '';
     var p = S.panel, err = S.panelErr ? '<p class="ccs-err">' + esc(S.panelErr) + '</p>' : '', st = o.order_status;
     S.sheet.danger = [];
     if (p === 'amend') return amendPanel(o, total, paid);
+    if (p === 'addonquote') {
+      var base = Number(o.estimate_total || 0), aq = (o.cake_addon_quotes || []).filter(function (q) { return q.status === 'pending' || q.status === 'accepted'; }).sort(function (a,b) { return b.quote_version-a.quote_version; })[0];
+      var rows = aq && Array.isArray(aq.lines) ? aq.lines : [{ description: (o.customer_notes || '').replace(/^Requested add-ons:\s*/i, '').split('\n')[0].slice(0,120), quantity: 1, unit_price: 0 }];
+      var inputs = rows.map(function (x,i) { return '<div class="ccs-row"><div class="ccs-field"><label class="ccs-label" for="aq-desc-'+i+'">Extra '+(i+1)+'</label><input class="ccs-input" id="aq-desc-'+i+'" maxlength="120" value="'+esc(x.description||'')+'"></div><div class="ccs-field"><label class="ccs-label" for="aq-qty-'+i+'">Qty</label><input class="ccs-input" id="aq-qty-'+i+'" type="number" min="1" max="50" value="'+Number(x.quantity||1)+'"></div><div class="ccs-field"><label class="ccs-label" for="aq-price-'+i+'">Unit charge (FJD)</label><input class="ccs-input" id="aq-price-'+i+'" type="number" step="0.01" min="0" value="'+Number(x.unit_price||0)+'"></div><div class="ccs-field"><button type="button" class="ccs-btn ccs-ghost" data-act="aq-remove" data-v="'+i+'">Remove extra</button></div></div>'; }).join('');
+      return '<div class="ccs-panel"><b>Review add-ons and approve quote</b><p class="ccs-hint">Original cake and existing charges: '+money(base)+'. Set each extra separately. A manager must approve manual price adjustments. The cake remains a standard cake.</p><div id="aq-lines" data-count="'+rows.length+'">'+inputs+'</div><button type="button" class="ccs-btn ccs-ghost" data-act="aq-add">+ Add another extra</button>'+err+'<div class="ccs-actions-row"><button type="button" class="ccs-btn ccs-good" data-act="aq-save">Save quotation</button><button type="button" class="ccs-btn ccs-ghost" data-act="panel" data-v="">Back</button></div></div>';
+    }
+    if (p === 'addonaccept') {
+      var q = (o.cake_addon_quotes || []).filter(function (x) { return x.quote_version === o.version && x.status === 'pending'; })[0];
+      return '<div class="ccs-panel"><b>Record customer agreement</b><p class="ccs-hint">Only record agreement to the latest quotation. Emailing a price is not acceptance.</p><dl class="ccs-kv">'+kv('Quoted total',money(q ? q.quoted_total : o.final_total))+'</dl><div class="ccs-field"><label class="ccs-label" for="aq-method">How did the customer agree?</label><select class="ccs-input" id="aq-method"><option value="email">Email</option><option value="whatsapp">WhatsApp</option><option value="phone">Phone</option><option value="in_person">In person</option></select></div><div class="ccs-field"><label class="ccs-label" for="aq-evidence">Evidence of agreement</label><textarea class="ccs-input" id="aq-evidence" placeholder="For example, customer replied yes to the revised price at 3 PM"></textarea></div>'+err+'<div class="ccs-actions-row"><button type="button" class="ccs-btn ccs-good" data-act="aq-accept">Record agreement</button><button type="button" class="ccs-btn ccs-ghost" data-act="panel" data-v="">Back</button></div></div>';
+    }
     if (p === 'quote') {
       var qi = (o.order_items || [])[0] || {}, qreq = isReq(qi), cakeOnly = o.final_total != null ? Number(o.final_total) - Number(o.delivery_fee || 0) : null;
       return '<div class="ccs-panel ccs-quote"><b>' + (o.final_total != null ? 'Change the price' : 'Add the price') + '</b>' +
@@ -1189,6 +1199,9 @@
         (Number(o.delivery_fee) > 0 ? '<p class="ccs-hint">The delivery fee of ' + money(o.delivery_fee) + ' is added on top.</p>' : '') +
         '<p class="ccs-hint">Saving moves the order to Waiting for customer. Then email the price or tell the customer, and press Confirm order once they agree.</p>' + err +
         '<div class="ccs-actions-row"><button type="button" class="ccs-btn ccs-good" data-act="do-quote">Save price</button><button type="button" class="ccs-btn ccs-ghost" data-act="panel" data-v="">Back</button></div></div>';
+    }
+    if (p === 'confirm' && addOnCurrent(o) && o.order_status === 'awaiting_approval') {
+      return '<div class="ccs-panel"><b>Confirm accepted cake order</b><p class="ccs-hint">The customer has agreed to the current add-on quotation. The original catalogue price remains unchanged.</p><dl class="ccs-kv">'+kv('Agreed total',money(o.final_total))+'</dl><div class="ccs-field"><label class="ccs-label" for="ccs-dep">Deposit needed (FJD)</label><input class="ccs-input" id="ccs-dep" type="number" min="0" step="0.01" placeholder="0 for none"></div>'+err+'<div class="ccs-actions-row"><button type="button" class="ccs-btn ccs-good" data-act="do-confirm">Confirm order</button><button type="button" class="ccs-btn ccs-ghost" data-act="panel" data-v="">Back</button></div></div>';
     }
     if (p === 'confirm' && o.order_type === 'custom' && o.final_total != null) {
       var how = S.cfmHow;
@@ -1278,15 +1291,22 @@
     }
     var main = '', more = [], hint = '', danger = [];
     var isCustom = o.order_type === 'custom';
-    if (isCustom && (st === 'awaiting_review' || st === 'awaiting_quote') && orderer) {
+    var addOnQuote = (o.cake_addon_quotes || []).slice().sort(function (a,b) { return b.quote_version-a.quote_version; })[0];
+    var addOnRequested = o.order_type === 'standard' && (addOnQuote || /^Requested add-ons:/i.test(o.customer_notes || ''));
+    if (addOnRequested && st === 'awaiting_quote' && orderer) {
+      main = '<button type="button" class="ccs-btn ccs-good" data-act="panel" data-v="addonquote">Review add-ons and price</button>';
+      hint = 'Manager reviews the extra charges, then emails the quotation. Do not confirm yet.';
+      danger.push(['decline','Decline order']);
+    } else if (isCustom && (st === 'awaiting_review' || st === 'awaiting_quote') && orderer) {
       main = '<button type="button" class="ccs-btn ccs-good" data-act="panel" data-v="quote">Add the price</button>';
       hint = 'Add the price once the kitchen has priced the design. Nothing goes to the kitchen until you press Confirm order.';
       danger.push(['decline', 'Decline order']);
     } else if (st === 'awaiting_approval' && orderer) {
       var canMail = !!(S.setup && S.setup.guest_emails) && !!o.contact_email;
-      main = '<button type="button" class="ccs-btn ccs-good" data-act="panel" data-v="confirm">Confirm order</button>' +
+      main = (addOnRequested && (!addOnQuote || addOnQuote.status !== 'accepted' || addOnQuote.quote_version !== o.version) ? '<button type="button" class="ccs-btn ccs-good" data-act="panel" data-v="addonaccept">Record customer agreement</button>' : '<button type="button" class="ccs-btn ccs-good" data-act="panel" data-v="confirm">Confirm order</button>') +
         '<button type="button" class="ccs-btn ccs-ghost" data-act="send-quote"' + (canMail ? '' : ' disabled aria-disabled="true"') + '>Email the price to the customer</button>';
       if (isCustom) more.push(['quote', 'Change the price']);
+      if (addOnRequested) more.push(['addonquote', 'Revise add-ons and price']);
       hint = canMail ? 'Waiting for the customer to agree the price. Press Confirm order once they say yes.' : (!o.contact_email ? 'No email address on this order: tell the customer the price by phone or WhatsApp, then press Confirm order once they agree.' : 'Customer emails are off: tell the customer the price yourself, then press Confirm order once they agree.');
       danger.push(['decline', 'Decline order']);
     } else if ((st === 'awaiting_review' || st === 'awaiting_quote') && orderer) {
@@ -1330,8 +1350,8 @@
     S.sheet.danger = danger;
     // A visible way to the Other actions box (at the end of History), so Cancel and Delete are easy to find
     // Administrators: a visible way to Delete (it sits in Other actions at the end of History and still asks for the order number and a reason)
-    if (danger.some(function (d) { return d[0] === 'delete'; }) && secStore('order').order !== 'history') more.push(['go-other', 'Delete order']);
-    if (!main && !more.length) return '';
+    // Cancel and Delete are directly accessible below the other order actions; no History detour.
+    if (!main && !more.length && !danger.length) return '';
     var nx = nextStep(o), phNext = '';
     // Who acts next, in plain words: the kitchen, the counter, or both
     if (st === 'confirmed') {
@@ -1344,7 +1364,8 @@
     var nxl = phNext ? '<p class="ccs-nextline os-who"><em>Next:</em> ' + esc(phNext) + '</p>' : nx ? '<p class="ccs-nextline' + (nx[1] === 'wait' ? ' is-wait' : '') + '"><em>Next:</em> ' + esc(nx[0]) + '</p>' : '';
     var told = S.sheet.readyAsk ? '<p class="ccs-note ccs-readyask">Sent the WhatsApp? <button type="button" class="ccs-link" data-act="ready-told">Yes, note it in the history</button></p>' : '';
     return '<div class="ccs-actions">' + nxl + (main ? '<div class="ccs-actions-row">' + main + '</div>' : '') + (hint ? '<p class="ccs-hint" id="ccs-brief-why">' + esc(hint) + '</p>' : '') + told + (S.panelErr ? '<p class="ccs-err">' + esc(S.panelErr) + '</p>' : '') +
-      (more.length ? '<div class="ccs-actions-row ccs-more-row">' + more.map(function (m) { return m[0] === 'go-other' ? '<button type="button" class="ccs-link ccs-red" data-act="go-other">' + m[1] + '</button>' : '<button type="button" class="ccs-link" data-act="panel" data-v="' + m[0] + '">' + m[1] + '</button>'; }).join('') + '</div>' : '') + '</div>';
+      (more.length ? '<div class="ccs-actions-row ccs-more-row">' + more.map(function (m) { return '<button type="button" class="ccs-link" data-act="panel" data-v="' + m[0] + '">' + m[1] + '</button>'; }).join('') + '</div>' : '') +
+      (danger.length ? '<div class="ccs-actions-row ccs-danger-row" aria-label="Cancel or delete order">' + danger.filter(function(d){return d[0] === 'cancel' || d[0] === 'cancel-locked' || d[0] === 'delete';}).map(function(d){return '<button type="button" class="ccs-link ccs-red" data-act="panel" data-v="'+d[0]+'">'+d[1]+'</button>';}).join('') + '</div>' : '') + '</div>';
   }
   function receiverChips(o, dl) {
     var c = o.customers, opts = [];
@@ -1372,6 +1393,33 @@
     }).catch(function (e) { S.busy = false; fail(e); });
   }
   // Custom cakes: add or change the price (and, for a cake not on the menu, its flavour and size)
+  function addOnCurrent(o) {
+    return (o.cake_addon_quotes || []).some(function (q) { return q.quote_version === o.version && q.status === 'accepted' && Number(q.quoted_total) === Number(o.final_total); });
+  }
+  function saveAddOnQuote() {
+    var o = S.sheet.data, node = document.getElementById('aq-lines'), count = node ? Number(node.dataset.count) : 0, lines = [];
+    for (var i=0;i<count;i++) {
+      if (!document.getElementById('aq-desc-'+i)) continue;
+      var description = val('aq-desc-'+i).trim(), quantity = Number(val('aq-qty-'+i)), unit_price = Number(val('aq-price-'+i));
+      if (!description || !Number.isInteger(quantity) || quantity<1 || quantity>50 || !Number.isFinite(unit_price) || unit_price<0) { panelNeed('Check each add-on name, quantity and price.'); return; }
+      lines.push({description:description,quantity:quantity,unit_price:unit_price});
+    }
+    if (!lines.length) { panelNeed('Add at least one extra.'); return; }
+    if (S.busy) return; S.busy=true;
+    sb.rpc('staff_set_addon_quote',{p_order:o.id,p_version:o.version,p_lines:lines}).then(function(r) {
+      S.busy=false;if(r.error)throw r.error;if(!r.data.ok){S.panelErr=r.data.message;return renderSheet();}
+      toast('Quotation saved. Email the customer, then record their agreement.');openOrder(o.id);loadOrders(true);
+    }).catch(function(e){S.busy=false;fail(e);});
+  }
+  function acceptAddOnQuote() {
+    var o=S.sheet.data,method=val('aq-method'),note=val('aq-evidence').trim();
+    if(note.length<3){panelNeed('Record how the customer accepted this price.');return;}
+    if(S.busy)return;S.busy=true;
+    sb.rpc('staff_accept_addon_quote',{p_order:o.id,p_version:o.version,p_method:method,p_note:note}).then(function(r){
+      S.busy=false;if(r.error)throw r.error;if(!r.data.ok){S.panelErr=r.data.message;return renderSheet();}
+      toast('Customer agreement recorded. Confirm the order when payment requirements are satisfied.');openOrder(o.id);loadOrders(true);
+    }).catch(function(e){S.busy=false;fail(e);});
+  }
   function saveQuote() {
     var o = S.sheet.data; if (S.busy) return;
     var price = num(val('q-price')), req = isReq((o.order_items || [])[0]);
@@ -1390,7 +1438,7 @@
     sb.rpc('staff_send_quote', { p_order: o.id }).then(function (r) {
       S.busy = false; clearBusy(); if (r.error) throw r.error;
       if (!r.data.ok) { S.panelErr = r.data.message; return renderSheet(); }
-      toast('Price emailed to ' + r.data.to + '. Press Confirm order once they agree.'); mailLoad(o.id);
+      toast('Price email queued for ' + r.data.to + '. Check delivery status and record customer agreement before confirming.'); mailLoad(o.id);
     }).catch(function (e) { S.busy = false; clearBusy(); fail(e); });
   }
   function deleteOrder() {
@@ -2364,7 +2412,7 @@
   }
   function phPicker(id, label, link) { return '<label class="' + (link ? 'ccs-link ccs-phlink' : 'ccs-btn ccs-ghost ccs-phadd') + '"><input type="file" id="' + id + '" accept="image/jpeg,image/png,image/webp" multiple class="ccs-sr">' + label + '</label>'; }
   function freshDraft() { return { key: uuid(), source: null, taken: null, takenDate: '', step: 0, reached: 0, phone: '', noMob: null, matches: null, customer: null, isNew: false, name: '', email: '', whatsapp: true, optIn: null,
-    product: null, req: false, sizeNote: '', reqPrice: '', variant: null, size: null, finish: 'standard', design: '', photos: [], phErr: null, message: '', candles: '', occasion: null, occOther: '', diet: null, diets: [], dietNote: '', notes: '', qty: 1,
+    product: null, req: false, sizeNote: '', reqPrice: '', variant: null, size: null, finish: 'standard', design: '', photos: [], phErr: null, message: '', candles: '', occasion: null, occOther: '', diet: null, diets: [], dietNote: '', notes: '', addons: '', qty: 1,
     date: '', time: '', rush: '', rushBy: '', fromCal: false, method: 'collection', zone: null, address: '', fee: '', contact: '', confirmNow: false, askDeposit: false, deposit: '', payNow: false, payAmount: '', payMethod: 'cash', result: null, err: null, errField: null }; }
   var D = freshDraft();
   // Unfinished walk-in orders are kept on this device for 12 hours, per staff login, and cleared at sign out (U6)
@@ -2608,6 +2656,7 @@
     var h = '<h2 class="ccs-step-q">How should it look?</h2><div class="ccs-chips"><button type="button" class="ccs-chip" data-act="n-finish" data-v="standard" aria-pressed="' + (D.finish === 'standard') + '">Standard finish</button>' +
       (p && p.supports_custom ? '<button type="button" class="ccs-chip" data-act="n-finish" data-v="custom" aria-pressed="' + (D.finish === 'custom') + '">Custom design</button>' : '') + '</div>';
     if (!D.finish) return h;
+    if (!D.req && D.finish === 'standard') h += '<div class="ccs-field"><label class="ccs-label" for="n-addons">Add-ons or extra decorations (optional)</label><textarea class="ccs-input" id="n-addons" data-n="addons" maxlength="250" placeholder="Flowers, toppers or other additions. Review the added price with the customer.">' + esc(D.addons || '') + '</textarea><p class="ccs-hint">Requested extras need a revised quotation and the customer\'s agreement before confirmation.</p></div>';
     if (D.finish === 'custom') h += '<div class="ccs-field"><label class="ccs-label" for="n-design">Design details</label><textarea class="ccs-input" id="n-design" data-n="design" placeholder="Colours, theme, toppers, candles">' + esc(D.design) + '</textarea></div>' + ferr('design');
     if (p && p.supports_message) h += '<div class="ccs-field"><label class="ccs-label" for="n-msg">Message on the cake (optional)</label><input class="ccs-input" id="n-msg" maxlength="40" data-n="message" value="' + esc(D.message) + '"></div>' + ferr('message');
     h += '<div class="ccs-field"><label class="ccs-label" for="n-candles">Candles (optional)</label><input class="ccs-input" id="n-candles" maxlength="60" data-n="candles" placeholder="For example: number 30 candle, or 5 small candles" value="' + esc(D.candles) + '"></div>' + ferr('candles');
@@ -2615,7 +2664,7 @@
     h += '<div class="ccs-field rq-simple">' + reqHtml(D, 'n', true) + '</div>';
     h += '<div class="ccs-field"><span class="ccs-label">Any allergies?</span><div class="ccs-chips"><button type="button" class="ccs-chip" data-act="n-diet" data-v="no" aria-pressed="' + (D.diet === 'no') + '">No</button><button type="button" class="ccs-chip" data-act="n-diet" data-v="yes" aria-pressed="' + (D.diet === 'yes') + '">Yes</button></div>' + ferr('diet') + '</div>';
     if (D.diet === 'yes') h += '<div class="ccs-panel"><div class="ccs-chips">' + DIETS.map(function (d) { return '<button type="button" class="ccs-chip" data-act="n-diets" data-v="' + esc(d) + '" aria-pressed="' + (D.diets.indexOf(d) > -1) + '">' + esc(d) + '</button>'; }).join('') + '</div><input class="ccs-input" data-n="dietNote" id="n-dnote" placeholder="Details for the kitchen" value="' + esc(D.dietNote) + '"></div>';
-    h += '<div class="ccs-field"><label class="ccs-label" for="n-notes">Other notes (optional)</label><input class="ccs-input" id="n-notes" data-n="notes" value="' + esc(D.notes) + '"></div>';
+    h += '<div class="ccs-field"><label class="ccs-label" for="n-notes">Add-ons or other requests (optional)</label><input class="ccs-input" id="n-notes" data-n="notes" placeholder="Extra decorations, toppers or other requests; confirm any added charge" value="' + esc(D.notes) + '"></div>';
     return h + '<button type="button" class="ccs-btn" data-act="n-finish-next">Continue</button>';
   }
   function stepWhen(noHead, part) {
@@ -2824,7 +2873,7 @@
     if (cur === 0) {
       if (p && p.variants.length) h += '<div class="sl-sub"><span class="sl-k">' + esc(p.choice_label || 'Which flavour?') + '</span><div class="ccs-chips">' + p.variants.map(function (v) { return '<button type="button" class="ccs-chip" data-act="n-var" data-v="' + esc(v) + '" aria-pressed="' + (D.variant === v) + '">' + esc(v) + '</button>'; }).join('') + '</div></div>';
       if (p) h += '<div class="sl-sub"><span class="sl-k">Finish</span><div class="ccs-chips"><button type="button" class="ccs-chip" data-act="n-finish" data-v="standard" aria-pressed="' + (D.finish !== 'custom') + '">Standard finish</button>' + (p.supports_custom ? '<button type="button" class="ccs-chip" data-act="n-finish" data-v="custom" aria-pressed="' + (D.finish === 'custom') + '">Custom design</button>' : '') + '</div></div>';
-      if (p) h += '<p class="sl-ask"><b>Ask the customer:</b> who is the cake for, any colours or theme, and do they have a photo? ' + (D.finish === 'custom' ? 'Write the answers in Design details.' : 'Colours, a theme or a photo make it a custom design.') + '</p>';
+      if (p) h += '<p class="sl-ask"><b>Ask the customer:</b> who is the cake for, any colours or theme, and do they have a photo? ' + (D.finish === 'custom' ? 'Write the answers in Design details.' : 'Small extras can stay on a standard cake. Use Custom design for a substantially different design.') + '</p>';
       if (D.size) h += '<div class="sl-sub sl-qty"><label class="sl-k" for="n-qty">How many cakes</label><input class="ccs-input" id="n-qty" type="number" min="1" max="50" value="' + D.qty + '" data-n="qty"></div>';
       h += ferr('product') + ferr('size') + ferr('variant') + slActions(0);
     }
@@ -2895,7 +2944,7 @@
       if (D.req) ed += '<p class="sl-ask"><b>Ask the customer:</b> who is the cake for, any colours or theme, and do they have a photo? Write the answers in What should it look like.</p>' + reqFields();
       if (p && p.variants.length) ed += '<div class="sl-sub"><span class="sl-k">' + esc(p.choice_label || 'Which flavour?') + '</span><div class="ccs-chips">' + p.variants.map(function (v) { return '<button type="button" class="ccs-chip" data-act="n-var" data-v="' + esc(v) + '" aria-pressed="' + (D.variant === v) + '">' + esc(v) + '</button>'; }).join('') + '</div></div>';
       if (p) ed += '<div class="sl-sub"><span class="sl-k">Finish</span><div class="ccs-chips"><button type="button" class="ccs-chip" data-act="n-finish" data-v="standard" aria-pressed="' + (D.finish !== 'custom') + '">Standard finish</button>' + (p.supports_custom ? '<button type="button" class="ccs-chip" data-act="n-finish" data-v="custom" aria-pressed="' + (D.finish === 'custom') + '">Custom design</button>' : '') + '</div></div>';
-      if (p) ed += '<p class="sl-ask"><b>Ask the customer:</b> who is the cake for, any colours or theme, and do they have a photo? ' + (D.finish === 'custom' ? 'Write the answers in Design details.' : 'Colours, a theme or a photo make it a custom design.') + '</p>';
+      if (p) ed += '<p class="sl-ask"><b>Ask the customer:</b> who is the cake for, any colours or theme, and do they have a photo? ' + (D.finish === 'custom' ? 'Write the answers in Design details.' : 'Small extras can stay on a standard cake. Use Custom design for a substantially different design.') + '</p>';
       if (p && D.finish === 'custom') ed += '<div class="sl-sub"><label class="sl-k" for="n-design">Design details <em class="sl-req">Required</em></label><textarea class="ccs-input sl-design" id="n-design" data-n="design" rows="3" placeholder="Who it is for, colours, theme, toppers, writing style">' + esc(D.design) + '</textarea>' + ferr('design') + '<span class="ccs-hint">A custom cake is priced by the team after the order is placed.</span></div>' +
         '<div class="sl-sub"><span class="sl-k">Inspiration photos <em class="sl-opt">Optional</em></span>' + phThumbs(D.photos, 'sl-phx') +
         (phLive(D.photos).length < 5 ? phPicker('n-photos', D.photos.length ? 'Add more photos' : 'Add photos') : '') +
@@ -3061,8 +3110,8 @@
     var payAmt = D.payNow ? num(D.payAmount) : null;
     if (D.payNow && (!payAmt || payAmt <= 0)) { D.err = 'Enter the amount the customer is paying.'; D.errField = 'payment'; return refreshStep(); }
     var p = { idempotency_key: D.key, location: 'corner-cafe', source: D.source, product_code: D.req ? 'custom-cake' : D.product, variant: D.variant, size_inch: D.req ? null : D.size, quantity: D.qty,
-      finish: D.finish, design: D.design, attachments: custom ? D.photos.filter(function (x) { return x.status === 'done'; }).map(function (x) { return x.path; }) : [], message: D.message, candles: D.candles, occasion: occSend(), has_dietary: D.diet, dietary: D.diet === 'yes' ? D.diets : [], dietary_note: D.dietNote, notes: D.notes,
-      date: D.date, time: D.time, rush: tooSoon() ? { reason: D.rush, approved_by: D.rushBy } : null, confirm_now: D.confirmNow && !custom, deposit_required: dep,
+      finish: D.finish, design: D.design, attachments: custom ? D.photos.filter(function (x) { return x.status === 'done'; }).map(function (x) { return x.path; }) : [], message: D.message, candles: D.candles, occasion: occSend(), has_dietary: D.diet, dietary: D.diet === 'yes' ? D.diets : [], dietary_note: D.dietNote, notes: [(D.finish === 'standard' && (D.addons || '').trim() ? 'Requested add-ons: ' + D.addons.trim() : ''), D.notes].filter(Boolean).join('\n'), addon_request: D.finish === 'standard' && !!(D.addons || '').trim(), addon_details: D.finish === 'standard' ? (D.addons || '').trim() : '',
+      date: D.date, time: D.time, rush: tooSoon() ? { reason: D.rush, approved_by: D.rushBy } : null, confirm_now: D.confirmNow && !custom && !(D.finish === 'standard' && (D.addons || '').trim()), deposit_required: dep,
       payment: payAmt ? { amount: payAmt, method: D.payMethod, kind: dep ? 'deposit' : (payAmt >= price ? 'full' : 'deposit') } : null,
       delivery: D.method === 'delivery' ? { method: 'delivery', zone: D.zone, address: D.address, fee: zoneObj() && zoneObj().fee == null ? num(D.fee) : null, contact: D.contact } : { method: 'collection' } };
     if (D.req) { p.size_note = (D.sizeNote || '').trim(); p.price = num(D.reqPrice) > 0 ? num(D.reqPrice) : null; }
@@ -4757,6 +4806,11 @@
             if (dep0 != null && (dep0 < 0 || dep0 > Number(od0.final_total))) { S.panelErr = 'The deposit must be between zero and the price.'; renderSheet(); break; }
             act('confirm', { p_final_total: Number(od0.final_total), p_deposit: dep0, p_note: S.cfmHow === 'email' ? 'Customer accepted by email' : 'Customer confirmed verbally' }); break;
           }
+          if (addOnCurrent(od0)) {
+            var adep = num(val('ccs-dep'));
+            if (adep != null && (adep < 0 || adep > Number(od0.final_total))) { S.panelErr = 'Check the deposit against the agreed price.'; renderSheet(); break; }
+            act('confirm', { p_final_total: Number(od0.final_total), p_deposit: adep, p_note: 'Customer accepted itemized add-on quotation' }); break;
+          }
           var price = num(val('ccs-price')), dep = num(val('ccs-dep'));
           if (price == null || price < 0) { S.panelErr = 'Enter the price.'; renderSheet(); break; }
           act('confirm', { p_final_total: price, p_deposit: dep }); break;
@@ -4780,6 +4834,10 @@
         case 'ph-rm':
           if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = 'Tap again to remove'; setTimeout(function () { if (b.isConnected) { b.dataset.armed = ''; b.textContent = 'Remove'; } }, 4000); break; }
           removePhoto(Number(v), b); break;
+        case 'aq-save': saveAddOnQuote(); break;
+        case 'aq-accept': acceptAddOnQuote(); break;
+        case 'aq-remove': (function(){var input=document.getElementById('aq-desc-'+Number(v));if(input){var line=input.closest('.ccs-row');if(line)line.remove();}})();break;
+        case 'aq-add': (function(){ var node=document.getElementById('aq-lines'), i=Number(node.dataset.count); if(i>=8)return toast('Up to 8 extras per quote.',true); node.insertAdjacentHTML('beforeend','<div class="ccs-row"><div class="ccs-field"><label class="ccs-label" for="aq-desc-'+i+'">Extra '+(i+1)+'</label><input class="ccs-input" id="aq-desc-'+i+'" maxlength="120"></div><div class="ccs-field"><label class="ccs-label" for="aq-qty-'+i+'">Qty</label><input class="ccs-input" id="aq-qty-'+i+'" type="number" min="1" max="50" value="1"></div><div class="ccs-field"><label class="ccs-label" for="aq-price-'+i+'">Unit charge (FJD)</label><input class="ccs-input" id="aq-price-'+i+'" type="number" step="0.01" min="0" value="0"></div><div class="ccs-field"><button type="button" class="ccs-btn ccs-ghost" data-act="aq-remove" data-v="'+i+'">Remove extra</button></div></div>');node.dataset.count=i+1; })(); break;
         case 'do-quote': saveQuote(); break;
         case 'send-quote': sendQuote(b); break;
         case 'cfm-how': S.cfmHow = v; renderSheet(); break;

@@ -312,7 +312,7 @@
     ['Type the number first. If they have ordered before, their details come up.', "Start with their number. If they've ordered before, their details fill in for you."],
     ['Ask them just like this. Only a clear yes counts, and it is saved with the order.', "Read the question out just as it's written. Only a clear yes counts, and we save their answer with the order."],
     ['If they are ordering right now, leave it on Today.', 'Ordering right now? Leave it on Today.'],
-    ['Colours, a theme or a photo make it a custom design.', "If they want colours, a theme or a photo copied, it's a custom design."],
+    ['Colours, a theme or a photo make it a custom design.', "Small extras can stay on a standard cake. Use Custom design for a substantially different design."],
     ['The kitchen prices a custom design after you save. You will add the price on the order.', "The kitchen will price the design after you save. You'll add the price to the order then."],
     ['Up to 5 photos, 5 MB each. They go on the order and the kitchen slip.', "Add up to 5 photos. They'll show on the order and the kitchen slip."],
     ['Up to 40 letters. The kitchen copies it exactly, so check the spelling with them.', 'Up to 40 letters. The kitchen writes it exactly as typed, so check the spelling with the customer.'],
