@@ -9,7 +9,7 @@ New work branches from `main` and comes back to `main`. The old `preview/*` and 
 
 - **Guest order page**: Webflow page `/order-cake` (page 6aca1629519070a607864b57). Footer loads `dist/app/guest-app.cdf126b4b7.js`
   (commit 947432f3) and `src/guest.seasonal.js` (commit 7dc355ab), both pinned with SRI. Calls Supabase with the public (publishable) key.
-- **Staff app (Service Hub)**: Webflow page `/cake-orders-staff` (page 6aca162870735ac2247de4dd). See below.
+- **Staff app (Service Hub)**: Webflow page `/cake-orders-staff` (page 6aca162870735ac2247de4dd). See below. Webflow allows at most 15 registered scripts per page and this page uses all 15: to add one, fold or remove another.
 - **Database**: Supabase project "Corner Cafe Cakes" (ilbrfwxblhidtlsjgxlh, Sydney, Pro plan). The authoritative source for orders,
   customers, payments and history.
 - **Email**: Edge Function `send-emails` (Resend). Queue table `email_outbox`, retried every 5 minutes by cron. `email-templates`
@@ -23,13 +23,16 @@ The staff page is assembled in the browser from several pieces. **Every piece is
 (jsDelivr, with raw.githubusercontent.com as fallback), never from `main`. So changing or deleting files on `main` never
 changes what staff see. Only editing the Webflow page does.
 
-1. **Base app**: `dist/app/staff-app.d1c119f6f0.js` at commit bd90f95e (Release D), loaded by the page footer with SRI.
-2. **Order tools loader** (Webflow registered script `ccordertoolsloader67`): 16 add-ons from `src/` at commit 08c375ab
+1. **Base app**: `dist/app/staff-app.83d76f9aa9.js` at commit 697021f5 (Release F, live 28 Oct 2026). The page footer still names the
+   Release D file (`staff-app.d1c119f6f0.js` at bd90f95e); the registered script `ccAssetVerify2` swaps it for Release F with SRI on the
+   first host, and the second host falls back to Release D if Release F ever fails. Next time the footer is rewritten, point it at
+   Release F directly and drop the swap.
+2. **Order tools loader** (Webflow registered script `ccordertoolsloader68`): 16 add-ons from `src/` at commit 697021f5
    (order-tools, analytics-birthday, cake-lead-time, service-tools, seasonal, treat-orders, analytics-focus, polish, ipad,
-   flow, analytics-metrics, admin, welcome, answers, pickups, oldentry). Copies of loaders 34 to 67 are in `docs/loaderNN.js`.
+   flow, analytics-metrics, admin, welcome, answers, pickups, oldentry). Copies of loaders 34 to 68 are in `docs/loaderNN.js`.
 3. **Other registered scripts** on the page: Sentry, Birthday Club list and menu item, analytics workspace (commit 8ee47424),
    app install icons (dist/pwa), email templates screen, six small analytics and Today layout scripts from 22 October,
-   the asset check (`ccAssetVerify`) and its list of expected file fingerprints (`ccAssetManifestAll`).
+   the asset check (`ccAssetVerify2`) and its list of expected file fingerprints (`ccAssetManifestAll`).
 4. **Older add-ons** pinned in the page footer: Heartbeat core (3fb6a2e1), customer directory (17e9a139), calendar dashboard
    (fe3704f7), relationship profile (40e1cf19), finish flow (7103cd83), date picker (e414d14d), Daily cake demand (fd6e6fa6,
    protected), analytics insights and seasonal demand (71758a89), new order clarity (0af0f630).
@@ -42,7 +45,7 @@ take the current live file with `git show <commit>:<file>`, apply checked replac
 
 ### Protected commits
 
-Branch `keep/live-pins` holds every commit the live pages and Edge Functions load (28 on 28 October 2026). **Never delete it.**
+Branch `keep/live-pins` holds every commit the live pages and Edge Functions load (29 on 28 October 2026). **Never delete it.**
 When a release pins a new commit, add it to that branch. With it in place, old branches can be deleted safely.
 
 ### Protected features
