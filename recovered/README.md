@@ -14,7 +14,7 @@ loaders use). jsDelivr was refused by this environment's network proxy (HTTP 403
 
 | File | Pinned commit | Source URL | Referenced by |
 |---|---|---|---|
-| `dist/analytics/approved-dashboard-stable.js` | `3fb6a2e1f548bbf0de6b5796eb76aa432931111e` | https://raw.githubusercontent.com/jrest2025/corner-cafe-cakes/3fb6a2e1f548bbf0de6b5796eb76aa432931111e/dist/analytics/approved-dashboard-stable.js | `central/page/page-footer.html` (`cc-heartbeat-loader`), `docs/rollback/*` |
+| `dist/analytics/approved-dashboard-stable.js` | `3fb6a2e1f548bbf0de6b5796eb76aa432931111e` | https://raw.githubusercontent.com/jrest2025/corner-cafe-cakes/3fb6a2e1f548bbf0de6b5796eb76aa432931111e/dist/analytics/approved-dashboard-stable.js | `central/page/page-footer.html` (`cc-heartbeat-loader`), `docs/history/rollback/*` |
 | `dist/analytics/approved-dashboard-stable.css` | `3fb6a2e1…` | https://raw.githubusercontent.com/jrest2025/corner-cafe-cakes/3fb6a2e1f548bbf0de6b5796eb76aa432931111e/dist/analytics/approved-dashboard-stable.css | same |
 | `src/staff.customer-directory-v3.js` | `17e9a1396eb653f157d3ea51491bf1793ae7e7da` | https://raw.githubusercontent.com/jrest2025/corner-cafe-cakes/17e9a1396eb653f157d3ea51491bf1793ae7e7da/src/staff.customer-directory-v3.js | `central/page/page-footer.html` (`cc-customer-directory-loader`, release `20261019-r2`) |
 | `src/staff.customer-directory-v3.css` | `17e9a139…` | https://raw.githubusercontent.com/jrest2025/corner-cafe-cakes/17e9a1396eb653f157d3ea51491bf1793ae7e7da/src/staff.customer-directory-v3.css | same |

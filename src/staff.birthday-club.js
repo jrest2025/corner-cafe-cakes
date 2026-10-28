@@ -12,7 +12,7 @@
  *     Both are saved once the order is (birthday_club_join_order, then birthday_club_redeem).
  *  4. An open order can get the free cupcake (for website and phone orders); an open customer profile shows the club,
  *     with Add and Remove.
- * Database: supabase/birthday_club_20261020.sql. The app lends its database client and a few of its own actions as
+ * Database: supabase/sql/birthday_club_20261020.sql. The app lends its database client and a few of its own actions as
  * window.__ccsBc (build/staff_birthday_club.py). If anything here fails, the rest of the app carries on.
  */
 (function (global) {

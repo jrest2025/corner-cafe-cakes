@@ -6,7 +6,7 @@ there". And: "the person filling the cake order form must enter their name. its 
 tablet has no specific login." Approved: who is taking the order on every New order and every device (names used before
 on the device are one-tap buttons, none picked in advance); no hidden menus; the screen leads the way; date and time
 together; a clear finish screen; the order date starts on Today.
-Database: supabase/taken_by_20261020.sql (applied; nothing changes until the app sends a name).
+Database: supabase/sql/taken_by_20261020.sql (applied; nothing changes until the app sends a name).
 
 Base: the live release (dist/app/staff-birthday-club-manifest.json) unless BASE names another manifest.
 OUT names the manifest written (default staff-order-flow-manifest.json). The footer's compact-entry list goes empty in

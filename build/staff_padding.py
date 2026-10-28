@@ -2,7 +2,7 @@
 import json
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
-source=ROOT/'docs/rollback/staff-footer-before-padding-2026-10-18.html'
+source=ROOT/'docs/history/rollback/staff-footer-before-padding-2026-10-18.html'
 s=source.read_text().rstrip('\n')
 assert 'staff-app.2e90891108.js' in s
 css=(ROOT/'src/staff.padding.css').read_text()

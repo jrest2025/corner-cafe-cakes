@@ -13,7 +13,7 @@
  *     "before and during" (every cake order while a campaign ran against the days before it), because other things
  *     move orders too.
  *
- * Database: supabase/marketing_campaigns_20261020.sql. The staff app hands over its own database client as
+ * Database: supabase/sql/marketing_campaigns_20261020.sql. The staff app hands over its own database client as
  * window.__ccsApi (build/staff_campaigns.py). QR codes: qrcode-generator 1.4.4 (MIT), bundled as window.CCQRCode.
  * If anything here fails, the rest of the app carries on: the tab falls back, and New order shows no promotion question.
  */

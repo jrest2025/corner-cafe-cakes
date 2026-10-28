@@ -1,7 +1,7 @@
 """Marketing campaigns plugged into Analytics (20 October 2026), on top of the live Service Hub release.
 
 Roneel approved the plan: Add campaign, then link and QR code, then results on the Marketing tab ("Yes, build it").
-Database: supabase/marketing_campaigns_20261020.sql (applied 20 October 2026; additive).
+Database: supabase/sql/marketing_campaigns_20261020.sql (applied 20 October 2026; additive).
 
 Changes to the live bundle, each asserted:
   1. The Analytics tabs code is swapped for its new version: Marketing gets a title, and add-ons can register a tab page

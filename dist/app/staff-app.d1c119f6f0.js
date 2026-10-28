@@ -106,7 +106,7 @@ function ccPracticeData() {
     orders.push({ id: 'o11', reference: 'CC-1020', order_status: 'awaiting_approval', payment_status: 'unpaid', fulfilment_method: 'collection', order_type: 'custom', source: 'phone', created_at: new Date().toISOString(), required_date: add(8), required_time: '14:00:00', estimate_total: 150, final_total: 150, delivery_fee: 0, has_dietary: false, version: 3, customer_id: 'c2', customers: cust[1], contact_name: cust[1].full_name, contact_email: 'guest@example.invalid', order_items: [{ product_id: null, product_name: 'Custom cake', variant: 'Lemon', size_inch: null, serves_label: 'About 30 people, two tiers', unit_price: 150, quantity: 1, finish: 'custom', design_description: 'Two tier, white and gold, fresh flowers' }], order_events: [], order_attachments: window.__photoUrls ? [{ id: 'a1', storage_path: 'incoming/a/1.png', created_at: '2026-10-10T01:00:00Z' }, { id: 'a2', storage_path: 'incoming/a/2.png', created_at: '2026-10-10T02:00:00Z' }, { id: 'a3', storage_path: 'incoming/a/3.png', created_at: '2026-10-10T03:00:00Z' }, { id: 'a9', storage_path: 'incoming/a/9.png', created_at: '2026-10-09T03:00:00Z', removed_at: '2026-10-11T00:00:00Z' }] : [], payments: [] });
     orders.push({ id: 'o12', reference: 'CC-1021', order_status: 'awaiting_quote', payment_status: 'unpaid', fulfilment_method: 'collection', order_type: 'custom', source: 'walk_in', created_at: new Date().toISOString(), required_date: add(9), required_time: '11:00:00', estimate_total: 0, final_total: null, delivery_fee: 0, has_dietary: false, version: 1, customer_id: 'c2', customers: cust[1], contact_name: cust[1].full_name, order_items: [{ product_id: null, product_name: 'Custom cake', variant: null, size_inch: null, serves_label: '8 inch', unit_price: 0, quantity: 1, finish: 'custom', design_description: 'Football pitch with goal posts' }], order_events: [], order_attachments: [], payments: [] });
   }
-  // Old orders (supabase/old_orders_20261021.sql): a cake entered from a paper slip and already handed over, with the
+  // Old orders (supabase/sql/old_orders_20261021.sql): a cake entered from a paper slip and already handed over, with the
   // history the database writes for it (invented data)
   if (window.__oldOrders) {
     var ev = function (id, kind, detail, by) { return { id: id, at: new Date(Date.now() - 36e5).toISOString(), kind: kind, actor_label: by || 'Mere', detail: detail }; };
@@ -605,7 +605,7 @@ function ccPracticeData() {
       if (fn === 'staff_search_customers' && window.__bc) { var sq = args.q.trim().toLowerCase(), sd = sq.replace(/\D/g, ''); return Promise.resolve({ data: summary.filter(function (x) { return (sd.length >= 3 && String(x.phone || '').replace(/\D/g, '').indexOf(sd) > -1) || (/[a-z]/.test(sq) && x.full_name.toLowerCase().indexOf(sq) > -1); }).map(function (x) { return Object.assign({ birth_day: (prof[x.id] || {}).birth_day || null, birth_month: (prof[x.id] || {}).birth_month || null, archived_at: null, merged_into: null }, x); }) }); }
       if (fn === 'staff_search_customers') return Promise.resolve({ data: (args.q.indexOf('0001') > -1 || args.q.toLowerCase().indexOf('customer a') > -1) ? [summary[0]] : [] });
       if (fn === 'calendar_counts') { var m = {}; orders.forEach(function (o) { if (o.order_status === 'cancelled' || o.order_status === 'declined' || o.required_date < args.p_from || o.required_date > args.p_to) return; var r = m[o.required_date] = m[o.required_date] || { day: o.required_date, orders: 0, cakes: 0, deliveries: 0, attention: 0, done: 0 }; r.orders++; r.cakes += o.order_items.reduce(function (s, i) { return s + (i.quantity || 1); }, 0); if (['awaiting_review', 'awaiting_quote', 'awaiting_deposit'].indexOf(o.order_status) > -1) r.attention++; }); return Promise.resolve({ data: Object.keys(m).map(function (k) { return m[k]; }) }); }
-      // Who took the order (supabase/taken_by_20261020.sql): window.__takenFail makes it fail once per flag
+      // Who took the order (supabase/sql/taken_by_20261020.sql): window.__takenFail makes it fail once per flag
       if (fn === 'order_set_taken_by') {
         if (window.__takenFail) { window.__takenFail = false; return Promise.resolve({ data: { ok: false, error: 'x', message: 'Test failure' } }); }
         var tbo = orders.filter(function (x) { return x.id === args.p_order; })[0];
@@ -613,7 +613,7 @@ function ccPracticeData() {
         if (window.__takenDelay) return new Promise(function (ok) { setTimeout(function () { ok(tbDone()); }, window.__takenDelay); });
         return Promise.resolve(tbDone());
       }
-      // Old orders, the duplicate check and corrections (supabase/old_orders_20261021.sql): invented data
+      // Old orders, the duplicate check and corrections (supabase/sql/old_orders_20261021.sql): invented data
       if (fn === 'order_possible_duplicates') { if (window.__dupFail) return Promise.reject(new Error('Failed to fetch')); return Promise.resolve({ data: (window.__dups || []).slice() }); }
       if (fn === 'staff_enter_old_order') {
         var op = args.p, oo = op.old || {};
@@ -3359,7 +3359,7 @@ function Ed(){y.settings=null,y.setErr=null,Ma();var e=[a.from("locations").sele
  *     Both are saved once the order is (birthday_club_join_order, then birthday_club_redeem).
  *  4. An open order can get the free cupcake (for website and phone orders); an open customer profile shows the club,
  *     with Add and Remove.
- * Database: supabase/birthday_club_20261020.sql. The app lends its database client and a few of its own actions as
+ * Database: supabase/sql/birthday_club_20261020.sql. The app lends its database client and a few of its own actions as
  * window.__ccsBc (build/staff_birthday_club.py). If anything here fails, the rest of the app carries on.
  */
 (function (global) {
