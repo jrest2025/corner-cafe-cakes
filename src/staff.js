@@ -796,7 +796,7 @@
   function openOrder(id) {
     S.sheet = { type: 'order', id: id, data: null, photos: [], showHistory: false }; S.panel = null; S.panelErr = null; S.dirty = {};
     sheetOpen(); renderSheet();
-    return sb.from('orders').select('*, customers(*), order_items(*), order_events(*), order_attachments(*), payments(*), order_amendments(*)').eq('id', id).single().then(withContact).then(function (r) {
+    return sb.from('orders').select('*, customers(*), order_items(*), order_events(*), order_attachments(*), payments(*), order_amendments(*), cake_addon_quotes(*)').eq('id', id).single().then(withContact).then(function (r) {
       if (r.error) throw r.error;
       if (!S.sheet || S.sheet.id !== id) return;
       S.sheet.data = r.data;
@@ -818,7 +818,7 @@
   // Someone else changed the order: fetch the latest version but keep the open panel and the typing (A3)
   var CONFLICT = 'Someone else updated this order a moment ago. The details are now up to date: check them, then tap again. Your typing is kept.';
   function reloadOrderKeep(id) {
-    return sb.from('orders').select('*, customers(*), order_items(*), order_events(*), order_attachments(*), payments(*), order_amendments(*)').eq('id', id).single().then(withContact).then(function (r) {
+    return sb.from('orders').select('*, customers(*), order_items(*), order_events(*), order_attachments(*), payments(*), order_amendments(*), cake_addon_quotes(*)').eq('id', id).single().then(withContact).then(function (r) {
       if (r.error) throw r.error;
       if (!S.sheet || S.sheet.id !== id) return;
       S.sheet.data = r.data; renderSheet();
@@ -1180,6 +1180,16 @@
     var p = S.panel, err = S.panelErr ? '<p class="ccs-err">' + esc(S.panelErr) + '</p>' : '', st = o.order_status;
     S.sheet.danger = [];
     if (p === 'amend') return amendPanel(o, total, paid);
+    if (p === 'addonquote') {
+      var base = Number(o.estimate_total || 0), aq = (o.cake_addon_quotes || []).filter(function (q) { return q.status === 'pending' || q.status === 'accepted'; }).sort(function (a,b) { return b.quote_version-a.quote_version; })[0];
+      var rows = aq && Array.isArray(aq.lines) ? aq.lines : [{ description: (o.customer_notes || '').replace(/^Requested add-ons:\\s*/i, '').split('\\n')[0].slice(0,120), quantity: 1, unit_price: 0 }];
+      var inputs = rows.map(function (x,i) { return '<div class="ccs-row"><div class="ccs-field"><label class="ccs-label" for="aq-desc-'+i+'">Extra '+(i+1)+'</label><input class="ccs-input" id="aq-desc-'+i+'" maxlength="120" value="'+esc(x.description||'')+'"></div><div class="ccs-field"><label class="ccs-label" for="aq-qty-'+i+'">Qty</label><input class="ccs-input" id="aq-qty-'+i+'" type="number" min="1" max="50" value="'+Number(x.quantity||1)+'"></div><div class="ccs-field"><label class="ccs-label" for="aq-price-'+i+'">Unit charge (FJD)</label><input class="ccs-input" id="aq-price-'+i+'" type="number" step="0.01" min="0" value="'+Number(x.unit_price||0)+'"></div></div>'; }).join('');
+      return '<div class="ccs-panel"><b>Review add-ons and approve quote</b><p class="ccs-hint">Original cake and existing charges: '+money(base)+'. Set each extra separately. A manager must approve manual price adjustments. The cake remains a standard cake.</p><div id="aq-lines" data-count="'+rows.length+'">'+inputs+'</div><button type="button" class="ccs-btn ccs-ghost" data-act="aq-add">+ Add another extra</button>'+err+'<div class="ccs-actions-row"><button type="button" class="ccs-btn ccs-good" data-act="aq-save">Save quotation</button><button type="button" class="ccs-btn ccs-ghost" data-act="panel" data-v="">Back</button></div></div>';
+    }
+    if (p === 'addonaccept') {
+      var q = (o.cake_addon_quotes || []).filter(function (x) { return x.quote_version === o.version && x.status === 'pending'; })[0];
+      return '<div class="ccs-panel"><b>Record customer agreement</b><p class="ccs-hint">Only record agreement to the latest quotation. Emailing a price is not acceptance.</p><dl class="ccs-kv">'+kv('Quoted total',money(q ? q.quoted_total : o.final_total))+'</dl><div class="ccs-field"><label class="ccs-label" for="aq-method">How did the customer agree?</label><select class="ccs-input" id="aq-method"><option value="email">Email</option><option value="whatsapp">WhatsApp</option><option value="phone">Phone</option><option value="in_person">In person</option></select></div><div class="ccs-field"><label class="ccs-label" for="aq-evidence">Evidence of agreement</label><textarea class="ccs-input" id="aq-evidence" placeholder="For example, customer replied yes to the revised price at 3 PM"></textarea></div>'+err+'<div class="ccs-actions-row"><button type="button" class="ccs-btn ccs-good" data-act="aq-accept">Record agreement</button><button type="button" class="ccs-btn ccs-ghost" data-act="panel" data-v="">Back</button></div></div>';
+    }
     if (p === 'quote') {
       var qi = (o.order_items || [])[0] || {}, qreq = isReq(qi), cakeOnly = o.final_total != null ? Number(o.final_total) - Number(o.delivery_fee || 0) : null;
       return '<div class="ccs-panel ccs-quote"><b>' + (o.final_total != null ? 'Change the price' : 'Add the price') + '</b>' +
