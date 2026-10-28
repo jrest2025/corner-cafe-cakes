@@ -406,3 +406,9 @@ Screens:
 ## 28 Oct 2026 8:45 PM — Pencil goes straight to the field
 - Pencil opens Change order at the right section with the cursor in Name, Message or Design; fills Who asked = Our team and Reason = Spelling fix (editable). Review then Save as usual. Order contact name only (profile via Customers, Edit details).
 - Live as loader 66 (commit 45a39be). Rollback: re-apply ccordertoolsloader65.
+
+## 28 Oct 2026 9 PM — Festive page structure (preview)
+- Order page (guest.seasonal.js, commit b646683): /order-cake?treat=<name>#cc-treat-order adds that treat once and opens the Festive treats section (test_festive_link.cjs, 10 pass).
+- /festive (draft): wording from enquiry to online order; contact Call 892 2760, Email cornercafe@jacksfiji.com; enquiry form hidden; wine box says ask when you collect; card buttons say Order and link to the order page with the treat added. Footer code replaced (old enquiry-form scripts removed: they only served the hidden form).
+- CMS: Christmas Cookies renamed Festive Cookies (slug unchanged).
+- At deploy: Festive treats group On and can be ordered alone; order page footer to guest.seasonal.js @b646683; publish the 7 goodies; /festive out of draft; publish.
