@@ -294,6 +294,17 @@
   }
   // Order details flow: the colour strip says the same thing as the page, the next step leads, risky actions wait behind "More options"
   var moreOpen = {};
+  // (28 Oct 2026) the Delete and Cancel boxes scroll into view when they open, so the tap never looks like nothing happened
+  var panelSeen = null;
+  function panelInView() {
+    var go = doc.querySelector('#ccs-sheet [data-act="do-delete"], #ccs-sheet [data-act="do-cancel"]');
+    var pn = go && go.closest('.ccs-panel');
+    if (!pn) { panelSeen = null; return; }
+    var key = go.getAttribute('data-act') + '|' + ((doc.querySelector('#ccs-sheet .os-tph small') || {}).textContent || '');
+    if (panelSeen === key) return;
+    panelSeen = key;
+    pn.scrollIntoView({ block: 'start' });
+  }
   function sheetFlow() {
     var sh = doc.getElementById('ccs-sheet'); if (!sh || !sh.classList.contains('ccs-open')) return;
     var head = sh.querySelector('.ccs-sheet-head'), pill = head && head.querySelector('.ccs-pill.st'), band = head && head.querySelector('.os-band');
@@ -319,8 +330,23 @@
       if (!fb) return;
       acts = doc.createElement('div'); acts.className = 'ccs-actions ccp-made'; fb.parentNode.insertBefore(acts, fb.nextSibling);
     }
+    // 3b. (28 Oct 2026) one Cancel and one Delete: the page's "Manage order" hotfix row stays (empty and hidden, so it is not
+    // rebuilt) but its copies go; "Delete order" opens the delete box in place instead of jumping to History
+    [].forEach.call(acts.querySelectorAll('.cc-order-actions-row'), function (r) {
+      [].forEach.call(r.querySelectorAll('.cc-ot-cancel'), function (c) { r.parentNode.insertBefore(c, r); });
+      [].forEach.call(r.querySelectorAll('.cc-order-direct, .cc-order-actions-title'), function (c) { c.remove(); });
+      r.classList.add('ccp-gone');
+    });
+    [].forEach.call(acts.querySelectorAll('.cc-order-direct'), function (c) { c.remove(); });
+    [].forEach.call(acts.querySelectorAll('[data-act="go-other"]'), function (g) {
+      var d = doc.createElement('button'); d.type = 'button'; d.className = 'ccs-btn ccs-ghost cc-pol-del';
+      d.setAttribute('data-act', 'panel'); d.setAttribute('data-v', 'delete'); d.textContent = 'Delete order';
+      g.parentNode.replaceChild(d, g);
+    });
+    var dels = acts.querySelectorAll('[data-act="panel"][data-v="delete"]'); for (var di = 1; di < dels.length; di++) dels[di].remove();
+    var cans = acts.querySelectorAll('[data-act="panel"][data-v="cancel"], [data-act="panel"][data-v="cancel-locked"]'); for (var ci = 1; ci < cans.length; ci++) cans[ci].remove();
     // 4. risky or rare actions go behind one quiet "More options" button
-    var risky = [].slice.call(acts.querySelectorAll('[data-act="panel"][data-v="cancel"], [data-act="panel"][data-v="cancel-locked"], [data-act="panel"][data-v="delete"], [data-act="go-other"]'));
+    var risky =[].slice.call(acts.querySelectorAll('[data-act="panel"][data-v="cancel"], [data-act="panel"][data-v="cancel-locked"], [data-act="panel"][data-v="delete"], [data-act="go-other"]'));
     if (done || off) risky = risky.concat([].slice.call(acts.querySelectorAll('[data-act="panel"][data-v="amend"]')));
     if (!done && fb && !concern) risky.unshift(fb.querySelector('button'));
     risky = risky.filter(Boolean);
@@ -1055,7 +1081,7 @@
       if (main.querySelector('.ccs-setnav')) settings(main);
       if (scr === 'calendar') [['cal-status', 'Show', 'filter'], ['cal-type', 'Type', 'box']].forEach(function (c) { var s = doc.getElementById(c[0]); if (s && s.tagName === 'SELECT') dd(s, { label: c[1], hide: s.closest('label') || s, icons: { '*': c[2] } }); });
       if (main.querySelector('.cat-page, .dx-filters')) analytics(main);
-      refine(main); sheet(); sheetFlow(); custFlow(); sheetTabs(); sheetNextOnce(); var shx = doc.getElementById('ccs-sheet'); if (shx) words(shx); var popx = doc.querySelectorAll('#cc-staff .tx-pop, #cc-staff [class*="-pop"]'); [].forEach.call(popx, function (x) { if (!main.contains(x)) words(x); }); pulseName();
+      refine(main); sheet(); sheetFlow(); panelInView(); custFlow(); sheetTabs(); sheetNextOnce(); var shx = doc.getElementById('ccs-sheet'); if (shx) words(shx); var popx = doc.querySelectorAll('#cc-staff .tx-pop, #cc-staff [class*="-pop"]'); [].forEach.call(popx, function (x) { if (!main.contains(x)) words(x); }); pulseName();
       seasonal(); treatBoard();
     } catch (e) { warn('update', e); }
   }
