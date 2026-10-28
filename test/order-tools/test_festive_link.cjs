@@ -34,29 +34,17 @@ async function go(b, w, h, url, o) {
   await p.goto(url); await p.waitForTimeout(1800);
   return { p, ctx, errors };
 }
-// 28 Oct 2026: links from the festive page add that treat and open the festive treats section.
+// 28 Oct 2026 (later): the Order a Cake page is cakes only; seasonal items are ordered on the festive page.
 (async () => {
   const b = await chromium.launch();
   for (const [w, h, t] of [[1366, 900, 'desktop'], [390, 844, 'phone']]) {
-    let { p, ctx, errors } = await go(b, w, h, 'https://www.cornercafefiji.com/order-cake?treat=Mince%20Pies#cc-treat-order', { nodraft: true });
-    const r = await p.evaluate(() => { const s = document.getElementById('cc-treat-order'); const q = window.__ccoSeasonal && window.__ccoSeasonal.treatOrder(); return { shown: !!s && !s.hidden, top: s ? Math.round(s.getBoundingClientRect().top) : null, q: q && q.q, text: s ? s.innerText.replace(/\s+/g, ' ').slice(0, 200) : '' }; });
-    check(t + ' festive link: section shown and scrolled into view', r.shown && r.top !== null && r.top < 200 && r.top > -50, r);
-    check(t + ' festive link: Mince Pies already added once', r.q && r.q.i2 === 1 && Object.keys(r.q).filter(k => r.q[k] > 0).length === 1, r.q);
-    if (SHOTS) await p.screenshot({ path: SHOTS + '/festive-link-' + t + '.png' });
-    await p.reload(); await p.waitForTimeout(1800);
-    const r2 = await p.evaluate(() => window.__ccoSeasonal.treatOrder().q);
-    check(t + ' reload does not add a second one', r2.i2 === 1, r2);
-    check(t + ' no page errors', !errors.length, errors);
-    await ctx.close();
-    ({ p, ctx, errors } = await go(b, w, h, 'https://www.cornercafefiji.com/order-cake', {}));
-    const cf = await p.evaluate(() => ({ review: document.getElementById('cc-cake-order').classList.contains('cco-at-review'), addon: !!document.querySelector('#cc-cake-order .cco-tr'), sub: (document.querySelector('#cc-treat-order .cct-sub') || {}).textContent }));
-    check(t + ' cake form last step: no treats on the cake order (specials stay separate)', cf.review && !cf.addon, cf);
-    check(t + ' Festive treats section says it is a separate order', /separate order/.test(cf.sub || ''), cf.sub);
-    await ctx.close();
-    ({ p, ctx, errors } = await go(b, w, h, 'https://www.cornercafefiji.com/order-cake', { nodraft: true }));
-    const r3 = await p.evaluate(() => ({ q: window.__ccoSeasonal.treatOrder().q, y: scrollY }));
-    check(t + ' plain visit: nothing added, page not scrolled', Object.keys(r3.q).length === 0 && r3.y === 0, r3);
-    await ctx.close();
+    for (const [url, o] of [['https://www.cornercafefiji.com/order-cake?treat=Mince%20Pies#cc-treat-order', { nodraft: true }], ['https://www.cornercafefiji.com/order-cake', {}]]) {
+      const { p, ctx, errors } = await go(b, w, h, url, o);
+      const r = await p.evaluate(() => ({ module: !!document.getElementById('cc-treat-order'), addon: !!document.querySelector('#cc-cake-order .cco-tr'), form: !!document.querySelector('#cc-cake-order') && document.getElementById('cc-cake-order').innerText.length > 50 }));
+      check(t + ' ' + (o.nodraft ? 'old festive link' : 'cake form last step') + ': cakes only, no seasonal module or add-on, form works', !r.module && !r.addon && r.form, r);
+      check(t + ' no page errors', !errors.length, errors);
+      await ctx.close();
+    }
   }
   await b.close(); console.log(n + ' passed, ' + fails + ' failed'); process.exit(fails ? 1 : 0);
 })();
