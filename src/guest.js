@@ -188,8 +188,8 @@
       summary: function () { if (!S.finish || !S.diet || (S.finish === 'custom' && !S.design.trim())) return ''; return finishSummary(); },
       body: function () {
         var f = fl() || { supports_custom: true, supports_message: true };
-        var h = S.req ? '' : '<div class="cco-opts" role="group" aria-label="Finish"><button type="button" class="cco-opt" data-act="finish" data-v="standard" aria-pressed="' + (S.finish === 'standard') + '">Standard finish<small>Our house decoration</small></button>' +
-          (f.supports_custom ? '<button type="button" class="cco-opt" data-act="finish" data-v="custom" aria-pressed="' + (S.finish === 'custom') + '">Custom design<small>Your theme, colours or a photo. We confirm the price.</small></button>' : '') + '</div>' + err('finish');
+        var h = S.req ? '' : '<div class="cco-opts" role="group" aria-label="Finish"><button type="button" class="cco-opt" data-act="finish" data-v="standard" aria-pressed="' + (S.finish === 'standard') + '">Standard finish<small>Our house decoration. You can request extras below.</small></button>' +
+          (f.supports_custom ? '<button type="button" class="cco-opt" data-act="finish" data-v="custom" aria-pressed="' + (S.finish === 'custom') + '">Custom design<small>A substantially different cake design. We quote the price.</small></button>' : '') + '</div>' + err('finish');
         if (S.req) h += err('finish');
         if (!S.finish) return h;
         if (S.finish === 'custom') {
@@ -213,8 +213,8 @@
         }
         if (S.candOpen) h += '<div class="cco-field' + enter('cand') + '"><div class="cco-lbl"><label for="cco-candles">Candles</label><span class="cco-lbl-r">' + opt() + '<button type="button" class="cco-hide" data-act="candClose">Hide</button></span></div><input type="text" class="cco-input" id="cco-candles" data-in="candles" maxlength="60" value="' + esc(S.candles) + '" placeholder="For example, number 3 candle"' + described('candles') + '>' + err('candles') + '</div>';
         else h += '<button type="button" class="cco-link" data-act="candOpen"><span class="cco-plus" aria-hidden="true">' + (S.candles.trim() ? '✓' : '+') + '</span>' + (S.candles.trim() ? 'Candles: ' + esc(S.candles.trim()) : 'Add candles') + '</button>';
-        if (S.noteOpen) h += '<div class="cco-field' + enter('note') + '"><div class="cco-lbl"><label for="cco-notes">Anything else we should know</label><span class="cco-lbl-r">' + opt() + '<button type="button" class="cco-hide" data-act="noteClose">Hide</button></span></div><textarea class="cco-input" id="cco-notes" data-in="notes" maxlength="300" rows="3" placeholder="For example, it is a surprise, please do not call before 5 PM"' + described('notes') + '>' + esc(S.notes) + '</textarea>' + err('notes') + '</div>';
-        else h += '<button type="button" class="cco-link" data-act="noteOpen"><span class="cco-plus" aria-hidden="true">' + (S.notes.trim() ? '✓' : '+') + '</span>' + (S.notes.trim() ? 'Note added' : 'Add a note for our team') + '</button>';
+        if (S.noteOpen || (!S.req && S.finish === 'standard')) h += '<div class="cco-field' + enter('note') + '"><div class="cco-lbl"><label for="cco-notes">Extra decorations, add-ons or other requests</label><span class="cco-lbl-r">' + opt() + (S.finish === 'standard' && !S.req ? '' : '<button type="button" class="cco-hide" data-act="noteClose">Hide</button>') + '</span></div><textarea class="cco-input" id="cco-notes" data-in="notes" maxlength="300" rows="3" placeholder="For example, extra flowers or a cake topper. Our team will confirm any additional charges."' + described('notes') + '>' + esc(S.notes) + '</textarea>' + err('notes') + '</div>';
+        else h += '<button type="button" class="cco-link" data-act="noteOpen"><span class="cco-plus" aria-hidden="true">' + (S.notes.trim() ? '✓' : '+') + '</span>' + (S.notes.trim() ? 'Note added' : 'Add extras or a note for our team') + '</button>';
         h += '</div>'; var a1 = h.length;
         h += '<div class="cco-field cco-reqs"><span class="cco-lbl" id="cco-req-l"><span>Does the cake need to be any of these?</span>' + opt() + '</span><div class="cco-chips" role="group" aria-labelledby="cco-req-l">' +
           REQS.map(function (r) { return '<button type="button" class="cco-chip" data-act="must" data-v="' + r[0] + '" aria-pressed="' + ((S.reqs || []).indexOf(r[0]) > -1) + '">' + r[1] + '</button>'; }).join('') + '</div>' +
@@ -272,7 +272,7 @@
         if (S.finish === 'custom') d.push('<span class="cco-rv-d">' + esc(S.design.trim()) + '</span>');
         if (S.message.trim()) d.push('<span class="cco-rv-d">Message: “' + esc(S.message.trim()) + '”</span>');
         if (S.candles.trim()) d.push('<span class="cco-rv-d">Candles: ' + esc(S.candles.trim()) + '</span>');
-        if (S.notes.trim()) d.push('<span class="cco-rv-d">Note: ' + esc(S.notes.trim()) + '</span>');
+        if (S.notes.trim()) d.push('<span class="cco-rv-d">Extras or notes: ' + esc(S.notes.trim()) + '</span>');
         if ((S.reqs || []).length) d.push('<span class="cco-rv-d cco-must">Must be: ' + esc(reqText().join(', ')) + '</span>');
         d.push(S.diet === 'yes' ? '<span class="cco-rv-d cco-alert">Allergy: ' + esc([S.diets.join(', '), S.dietNote.trim()].filter(Boolean).join('. ')) + '</span>' : S.diet === 'unsure' ? '<span class="cco-rv-d cco-alert">Allergies: not sure yet. We will check with you before we bake.</span>' : '<span class="cco-rv-d">No allergies</span>');
         if (photos.length) d.push('<span class="cco-rv-thumbs">' + photos.map(function (p) { return p.url ? '<img src="' + p.url + '" alt="' + esc(p.name) + '">' : ''; }).join('') + '</span><span class="cco-rv-d">' + photos.length + ' photo' + (photos.length > 1 ? 's' : '') + ' attached</span>');
@@ -286,6 +286,7 @@
           : S.finish === 'custom'
           ? '<div class="cco-total cco-total-q"><div class="cco-price"><span>Cake price<small>' + esc(S.size + ' inch ' + cakeName()) + '</small></span><strong>' + money(price()) + '</strong></div><div class="cco-price cco-pending"><span>Custom design</span><em>To be confirmed</em></div></div>'
           : '<div class="cco-total"><span>' + (isDel() ? 'Total' : 'Price') + '<small>' + esc(S.size + ' inch ' + cakeName()) + ', standard finish' + (isDel() ? ' ' + money(price()) + ' + delivery to ' + S.zone + ' ' + money(zoneFee()) : '') + '</small></span><strong>' + money(total()) + '</strong></div>';
+        if (!S.req && S.finish === 'standard' && S.notes.trim()) h += '<p class="cco-ask"><b>Extra requests are not included in the displayed price.</b> Our team will check your requests and confirm any additional charges with you before your order is booked.</p>';
         if (!S.req && S.finish === 'custom' && isDel()) h = h.replace('<div class="cco-price cco-pending">', '<div class="cco-price"><span>Delivery<small>' + esc(S.zone) + '</small></span><strong>' + money(zoneFee()) + '</strong></div><div class="cco-price cco-pending">');
         h += S.know ? '<div class="cco-know"><p><b>No payment now.</b></p><p>We confirm availability, the ' + (S.req || S.finish === 'custom' ? 'final price' : 'price') + ' and any deposit with you.</p><p>Your cake is booked once we confirm it.</p></div>' : '<button type="button" class="cco-link" data-act="know"><span class="cco-plus" aria-hidden="true">i</span>Good to know before you send</button>';
         if (formError) h += '<p class="cco-err cco-formerr" role="alert">' + esc(formError) + '</p>';
