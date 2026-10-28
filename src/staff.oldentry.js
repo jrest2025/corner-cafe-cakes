@@ -47,6 +47,9 @@
   });
   var q = false;
   function schedule() { if (q) return; q = true; setTimeout(function () { q = false; try { place(); } catch (e) { warn('not placed', e); } }, 40); }
-  function start() { new MutationObserver(schedule).observe(doc.body, { childList: true, subtree: true }); schedule(); }
+  // (28 Oct 2026) the side-menu button goes in straight from the page-change callback, before the browser paints:
+  // added 40ms later it pushed the lower menu down by one row on every screen switch
+  function now() { try { var o = doc.querySelector('#cc-staff .ccs-side [data-tab="orders"]'); if (o && o.closest('.csc-group') && !doc.querySelector('#cc-staff .ccs-side [data-ccoe]'))  place(); /* only once the menu is grouped, so it lands under Orders */ } catch (e) { warn('not placed', e); } schedule(); }
+  function start() { new MutationObserver(now).observe(doc.body, { childList: true, subtree: true }); schedule(); }
   if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', start, { once: true }); else start();
 })(window);

@@ -395,3 +395,9 @@ Screens:
 - The green "Cake is ready" button (service-tools) was an action that read like a status on every confirmed order. Now "Mark cake ready", white with a tick icon; green stays for cakes that really are ready.
 - Note: older tests that press Confirm/Cancel once will need a second press.
 - Live 28 Oct 2026 8:06 PM Fiji as loader 64 (commit d287767). Rollback: re-apply ccordertoolsloader63.
+
+## 28 Oct 2026 8:30 PM — Typo pencils, still side menu, tests (preview)
+- Pencil beside the customer's name (sheet title) and the cake Message and Design rows; it opens the app's own Change order screen. Shown only where Change order is offered (polish.js pencils()).
+- Side menu no longer moves on screen switches: the two-line hub name is put in from a page-change callback (before paint), and the "Old orders" menu button is placed the same way once the menu is grouped (oldentry.js). Layout shift on switching: 0.002 to 0.000.
+- Leftover footer hotfix (cc-order-actions-hotfix-20261028) not removed: removing means rewriting the page's 49 KB footer block by hand, which also loads the app itself. It is inert (its row stays empty and hidden).
+- Tests: test_polish expects the deep green buttons (148 pass); new test_tonight.cjs (8 pass). test_order_tools date-step failures are unrelated (that test loads only order-tools.js, unchanged).

@@ -17,6 +17,25 @@
 
 
 
+
+  // ---------- side menu name before the first paint (28 Oct 2026) ----------
+  // The app draws the side menu with its own short subtitle; a later pass swaps in the two-line hub name, so the
+  // menu moved by about 14px on every screen switch. The same swap now happens in a page-change callback, which runs
+  // before the browser paints, so the menu never moves. (The later pass sees the name already there and does nothing.)
+  (function () {
+    if (win.__ccSideName) return; win.__ccSideName = 1;
+    function swap() {
+      var bs = doc.querySelectorAll('#cc-staff .ccs-side .ccs-brand');
+      for (var i = 0; i < bs.length; i++) {
+        var br = bs[i]; if (br.querySelector(':scope > .ccq-hub')) continue;
+        var sm = br.querySelector(':scope > small'); if (sm) { sm.classList.add('ccq-src'); sm.style.setProperty('display', 'none', 'important'); }
+        var n = doc.createElement('span'); n.className = 'ccq-hub'; n.innerHTML = 'Marketing &amp; Business<br>Intelligence Hub'; br.appendChild(n);
+      }
+    }
+    var root = doc.getElementById('cc-staff') || doc.body;
+    new MutationObserver(swap).observe(root, { childList: true, subtree: true });
+    swap();
+  })();
   // ---------- emails to customers need two taps (28 Oct 2026, Roneel) ----------
   // Confirm, Decline, Cancel, Send quote, Send updated confirmation and Resend email can email the customer. The first
   // tap only arms the button (amber, "Tap again to send"); a second tap within 5 seconds goes through to the app as
@@ -393,6 +412,35 @@
     panelSeen = key;
     pn.scrollIntoView({ block: 'start' });
   }
+
+  // (28 Oct 2026) a small pencil beside the customer's name and the cake message: fixes typos through the app's own
+  // Change order screen (same checks, same history). Shown only where Change order is offered.
+  function pencils() {
+    var sh = doc.getElementById('ccs-sheet'); if (!sh || !sh.classList.contains('ccs-open')) return;
+    var am = sh.querySelector('[data-act="panel"][data-v="amend"]');
+    var spots = [];
+    var nm = sh.querySelector('.ccs-sheet-head .os-tph > b'); if (nm) spots.push(nm);
+    [].forEach.call(sh.querySelectorAll('.ccs-kv dt'), function (dt) { if (/^(Message|Design)$/.test(txt(dt)) && dt.nextElementSibling) spots.push(dt.nextElementSibling); });
+    if (!am || sh.querySelector('[data-act^="do-"]')) { [].forEach.call(sh.querySelectorAll('.ccp-pen'), function (b) { b.remove(); }); return; }
+    spots.forEach(function (el) {
+      if (el.querySelector(':scope > .ccp-pen')) return;
+      var b = doc.createElement('button'); b.type = 'button'; b.className = 'ccp-pen'; b.setAttribute('aria-label', 'Fix a typo (opens Change order)'); b.title = 'Fix a typo';
+      b.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
+      el.appendChild(b);
+    });
+  }
+  doc.addEventListener('click', function (e) {
+    var b = e.target && e.target.closest ? e.target.closest('#ccs-sheet .ccp-pen') : null; if (!b) return;
+    e.preventDefault(); e.stopPropagation();
+    var am = doc.querySelector('#ccs-sheet [data-act="panel"][data-v="amend"]'); if (am) am.click();
+  }, true);
+  (function () {
+    var s = doc.createElement('style');
+    s.textContent = '#ccs-sheet .ccp-pen{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;margin:0 0 0 6px;padding:0;border:0;border-radius:8px;background:transparent;color:#667085;cursor:pointer;vertical-align:middle}' +
+      '#ccs-sheet .ccp-pen:hover{background:#F2F4F7;color:#1D2939}#ccs-sheet .ccp-pen svg{width:18px;height:18px}' +
+      '#ccs-sheet .os-tph > b .ccp-pen{width:32px;height:32px;margin-left:4px}';
+    doc.head.appendChild(s);
+  })();
   function sheetFlow() {
     var sh = doc.getElementById('ccs-sheet'); if (!sh || !sh.classList.contains('ccs-open')) return;
     var head = sh.querySelector('.ccs-sheet-head'), pill = head && head.querySelector('.ccs-pill.st'), band = head && head.querySelector('.os-band');
@@ -1170,7 +1218,7 @@
       if (main.querySelector('.ccs-setnav')) settings(main);
       if (scr === 'calendar') [['cal-status', 'Show', 'filter'], ['cal-type', 'Type', 'box']].forEach(function (c) { var s = doc.getElementById(c[0]); if (s && s.tagName === 'SELECT') dd(s, { label: c[1], hide: s.closest('label') || s, icons: { '*': c[2] } }); });
       if (main.querySelector('.cat-page, .dx-filters')) analytics(main);
-      refine(main); sheet(); sheetFlow(); panelInView(); custFlow(); sheetTabs(); sheetNextOnce(); var shx = doc.getElementById('ccs-sheet'); if (shx) words(shx); var popx = doc.querySelectorAll('#cc-staff .tx-pop, #cc-staff [class*="-pop"]'); [].forEach.call(popx, function (x) { if (!main.contains(x)) words(x); }); pulseName();
+      refine(main); sheet(); sheetFlow(); panelInView(); pencils(); custFlow(); sheetTabs(); sheetNextOnce(); var shx = doc.getElementById('ccs-sheet'); if (shx) words(shx); var popx = doc.querySelectorAll('#cc-staff .tx-pop, #cc-staff [class*="-pop"]'); [].forEach.call(popx, function (x) { if (!main.contains(x)) words(x); }); pulseName();
       seasonal(); treatBoard();
     } catch (e) { warn('update', e); }
   }
