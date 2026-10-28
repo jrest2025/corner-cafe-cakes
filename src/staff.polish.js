@@ -15,6 +15,60 @@
   if (win.__ccPolish20261026) return;
   win.__ccPolish20261026 = true;
 
+
+  // ---------- screens settle before they show (28 Oct 2026, enterprise motion brief) ----------
+  // Root cause of the jump when opening Today or Customers: the app draws the screen, then the add-ons rearrange it a
+  // frame later (Today's stats, warnings and week; the Customers summary and table), so content visibly moves. After a
+  // sidebar tap the content area stays invisible until the page has been quiet for two frames (never longer than
+  // 260ms), then fades in over 140ms. With reduced motion it simply appears.
+  (function () {
+    if (win.__ccSettle) return; win.__ccSettle = 1;
+    var st = doc.createElement('style');
+    st.textContent = 'html[data-ccm="settle"] #cc-staff #ccs-main{opacity:0!important}html[data-ccm="in"] #cc-staff #ccs-main{transition:opacity 140ms cubic-bezier(.2,0,0,1)}@media (prefers-reduced-motion:reduce){html[data-ccm="in"] #cc-staff #ccs-main{transition:none}}#cc-staff .ccs-side .ccs-brand small{white-space:nowrap;overflow:hidden;text-overflow:clip}';
+    doc.head.appendChild(st);
+    var timer = null, quiet = 0, mo = null, t0 = 0;
+    // the app rewrites #ccs-main's own class on every render, so the switch lives on <html>
+    var H = doc.documentElement;
+    function reveal() { if (mo) { mo.disconnect(); mo = null; } clearTimeout(timer); H.setAttribute('data-ccm', 'in'); setTimeout(function () { if (H.getAttribute('data-ccm') === 'in') H.removeAttribute('data-ccm'); }, 200); }
+    function settle() {
+      var m = doc.getElementById('cc-staff'); if (!m) return;
+      if (mo) mo.disconnect();
+      H.setAttribute('data-ccm', 'settle'); quiet = 0; t0 = Date.now();
+      mo = new MutationObserver(function () { quiet = 0; });
+      mo.observe(m, { subtree: true, childList: true, attributes: true });
+      (function tick() {
+        if (!mo) return;
+        if (++quiet >= 3 || Date.now() - t0 > 260) return reveal();
+        win.requestAnimationFrame(tick);
+      })();
+      clearTimeout(timer); timer = setTimeout(reveal, 300);   // never stays hidden
+    }
+    doc.addEventListener('click', function (e) {
+      var b = e.target && e.target.closest && e.target.closest('#cc-staff .ccs-side [data-tab], #cc-staff .ccs-bnav [data-tab]');
+      if (b && !b.classList.contains('on') && b.getAttribute('aria-current') !== 'page') settle();
+    }, true);
+  })();
+  // ---------- motion stability (28 Oct 2026, enterprise motion brief) ----------
+  // Root cause of the flicker and jerky feel: several add-ons re-write the same class or attribute on every pass.
+  // A same-value write still counts as a page change, which wakes every other add-on, which write again: a loop
+  // running about 60 times a second while nobody touches the screen. Writes that change nothing are now skipped,
+  // so the page settles. Real changes go through exactly as before. Only class, aria-*, data-*, title, role,
+  // tabindex and hidden are covered (never src, href or value).
+  (function () {
+    if (win.__ccNoopGuard) return; win.__ccNoopGuard = 1;
+    var SAFE = /^(class|aria-[\w-]+|data-[\w-]+|title|role|tabindex|hidden)$/;
+    var EP = win.Element && win.Element.prototype, TL = win.DOMTokenList && win.DOMTokenList.prototype;
+    if (!EP || !TL) return;
+    var sa = EP.setAttribute;
+    EP.setAttribute = function (n, v) { if (SAFE.test(n) && this.getAttribute(n) === String(v)) return; return sa.apply(this, arguments); };
+    var cd = Object.getOwnPropertyDescriptor(EP, 'className');
+    if (cd && cd.set && cd.configurable) Object.defineProperty(EP, 'className', { get: cd.get, set: function (v) { if (cd.get.call(this) === String(v)) return; cd.set.call(this, v); }, configurable: true, enumerable: cd.enumerable });
+    var add = TL.add, rem = TL.remove, tog = TL.toggle;
+    TL.add = function () { for (var i = 0; i < arguments.length; i++) if (!this.contains(arguments[i])) return add.apply(this, arguments); };
+    TL.remove = function () { for (var i = 0; i < arguments.length; i++) if (this.contains(arguments[i])) return rem.apply(this, arguments); };
+    TL.toggle = function (c, f) { if (arguments.length > 1) { var has = this.contains(c); if (!!f === has) return has; } return tog.apply(this, arguments); };
+  })();
+
   // ---------- icons (Lucide-style outlines, like the sidebar) ----------
   var P = {
     clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
@@ -367,7 +421,8 @@
       b.classList.add('ccp-mitem'); list.appendChild(b);
     });
     // most dangerous last
-    [].slice.call(list.children).sort(function (a, b) { var w = function (x) { return /Delete/.test(txt(x)) ? 3 : /Cancel/.test(txt(x)) ? 2 : 1; }; return w(a) - w(b); }).forEach(function (x) { list.appendChild(x); });
+    var srt = [].slice.call(list.children).sort(function (a, b) { var w = function (x) { return /Delete/.test(txt(x)) ? 3 : /Cancel/.test(txt(x)) ? 2 : 1; }; return w(a) - w(b); });
+    if (srt.some(function (x, k) { return list.children[k] !== x; })) srt.forEach(function (x) { list.appendChild(x); });   // only when the order is wrong (re-appending every pass kept the page busy)
     var open = !!moreOpen[ref]; box.classList.toggle('is-open', open); box.querySelector('.ccp-more-b').setAttribute('aria-expanded', String(open));
     [].forEach.call(acts.querySelectorAll(':scope > .ccs-actions-row'), function (r) { if (!r.children.length) r.classList.add('ccp-gone'); });
     sh.__ccpRef = ref;

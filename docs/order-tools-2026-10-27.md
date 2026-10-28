@@ -352,3 +352,11 @@ Screens:
 - Approved by Roneel ("deploy", 12:02 PM). `ccordertoolsloader56` (1.0.56) replaces loader 55: commit 11deddc3, new fingerprint for staff.polish.js only.
 - Live check (real data): 13 rows and day cells on Today, none boxed, no sideways scrolling.
 - Rollback: remove ccordertoolsloader56, add ccordertoolsloader55 (1.0.55, footer), publish.
+
+## 28 Oct 2026 — Delete fix and motion stability (preview, not live)
+- One Cancel and one Delete in More options. The page footer's "cc-order-actions-hotfix-20261028" added copies; they are removed by polish (its row stays empty and hidden so it is not rebuilt). Delete opens the delete box in place (no jump to History). The Delete or Cancel box scrolls into view when it opens.
+- Motion: a guard skips class, aria-*, data-*, title, role, tabindex and hidden writes that change nothing. Before: about 60 same-value writes a second kept every add-on re-running (idle changes in 5s on Today: 1,957; with an order open, 4,500 in 3s). After: 0 and 0.
+- Screens settle before they show: after a sidebar tap the content stays invisible until the page is quiet for two frames (at most 260ms), then fades in over 140ms (none with reduced motion). Layout shift when opening Today 0.357 to 0.001; Customers 0.151 to 0.001; Orders 0.076 to 0.001.
+- More options list is only re-ordered when its order is wrong.
+- Rollback: the previous loader (live 57) or revert these polish blocks.
+- Remaining: the sidebar subtitle reads "Marketing Central" for one frame before another script renames it, so the sidebar moves about 14px for one frame (shift 0.001).
