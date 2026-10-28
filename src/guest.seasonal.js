@@ -13,7 +13,8 @@
   var URL = 'https://ilbrfwxblhidtlsjgxlh.supabase.co', KEY = 'sb_publishable_4c9NdubC5PYevEOSMYH0ag_mv1LJ76E', TZ = 'Pacific/Fiji';
   var DRAFT = 'cco-draft-v2', CART = 'cco-treats-v1', PHONE = '+679 892 2760';
   var menu = null, setup = null, cart = {}, lastSent = null, removedNote = null, own = null, rootEl = null;
-  var WITH_CAKE = false, ON_CAKE_PAGE = false;   // seasonal items are ordered on their own page, never with a cake   // treats added to a cake order on the website (off: specials are always their own order)
+  var WITH_CAKE = false, ON_CAKE_PAGE = false, CARDS = false;   // CARDS: on the festive page the Webflow goodie cards are the item picker
+    // seasonal items are ordered on their own page, never with a cake   // treats added to a cake order on the website (off: specials are always their own order)
 
   function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function money(n) { n = Number(n || 0); return '$' + (Math.round(n * 100) % 100 ? n.toFixed(2) : String(Math.round(n))); }
@@ -188,7 +189,7 @@
   function start() {
     // (28 Oct 2026, Roneel) the seasonal order module lives on the festive page (#cc-treat-host), not on the cake page
     var place = doc.getElementById('cc-treat-host');
-    if (place) { style(); T.mountIn(place); load(); return; }
+    if (place) { CARDS = place.hasAttribute('data-cct-cards'); style(); T.mountIn(place); load(); return; }
     var root = doc.getElementById('cc-cake-order'); if (!root) return;
     if (!ON_CAKE_PAGE) return;   // the cake page is cakes only
     rootEl = root; style(); T.mount(root); load();
@@ -201,10 +202,14 @@
   // Shows only while the section is On in the Service Hub and something is on sale; otherwise nothing is added to the page.
   var T = (function () {
     var KEYT = 'cct-draft-v1', host = null, st = null, preDone = false;
+    // (28 Oct 2026, Roneel: use the Webflow design elements) on the festive page the module wears the page's own Webflow
+    // classes (ccfest-btn, ccfest-h2, ccfest-kicker, ccfest-input, ccfest-label), so it looks and changes with the page.
+    function K(base, wf) { return CARDS ? wf : base; }
     function blank() { return { q: {}, step: 1, moreDays: false, noteOpen: false, day: null, time: null, name: '', phone: '', note: '', key: null, err: null, msg: null, done: null, sending: false }; }
     function load() { try { var d = JSON.parse(win.localStorage.getItem(KEYT) || 'null'); if (d && d.at && Date.now() - d.at < 3 * 864e5) { var b = blank(); ['q', 'step', 'day', 'time', 'name', 'phone', 'note', 'key'].forEach(function (k) { if (d[k] != null) b[k] = d[k]; }); if (d.open && !d.step) b.step = 2; return b; } } catch (_) {} return blank(); }
     function save() { try { if (st.done) win.localStorage.removeItem(KEYT); else win.localStorage.setItem(KEYT, JSON.stringify({ at: Date.now(), q: st.q, step: st.step, day: st.day, time: st.time, name: st.name, phone: st.phone, note: st.note, key: st.key })); } catch (_) {} }
     function uuid() { try { if (win.crypto && win.crypto.randomUUID) return win.crypto.randomUUID(); } catch (_) {} return 'xxxxxxxx-xxxx-4xxx-8xxx-xxxxxxxxxxxx'.replace(/x/g, function () { return (Math.random() * 16 | 0).toString(16); }); }
+    function find(name) { var nk = function (s) { return String(s || '').toLowerCase().replace(/[^a-z0-9]/g, ''); }; return items().filter(function (i) { return nk(i.name) === nk(name); })[0] || null; }
     function chosen() { return Object.keys(st.q).filter(function (k) { return st.q[k] > 0 && byId(k); }); }
     function count() { return chosen().reduce(function (a, k) { return a + st.q[k]; }, 0); }
     function sum() { return chosen().reduce(function (a, k) { return a + Number(byId(k).price) * st.q[k]; }, 0); }
@@ -247,43 +252,57 @@
       return '<div class="cct-recap"><span><b>' + n + ' treat' + (n > 1 ? 's' : '') + '</b> · ' + money(sum()) + (withWhen && st.day && st.time != null ? '<br>' + esc(nice(st.day)) + ', ' + label(st.time) : '') + '</span><button type="button" class="cct-link" data-cct="go1">Change</button></div>';
     }
     function stepWhen() {
-      var dl = days(8), h = '<div class="cct-det" id="cct-det">' + recap(false) + '<h3>When would you like to collect?</h3>';
+      var dl = days(8), h = '<div class="cct-det" id="cct-det">' + recap(false) + '<h3' + K('', ' class="ccfest-card-title"') + '>When would you like to collect?</h3>';
       h += '<div class="cct-f" role="group" aria-label="Pickup day">';
       if (!dl.length) h += '<p class="cct-msg">There are no pickup days for these treats together. Please remove one, or call us on <a href="tel:' + esc(String(PHONE).replace(/[^\d+]/g, '')) + '">' + esc(PHONE) + '</a>.</p>';
       else {
         if (st.day && dl.indexOf(st.day) < 0) dl.push(st.day);
         h += '<div class="cct-chips cct-days">' + dl.map(function (d) { var x = shortDay(d); return '<button type="button" class="cct-chip' + (st.day === d ? ' is-on' : '') + '" data-cct-day="' + d + '" aria-pressed="' + (st.day === d) + '"><span>' + (d === today() ? 'Today' : d === addDays(today(), 1) ? 'Tomorrow' : x.w) + '</span><b>' + x.d + '</b></button>'; }).join('') + '</div>';
         var L = loc(), first = days(1)[0];
-        h += st.moreDays ? '<label class="cct-later">Another day <input type="date" data-cct-k="dayin" min="' + (first || today()) + '" max="' + addDays(today(), L.max_days_ahead || 90) + '" value="' + (st.day || '') + '"></label>' : '<button type="button" class="cct-link" data-cct="moredays">More days</button>';
+        h += st.moreDays ? '<label class="cct-later">Another day <input type="date" class="' + K('', 'ccfest-input w-input') + '" data-cct-k="dayin" min="' + (first || today()) + '" max="' + addDays(today(), L.max_days_ahead || 90) + '" value="' + (st.day || '') + '"></label>' : '<button type="button" class="cct-link" data-cct="moredays">More days</button>';
       }
       h += errFor('date') + '</div>';
-      if (st.day) h += '<div class="cct-f" role="group" aria-label="Pickup time"><p class="cct-l">Time on ' + esc(nice(st.day)) + '</p><div class="cct-chips cct-times">' +
+      if (st.day) h += '<div class="cct-f" role="group" aria-label="Pickup time"><p class="' + K('cct-l', 'ccfest-label cct-wf-l') + '">Time on ' + esc(nice(st.day)) + '</p><div class="cct-chips cct-times">' +
         slots(st.day).map(function (m) { return '<button type="button" class="cct-chip' + (st.time === m ? ' is-on' : '') + '" data-cct-time="' + m + '" aria-pressed="' + (st.time === m) + '">' + label(m) + '</button>'; }).join('') + '</div>' + errFor('time') + '</div>';
-      return h + '<div class="cct-nav"><button type="button" class="cct-send" data-cct="go3">Continue</button><button type="button" class="cct-ghost" data-cct="go1">Back</button></div></div>';
+      return h + '<div class="cct-nav"><button type="button" class="' + K('cct-send', 'ccfest-btn ccfest-btn-primary cct-wf-main') + '" data-cct="go3">Continue</button><button type="button" class="' + K('cct-ghost', 'ccfest-btn cct-wf-outline') + '" data-cct="go1">Back</button></div></div>';
     }
     function stepWho() {
-      var h = '<div class="cct-det" id="cct-det">' + recap(true) + '<h3>Your details</h3>';
-      h += '<div class="cct-two"><label class="cct-f"><span class="cct-l">Your name</span><input type="text" data-cct-k="name" autocomplete="name" maxlength="120" value="' + esc(st.name) + '"' + (st.err && st.err.field === 'name' ? ' aria-invalid="true" aria-describedby="cct-e-name"' : '') + '>' + errFor('name') + '</label>' +
-        '<label class="cct-f"><span class="cct-l">Mobile number</span><input type="tel" data-cct-k="phone" autocomplete="tel" inputmode="tel" maxlength="20" placeholder="For example 912 3456" value="' + esc(st.phone) + '"' + (st.err && st.err.field === 'phone' ? ' aria-invalid="true" aria-describedby="cct-e-phone"' : '') + '>' + errFor('phone') + '</label></div>';
-      h += st.noteOpen || st.note ? '<label class="cct-f"><span class="cct-l">Note</span><textarea data-cct-k="note" rows="2" maxlength="300" placeholder="For example, gift wrap or a name tag">' + esc(st.note) + '</textarea></label>' : '<button type="button" class="cct-link" data-cct="note">Add a note</button>';
+      var h = '<div class="cct-det" id="cct-det">' + recap(true) + '<h3' + K('', ' class="ccfest-card-title"') + '>Your details</h3>';
+      h += '<div class="cct-two"><label class="cct-f"><span class="' + K('cct-l', 'ccfest-label cct-wf-l') + '">Your name</span><input type="text" class="' + K('', 'ccfest-input w-input') + '" data-cct-k="name" autocomplete="name" maxlength="120" value="' + esc(st.name) + '"' + (st.err && st.err.field === 'name' ? ' aria-invalid="true" aria-describedby="cct-e-name"' : '') + '>' + errFor('name') + '</label>' +
+        '<label class="cct-f"><span class="' + K('cct-l', 'ccfest-label cct-wf-l') + '">Mobile number</span><input type="tel" class="' + K('', 'ccfest-input w-input') + '" data-cct-k="phone" autocomplete="tel" inputmode="tel" maxlength="20" placeholder="For example 912 3456" value="' + esc(st.phone) + '"' + (st.err && st.err.field === 'phone' ? ' aria-invalid="true" aria-describedby="cct-e-phone"' : '') + '>' + errFor('phone') + '</label></div>';
+      h += st.noteOpen || st.note ? '<label class="cct-f"><span class="' + K('cct-l', 'ccfest-label cct-wf-l') + '">Note</span><textarea class="' + K('', 'ccfest-input w-input') + '" data-cct-k="note" rows="2" maxlength="300" placeholder="For example, gift wrap or a name tag">' + esc(st.note) + '</textarea></label>' : '<button type="button" class="cct-link" data-cct="note">Add a note</button>';
       h += '<ul class="cct-sum">' + chosen().map(function (k) { var it = byId(k); return '<li><span>' + st.q[k] + ' × ' + esc(it.name) + '</span><b>' + money(Number(it.price) * st.q[k]) + '</b></li>'; }).join('') + '<li class="cct-tot"><span>Total</span><b>' + money(sum()) + '</b></li></ul>';
       if (st.err && ['date', 'time', 'name', 'phone'].indexOf(st.err.field) < 0) h += '<p class="cct-err" role="alert">' + esc(st.err.message) + '</p>';
-      h += '<div class="cct-nav"><button type="button" class="cct-send" data-cct="send"' + (st.sending ? ' disabled' : '') + '>' + (st.sending ? 'Sending…' : 'Send my request') + '</button><button type="button" class="cct-ghost" data-cct="go2">Back</button></div>';
+      h += '<div class="cct-nav"><button type="button" class="' + K('cct-send', 'ccfest-btn ccfest-btn-primary cct-wf-main') + '" data-cct="send"' + (st.sending ? ' disabled' : '') + '>' + (st.sending ? 'Sending…' : 'Send my request') + '</button><button type="button" class="' + K('cct-ghost', 'ccfest-btn cct-wf-outline') + '" data-cct="go2">Back</button></div>';
       return h + '<p class="cct-fine">No payment now. We will WhatsApp or call you to confirm. ' + esc(payLine((menu.groups || [])[0])) + '</p></div>';
     }
     function doneHtml() {
       var d = st.done;
-      return '<div class="cct-done" role="status" tabindex="-1"><h2>Vinaka, ' + esc(d.name.split(' ')[0]) + '!</h2>' +
+      return '<div class="cct-done" role="status" tabindex="-1"><h2' + K('', ' class="ccfest-h2"') + '>Vinaka, ' + esc(d.name.split(' ')[0]) + '!</h2>' +
         '<p>We have your request. We will WhatsApp or call you to confirm.</p>' +
         '<p class="cct-when">' + esc(nice(d.day)) + ', ' + label(d.time) + '</p>' +
         '<ul class="cct-sum">' + d.lines.map(function (l) { return '<li><span>' + l.q + ' × ' + esc(l.name) + '</span><b>' + money(l.price * l.q) + '</b></li>'; }).join('') + '<li class="cct-tot"><span>Total</span><b>' + money(d.total) + '</b></li></ul>' +
         '<p class="cct-fine">Reference ' + esc(d.ref) + ' · Corner Café' + (setup && setup.location && setup.location.address ? ', ' + esc(setup.location.address) : '') + '</p>' +
-        '<button type="button" class="cct-ghost" data-cct="again">Order more treats</button></div>';
+        '<button type="button" class="' + K('cct-ghost', 'ccfest-btn cct-wf-outline') + '" data-cct="again">Order more treats</button></div>';
+    }
+    // Festive page: the goodie cards above are the picker (Add, − / +), so this box is only the order itself and the steps
+    function cardsHtml(n) {
+      var h = '<div class="cct-head"><p class="ccfest-kicker">' + (st.step > 1 ? 'Step ' + st.step + ' of 3' : 'Your festive order') + '</p><h2 class="ccfest-h2" id="cct-title">' + (st.step > 1 ? 'Your festive order' : n ? 'Ready when you are' : 'Nothing added yet') + '</h2></div>';
+      if (st.msg) h += '<p class="cct-msg" role="status">' + esc(st.msg) + '</p>';
+      if (st.step === 2) return h + stepWhen();
+      if (st.step === 3) return h + stepWho();
+      if (!n) return h + '<p class="cct-sub">Tap <b>Add</b> on any goodie above.</p><p class="cct-hint">Cakes are a separate order on Order a Cake.</p>';
+      h += '<ul class="cct-sum cct-lines">' + chosen().map(function (k) {
+        var it = byId(k), nm = esc(it.name), q = st.q[k], mx = it.max || 20;
+        return '<li><span class="cct-ln">' + nm + '</span><span class="cct-st cct-st-sm"><button type="button" data-cct-minus="' + esc(k) + '" aria-label="Remove one ' + nm + '">−</button><output aria-live="polite" aria-label="' + nm + ' quantity">' + q + '</output><button type="button" data-cct-plus="' + esc(k) + '" aria-label="Add one ' + nm + '"' + (q >= mx ? ' disabled' : '') + '>+</button></span><b>' + money(Number(it.price) * q) + '</b></li>';
+      }).join('') + '<li class="cct-tot"><span>Total</span><b>' + money(sum()) + '</b></li></ul>';
+      return h + '<div class="cct-nav"><button type="button" class="ccfest-btn ccfest-btn-primary cct-wf-main" data-cct="go2">Choose collection time</button></div><p class="cct-hint">No payment now. ' + esc(payLine((menu.groups || [])[0])) + '</p>';
     }
     function html() {
       var g = (menu.groups || []), title = g.length === 1 ? g[0].name : 'Seasonal treats', h = '<div class="cct-in">';
       if (st.done) return h + doneHtml() + '</div>';
       var n = count(); if (!n && st.step > 1) st.step = 1;
+      if (CARDS) return h + cardsHtml(n) + '</div>';
       h += '<div class="cct-head' + (st.step > 1 ? ' is-small' : '') + '"><p class="cct-k">' + (st.step > 1 ? 'Step ' + st.step + ' of 3' : 'Now available') + '</p><h2 id="cct-title">' + esc(title) + '</h2>' + (st.step === 1 ? '<p class="cct-sub">' + esc([g.length === 1 ? g[0].message : '', 'A separate order from cakes. Ordering a cake as well? Use Order a Cake.'].filter(Boolean).join(' ')) + '</p>' : '') + '</div>';
       if (st.msg) h += '<p class="cct-msg" role="status">' + esc(st.msg) + '</p>';
       if (st.step === 2) return h + stepWhen() + '</div>';
@@ -301,10 +320,12 @@
       try { host.scrollIntoView({ block: 'start', behavior: 'smooth' }); } catch (_) {}
       var f = host.querySelector(n === 1 ? '.cct-grid button' : n === 2 ? '.cct-days button' : '[data-cct-k="name"]'); if (f) f.focus({ preventScroll: true });
     }
+    // the festive page's cards listen for this to show Add or − 1 + (and the "in your order" bar)
+    function tell() { try { win.dispatchEvent(new CustomEvent('cct:change', { detail: { count: st.done ? 0 : count(), total: st.done ? 0 : sum(), step: st.step, done: !!st.done } })); } catch (_) {} }
     function render(focusSel) {
       if (!host) return;
       var has = menu && items().length;
-      if (!has && !st.done) { host.hidden = true; return; }
+      if (!has && !st.done) { host.hidden = true; tell(); return; }
       if (!st.done) checkDay();
       // (28 Oct 2026) arriving from the festive page: /order-cake?treat=Mince%20Pies#cc-treat-order adds that treat
       // once and brings this section into view. Only on the first step, and only if the customer has not picked it yet.
@@ -321,6 +342,7 @@
       }
       var a = doc.activeElement, keep = focusSel || (a && host.contains(a) ? keyOf(a) : null), h = html();
       host.hidden = false;
+      tell();
       if (host.getAttribute('data-h') === h) return;
       host.innerHTML = h; host.setAttribute('data-h', h);
       if (go) setTimeout(function () { try { host.scrollIntoView({ block: 'start' }); } catch (_) {} }, 60);
@@ -387,7 +409,8 @@
     }
     function css() {
       if (doc.getElementById('cct-style')) return;
-      var P = '#cc-treat-order', s = doc.createElement('style'); s.id = 'cct-style';
+      // on the festive page the base rules drop to the lowest weight (:where), so the Webflow classes always win
+      var P = CARDS ? ':where(#cc-treat-order)' : '#cc-treat-order', s = doc.createElement('style'); s.id = 'cct-style';
       s.textContent = [
         P + '{box-sizing:border-box;max-width:100%;margin:0 0 28px;font-family:Causten,"Figtree",Arial,sans-serif;color:#282720}',
         P + ' *{box-sizing:border-box}',
@@ -460,6 +483,38 @@
         '@media (min-width:760px) and (hover:none) and (pointer:coarse){' + P + ' .cct-sub,' + P + ' .cct-fine,' + P + ' .cct-tx small,' + P + ' .cct-done p,' + P + ' .cct-later,' + P + ' input,' + P + ' textarea{font-weight:500}' + P + ' .cct-tx b,' + P + ' .cct-chip,' + P + ' .cct-l{font-weight:700}' + P + ' .cct-days .cct-chip span{font-weight:600}}',
         '@media(prefers-reduced-motion:reduce){' + P + ' *{scroll-behavior:auto!important;transition:none!important}}'
       ].join('\n');
+      // festive page: colours, corners and type from the page itself (green #163E32, 8px cards, 4px buttons, Georgia titles)
+      if (CARDS) s.textContent += '\n' + [
+        '#cc-treat-order.is-cards{margin:0;font-family:inherit;color:#26352D}',
+        '#cc-treat-order.is-cards .cct-in{background:#fff;border:1px solid #E8E1D5;border-radius:8px;padding:28px 28px 24px}',
+        '#cc-treat-order.is-cards .ccfest-h2{margin:4px 0 0}',
+        '#cc-treat-order.is-cards .ccfest-card-title{margin:0 0 14px;font-size:22px}',
+        '#cc-treat-order.is-cards .cct-sub{margin:10px 0 0;color:#566358;font-size:17px}',
+        '#cc-treat-order.is-cards .cct-hint{margin:10px 0 0;color:#566358;font-size:14px;font-style:italic;line-height:1.5}',
+        '#cc-treat-order.is-cards .cct-wf-main{width:100%;cursor:pointer;justify-content:center}',
+        '#cc-treat-order.is-cards .cct-wf-outline{background:#fff;color:#163E32;border:1px solid #163E32;cursor:pointer}',
+        '#cc-treat-order.is-cards .cct-wf-outline:hover{background:#F3F5F1}',
+        '#cc-treat-order.is-cards .cct-wf-l{display:block;margin:0 0 6px}',
+        '#cc-treat-order.is-cards .ccfest-input{width:100%;margin:0}',
+        '#cc-treat-order.is-cards .cct-nav{margin-top:18px}#cc-treat-order.is-cards .cct-nav .cct-wf-main{flex:1 1 220px;width:auto}',
+        '#cc-treat-order.is-cards .cct-lines{margin:18px 0 0;border-top:1px solid #E8E1D5}',
+        '#cc-treat-order.is-cards .cct-lines li{display:grid;grid-template-columns:1fr auto 84px;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #E8E1D5;font-size:17px}',
+        '#cc-treat-order.is-cards .cct-lines li b{text-align:right;color:#163E32}',
+        '#cc-treat-order.is-cards .cct-lines .cct-tot{display:flex;justify-content:space-between;font-size:19px;border-bottom:0}',
+        '#cc-treat-order.is-cards .cct-ln{font-weight:600}',
+        '#cc-treat-order.is-cards .cct-st-sm{display:inline-flex;gap:4px;margin:0}',
+        '#cc-treat-order.is-cards .cct-st-sm button{width:40px;height:40px;border-radius:4px;border:1px solid #D9D1C6;font-size:20px}',
+        '#cc-treat-order.is-cards .cct-st-sm output{min-width:26px}',
+        '#cc-treat-order.is-cards .cct-chip{border-radius:4px;border-color:#D9D1C6}',
+        '#cc-treat-order.is-cards .cct-chip:hover{border-color:#163E32}',
+        '#cc-treat-order.is-cards .cct-chip.is-on{background:#163E32;border-color:#163E32;color:#fff;box-shadow:none}',
+        '#cc-treat-order.is-cards .cct-chip.is-on span{color:#E8EFEA}',
+        '#cc-treat-order.is-cards .cct-recap{border-radius:4px;background:#FAF8F3;border-color:#E8E1D5}',
+        '#cc-treat-order.is-cards .cct-link,#cc-treat-order.is-cards .cct-msg a,#cc-treat-order.is-cards .cct-fine a{color:#163E32}',
+        '#cc-treat-order.is-cards button:focus-visible,#cc-treat-order.is-cards input:focus-visible,#cc-treat-order.is-cards textarea:focus-visible{outline:3px solid #163E32;outline-offset:2px}',
+        '#cc-treat-order.is-cards .cct-fine{font-size:14px;font-style:italic;color:#566358}',
+        '@media(max-width:520px){#cc-treat-order.is-cards .cct-in{padding:20px 16px 18px}#cc-treat-order.is-cards .cct-lines li{grid-template-columns:1fr auto;row-gap:4px}#cc-treat-order.is-cards .cct-lines li b{grid-column:2}#cc-treat-order.is-cards .cct-ln{grid-column:1/-1}}'
+      ].join('\n');
       doc.head.appendChild(s);
     }
     return {
@@ -473,7 +528,7 @@
       mountIn: function (el) {
         if (host || !el) return;
         st = load(); css();
-        host = doc.createElement('section'); host.id = 'cc-treat-order'; host.hidden = true; host.setAttribute('aria-labelledby', 'cct-title');
+        host = doc.createElement('section'); host.id = 'cc-treat-order'; host.hidden = true; if (CARDS) host.className = 'is-cards'; host.setAttribute('aria-labelledby', 'cct-title');
         el.appendChild(host);
         host.addEventListener('click', click); host.addEventListener('input', input); host.addEventListener('change', input);
       },
@@ -487,14 +542,31 @@
         if (st.step !== 1) st.step = 1;
         if (!(st.q[it.id] > 0)) st.q[it.id] = 1;
         save(); try { render(); } catch (e) { warn('treat order', e); }
-        try { host.scrollIntoView({ block: 'start' }); } catch (_) {}
+        if (!CARDS) try { host.scrollIntoView({ block: 'start' }); } catch (_) {}
         return true;
       },
+      // festive page cards: what a goodie is (by name) and set its quantity
+      info: function (name) {
+        if (!st || !menu) return null;
+        var it = find(name); if (!it) return null;
+        return { id: it.id, q: st.done ? 0 : (st.q[it.id] || 0), max: it.max || 20, off: st.day ? why(it, st.day) : null };
+      },
+      set: function (name, q) {
+        if (!host || !st) return false;
+        var it = find(name); if (!it) return false;
+        if (st.done) st = blank();
+        q = Math.max(0, Math.min(it.max || 20, q | 0));
+        if (q) st.q[it.id] = q; else delete st.q[it.id];
+        st.msg = null; save(); try { render(); } catch (e) { warn('treat order', e); }
+        return true;
+      },
+      count: function () { return st && !st.done ? count() : 0; },
+      total: function () { return st && !st.done ? sum() : 0; },
       render: function () { try { render(); } catch (e) { warn('treat order', e); } },
       state: function () { return st; }
     };
   })();
 
-  win.__ccoSeasonal = { treatOrder: function () { return T.state(); }, cart: function () { return cart; }, menu: function () { return menu; }, add: function (n) { return T.add(n); } };
+  win.__ccoSeasonal = { treatOrder: function () { return T.state(); }, cart: function () { return cart; }, menu: function () { return menu; }, add: function (n) { return T.add(n); }, info: function (n) { return T.info(n); }, set: function (n, q) { return T.set(n, q); }, count: function () { return T.count(); }, total: function () { return T.total(); }, money: money };
   if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', start); else start();
 })(window, document);
