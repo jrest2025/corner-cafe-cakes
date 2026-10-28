@@ -88,8 +88,11 @@
   var SEASON_FROM = '2026-10-01';
   function checkOn() {
     if (Date.now() - webAt < 120000) return;
+    // (28 Oct 2026) only count a check that got an answer: the app's database link can arrive after this add-on,
+    // so a first check that could not run is retried a few seconds later instead of two minutes later
+    if (!db()) { setTimeout(schedule, 1500); return; }
     webAt = Date.now();
-    rpc('get_seasonal_menu', { p_channel: 'website' }).then(function (m) { var on = !!(m && m.ok && (m.groups || []).length); if (on !== webOn) { webOn = on; sideUi(); schedule(); } }, function () {});
+    rpc('get_seasonal_menu', { p_channel: 'website' }).then(function (m) { var on = !!(m && m.ok && (m.groups || []).length); if (on !== webOn) { webOn = on; sideUi(); schedule(); } }, function () { webAt = Date.now() - 110000; setTimeout(schedule, 10500); });
   }
   var GIFT = '<svg class="cc-so-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8s1-5 4.5-5a2.5 2.5 0 0 1 0 5"/></svg>';
   function sideUi() {
@@ -540,6 +543,6 @@
     setInterval(function () { at = 0; if (B && !B.act && !B.form) load(true); else schedule(); }, 120000);
     schedule();
   }
-  win.__ccTreatOrders = { open: openBoard, data: function () { return data; }, reload: function () { return load(true); } };
+  win.__ccTreatOrders = { open: openBoard, data: function () { return data; }, reload: function () { return load(true); }, state: function () { return { webOn: webOn, webAt: webAt, denied: denied, db: !!db() }; } };
   if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', start); else start();
 })(window, document);
