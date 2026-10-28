@@ -417,3 +417,10 @@ Screens:
 - /festive follows the same switch: On = Order buttons with the treat, Off = Coming soon (src/festive/festive-page-footer.html is the page footer).
 - Deploy plan now: publish /festive with the switch Off (Coming soon) and alone_allowed true; Roneel switches On when Chef Nilesh confirms dates.
 - Live 28 Oct 2026 9:22 PM Fiji: Festive treats can be ordered alone (switch still Off); order page uses guest.seasonal.js @2c17e87; staff loader 67 (commit 08c375a); 7 goodies published; /festive published (Coming soon, café contacts, enquiry form hidden). Checked live: 7 cards with prices, Coming soon, order links hidden. Rollback: loader 66; order page footer back to guest.seasonal.js @7dc355ab; /festive back to draft.
+
+## 28 Oct 2026 9:55 PM — Festive ordering on /festive, cards are the picker (live)
+- /festive: goodie cards (Webflow CMS) have Add, then − 1 +; the order box after the goodies shows only the chosen goodies, total and the steps (collection day and time, details). No second photo grid. Order box wears the page's Webflow classes (ccfest-btn, ccfest-h2, ccfest-kicker, ccfest-input, ccfest-label). "2 goodies · $x  View order" bar while the box is off screen. Wine enquiry button hidden (counter only). Hero order button goes to the goodies.
+- Module guest.seasonal.js @b1ae12c (SRI sha384-8HfslIlFRxwiTujOssMeaZn0rb3/3NU+HRZjec2EszQjzjNrXgwFIV8sZYtuY6i+) on /festive and Order a Cake (cakes only there).
+- Switch still Off: live check shows 7 cards, Coming soon, no order box; Order a Cake form loads, no treats.
+- test_festive_page 16 pass, test_festive_link 8 pass.
+- Rollback: /festive footer = git show 08c375a:src/festive/festive-page-footer.html; Order a Cake footer back to guest.seasonal.js @2c17e87 (sha384-5hQ+UBLV7gfkW97eglcrYXi9YfOYZl/WOBSRAFiJXDTJ/7ksyY3l0ZYqBkciowZ6); publish.
