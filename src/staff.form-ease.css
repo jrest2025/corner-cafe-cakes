@@ -1,0 +1,73 @@
+/* Easier staff forms (20 October 2026). Presentation only. */
+
+/* New order on tablets: the form gets most of the width; the slip preview stays beside it, narrower. */
+@container (min-width: 821px) {
+  #cc-staff .sl-wrap.is-stepper .sl-stepper { grid-template-columns: minmax(0, 1fr) clamp(250px, 31%, 340px) !important; }
+}
+/* Step labels stay whole words (no "Custome / r"). */
+#cc-staff .sl-wrap.is-stepper .sl-dots > li { overflow: hidden; }
+#cc-staff .sl-wrap.is-stepper .sl-dots > li::after {
+  overflow-wrap: normal !important; word-break: normal !important;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
+}
+
+/* "Start over" sits at the top of the step, away from Back and Next. */
+#cc-staff .sl-stephead { position: relative; }
+#cc-staff .sl-stephead .cc-restart-top {
+  position: absolute; top: -6px; right: 0; min-height: 40px; padding: 0 4px;
+  color: #6b7785; font-size: 14px; font-weight: 600; background: none; border: 0; cursor: pointer;
+}
+#cc-staff .sl-stephead .cc-restart-top:hover { color: #b42318; }
+#cc-staff .sl-stephead .cc-restart-top:focus-visible { outline: 3px solid rgba(61, 112, 155, .45); outline-offset: 2px; }
+/* Where "View slip" is shown at the right of the step header (phones, upright tablets), Start over goes on the
+   "Step x of 5" line instead, just left of it, so the two never overlap. */
+@container (max-width: 820px) {
+  #cc-staff .sl-stephead .cc-restart-top { grid-column: 1 / 2; grid-row: 1 / 2; top: 50%; right: 0; transform: translateY(-50%); }
+}
+
+/* Make it yours: cake requirements behind one tap until needed. */
+#cc-staff .sl-stepbody.cc-rq-folded > .rq-k,
+#cc-staff .sl-stepbody.cc-rq-folded > .rq-chips,
+#cc-staff .sl-stepbody.cc-rq-folded > .rq-note { display: none !important; }
+#cc-staff .sl-stepbody:not(.cc-rq-folded) > .cc-rq-add { display: none !important; }
+#cc-staff .sl-stepbody > .cc-rq-add {
+  align-self: flex-start; min-height: 44px; padding: 0 2px; text-align: left;
+  font-size: 15px; font-weight: 650; color: #2f6db5; background: none; border: 0; cursor: pointer;
+}
+
+/* Finish: a compact summary under the payment questions. */
+#cc-staff #sl-st-7 .cc-f-review { padding: 12px 14px; }
+#cc-staff #sl-st-7 .cc-f-review h3 { font-size: 16px; margin-bottom: 8px; }
+#cc-staff #sl-st-7 .cc-f-grid { gap: 7px; }
+#cc-staff #sl-st-7 .cc-f-item { padding: 8px 10px; }
+
+/* Add customer: the essentials first, the rest behind "More details". */
+#ccs-sheet .ccs-panel.cc-more-folded > .cc-more,
+#ccs-sheet .ccs-panel.cc-more-folded .ccs-row > .cc-more,
+#cc-staff .ccs-panel.cc-more-folded > .cc-more,
+#cc-staff .ccs-panel.cc-more-folded .ccs-row > .cc-more { display: none !important; }
+#ccs-sheet .ccs-panel:not(.cc-more-folded) .cc-more-btn,
+#cc-staff .ccs-panel:not(.cc-more-folded) .cc-more-btn { display: none !important; }
+#ccs-sheet .cc-more-btn, #cc-staff .cc-more-btn {
+  display: block; min-height: 44px; margin: 4px 0 8px; padding: 0 2px; text-align: left;
+  font-size: 15px; font-weight: 650; color: #2f6db5; background: none; border: 0; cursor: pointer;
+}
+/* A proper tap-sized switch for "Corporate customer". */
+#ccs-sheet label.cc-corp, #cc-staff label.cc-corp {
+  display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 4px 0; cursor: pointer; font-size: 15px;
+}
+#ccs-sheet label.cc-corp input, #cc-staff label.cc-corp input {
+  appearance: none; -webkit-appearance: none; flex: none; position: relative; width: 46px; height: 28px; margin: 0;
+  border-radius: 999px; background: #c9d2dc; cursor: pointer; transition: background .15s ease;
+}
+#ccs-sheet label.cc-corp input::after, #cc-staff label.cc-corp input::after {
+  content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%;
+  background: #fff; box-shadow: 0 1px 3px rgba(16, 24, 40, .25); transition: transform .15s ease;
+}
+#ccs-sheet label.cc-corp input:checked, #cc-staff label.cc-corp input:checked { background: #2f6db5; }
+#ccs-sheet label.cc-corp input:checked::after, #cc-staff label.cc-corp input:checked::after { transform: translateX(18px); }
+#ccs-sheet label.cc-corp input:focus-visible, #cc-staff label.cc-corp input:focus-visible { outline: 3px solid rgba(61, 112, 155, .45); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  #ccs-sheet label.cc-corp input, #ccs-sheet label.cc-corp input::after,
+  #cc-staff label.cc-corp input, #cc-staff label.cc-corp input::after { transition: none; }
+}

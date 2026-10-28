@@ -1,0 +1,28 @@
+// Structural and behaviour checks against a real DOM implementation. No production data or requests.
+const {parseHTML}=require(process.env.LINKEDOM_MODULE||'linkedom'),fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+const code=fs.readFileSync(__dirname+'/../src/staff.analytics-workspace.js','utf8');
+function fixture(mod='ck',section='sa',storage={}){
+ const nav='<nav class="an-mods"><button class="an-mod'+(['cs','mk','wb'].includes(mod)?' is-need':'')+'" aria-current="page" data-v="'+mod+'">'+mod+'</button></nav>';
+ const content=['cs','mk','wb'].includes(mod)?'<div class="an-wait">Original waiting state</div><div class="an-grid"><section class="dx-card is-ghost">Original ghost</section></div>':'<div class="dx-secs"><button data-g="dash" data-v="'+section+'" aria-selected="true">'+section+'</button></div><section class="dx-card dx-secbody" aria-label="Sales and revenue"><div class="dx-card-h"><h2>Sales and revenue</h2><span>Completed sales only</span></div><div class="ccs-kpis"><button data-act="dx-drill" data-v="real-key" class="ccs-kpi"><span class="ccs-kpi-l">Net sales</span><b class="ccs-kpi-n">$237</b></button></div><hr class="dx-hr"><div class="dx-card-h"><h2>Year overview</h2></div><div class="ccs-table-wrap"><table class="ccs-table"><tbody><tr data-act="dx-drill" data-v="oct-key"><td>Oct</td><td>4</td><td>4</td><td>$237</td><td>$59</td></tr></tbody></table></div><hr class="dx-hr"><div class="dx-card-h"><h2>Order channels</h2></div><button data-act="dx-drill" data-v="channel-key">Online 4</button></section>';
+ const {document,window}=parseHTML('<html><body><div id="cc-staff"><main id="ccs-main" data-screen="dash">'+nav+content+'</main></div></body></html>');
+ delete window.__ccAnalyticsWorkspace;let tick;const ctx={document,window,localStorage:{getItem:k=>storage[k]||null,setItem:(k,v)=>{storage[k]=v}},MutationObserver:class{constructor(fn){tick=fn;}observe(){}disconnect(){}},queueMicrotask:fn=>fn()};
+ vm.createContext(ctx);const original=document.getElementById('ccs-main').innerHTML;vm.runInContext(code,ctx);
+ return {document,window,storage,original,tick:()=>tick(),main:document.getElementById('ccs-main'),click(action,id){const b=document.querySelector('[data-aw-action="'+action+'"]'+(id?'[data-aw-id="'+id+'"]':''));assert(b,'control exists: '+action);b.dispatchEvent(new window.Event('click',{bubbles:true,cancelable:true}));}};
+}
+let n=0;function check(label,fn){fn();n++;console.log('PASS '+label);}
+const ov=fixture('ov');check('Overview markup remains byte-for-byte unchanged',()=>assert.equal(ov.main.innerHTML,ov.original));check('Overview has no workspace class or tools',()=>assert(!ov.main.classList.contains('aw-workspace')&&!ov.document.querySelector('.aw-toolbar')));
+const f=fixture(),q=s=>f.document.querySelector(s),ids=()=>[...q('.aw-board').children].map(c=>c.dataset.awId);
+check('a monolithic report becomes three independent islands',()=>assert.equal(f.document.querySelectorAll('.aw-island').length,3));
+check('real KPI values and drill-down keys remain intact',()=>{assert.equal(q('.ccs-kpi-n').textContent,'$237');assert.equal(q('.ccs-kpi').dataset.v,'real-key');assert.equal(q('[data-v="channel-key"]').textContent,'Online 4');});
+check('monthly chart uses original recorded amounts and drill-downs',()=>{assert.equal(q('.aw-month-value').textContent,'$237');assert.equal(q('.aw-month-bar').dataset.v,'oct-key');});
+check('detail table remains available behind View data',()=>assert(q('.aw-records table')));
+check('rerender observer does not duplicate controls',()=>{f.tick();f.tick();assert.equal(f.document.querySelectorAll('.aw-toolbar').length,1);assert.equal(f.document.querySelectorAll('.aw-card-tools').length,3);});
+const originalIds=ids();f.click('edit');f.click('down',originalIds[0]);check('move buttons change island order',()=>assert.equal(ids()[1],originalIds[0]));
+f.click('hide',originalIds[0]);check('hiding is reversible while editing',()=>assert(q('.aw-hidden [data-aw-id="'+originalIds[0]+'"]')));f.click('restore',originalIds[0]);check('restore returns the hidden island',()=>assert.equal(q('[data-aw-id="'+originalIds[0]+'"].aw-island').hidden,false));
+f.click('save');check('saved layout persists in browser storage',()=>assert(JSON.parse(f.storage['ccs.analytics.layout.v1']).layouts['ck:sa']));
+const restored=fixture('ck','sa',f.storage);check('a fresh render restores saved order',()=>assert.equal(restored.document.querySelector('.aw-board').children[1].dataset.awId,originalIds[0]));
+f.click('edit');f.click('reset');check('reset restores the original arrangement',()=>assert.deepEqual(ids(),originalIds));f.click('cancel');check('cancel restores the last saved arrangement',()=>assert.equal(ids()[1],originalIds[0]));
+const other=fixture('ck','pf',f.storage);check('subsection layouts are independent',()=>assert.equal(other.document.querySelector('.aw-board').children[0].dataset.awId,originalIds[0]));
+for(const mod of ['cs','mk','wb']){const p=fixture(mod);check(mod+' renders four truthful template islands',()=>{assert.equal(p.document.querySelectorAll('.aw-island').length,4);assert.equal(p.document.querySelectorAll('.aw-chart-empty').length,4);assert.equal(p.document.querySelectorAll('.is-ghost').length,0);assert.equal(p.document.querySelectorAll('[data-aw-action="template"]').length,4);assert(!p.document.querySelector('.aw-board svg'));});}
+check('malformed saved preferences fall back safely',()=>assert.equal(fixture('ck','sa',{'ccs.analytics.layout.v1':'broken'}).document.querySelectorAll('.aw-island').length,3));
+console.log(n+' analytics workspace DOM checks passed. Browser layout is not verified.');

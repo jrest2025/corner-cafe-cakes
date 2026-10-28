@@ -1,0 +1,142 @@
+/* Corner Cafe marketing campaigns (20 October 2026): the Marketing tab, the campaign window and the promotion question on
+   New order. Same look as the other Analytics tabs: white cards, muted greens, purples and blues; colour for what you tap. */
+
+/* Add campaign bar */
+#cc-staff .ccm-top{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px}
+#cc-staff .ccm-top span{font-size:13.5px;line-height:1.45;color:#66776c;max-width:520px}
+#cc-staff .ccm-add{padding:0 18px;font-size:15px}
+
+/* Campaign results */
+#cc-staff .ccm-list{display:grid;gap:12px}
+#cc-staff .ccm-row{--ccm-c:#5d9164;display:grid;gap:10px;min-width:0;padding:14px 16px 14px 18px;background:#fff;border:1px solid #e3e9e5;border-left:4px solid var(--ccm-c);border-radius:12px}
+#cc-staff .ccm-row.is-soon{--ccm-c:#548fc0}
+#cc-staff .ccm-row.is-ended{--ccm-c:#b5bac1}
+#cc-staff .ccm-rh{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:10px 14px}
+#cc-staff .ccm-rn{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;min-width:0}
+#cc-staff .ccm-rn h4{margin:0;font-size:16.5px;line-height:1.3;font-weight:750;color:#243b2f;overflow-wrap:anywhere}
+#cc-staff .ccm-st{display:inline-block;padding:3px 10px;border-radius:99px;font-size:12.5px;font-weight:700;line-height:1.35;white-space:nowrap;background:#e3f3e7;color:#2f7044}
+#cc-staff .ccm-st.is-soon{background:#e8f0fa;color:#2f6db5}
+#cc-staff .ccm-st.is-ended{background:#eef1f3;color:#5b6b78}
+#cc-staff .ccm-ra{display:flex;flex-wrap:wrap;gap:8px}
+#cc-staff .ccm-ra .ccs-btn{min-height:44px!important;padding:0 14px;font-size:14.5px;width:auto}
+#cc-staff .ccm-meta{margin:-4px 0 0;font-size:13px;line-height:1.45;color:#66776c}
+#cc-staff .ccm-figs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+#cc-staff .ccm-fig{display:flex;flex-direction:column;gap:2px;min-width:0;min-height:58px;padding:8px 11px;border-radius:10px;background:#f6f8f7;text-align:left}
+#cc-staff .ccm-fig.cat-tap{border:1px solid #dfe8e2;background:#f4f8f5;padding:8px 11px}
+#cc-staff button.ccm-fig:hover{border-color:#9a70a4;background:#faf5fc}
+#cc-staff .ccm-fig b{font-size:17px;line-height:1.25;font-weight:760;color:#263d32;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+#cc-staff .ccm-fig span{font-size:12px;line-height:1.3;color:#6b7b71}
+#cc-staff .ccm-bar{height:6px;border-radius:99px;background:#eef1f3;overflow:hidden}
+#cc-staff .ccm-bar i{display:block;height:100%;border-radius:99px;background:#9a70a4}
+#cc-staff .ccm-lift{margin:10px 0 0;font-size:13.5px;line-height:1.45;color:#3f5448}
+#cc-staff .ccm-lift .is-up{color:#2f7044}
+#cc-staff .ccm-lift .is-down{color:#a2412b}
+#cc-staff .ccm-err{display:grid;justify-items:center;gap:8px}
+#cc-staff .ccm-err p{margin:0}
+
+/* First campaign: three steps */
+#cc-staff .ccm-empty{display:grid;gap:14px;justify-items:start}
+#cc-staff .ccm-empty ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;width:100%}
+#cc-staff .ccm-empty li{display:grid;gap:5px;padding:12px 14px;border:1px solid #e6ece8;border-radius:12px;background:#fbfcfb}
+#cc-staff .ccm-empty li b{display:flex;align-items:center;gap:8px;font-size:14.5px;color:#243b2f}
+#cc-staff .ccm-empty li i{display:inline-grid;place-items:center;flex:none;width:24px;height:24px;border-radius:50%;background:#e9f4ec;color:#2f7044;font-style:normal;font-size:13px;font-weight:800}
+#cc-staff .ccm-empty li span{font-size:13px;line-height:1.45;color:#5d6d63}
+
+/* Details */
+#cc-staff .ccm-how{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+#cc-staff .ccm-how li{display:grid;gap:2px}
+#cc-staff .ccm-how b{font-size:14px;color:#2c4135}
+#cc-staff .ccm-how span{font-size:13.5px;line-height:1.5;color:#5d6d63}
+#cc-staff .ccm-table code{font-size:12.5px;padding:1px 6px;border-radius:5px;background:#f2f5f3;color:#3e5446;overflow-wrap:anywhere}
+
+/* The campaign window: a layer of its own just below the app's calendar (z-index 2147483000), so dates can be picked */
+#cc-staff .ccm-layer{position:fixed;inset:0;z-index:2147482990;display:grid;place-items:center;padding:24px;box-sizing:border-box}
+#cc-staff .ccm-layer[hidden]{display:none!important}
+#cc-staff .ccm-shade{position:absolute;inset:0;background:rgba(22,33,27,.45)}
+#cc-staff .ccm-dlg{position:relative;box-sizing:border-box;width:min(640px,100%);max-height:calc(100vh - 48px);max-height:calc(100dvh - 48px);overflow:auto;overscroll-behavior:contain;border-radius:16px;background:#fff;color:#263b32;box-shadow:0 24px 60px rgba(20,35,28,.28)}
+#cc-staff .ccm-dlg:focus{outline:none}
+#cc-staff .ccm-dlg *{box-sizing:border-box}
+html:has(#ccm-layer:not([hidden])){overflow:hidden}
+#cc-staff .ccm-in{display:grid;gap:16px;padding:20px 22px 22px;min-width:0}
+#cc-staff .ccm-dh{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+#cc-staff .ccm-dh h2{margin:0;font-size:21px;line-height:1.3;font-weight:770;color:#243b2f;overflow-wrap:anywhere}
+#cc-staff .ccm-x{flex:none;width:44px;height:44px;margin:-6px -8px 0 0;border:0;border-radius:10px;background:transparent;color:#4a5b50;font-size:28px;line-height:1;cursor:pointer}
+#cc-staff .ccm-x:hover{background:#f2f5f3}
+#cc-staff .ccm-sub{margin:6px 0 0;font-size:13.5px;line-height:1.5;color:#66776c}
+#cc-staff .ccm-sub .ccm-st{margin-right:6px}
+#cc-staff .ccm-intro{margin:-6px 0 0;font-size:14px;line-height:1.5;color:#5d6d63}
+#cc-staff .ccm-ok{margin:0;padding:10px 14px;border-radius:10px;background:#e9f4ec;color:#245c38;font-size:14px;font-weight:650}
+#cc-staff .ccm-f{display:grid;gap:7px;min-width:0}
+#cc-staff .ccm-f .sl-k{margin:0;font-size:16px}
+#cc-staff .ccm-f .ccs-err,#cc-staff .ccm-gerr{margin:0;font-size:14px}
+#cc-staff .ccm-f .ccs-hint{margin:0;font-size:13px;line-height:1.45}
+#cc-staff .ccm-dates{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+#cc-staff .ccm-dates .ccm-d{display:grid;gap:4px;min-width:0}
+#cc-staff .ccm-dates label{font-size:13px;font-weight:600;color:#5d6d63}
+#cc-staff .ccm-dates .ccs-input{min-width:0;width:100%}
+#cc-staff .ccm-quick .ccs-chip,#cc-staff .ccm-f .ccs-chips .ccs-chip{min-height:42px;padding:0 14px;font-size:15px}
+#cc-staff .ccm-f .ccs-chips{gap:8px}
+#cc-staff .ccm-money{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:stretch;max-width:260px}
+#cc-staff .ccm-money span{display:grid;place-items:center;padding:0 12px;border:1px solid var(--ccs-line,#cfd8d2);border-right:0;border-radius:var(--ccs-r-sm,8px) 0 0 var(--ccs-r-sm,8px);background:#f4f6f5;font-weight:700;color:#4a5b50}
+#cc-staff .ccm-money .ccs-input{border-top-left-radius:0;border-bottom-left-radius:0}
+#cc-staff .ccm-dlg [aria-invalid="true"]{border-color:#b42318}
+#cc-staff .ccm-acts{display:flex;flex-wrap:wrap;gap:10px}
+#cc-staff .ccm-acts .ccs-btn{width:auto;padding:0 20px}
+#cc-staff .ccm-sec{display:grid;gap:8px;padding-top:14px;border-top:1px solid #edf0ee;min-width:0}
+#cc-staff .ccm-sec>b,#cc-staff .ccm-qrtxt>b{font-size:15.5px;color:#2c4135}
+#cc-staff .ccm-sec p{margin:0;font-size:14px;line-height:1.5;color:#4f6156}
+#cc-staff .ccm-linkrow{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px}
+#cc-staff .ccm-linkrow .ccs-input{min-width:0;font-size:14.5px;background:#f8faf9;text-overflow:ellipsis}
+#cc-staff .ccm-linkrow .ccs-btn{width:auto;padding:0 16px;white-space:nowrap}
+#cc-staff .ccm-qr{grid-template-columns:180px minmax(0,1fr);align-items:center;gap:18px}
+#cc-staff .ccm-qrimg{width:180px;height:180px;padding:6px;border:1px solid #e3e9e5;border-radius:12px;background:#fff}
+#cc-staff .ccm-qrimg svg{display:block;width:100%;height:100%}
+#cc-staff .ccm-qrtxt{display:grid;gap:8px;justify-items:start}
+#cc-staff .ccm-qrtxt .ccs-btn{width:auto;padding:0 16px}
+#cc-staff .ccm-mini{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+#cc-staff .ccm-mini div{display:grid;gap:2px;padding:8px 11px;border-radius:10px;background:#f6f8f7}
+#cc-staff .ccm-mini b{font-size:17px;font-weight:760;color:#263d32;font-variant-numeric:tabular-nums}
+#cc-staff .ccm-mini span{font-size:12px;color:#6b7b71}
+#cc-staff .ccm-res .ccm-seeorders{justify-self:start;width:auto;padding:0 16px}
+#cc-staff .ccm-foot{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding-top:14px;border-top:1px solid #edf0ee}
+#cc-staff .ccm-foot .ccs-btn{width:auto;padding:0 16px}
+#cc-staff .ccm-rm{color:#b42318!important;font-size:14.5px;font-weight:650}
+#cc-staff .ccm-close{margin-left:auto}
+#cc-staff .ccm-confirm{display:grid;gap:10px;padding:12px 14px;border:1px solid #f1d2cb;border-radius:12px;background:#fff7f5}
+#cc-staff .ccm-confirm[hidden]{display:none}
+#cc-staff .ccm-confirm p{margin:0;font-size:14px;line-height:1.5;color:#5c2b22}
+#cc-staff .ccm-danger{background:#b42318!important;border:1px solid #b42318!important;color:#fff!important}
+#cc-staff .ccm-x:focus-visible,#cc-staff .ccm-fig:focus-visible{outline:3px solid rgba(61,112,155,.45);outline-offset:2px}
+
+/* New order: Came from a promotion? */
+#cc-staff .ccp-slot:empty{display:none}
+#cc-staff .ccp{margin-top:14px}
+#cc-staff .ccp .ccs-chips{gap:8px}
+
+/* Narrow cards */
+@container (max-width:640px){
+#cc-staff .ccm-figs{grid-template-columns:repeat(3,minmax(0,1fr))}
+#cc-staff .ccm-empty ol{grid-template-columns:minmax(0,1fr)}
+}
+@container (max-width:380px){
+#cc-staff .ccm-figs{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:760px){
+#cc-staff .ccm-top{align-items:stretch}
+#cc-staff .ccm-top .ccm-add{width:100%;justify-content:center}
+#cc-staff .ccm-row{padding:12px 12px 12px 14px}
+#cc-staff .ccm-ra{width:100%}
+#cc-staff .ccm-ra .ccs-btn{flex:1 1 auto;justify-content:center}
+}
+@media (max-width:600px){
+#cc-staff .ccm-layer{place-items:end stretch;padding:0}
+#cc-staff .ccm-dlg{width:100%;max-height:94vh;max-height:94dvh;border-radius:16px 16px 0 0}
+#cc-staff .ccm-in{padding:16px 16px calc(20px + env(safe-area-inset-bottom,0px));gap:14px}
+#cc-staff .ccm-linkrow{grid-template-columns:minmax(0,1fr) auto}
+#cc-staff .ccm-linkrow .ccs-input{grid-column:1/-1}
+#cc-staff .ccm-qr{grid-template-columns:minmax(0,1fr);justify-items:center;text-align:center}
+#cc-staff .ccm-qrtxt{justify-items:center}
+#cc-staff .ccm-qrimg{width:200px;height:200px}
+#cc-staff .ccm-mini b{font-size:15.5px}
+#cc-staff .ccm-dates{grid-template-columns:minmax(0,1fr)}
+}

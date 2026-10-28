@@ -1,0 +1,38 @@
+/* Flow polish for phones and tablets (20 October 2026). Presentation only. */
+
+/* Calendar day view: one-line times, and folded empty hours. */
+#cc-staff .ccs-dslot{grid-template-columns:max-content minmax(0,1fr)!important}
+#cc-staff .ccs-dslot-t{white-space:nowrap;min-width:84px;padding-right:12px!important;align-content:center!important}
+#cc-staff .ccs-dslot.has-orders .ccs-dslot-t{align-content:start!important;padding-top:16px!important}
+#cc-staff .ccs-dslot.cc-folded{display:none!important}
+#cc-staff li.cc-fold{list-style:none;border-bottom:1px solid #e6ebf1;background:#f8fafc}
+#cc-staff li.cc-fold:last-child{border-bottom:0}
+#cc-staff .cc-fold-btn{appearance:none;display:flex;align-items:center;gap:12px;width:100%;min-height:48px;padding:6px 14px 6px 10px;border:0;background:transparent;font:inherit;text-align:left;cursor:pointer;color:#526176}
+#cc-staff .cc-fold-t{font-weight:600;font-size:15px;color:#526176;white-space:nowrap;font-variant-numeric:tabular-nums}
+#cc-staff .cc-fold-n{flex:1;min-width:0;font-size:14px;color:#7a8696}
+#cc-staff .cc-fold-go{font-size:14px;font-weight:600;color:#2f6db5}
+#cc-staff .cc-fold-btn:hover,#cc-staff .cc-fold-btn:active{background:#eef3f8}
+#cc-staff .cc-fold-btn:focus-visible{outline:3px solid #397bb8;outline-offset:-3px}
+
+/* Phone header: shrinks once the page is scrolled. */
+@media (max-width:759px){
+  #cc-staff .ccs-app .ccs-side{transition:padding .18s ease}
+  #cc-staff .ccs-app .ccs-side .ccs-brand{transition:width .18s ease,padding .18s ease,background-size .18s ease}
+  #cc-staff .ccs-app.cc-scrolled .ccs-side{padding-top:6px!important;padding-bottom:6px!important}
+  #cc-staff .ccs-app.cc-scrolled .ccs-side .ccs-brand{width:78px!important;padding-top:28px!important;background-size:78px auto!important}
+  #cc-staff .ccs-app.cc-scrolled .ccs-side .ccs-brand small{display:none!important}
+  #cc-staff .ccs-app.cc-scrolled .ccs-topnew{min-height:40px!important;padding:0 12px!important}
+  #cc-staff .ccs-app.cc-scrolled .ccs-side .ccs-avatar{width:36px!important;height:36px!important;min-width:36px!important}
+}
+@media (prefers-reduced-motion:reduce){
+  #cc-staff .ccs-app .ccs-side,#cc-staff .ccs-app .ccs-side .ccs-brand{transition:none!important}
+}
+
+/* Small phones (360px and under): keep the header and calendar title inside the screen. */
+@media (max-width:380px){
+  #cc-staff .ccs-app .ccs-side{gap:8px!important;padding-left:12px!important;padding-right:12px!important}
+  #cc-staff .ccs-app .ccs-side .ccs-brand{width:96px!important;background-size:96px auto!important;padding-top:35px!important;margin-left:0!important}
+  #cc-staff .ccs-topnew{padding:0 12px!important;margin-right:4px!important}
+  #cc-staff .ccs-caltitle{white-space:normal!important;overflow-wrap:anywhere;min-width:0}
+  #cc-staff .ccs-calnav{flex-wrap:wrap;min-width:0;max-width:100%}
+}

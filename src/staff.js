@@ -1591,7 +1591,7 @@
     var el = document.getElementById('ccs-print'); if (!el) { el = document.createElement('div'); el.id = 'ccs-print'; document.body.appendChild(el); }
     el.innerHTML = '<div class="ccs-fit">' + briefHtml(b, urls, size) + '</div>';
     var ps = document.getElementById('ccs-page'); if (!ps) { ps = document.createElement('style'); ps.id = 'ccs-page'; document.head.appendChild(ps); }
-    ps.textContent = '@page{size:' + (size === 'DL' ? '99mm 210mm' : size + ' portrait') + ';margin:' + (size === 'A5' ? '8mm' : size === 'DL' ? '6mm' : '12mm') + '}';
+    ps.textContent = '@page{size:' + (size === 'DL' ? '110mm 220mm' : size + ' portrait') + ';margin:' + (size === 'A5' ? '8mm' : size === 'DL' ? '6mm' : '12mm') + '}';
     var imgs = Array.prototype.slice.call(el.querySelectorAll('img')), started = false;
     var fire = function () { if (started) return; started = true; fitBrief(el, size); printNamed(briefFileName(b)); document.body.classList.add('ccs-printing'); setTimeout(function () { window.print(); }, 50); };
     var left = imgs.length; if (!left) return fire();
@@ -1600,7 +1600,7 @@
   }
   // The brief always prints on one page: if it is too long, it is scaled down to fit. Nothing is cut off.
   function fitBrief(el, size) {
-    var mm = 96 / 25.4, W = (size === 'A5' ? 132 : size === 'DL' ? 87 : 186) * mm, H = (size === 'A5' ? 191 : size === 'DL' ? 196 : 270) * mm, f = el.firstChild, sc = 1;
+    var mm = 96 / 25.4, W = (size === 'A5' ? 132 : size === 'DL' ? 98 : 186) * mm, H = (size === 'A5' ? 191 : size === 'DL' ? 206 : 270) * mm, f = el.firstChild, sc = 1;
     el.style.cssText = 'display:block;position:absolute;left:-10000px;top:0;visibility:hidden;width:' + W + 'px';
     f.style.transform = ''; f.style.width = W + 'px';
     for (var i = 0; i < 8; i++) {
@@ -2363,7 +2363,7 @@
     }).join('') + '</div>';
   }
   function phPicker(id, label, link) { return '<label class="' + (link ? 'ccs-link ccs-phlink' : 'ccs-btn ccs-ghost ccs-phadd') + '"><input type="file" id="' + id + '" accept="image/jpeg,image/png,image/webp" multiple class="ccs-sr">' + label + '</label>'; }
-  function freshDraft() { return { key: uuid(), source: 'walk_in', step: 0, reached: 0, phone: '', noMob: null, matches: null, customer: null, isNew: false, name: '', email: '', whatsapp: true, optIn: null,
+  function freshDraft() { return { key: uuid(), source: null, taken: null, takenDate: '', step: 0, reached: 0, phone: '', noMob: null, matches: null, customer: null, isNew: false, name: '', email: '', whatsapp: true, optIn: null,
     product: null, req: false, sizeNote: '', reqPrice: '', variant: null, size: null, finish: 'standard', design: '', photos: [], phErr: null, message: '', candles: '', occasion: null, occOther: '', diet: null, diets: [], dietNote: '', notes: '', qty: 1,
     date: '', time: '', rush: '', rushBy: '', fromCal: false, method: 'collection', zone: null, address: '', fee: '', contact: '', confirmNow: false, askDeposit: false, deposit: '', payNow: false, payAmount: '', payMethod: 'cash', result: null, err: null, errField: null }; }
   var D = freshDraft();
@@ -2621,7 +2621,7 @@
   function stepWhen(noHead, part) {
     var L = S.setup.location, slots = [], o = L.collection_open.split(':').map(Number), c = L.collection_close.split(':').map(Number);
     for (var m = o[0] * 60 + o[1]; m <= c[0] * 60 + c[1]; m += L.slot_minutes) slots.push(String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'));
-    var closed = (S.setup.closed_dates || []).indexOf(D.date) > -1;
+    var closed = D.date >= today() && (S.setup.closed_dates || []).indexOf(D.date) > -1;
     var dl = D.method === 'delivery', zones = S.setup.delivery_zones || [], zo = zoneObj();
     var h = (noHead ? '' : '<h2 class="ccs-step-q">Collection or delivery, and when?</h2>') + '<div class="ccs-chips"><button type="button" class="ccs-chip" data-act="n-method" data-v="collection" aria-pressed="' + !dl + '">Collect from café</button><button type="button" class="ccs-chip" data-act="n-method" data-v="delivery" aria-pressed="' + dl + '">Delivery</button></div>';
     if (dl) {
@@ -2663,8 +2663,8 @@
     else if (custom) h += '<p class="ccs-note">Custom cakes are saved as Needs a quote. Confirm the final price from the order once the design is priced.</p>';
     else if (inSlip) {
       // Menu cake at the counter: one clear choice about money, so payments are never forgotten
-      var PLANS = [['full', 'Paid in full'], ['deposit', 'Paid a deposit'], ['later', 'Not paid yet']];
-      h += '<div class="sl-sub sl-payplan"><span class="sl-k">Payment <em class="sl-req">Required</em></span><div class="ccs-chips" role="group" aria-label="Payment">' +
+      var PLANS = [['full', 'Paid in full'], ['deposit', 'Deposit received'], ['later', 'No payment yet']];
+      h += '<div class="sl-sub sl-payplan"><span class="sl-k">What payment did we receive? <em class="sl-req">Required</em></span><div class="ccs-chips" role="group" aria-label="Payment">' +
         PLANS.map(function (x) { return '<button type="button" class="ccs-chip" data-act="n-plan" data-v="' + x[0] + '" aria-pressed="' + (D.payPlan === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div>' + ferr('payplan') + '</div>';
       if (D.payPlan === 'full' || D.payPlan === 'deposit') {
         h += (D.payPlan === 'deposit' ? '<div class="ccs-field"><label class="ccs-label" for="n-pay">Deposit paid (FJD)</label><input class="ccs-input" id="n-pay" inputmode="decimal" data-n="payAmount" value="' + esc(D.payAmount) + '" style="max-width:220px"><div class="ccs-chips"><button type="button" class="ccs-chip" data-act="n-payhalf">Half (' + money(Math.round(price / 2)) + ')</button></div></div>' : '') +
@@ -2720,7 +2720,7 @@
   var RECUR = ['Birthday', 'Anniversary', 'Wedding'];
   // Stage ids stay as they were (saved drafts and server error fields use them); the screens shown are 1, 0, 4, 3, 7.
   // 2 (contact) is part of 1 (Customer); 5 (allergies) and 6 are part of 4 (Make it yours).
-  var SL_STAGES = ['Cake', 'Customer', 'Customer', 'When is it needed?', 'Make it yours', 'Make it yours', 'Make it yours', 'Check and save'];
+  var SL_STAGES = ['Cake', 'Customer', 'Customer', 'When is it needed?', 'Make it yours', 'Make it yours', 'Make it yours', 'Finish order'];
   // The order staff go through: the customer first (the mobile number finds a returning customer), then the cake, what makes it theirs, when, and the check
   var SL_ORDER = [1, 0, 4, 3, 7];
   var SL_MAP = { 2: 1, 5: 4, 6: 4 };
@@ -2738,16 +2738,16 @@
     var p = prod(), closedL = (S.setup && S.setup.closed_dates) || [];
     if (s === 0 && D.req) return D.design.trim().length < 3 ? ['Describe how the cake should look'] : (D.sizeNote || '').trim().length < 2 ? ['Write the size or how many people it serves'] : D.reqPrice && !(num(D.reqPrice) > 0) ? ['Check the price, or leave it empty'] : [];
     if (s === 0) return !p || !D.size ? ['Tap a price to choose the cake and size'] : p.variants.length && !D.variant ? ['Choose the flavour'] : D.finish === 'custom' && D.design.trim().length < 3 ? ['Describe the custom design'] : [];
-    if (s === 1) { var n1 = slNeeds(2); if (!D.customer && D.name.trim().length < 2) n1.splice(D.noMob !== 'none' && digits(D.phone).length < 7 ? 1 : 0, 0, 'Write the guest name'); return n1; }
+    if (s === 1) { var n1 = slNeeds(2); if (!D.customer && D.name.trim().length < 2) n1.splice(D.noMob !== 'none' && digits(D.phone).length < 7 ? 1 : 0, 0, 'Write the guest name'); if (!D.source) n1.push('Choose how the customer ordered'); if (!takenDateOk()) n1.push(D.taken ? 'Choose a valid earlier order date' : 'Choose when the customer placed the order'); if (D.date && (D.taken === 'yesterday' ? addDays(today(), -1) : D.taken === 'other' ? D.takenDate : today()) > D.date) n1.push('The date the customer placed the order must not be after collection'); return n1; }
     if (s === 2) { if (D.customer) { if (D.custConsent === undefined) return ['Checking their permission']; return D.custConsent && D.custConsent.ok ? [] : (D.optIn === true || D.optIn === false) ? [] : ['Ask if they want cake offers and reminders']; } if (D.noMob === 'none') return []; var n = []; if (digits(D.phone).length < 7) n.push(D.noMob === 'other' ? 'Write the full phone number' : 'Write the full mobile number'); if (D.optIn !== true && D.optIn !== false) n.push('Ask if they want cake offers and reminders'); return n; }
-    if (s === 3) { if (!D.date) return ['Choose the date']; if (closedL.indexOf(D.date) > -1) return ['Choose a day the café is open']; if (!D.time) return ['Choose the time']; var w = []; if (tooSoon() && !rushOk()) w.push('Give the short-notice reason and who approved it'); if (D.method === 'delivery' && !delivOk()) w.push('Finish the delivery details'); return w; }
+    if (s === 3) { if (!D.date) return ['Choose the date']; if (D.date >= today() && closedL.indexOf(D.date) > -1) return ['Choose a day the café is open']; if (!D.time) return ['Choose the time']; var w = []; if (tooSoon() && !rushOk()) w.push('Give the short-notice reason and who approved it'); if (D.method === 'delivery' && !delivOk()) w.push('Finish the delivery details'); return w; }
     if (s === 4) { var n4 = slNeeds(5); if (!D.occasion) n4.push('Choose the occasion, or Customer didn\'t say'); return n4; }
     if (s === 6 && !D.occasion) return ['Choose the occasion, or Customer didn\'t say'];
     if (s === 5) { if (!D.diet) return ['Ask about dietary needs and allergies']; var dm = dietMissing(D.diet, D.diets, D.dietNote); return dm ? [dm] : []; }
     if (s === 7) {
       if (STEPPER && !D.req && D.finish !== 'custom') {
         if (!D.payPlan) return ['Choose how the customer is paying'];
-        if (D.payPlan === 'full' || D.payPlan === 'deposit') { var pa = D.payPlan === 'full' ? dTotal() : num(D.payAmount); if (!(pa > 0)) return ['Enter the deposit paid']; if (D.payPlan === 'deposit' && pa >= dTotal()) return ['The deposit is the full price: choose Paid in full']; }
+        if (D.payPlan === 'full' || D.payPlan === 'deposit') { var pa = D.payPlan === 'full' ? dTotal() : num(D.payAmount); if (!(pa > 0)) return ['Enter the payment received']; if (D.payPlan === 'deposit' && pa >= dTotal()) return ['The deposit is the full price: choose Paid in full']; if (!D.payMethodSet) return ['Choose the actual payment method']; }
         return [];
       }
       return D.payNow && !(num(D.payAmount) > 0) ? ['Enter the amount paid'] : [];
@@ -2755,11 +2755,11 @@
     return [];
   }
   function slipMissing() { var m = []; SL_ORDER.forEach(function (s) { if (s !== 7 && slNeeds(s).length) m.push([SL_STAGES[s], s]); }); return m; }
-  function slNextStage(from) { var seen = slSeen(), at = slPos(from); for (var k = 0; k < SL_ORDER.length; k++) { var s = SL_ORDER[k]; if (s !== from && (!seen[s] || slNeeds(s).length) && (k > at || slNeeds(s).length)) return s; } return 7; }
+  function slNextStage(from) { var at = slPos(from); return SL_ORDER[Math.min(at + 1, SL_ORDER.length - 1)]; }
   function slGo(s) { s = slMap(s); D.sl = s; D.err = null; D.errField = null; D.restored = false; D.showSlip = false; refreshStep(); if (STEPPER) { setTimeout(function () { var bd = document.querySelector('#ccs-sheet .ccs-sheet-body') || document.scrollingElement; if (bd) bd.scrollTop = 0; var m = document.querySelector('.sl-stepbody'); var f = m && m.querySelector('input:not([type=checkbox]):not([type=number]),textarea'); if (f && s > 0) { try { f.focus({ preventScroll: true }); } catch (e) { f.focus(); } } }, 40); return; } setTimeout(function () { var el = document.getElementById('sl-st-' + s); if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); var f = el && el.querySelector('input:not([type=checkbox]):not([type=number]),textarea'); if (f && s > 0) { try { f.focus({ preventScroll: true }); } catch (e) { f.focus(); } } }, 60); }
   function slPhone() { return !!(window.matchMedia && window.matchMedia('(max-width: 759px)').matches) || !!(D && D.date && (tooSoon() || D.method === 'delivery')); }
   // Phones: pickup is two screens, the date and then the time
-  function slWhenDateNeeds() { var closedL = (S.setup && S.setup.closed_dates) || [], w = []; if (!D.date) return ['Choose the date']; if (closedL.indexOf(D.date) > -1) return ['Choose a day the café is open']; if (tooSoon() && !rushOk()) w.push('Give the short-notice reason and who approved it'); if (D.method === 'delivery' && !delivOk()) w.push('Finish the delivery details'); return w; }
+  function slWhenDateNeeds() { var closedL = (S.setup && S.setup.closed_dates) || [], w = []; if (!D.date) return ['Choose the date']; if (D.date >= today() && closedL.indexOf(D.date) > -1) return ['Choose a day the café is open']; if (tooSoon() && !rushOk()) w.push('Give the short-notice reason and who approved it'); if (D.method === 'delivery' && !delivOk()) w.push('Finish the delivery details'); return w; }
   // Join step messages into sentences with exactly one full stop each
   function sentences(list) { return list.map(function (x) { return String(x).replace(/[.\s]+$/, ''); }).join('. ') + '.'; }
   function slNext(skip) {
@@ -2921,7 +2921,7 @@
           '<label class="sl-k" for="n-email">Email <em class="sl-opt">Optional</em></label><input class="ccs-input" id="n-email" type="email" data-n="email" value="' + esc(D.email) + '" placeholder="For order emails">' + ferr('email') +
           (noPh ? '' : consentQ(q));
       }
-      ed += '<p class="sl-k" style="margin:14px 0 8px">How did they order? <em class="sl-req">Required</em></p><div class="ccs-chips" role="group" aria-label="How they ordered">' + SOURCES.map(function (s) { return '<button type="button" class="ccs-chip" data-act="n-source" data-v="' + s[0] + '" aria-pressed="' + (D.source === s[0]) + '">' + s[1] + '</button>'; }).join('') + '</div>' + takenHtml() +
+      ed += '<div class="cc-source-field"><span class="sl-k">How did they order? <em class="sl-req">Required</em></span><details class="cc-source-picker"><summary class="cc-source-trigger"><span class="cc-source-label">' + esc(D.source ? ((SOURCES.filter(function (z) { return z[0] === D.source; })[0] || [null, D.source])[1]) : 'Select order channel') + '</span><span class="cc-source-chevron" aria-hidden="true">&#9662;</span></summary><div class="cc-source-menu" role="group" aria-label="How they ordered"><div class="cc-source-menu-top"><b>How did they order?</b><button type="button" class="cc-source-close" data-cc-source-close>Close</button></div><div class="cc-source-options">' + SOURCES.map(function (s) { return '<button type="button" class="ccs-chip" data-act="n-source" data-v="' + s[0] + '" aria-pressed="' + (D.source === s[0]) + '">' + s[1] + '</button>'; }).join('') + '</div></div></details></div>' + takenHtml() +
         (D.customer ? '' : (!D.heard && !D.heardOpen ? '<button type="button" class="ccs-link sl-heardopen" data-act="sl-heardopen">How did they hear about us? (optional)</button>' : '<div class="sl-sub"><span class="sl-k">How did they hear about us? <em class="sl-opt">Optional</em></span><div class="ccs-chips">' + HEARD.map(function (x) { return '<button type="button" class="ccs-chip" data-act="sl-heard" data-v="' + x[0] + '" aria-pressed="' + (D.heard === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div></div>')) + slActions(1);
     } else if (cur === 3) {
       var part = slPhone() ? (D.whenPart === 'time' && D.date ? 'time' : 'date') : null;
@@ -2939,7 +2939,7 @@
         '<label class="sl-k" for="n-notes">Other notes <em class="sl-opt">Optional</em></label><input class="ccs-input" id="n-notes" data-n="notes" value="' + esc(D.notes) + '" placeholder="Anything else for the order">' + slActions(4, false);
     } else {
       var miss = slipMissing();
-      ed = (miss.length ? '<p class="ccs-err" role="alert">Still to finish: ' + esc(miss.map(function (x) { return x[0]; }).join(', ')) + '. Tap Change on that line of the slip.</p>' : '<p class="ccs-hint">Read the slip back to the guest, then take any payment and save.</p>') +
+      ed = (miss.length ? '<p class="ccs-err" role="alert">Still to finish: ' + esc(miss.map(function (x) { return x[0]; }).join(', ')) + '. Tap Change on that line of the slip.</p>' : '<p class="ccs-hint">Check the guest, cake, pickup and allergies. Then record what happened with payment and save.</p>') +
         stepPay(true) + (D.err && D.errField !== 'stage' && !D.errField ? '<p class="ccs-err" role="alert">' + esc(D.err) + '</p>' : '') + (D.err && D.errField === 'stage' ? '<p class="ccs-err" role="alert">' + esc(D.err) + '</p>' : '');
     }
     // The live slip, in the paper order
@@ -3027,13 +3027,19 @@
   }
   // When the order was taken, for orders keyed in later (phone or walk-in written down first). Lead-time reports rely on it.
   function takenHtml() {
-    var o = D.taken || 'now', opts = [['now', 'Today'], ['yesterday', 'Yesterday'], ['other', 'Another date']];
-    return '<p class="sl-k tk-k">When did the customer place this order?</p><p class="ccs-hint">Choose the day the customer first ordered, even if you are entering it later.</p><div class="ccs-chips tk-chips" role="group" aria-label="Date the customer placed the order">' + opts.map(function (x) { return '<button type="button" class="ccs-chip" data-act="n-taken" data-v="' + x[0] + '" aria-pressed="' + (o === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div>' +
-      (o === 'other' ? '<div class="sl-sub tk-sub"><label class="sl-k" for="n-takedate">Date order was taken</label><input class="ccs-input" id="n-takedate" type="date" data-n="takenDate" max="' + today() + '" value="' + esc(D.takenDate || '') + '"></div>' : '') +
-      '<p class="ccs-hint">The CRM automatically records when this entry is saved.</p>';
+    var o = D.taken || '', opts = [['now', 'Today'], ['yesterday', 'Yesterday'], ['other', 'Another date']];
+    return '<p class="sl-k tk-k">When did the customer place this order? <em class="sl-req">Required</em></p><p class="ccs-hint">Choose the actual day the customer first ordered. No date is selected automatically.</p><div class="ccs-chips tk-chips" role="group" aria-label="Date the customer placed the order (required)">' + opts.map(function (x) { return '<button type="button" class="ccs-chip" data-act="n-taken" data-v="' + x[0] + '" aria-pressed="' + (o === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div>' +
+      (o === 'other' ? '<div class="sl-sub tk-sub"><label class="sl-k" for="n-takedate">Date order was taken <em class="sl-req">Required</em></label><input class="ccs-input" id="n-takedate" type="date" data-n="takenDate" max="' + addDays(today(), -1) + '" required value="' + esc(D.takenDate || '') + '"><span class="ccs-hint">Choose any earlier date. Choose Today above if the order was placed today.</span></div>' : '') +
+      '<p class="ccs-hint">The CRM separately records when staff save this entry.</p>';
+  }
+  function takenDateOk() {
+    if (D.taken === 'now' || D.taken === 'today' || D.taken === 'yesterday') return true;
+    if (D.taken !== 'other') return false;
+    var v = D.takenDate || '', t = /^\d{4}-\d{2}-\d{2}$/.test(v) ? Date.parse(v + 'T12:00:00+12:00') : NaN;
+    return isFinite(t) && new Date(t + 43200000).toISOString().slice(0, 10) === v && v < today();
   }
   function takenAt() {
-    var o = D.taken || 'now';
+    var o = D.taken;
     if (o === 'now' || o === 'today') return null;
     var d = o === 'yesterday' ? addDays(today(), -1) : D.takenDate;
     if (!d) return null;
@@ -3042,6 +3048,8 @@
     return d + 'T12:00:00+12:00';
   }
   function submitOrder() {
+    if (!D.source) { D.err = 'Choose how the customer ordered. This is required.'; D.errField = 'stage'; return refreshStep(); }
+    if (!takenDateOk()) { D.err = D.taken ? 'Choose a valid earlier date.' : 'Choose when the customer placed the order. This is required.'; D.errField = 'stage'; return refreshStep(); }
     var L = S.setup.location, price = dTotal(), custom = D.finish === 'custom';
     if (STEPPER && !D.req && !custom) {
       var pn = slNeeds(7); if (pn.length) { D.err = pn.join('. ') + '.'; D.errField = 'stage'; return refreshStep(); }
@@ -4240,7 +4248,7 @@
       else if (pr.verified_note) h += '<p class="ccs-hint">Printer last checked: ' + esc(pr.verified_note) + '.</p>';
       h += '<div class="ccs-row">' + sf('pr-pri', 'Admin inbox (every slip is emailed here to print)', pr.primary, 'email') + sf('pr-bak', 'Counter inbox (gets the same email)', pr.backup, 'email') + '</div>' +
         '<div class="ccs-row"><div class="ccs-field"><label class="ccs-label" for="pr-paper">Paper size</label><select class="ccs-input" id="pr-paper">' +
-        [['A5', 'A5 (148 x 210 mm)'], ['DL', 'DL (99 x 210 mm)']].map(function (o) { return '<option value="' + o[0] + '"' + (pr.paper === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></div></div>' +
+        [['A5', 'A5 (148 x 210 mm)'], ['DL', 'DL (110 x 220 mm)']].map(function (o) { return '<option value="' + o[0] + '"' + (pr.paper === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></div></div>' +
         '<label class="ccs-check"><input type="checkbox" id="pr-on"' + (pr.on_new ? ' checked' : '') + '> Email the slip each time Print kitchen slip is pressed</label>' +
         (st.prFormErr ? '<p class="ccs-err" role="alert">' + esc(st.prFormErr) + '</p>' : '') +
         '<div class="ccs-actions-row"><button type="button" class="ccs-btn" data-act="pr-save">Save printing settings</button><button type="button" class="ccs-btn ccs-ghost" data-act="pr-test">Send test slip</button>' +
@@ -4863,8 +4871,8 @@
         case 'new-again': if (D.result || !draftHasContent()) { D = freshDraft(); newRender(); break; } D.confirmReset = true; newRender(); if (!newInSheet()) window.scrollTo(0, 0); break;
         case 'new-keep': D.confirmReset = false; newRender(); break;
         case 'new-clear': var keepDate = newInSheet() ? [D.date, D.time] : null; clearDraft(); if (keepDate) { D.date = keepDate[0]; D.time = keepDate[1]; D.fromCal = true; } newRender(); break;
-        case 'n-source': D.source = v; root.querySelectorAll('[data-act="n-source"]').forEach(function (c) { c.setAttribute('aria-pressed', c.dataset.v === v); }); break;
-        case 'n-taken': D.taken = v; if (v === 'other' && !D.takenDate) D.takenDate = addDays(today(), -2); if (STEPPER || SLIP) refreshStep(); else view(); if (v === 'other') setTimeout(function () { var el = document.getElementById('n-takedate'); if (el) el.focus(); }, 30); break;
+        case 'n-source': D.source = v; root.querySelectorAll('[data-act="n-source"]').forEach(function (c) { c.setAttribute('aria-pressed', c.dataset.v === v); }); var picked = root.querySelector('.cc-source-picker [data-act="n-source"][aria-pressed="true"]'), shown = root.querySelector('.cc-source-picker .cc-source-label'), picker = root.querySelector('.cc-source-picker'); if (shown && picked) shown.textContent = picked.textContent.trim(); if (picker) picker.open = false; saveDraft(); break;
+        case 'n-taken': D.taken = v; D.takenDate = ''; D.err = null; D.errField = null; if (STEPPER || SLIP) refreshStep(); else view(); if (v === 'other') setTimeout(function () { var el = document.getElementById('n-takedate'); if (el) el.focus(); }, 30); break;
         case 'n-edit': goStep(Number(v)); break;
         case 'n-pick': if (SLIP) { var pl = b.dataset.from === 'name' ? D.nameMatches : D.matches; D.customer = pl[Number(v)]; D.isNew = false; D.nameMatches = null; D.matches = null; D.optIn = null; D.custConsent = undefined; slGo(1); slConsent(D.customer.id); break; }
         case 'sl-heard': D.heard = D.heard === v ? null : v; refreshStep(); break; D.customer = D.matches[Number(v)]; D.isNew = false; goStep(nextOpen(1)); break;
@@ -4941,9 +4949,9 @@
         case 'n-dep': D.deposit = String(v === 'full' ? dTotal() : Math.round(dTotal() / 2)); refreshStep(); break;
         case 'n-paynow': D.payNow = true; D.payAmount = D.askDeposit && D.deposit ? D.deposit : String(dTotal()); refreshStep(); break;
         case 'n-paym': D.payMethod = v; D.payMethodSet = true; refreshStep(); break;
-        case 'n-plan': D.payPlan = v; D.err = null; D.errField = null; if (v === 'deposit' && !num(D.payAmount)) D.payAmount = ''; refreshStep(); break;
+        case 'n-plan': if (D.payPlan !== v) D.payMethodSet = false; D.payPlan = v; D.err = null; D.errField = null; if (v === 'deposit' && !num(D.payAmount)) D.payAmount = ''; refreshStep(); break;
         case 'n-payhalf': D.payAmount = String(Math.round(dTotal() / 2)); refreshStep(); break;
-        case 'n-submit': if (SLIP && slipMissing().length) { toast('Still to finish: ' + slipMissing().map(function (x) { return x[0]; }).join(', '), true); slipJump(); break; } submitOrder(); break;
+        case 'n-submit': if (SLIP && slipMissing().length) { D.err = 'Complete the required details listed below before saving.'; D.errField = 'stage'; refreshStep(); break; } submitOrder(); break;
         case 'n-req': D.req = true; D.product = null; D.size = null; D.variant = null; D.finish = 'custom'; D.confirmNow = false; if (D.errField === 'product' || D.errField === 'size') { D.err = null; D.errField = null; } refreshStep(); break;
         case 'n-unreq': D.req = false; D.finish = 'standard'; D.variant = null; D.sizeNote = ''; D.reqPrice = ''; refreshStep(); break;
         case 'n-cell': (function () { var pr = v.split('|'), code = pr[0], inch = Number(pr[1]); if (D.req) { D.req = false; D.finish = 'standard'; D.variant = null; } if (D.product !== code) { D.product = code; D.variant = null; } D.size = inch; D.restored = false; if (D.errField === 'product' || D.errField === 'size') { D.err = null; D.errField = null; } refreshStep(); })(); break;

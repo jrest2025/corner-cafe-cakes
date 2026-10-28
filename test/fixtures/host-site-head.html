@@ -1,0 +1,1112 @@
+<script>
+(function(){
+  var path = (window.location.pathname || '/').replace(/\/+$/, '') || '/';
+  if (/^\/(?:menu-items|menu-categories)(?:\/|$)/.test(path)) {
+    document.documentElement.classList.add('cc-menu-static');
+  }
+})();
+</script>
+<style>
+/* Corner Cafe — global foundation only.
+   Page/component typography and layout remain controlled in Webflow. */
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+html.cc-menu-static{scroll-behavior:auto}
+body{margin:0;overflow-x:hidden;background:#fff;color:#20231f;font-family:Causten,Arial,sans-serif;font-size:18px;line-height:1.6;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+button,input,textarea,select{font:inherit}
+img,video{display:block;max-width:100%}
+a{-webkit-tap-highlight-color:transparent}
+a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible,[tabindex]:focus-visible{outline:3px solid #75253d;outline-offset:3px}
+::selection{background:#75253d;color:#fff}
+@media(max-width:767px){body{font-size:18px;line-height:1.6}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+@media(forced-colors:active){a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible,[tabindex]:focus-visible{outline:3px solid CanvasText}}
+
+/* Corner Cafe — editorial motion system
+   Lightweight: opacity + transform only. One-shot reveals via IntersectionObserver. */
+
+html:not(.cc-menu-static) .ccm-motion{
+  opacity:0;
+  transform:translate3d(0,16px,0);
+  transition:
+    opacity .48s cubic-bezier(.22,.72,.25,1),
+    transform .54s cubic-bezier(.22,.72,.25,1);
+  transition-delay:var(--ccm-delay,0ms);
+}
+
+html:not(.cc-menu-static) .ccm-hero-title{
+  transform:translate3d(0,24px,0);
+  transition-duration:.56s,.62s;
+}
+
+html:not(.cc-menu-static) .ccm-hero-copy{
+  transform:translate3d(0,18px,0);
+  transition-duration:.50s,.56s;
+}
+
+html:not(.cc-menu-static) .ccm-hero-action{
+  transform:translate3d(0,12px,0);
+  transition-duration:.40s,.46s;
+}
+
+html:not(.cc-menu-static) .ccm-image{
+  opacity:0;
+  transform:translate3d(0,16px,0) scale(1.022);
+  transform-origin:center center;
+  transition:
+    opacity .54s cubic-bezier(.22,.72,.25,1),
+    transform .66s cubic-bezier(.22,.72,.25,1);
+  transition-delay:var(--ccm-delay,0ms);
+}
+
+html:not(.cc-menu-static) .ccm-group{
+  transform:translate3d(0,18px,0);
+  transition-duration:.48s,.56s;
+}
+
+html:not(.cc-menu-static) .ccm-decision{
+  transform:translate3d(0,20px,0) scale(.994);
+  transition-duration:.50s,.58s;
+}
+
+html:not(.cc-menu-static) .ccm-section-in .ccm-motion,
+html:not(.cc-menu-static) .ccm-section-in.ccm-motion{
+  opacity:1;
+  transform:translate3d(0,0,0) scale(1);
+}
+
+html:not(.cc-menu-static) .ccm-section-in .ccm-image.ccm-ready,
+html:not(.cc-menu-static) .ccm-section-in.ccm-image.ccm-ready{
+  opacity:1;
+  transform:translate3d(0,0,0) scale(1);
+}
+
+/* A visible but restrained response on customer-journey actions.
+   [smoothed 2026-09-22: 0.16s ease -> 0.26s cubic-bezier(.16,1,.3,1)] */
+main :where(
+  a[class*="-link"],
+  a[class*="-btn"],
+  a[class*="-primary"],
+  .w-button
+){
+  transition:
+    color .26s cubic-bezier(.16,1,.3,1),
+    border-color .26s cubic-bezier(.16,1,.3,1),
+    background-color .26s cubic-bezier(.16,1,.3,1),
+    transform .26s cubic-bezier(.16,1,.3,1)!important;
+}
+
+@media(hover:hover) and (pointer:fine){
+  main :where(
+    a[class*="-link"],
+    a[class*="-btn"],
+    a[class*="-primary"],
+    .w-button
+  ):hover:not(:active){
+    transform:none;
+  }
+}
+
+@media(max-width:991px){
+  html:not(.cc-menu-static) .ccm-motion{
+    transform:translate3d(0,10px,0);
+    transition-duration:.50s,.60s;
+  }
+
+  html:not(.cc-menu-static) .ccm-hero-title{
+    transform:translate3d(0,14px,0);
+  }
+
+  html:not(.cc-menu-static) .ccm-hero-copy,
+  html:not(.cc-menu-static) .ccm-group,
+  html:not(.cc-menu-static) .ccm-decision{
+    transform:translate3d(0,9px,0);
+  }
+
+  html:not(.cc-menu-static) .ccm-hero-action{
+    transform:translate3d(0,7px,0);
+  }
+
+  html:not(.cc-menu-static) .ccm-image{
+    transform:translate3d(0,9px,0) scale(1.012);
+    transition-duration:.54s,.66s;
+  }
+}
+
+@media(max-width:767px){
+  html:not(.cc-menu-static) .ccm-motion{
+    transform:translate3d(0,7px,0);
+    transition:
+      opacity .50s cubic-bezier(.16,1,.3,1),
+      transform .62s cubic-bezier(.16,1,.3,1);
+    transition-delay:var(--ccm-mobile-delay,0ms);
+  }
+
+  html:not(.cc-menu-static) .ccm-hero-title,
+  html:not(.cc-menu-static) .ccm-hero-copy,
+  html:not(.cc-menu-static) .ccm-group,
+  html:not(.cc-menu-static) .ccm-decision{
+    transform:translate3d(0,7px,0);
+  }
+
+  html:not(.cc-menu-static) .ccm-hero-action{
+    transform:translate3d(0,5px,0);
+  }
+
+  html:not(.cc-menu-static) .ccm-image{
+    transform:translate3d(0,6px,0) scale(1.007);
+    transition:
+      opacity .56s cubic-bezier(.16,1,.3,1),
+      transform .70s cubic-bezier(.16,1,.3,1);
+    transition-delay:var(--ccm-mobile-delay,0ms);
+  }
+
+  @media(hover:hover) and (pointer:fine){
+    main :where(
+      a[class*="-link"],
+      a[class*="-btn"],
+      a[class*="-primary"],
+      .w-button
+    ):hover:not(:active){
+      transform:none;
+    }
+  }
+}
+
+@media(prefers-reduced-motion:reduce){
+  .ccm-motion,
+  .ccm-image{
+    opacity:1!important;
+    transform:none!important;
+    transition:none!important;
+  }
+
+  main :where(
+    a[class*="-link"],
+    a[class*="-btn"],
+    a[class*="-primary"],
+    .w-button
+  ){
+    transition:none!important;
+    transform:none!important;
+  }
+}
+
+/* Corner Cafe — interaction usability layer */
+
+/* FAQ: clear whole-row interaction with explicit + / − state
+   [smoothed 2026-09-22: 0.16s ease -> 0.26s cubic-bezier(.16,1,.3,1)] */
+.ccfaq-summary{
+  position:relative!important;
+  transition:background-color .26s cubic-bezier(.16,1,.3,1),color .26s cubic-bezier(.16,1,.3,1)!important;
+}
+.ccfaq-summary::-webkit-details-marker{display:none!important}
+.ccfaq-summary:hover{
+  background:#FAF8F5!important;
+  color:#3A2B24!important;
+}
+.ccfaq-summary:focus-visible{
+  outline:3px solid #D9A441!important;
+  outline-offset:-3px!important;
+}
+.ccfaq-summary::after{
+  content:"+";
+  position:absolute;
+  top:50%;
+  right:0;
+  width:36px;
+  height:36px;
+  display:grid;
+  place-items:center;
+  transform:translateY(-50%);
+  border:1px solid rgba(74,46,30,.30);
+  background:#FFFFFF;
+  color:#4A2E1E;
+  font-size:25px;
+  line-height:1;
+  font-weight:400;
+}
+.ccfaq-detail[open]>.ccfaq-summary::after{
+  content:"−";
+  background:#4A2E1E;
+  border-color:#4A2E1E;
+  color:#FFFFFF;
+}
+
+/* High Tea: turn the subtle action label into a visible control state
+   [smoothed 2026-09-22: 0.16s ease -> 0.26s cubic-bezier(.16,1,.3,1)] */
+.cch-accordion-action{
+  display:inline-flex!important;
+  min-height:42px!important;
+  padding:0 13px!important;
+  align-items:center!important;
+  justify-content:center!important;
+  border:1px solid #8A9B6B!important;
+  color:#66754D!important;
+  background:#FFFFFF!important;
+  transition:background-color .26s cubic-bezier(.16,1,.3,1),color .26s cubic-bezier(.16,1,.3,1),border-color .26s cubic-bezier(.16,1,.3,1)!important;
+}
+.cch-accordion-action::after{
+  content:"+";
+  margin-left:8px;
+  font-size:22px;
+  line-height:1;
+}
+.cch-accordion-summary:hover .cch-accordion-action{
+  background:#F3F5EE!important;
+}
+.cch-accordion[open] .cch-accordion-action{
+  background:#7B8961!important;
+  border-color:#7B8961!important;
+  color:#FFFFFF!important;
+}
+.cch-accordion[open] .cch-accordion-action::after{
+  content:"−";
+}
+
+/* Native forms: readable labels, obvious focus and comfortable touch sizes */
+:where(.w-form) label{
+  display:block;
+  margin-bottom:7px;
+  color:#3A2B24;
+  font-size:16px;
+  line-height:1.4;
+  font-weight:600;
+}
+:where(.w-form input:not([type="submit"]):not([type="checkbox"]):not([type="radio"]),
+       .w-form textarea,
+       .w-form select){
+  min-height:52px;
+  font-size:17px;
+}
+:where(.w-form textarea){min-height:120px}
+:where(.w-form input:not([type="submit"]):not([type="checkbox"]):not([type="radio"]),
+       .w-form textarea,
+       .w-form select):focus{
+  border-color:#4A2E1E!important;
+  box-shadow:0 0 0 3px rgba(74,46,30,.12)!important;
+  outline:none!important;
+}
+:where(.w-form input[type="submit"]){
+  min-height:52px;
+  padding-left:24px;
+  padding-right:24px;
+  font-size:16px;
+  cursor:pointer;
+}
+
+/* Secondary text actions: unmistakably clickable without turning into heavy buttons
+   [smoothed 2026-09-22: 0.16s ease -> 0.26s cubic-bezier(.16,1,.3,1)] */
+.cck-text-link,
+.ccp-text-link,
+.ccsgn-link,
+.ccggo-text-link,
+.ccfaq-contact-link,
+.cc-flow-textlink{
+  text-decoration-line:underline!important;
+  text-decoration-thickness:1.5px!important;
+  text-underline-offset:4px!important;
+  transition:color .26s cubic-bezier(.16,1,.3,1),text-decoration-color .26s cubic-bezier(.16,1,.3,1)!important;
+}
+.cck-text-link:hover,
+.ccp-text-link:hover,
+.ccsgn-link:hover,
+.ccggo-text-link:hover,
+.ccfaq-contact-link:hover,
+.cc-flow-textlink:hover{
+  color:#6B625C!important;
+  text-decoration-color:#D9A441!important;
+}
+
+@media(max-width:767px){
+  .ccfaq-summary::after{
+    width:34px;
+    height:34px;
+    font-size:23px;
+  }
+  .cch-accordion-action{
+    min-height:46px!important;
+    padding-left:14px!important;
+    padding-right:14px!important;
+  }
+}
+
+/* Corner Cafe — site-wide mobile UX system */
+@media(max-width:991px){
+  html,body{
+    max-width:100%;
+    overflow-x:clip;
+  }
+
+  :where(.cc-home-main,.cck-page,.ccp-page,.cch-page,.ccsgn-page,.ccggo-page,.ccfaq-main){
+    width:100%;
+    max-width:100%;
+    min-width:0;
+  }
+
+  :where(
+    .ccw-hero-grid,.cc-home-visit-grid,.cc-menu-grid,
+    .cck-hero-grid,.cck-pastry-grid,.cck-custom-grid,.cck-help-grid,
+    .ccp-hero-grid,.ccp-plan-grid,.ccp-enquiry-grid,
+    .cch-experience-grid,.cch-cross-grid,.cch-form-grid,
+    .ccsgn-hero-grid,.ccsgn-intro-grid,.ccsgn-photo-grid,.ccsgn-catering-grid,
+    .ccsgn-cafe-grid,.ccsgn-statement-grid,.ccsgn-plan-row,
+    .ccggo-intro-grid,.ccggo-feature-grid
+  ) > *{
+    min-width:0;
+    max-width:100%;
+  }
+
+  main :where(img,video,svg,iframe,.w-embed){
+    max-width:100%;
+  }
+
+  main iframe{
+    width:100%;
+  }
+
+  main :where(input,select,textarea){
+    max-width:100%;
+  }
+
+  main :where(a,button,summary,input,select,textarea){
+    touch-action:manipulation;
+  }
+
+  main [id]{
+    scroll-margin-top:96px;
+  }
+}
+
+@media(max-width:767px){
+  :where(
+    .cc-wrap,.cc-home-shell,.cck-shell,.ccp-shell,.cch-shell,
+    .ccsgn-shell,.ccggo-shell,.ccfaq-shell
+  ){
+    width:calc(100% - 32px)!important;
+    max-width:none!important;
+    margin-left:auto!important;
+    margin-right:auto!important;
+  }
+
+  :where(
+    .ccw-hero-grid,.cc-home-visit-grid,.cc-menu-grid,
+    .cck-hero-grid,.cck-pastry-grid,.cck-custom-grid,.cck-help-grid,
+    .ccp-hero-grid,.ccp-plan-grid,.ccp-enquiry-grid,
+    .cch-experience-grid,.cch-cross-grid,.cch-form-grid,
+    .ccsgn-hero-grid,.ccsgn-intro-grid,.ccsgn-photo-grid,.ccsgn-catering-grid,
+    .ccsgn-cafe-grid,.ccsgn-statement-grid,.ccsgn-plan-row,
+    .ccggo-intro-grid,.ccggo-feature-grid
+  ){
+    grid-template-columns:minmax(0,1fr)!important;
+  }
+
+  :where(
+    .cck-hero-grid,.cck-pastry-grid,.cck-custom-grid,.cck-help-grid,
+    .ccp-hero-grid,.ccp-plan-grid,.ccp-enquiry-grid,
+    .cch-experience-grid,.cch-cross-grid,
+    .ccsgn-hero-grid,.ccsgn-intro-grid,.ccsgn-photo-grid,.ccsgn-catering-grid,
+    .ccsgn-cafe-grid,.ccsgn-statement-grid,
+    .ccggo-intro-grid,.ccggo-feature-grid
+  ){
+    column-gap:0!important;
+    row-gap:clamp(20px,6vw,28px)!important;
+  }
+
+  .cc-menu-grid{
+    row-gap:0!important;
+  }
+
+  main :where(h1,h2,h3,p,li){
+    overflow-wrap:break-word;
+  }
+
+  main :where(h1,h2){
+    text-wrap:balance;
+  }
+
+  main :where(p,li){
+    font-size:max(17px,1em);
+  }
+
+  main :where(
+    .cck-title,.ccp-title,.cch-title,.ccsgn-h1,.ccggo-h1,.ccfaq-title
+  ){
+    font-size:clamp(36px,10vw,44px)!important;
+    line-height:1.03!important;
+    letter-spacing:-.025em!important;
+  }
+
+  main :where(
+    .cc-home-section-title,.cc-flow-title,.cc-gather-title,
+    .cck-h2,
+    .ccp-h2,.cch-h2,.cch-flow-menu-title,.cch-flow-booking-title,
+    .ccsgn-h2,.ccsgn-h2-xl,.ccggo-h2,.ccfaq-section-title
+  ){
+    font-size:clamp(30px,8.4vw,36px)!important;
+    line-height:1.07!important;
+  }
+
+  main :where(.w-button,input[type="submit"],button){
+    min-height:52px;
+    font-size:16px;
+  }
+
+  main :where(input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]),select,textarea){
+    width:100%;
+    min-height:52px;
+    font-size:17px!important;
+  }
+
+  main textarea{
+    min-height:120px;
+  }
+
+  main details > summary{
+    min-height:54px;
+    cursor:pointer;
+    -webkit-tap-highlight-color:transparent;
+  }
+
+  .ccfaq-summary{
+    min-height:64px!important;
+    padding-top:18px!important;
+    padding-bottom:18px!important;
+    font-size:18px!important;
+  }
+
+  .cch-accordion-summary{
+    min-height:64px!important;
+    padding-top:20px!important;
+    padding-bottom:20px!important;
+    row-gap:12px!important;
+  }
+
+  :where(.ccggo-kicker,.ccsgn-kicker,.ccfaq-kicker,.cc-home-intro-est){
+    font-size:14px!important;
+    line-height:1.35!important;
+  }
+
+  :where(.cck-order-form-wrap,.cck-order-form-embed,.cch-elfsight-form-wrap,.cch-elfsight-form-embed,.w-form,.w-embed){
+    width:100%;
+    max-width:100%;
+    min-width:0;
+  }
+
+  .cc-home-visit{
+    padding-top:24px!important;
+    padding-bottom:26px!important;
+  }
+
+  .cc-home-visit-grid{
+    row-gap:20px!important;
+  }
+
+  .cc-home-visit-value{
+    font-size:17px!important;
+    line-height:1.5!important;
+  }
+
+  .cc-menu-intro{
+    padding-top:52px!important;
+    padding-bottom:52px!important;
+  }
+}
+
+@media(max-width:479px){
+  :where(
+    .cc-wrap,.cc-home-shell,.cck-shell,.ccp-shell,.cch-shell,
+    .ccsgn-shell,.ccggo-shell,.ccfaq-shell
+  ){
+    width:calc(100% - 28px)!important;
+  }
+
+  main :where(
+    .cck-title,.ccp-title,.cch-title,.ccsgn-h1,.ccggo-h1,.ccfaq-title
+  ){
+    font-size:clamp(34px,10.5vw,40px)!important;
+  }
+
+  main :where(
+    .cc-home-section-title,.cc-flow-title,.cc-gather-title,
+    .cck-h2,
+    .ccp-h2,.cch-h2,.cch-flow-menu-title,.cch-flow-booking-title,
+    .ccsgn-h2,.ccsgn-h2-xl,.ccggo-h2,.ccfaq-section-title
+  ){
+    font-size:clamp(29px,8.8vw,34px)!important;
+  }
+
+  main a[class*="-btn"],
+  main .w-button,
+  main input[type="submit"]{
+    width:100%!important;
+    max-width:100%!important;
+    min-height:54px!important;
+    justify-content:center!important;
+    text-align:center!important;
+  }
+
+  .cc-home-intro-copy{
+    font-size:18px!important;
+    line-height:1.55!important;
+  }
+}
+
+/* Cakes — pricing row tracking
+   [smoothed 2026-09-22: instant -> 0.26s cubic-bezier(.16,1,.3,1)] */
+@media(hover:hover) and (pointer:fine){
+  .cck-price-row:not(.cck-price-head){
+    transition:background-color .26s cubic-bezier(.16,1,.3,1);
+  }
+  .cck-price-row:not(.cck-price-head):hover:not(:active){
+    background:rgba(58,43,36,.025);
+  }
+}
+
+/* Corner Cafe — Catering hero + service strip */
+.cce-hero .cce-kicker{
+  color:#E8D7AE!important;
+}
+.cce-hero .cce-title,
+.cce-hero .cce-lead{
+  color:#FFFFFF!important;
+  text-shadow:0 1px 18px rgba(0,0,0,.14);
+}
+.cce-hero .cce-body{
+  color:rgba(255,255,255,.82)!important;
+  max-width:520px!important;
+}
+.cce-hero .cce-intro-copy{
+  max-width:560px!important;
+}
+.cce-choose>.cce-shell{
+  width:auto!important;
+  max-width:none!important;
+  margin-left:0!important;
+  margin-right:0!important;
+  padding-left:34px!important;
+  padding-right:34px!important;
+}
+.cce-choose .cce-paths{
+  column-gap:0!important;
+}
+.cce-choose .cce-path{
+  position:relative;
+  min-height:118px;
+  justify-content:flex-start;
+}
+.cce-choose .cce-path:not(:last-child){
+  border-right:1px solid rgba(72,60,49,.16)!important;
+  margin-right:26px;
+  padding-right:26px!important;
+}
+/* [smoothed 2026-09-22: 0.18s ease -> 0.28s cubic-bezier(.16,1,.3,1)] */
+@media(hover:hover) and (pointer:fine){
+  .cce-choose .cce-path{
+    transition:transform .28s cubic-bezier(.16,1,.3,1),color .28s cubic-bezier(.16,1,.3,1)!important;
+  }
+  .cce-choose .cce-path:hover{
+    transform:translate3d(0,-2px,0);
+  }
+}
+@media(max-width:991px){
+  .cce-choose>.cce-shell{
+    padding-left:26px!important;
+    padding-right:26px!important;
+  }
+  .cce-choose .cce-path:not(:last-child){
+    margin-right:18px;
+    padding-right:18px!important;
+  }
+}
+@media(max-width:767px){
+  .cce-hero .cce-title{
+    font-size:clamp(48px,14vw,64px)!important;
+  }
+  .cce-hero .cce-intro-grid{
+    row-gap:14px!important;
+  }
+  .cce-hero .cce-primary,
+  .cce-hero .cce-hero-secondary{
+    width:100%!important;
+    margin-left:0!important;
+    justify-content:center!important;
+  }
+  .cce-choose>.cce-shell{
+    width:calc(100% - 40px)!important;
+    margin-left:auto!important;
+    margin-right:auto!important;
+    padding-left:0!important;
+    padding-right:0!important;
+  }
+  .cce-choose .cce-path{
+    min-height:0;
+  }
+  .cce-choose .cce-path:not(:last-child){
+    margin-right:0;
+    padding-right:0!important;
+    border-right:0!important;
+    border-bottom:1px solid rgba(72,60,49,.16)!important;
+  }
+}
+
+/* Corner Cafe — Contact page layout */
+#contact-page-main .ccp-hero{
+  padding-top:58px!important;
+  padding-bottom:62px!important;
+  background:#FFFFFF!important;
+}
+#contact-page-main .ccp-shell{
+  width:calc(100% - 96px)!important;
+  max-width:1120px!important;
+  margin-left:auto!important;
+  margin-right:auto!important;
+}
+#contact-page-main .ccp-hero-grid{
+  grid-template-columns:.9fr 1.1fr!important;
+  column-gap:52px!important;
+  align-items:end!important;
+}
+#contact-page-main .ccp-title{
+  max-width:520px!important;
+}
+#contact-page-main .ccp-body-lg{
+  max-width:540px!important;
+}
+#contact-page-main .ccp-enquiry{
+  padding-top:60px!important;
+  padding-bottom:70px!important;
+  background:#FFFFFF!important;
+}
+#contact-page-main .ccp-enquiry-grid{
+  max-width:1040px!important;
+  margin-left:auto!important;
+  margin-right:auto!important;
+  grid-template-columns:.72fr 1.28fr!important;
+  column-gap:52px!important;
+  align-items:start!important;
+}
+#contact-page-main .cc-contact-form-wrap{
+  width:100%!important;
+  max-width:760px!important;
+  margin-top:28px!important;
+}
+#contact-page-main .cc-contact-visit{
+  padding-top:64px!important;
+  padding-bottom:66px!important;
+}
+#contact-page-main .cc-contact-shell{
+  width:calc(100% - 96px)!important;
+  max-width:1120px!important;
+  margin-left:auto!important;
+  margin-right:auto!important;
+}
+#contact-page-main .cc-contact-photo{
+  min-height:420px!important;
+  aspect-ratio:4/3!important;
+  background-image:url('https://s3.amazonaws.com/webflow-prod-assets/6a0afe25d2f1212db6f93a0e/6a297e7bcbd1698358cd92cf_DSC_7022.avif')!important;
+  background-size:cover!important;
+  background-position:center!important;
+  background-repeat:no-repeat!important;
+}
+#contact-page-main .cc-contact-photo-image{
+  display:none!important;
+}
+/* [smoothed 2026-09-22: 0.16s ease -> 0.26s cubic-bezier(.16,1,.3,1)] */
+#contact-page-main .cc-contact-primary,
+#contact-page-main .cc-contact-secondary{
+  transition:transform .26s cubic-bezier(.16,1,.3,1),background-color .26s cubic-bezier(.16,1,.3,1),color .26s cubic-bezier(.16,1,.3,1),border-color .26s cubic-bezier(.16,1,.3,1)!important;
+}
+@media(max-width:991px){
+  #contact-page-main .ccp-shell,
+  #contact-page-main .cc-contact-shell{
+    width:calc(100% - 64px)!important;
+  }
+  #contact-page-main .ccp-hero-grid{
+    grid-template-columns:1fr 1fr!important;
+    column-gap:36px!important;
+  }
+  #contact-page-main .ccp-enquiry-grid{
+    grid-template-columns:.78fr 1.22fr!important;
+    column-gap:36px!important;
+  }
+  #contact-page-main .cc-contact-visit-grid{
+    grid-template-columns:1fr 1fr!important;
+    gap:36px!important;
+  }
+  #contact-page-main .cc-contact-detail-row{
+    grid-template-columns:110px 1fr!important;
+    gap:18px!important;
+  }
+}
+@media(max-width:767px){
+  #contact-page-main .ccp-hero{
+    padding-top:38px!important;
+    padding-bottom:42px!important;
+  }
+  #contact-page-main .ccp-shell,
+  #contact-page-main .cc-contact-shell{
+    width:calc(100% - 40px)!important;
+  }
+  #contact-page-main .ccp-hero-grid,
+  #contact-page-main .ccp-enquiry-grid,
+  #contact-page-main .cc-contact-visit-grid{
+    grid-template-columns:1fr!important;
+    row-gap:26px!important;
+  }
+  #contact-page-main .ccp-enquiry{
+    padding-top:46px!important;
+    padding-bottom:50px!important;
+  }
+  #contact-page-main .cc-contact-visit{
+    padding-top:46px!important;
+    padding-bottom:48px!important;
+  }
+  #contact-page-main .cc-contact-visit-copy{
+    max-width:none!important;
+  }
+  #contact-page-main .cc-contact-photo{
+    min-height:0!important;
+    aspect-ratio:4/3!important;
+  }
+  #contact-page-main .cc-contact-detail-row{
+    grid-template-columns:1fr!important;
+    gap:4px!important;
+    padding-top:12px!important;
+    padding-bottom:12px!important;
+  }
+  #contact-page-main .cc-contact-actions{
+    display:grid!important;
+    grid-template-columns:1fr!important;
+  }
+  #contact-page-main .cc-contact-primary,
+  #contact-page-main .cc-contact-secondary{
+    width:100%!important;
+  }
+}
+@media(max-width:479px){
+  #contact-page-main .ccp-shell,
+  #contact-page-main .cc-contact-shell{
+    width:calc(100% - 32px)!important;
+  }
+}
+</style>
+<!-- CC_MOBILE_EDITORIAL_AUDIT_20260923_START -->
+<style>
+/* Corner Cafe — mobile editorial rhythm audit, 2026-09-23. */
+
+@media (max-width:767px){
+  /* Home */
+  .ccw-hero,.ccw-hero-grid{min-height:clamp(440px,72svh,500px)!important}
+  .ccw-hero-grid{padding:54px 18px 26px!important}
+  .cc-home-intro{padding-top:34px!important;padding-bottom:36px!important}
+  .cc-home-intro-copy{max-width:34ch!important;font-size:18px!important;line-height:1.5!important}
+  .cc-home-intro-logo{margin-bottom:18px!important}
+  .cc-menu-tease{padding-top:36px!important;padding-bottom:38px!important}
+  .cc-menu-tease-photo{margin-top:18px!important;margin-bottom:18px!important}
+  .ccw-ozone-logo-inner{padding:24px 18px 26px!important}
+  .cc-pastry-home-stack{padding-top:36px!important;padding-bottom:44px!important;row-gap:16px!important}
+  .cc-flow-title,.cc-gather-title{margin-bottom:8px!important}
+  .cc-gather-item-copy{margin-top:8px!important;margin-bottom:18px!important}
+
+  /* Cakes & Pastries */
+  .cck-hero{padding-top:36px!important}
+  .cck-hero-grid{row-gap:18px!important}
+  .cck-hero-copy{margin-top:8px!important}
+  .cck-standard,.cck-pastries,.cck-custom{padding-top:38px!important;padding-bottom:40px!important}
+  .cck-section-head{grid-template-columns:minmax(0,1fr)!important;row-gap:10px!important}
+  .cck-pastry-grid,.cck-custom-grid{row-gap:18px!important}
+  .cck-steps{margin-top:22px!important}
+  .cck-h2{font-size:32px!important}
+
+  /* Catering & Events */
+  .cce-hero{min-height:440px!important;padding-top:48px!important;padding-bottom:52px!important}
+  .cce-hero .cce-title,.cce-title{font-size:clamp(40px,11.2vw,46px)!important;line-height:1.02!important}
+  .cce-lead{max-width:32ch!important;margin-bottom:10px!important;font-size:20px!important;line-height:1.38!important}
+  .cce-choose{padding-top:22px!important;padding-bottom:24px!important}
+  .cce-choose-head{padding-top:0!important;padding-bottom:10px!important}
+  .cce-gourmet,.cce-chefs,.cce-hosting{padding-top:38px!important;padding-bottom:40px!important}
+  .cce-planning{padding-top:36px!important;padding-bottom:38px!important}
+  .cce-heading{margin-bottom:10px!important;font-size:34px!important}
+  .cce-heading-large{font-size:38px!important;line-height:1.04!important}
+  .cce-body{margin-top:8px!important;font-size:18px!important;line-height:1.52!important}
+  .cce-food-spread{margin-top:22px!important;row-gap:16px!important}
+
+  /* Private Dining */
+  .ccp-hero{padding-top:34px!important;padding-bottom:28px!important}
+  .ccp-hero-grid{row-gap:18px!important}
+  .ccp-title{font-size:38px!important}
+  .ccp-body-lg{margin-top:10px!important;font-size:18px!important;line-height:1.55!important}
+  .ccp-plan{padding-top:42px!important;padding-bottom:42px!important}
+  .ccp-plan-grid{row-gap:18px!important}
+  .ccfp-section{padding-top:36px!important;padding-bottom:36px!important}
+  .ccp-enquiry{padding-top:36px!important;padding-bottom:36px!important}
+  .ccp-enquiry-grid{row-gap:16px!important}
+  .ccp-cross{padding-top:32px!important;padding-bottom:32px!important}
+  .ccp-cross-grid{margin-top:18px!important}
+  .ccp-cross-link{padding-top:18px!important;padding-bottom:18px!important}
+  .ccp-h2{font-size:32px!important}
+
+  /* High Tea */
+  .cch-hero{padding-top:30px!important;padding-bottom:32px!important}
+  .cch-hero-grid{row-gap:16px!important}
+  .cch-title{margin-bottom:8px!important;font-size:38px!important}
+  .cch-hero-lead{margin-top:8px!important}
+  .cch-experience{padding-top:34px!important;padding-bottom:36px!important}
+  .cch-experience-grid,.cch-flow-experiences{row-gap:18px!important}
+  .cch-experience-image{height:auto!important;margin-top:0!important;aspect-ratio:4 / 3!important}
+  .cch-plan{padding-top:38px!important;padding-bottom:38px!important}
+  .cch-flow-booking-intro{row-gap:8px!important}
+  .cch-cross{padding-top:32px!important;padding-bottom:32px!important}
+  .cch-h2{font-size:32px!important}
+
+  /* Menu */
+  .ccmnu2-hero{padding-top:22px!important;padding-bottom:24px!important}
+  .ccmnu2-hero-grid{gap:14px!important}
+  .ccmnu2-title{font-size:38px!important}
+  .ccmnu-elfsight-section{padding-top:24px!important;padding-bottom:40px!important}
+
+  /* Grab & Go */
+  .ccggo-hero{padding-top:24px!important;padding-bottom:28px!important}
+  .ccggo-hero-grid{gap:14px!important}
+  .ccggo-hero-media{min-height:220px!important}
+  .ccggo-intro{padding-top:38px!important;padding-bottom:40px!important}
+  .ccggo-intro-grid,.ccggo-availability-grid{gap:16px!important}
+  .ccggo-feature-copy{padding:30px 16px!important}
+  .ccggo-feature-media{min-height:220px!important}
+  .ccggo-products{padding-top:40px!important;padding-bottom:40px!important}
+  .ccggo-products-head{margin-bottom:16px!important;gap:8px!important}
+  .ccggo-product-row,.ccggo-product-row-offset{padding-top:18px!important;padding-bottom:18px!important}
+  .ccggo-availability{padding-top:34px!important;padding-bottom:34px!important}
+  .ccggo-gallery{padding-top:28px!important;padding-bottom:28px!important}
+  .ccggo-gallery-main{min-height:220px!important}
+  .ccggo-gallery-side{min-height:180px!important}
+
+  /* FAQ */
+  .ccfaq-hero{padding-top:36px!important;padding-bottom:38px!important}
+  .ccfaq-title{margin-bottom:10px!important;font-size:38px!important}
+  .ccfaq-section,.ccfaq-section-alt{padding-top:38px!important;padding-bottom:38px!important}
+  .ccfaq-section-title{margin-bottom:14px!important;font-size:30px!important}
+  .ccfaq-answer{padding-bottom:18px!important;line-height:1.58!important}
+  .ccfaq-contact{padding-top:38px!important;padding-bottom:42px!important}
+
+  /* Contact */
+  #contact-page-main .ccp-enquiry{padding-top:38px!important;padding-bottom:42px!important}
+  #contact-page-main .ccp-enquiry-grid,
+  #contact-page-main .cc-contact-visit-grid{row-gap:20px!important}
+  #contact-page-main .cc-contact-form-wrap{margin-top:20px!important}
+  #contact-page-main .cc-contact-visit{padding-top:40px!important;padding-bottom:42px!important}
+
+  /* Festive */
+  .ccfest-hero{min-height:0!important}
+  .ccfest-hero-copy{padding-top:36px!important;padding-bottom:30px!important}
+  .ccfest-hero-media{min-height:260px!important}
+  .ccfest-hero-meta{margin-top:24px!important}
+  .ccfest-collection,.ccfest-order-info,.ccfest-order,.ccfest-faq{padding-top:40px!important;padding-bottom:40px!important}
+  .ccfest-order-head{margin-bottom:24px!important}
+  .ccfest-h1{margin-bottom:10px!important}
+
+  /* Dining guide pages */
+  .ccbf-hero{padding-top:34px!important;padding-bottom:28px!important}
+  .ccbf-hero-grid,.ccbf-two-col{grid-template-columns:minmax(0,1fr)!important;row-gap:18px!important}
+  .ccbf-lead{margin-top:10px!important;line-height:1.55!important}
+  .ccbf-section,.ccbf-section-alt{padding-top:36px!important;padding-bottom:36px!important}
+  .ccbf-h2{margin-bottom:14px!important;font-size:32px!important}
+  .ccbf-editorial{margin-top:20px!important;margin-bottom:20px!important}
+
+  /* Garden guide */
+  .ccsgn-hero{min-height:440px!important;padding-top:40px!important;padding-bottom:24px!important}
+  .ccsgn-hero-grid{row-gap:16px!important}
+  .ccsgn-hero-meta{margin-top:18px!important;padding-top:14px!important}
+  .ccsgn-intro{padding-top:36px!important;padding-bottom:38px!important}
+  .ccsgn-intro-grid,.ccsgn-photo-grid{row-gap:16px!important}
+  .ccsgn-h1{margin-top:10px!important;font-size:38px!important}
+  .ccsgn-h2,.ccsgn-h2-xl{font-size:32px!important}
+
+  /* Shared footer */
+  .ccw-footer{padding-top:42px!important;padding-bottom:26px!important}
+  .ccw-footer-grid{margin-top:24px!important;padding-top:22px!important;row-gap:20px!important}
+  .ccw-footer-utility{margin-top:22px!important;padding-top:18px!important;row-gap:14px!important}
+  .ccw-footer-heading{margin-bottom:10px!important}
+  .ccw-footer-link{margin-bottom:8px!important}
+}
+
+@media (max-width:479px){
+  .ccw-hero,.ccw-hero-grid{min-height:clamp(420px,70svh,460px)!important}
+  .ccw-hero-grid{padding:50px 14px 22px!important}
+  .cce-title{font-size:38px!important}
+  .ccp-title,.cch-title,.ccmnu2-title,.ccfaq-title,.ccfest-h1,.ccbf-h1,.ccsgn-h1{font-size:34px!important}
+  .cck-h2,.ccp-h2,.cch-h2,.ccggo-h2,.ccbf-h2,.ccsgn-h2,.ccsgn-h2-xl{font-size:29px!important}
+  .ccggo-gallery-side{min-height:160px!important}
+  .ccw-footer{padding-top:36px!important}
+}
+</style>
+<!-- CC_MOBILE_EDITORIAL_AUDIT_20260923_END -->
+<!-- CC_NAV_CANONICAL_20260923_START -->
+<style>
+/* Corner Cafe — canonical navigation, shared by Standard + Home overlay. */
+body.cc-nav-open,html.cc-nav-open{overflow:hidden!important;overscroll-behavior:none!important}
+.ccw-nav-minimal{display:none!important}
+.ccw-header,.ccw-header-row,.ccw-mobile-menu{transform:none!important;filter:none!important;perspective:none!important;contain:none!important}
+.ccw-header-row{position:relative!important;justify-content:center!important}
+.ccw-brand{position:absolute!important;left:50%!important;top:50%!important;transform:translate(-50%,-50%)!important;z-index:10000!important}
+.ccw-mobile-menu{display:block!important;position:relative!important;margin-left:0!important;margin-right:auto!important;order:-1!important;z-index:10001!important}
+/* Universal hamburger: always the same opaque chip + dark icon, on every page,
+   regardless of hero image, scroll position, or what's behind it. No
+   home/interior or scrolled/unscrolled branching — contrast is guaranteed
+   by the chip's own opacity, not by matching the page background. No shadow
+   by design request — flat chip, thin border for edge definition only. */
+.ccw-mobile-menu>summary{position:relative!important;z-index:10002!important;display:flex!important;width:62px!important;height:62px!important;align-items:center!important;justify-content:center!important;margin:0!important;padding:0!important;background:#F7F6F1!important;border:1px solid rgba(46,48,42,.22)!important;border-radius:2px!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;list-style:none!important;cursor:pointer!important;touch-action:manipulation!important}
+.ccw-mobile-menu>summary::-webkit-details-marker{display:none!important}
+.ccw-mobile-menu:not([open]) .ccw-hamburger{color:#25261F!important;font-size:42px!important;line-height:.82!important;font-weight:800!important;transform:scaleX(1.16)!important}
+.ccw-header-home.cc-scrolled .ccw-nav-link-home,
+.ccw-header-home.cc-scrolled .ccw-mobile-link-home{color:#2E302A!important;text-shadow:none!important}
+.ccw-mobile-menu[open] .ccw-mobile-menu-panel{position:fixed!important;inset:0!important;z-index:9998!important;display:flex!important;flex-direction:column!important;justify-content:flex-start!important;width:auto!important;min-width:0!important;max-width:none!important;height:100dvh!important;min-height:100dvh!important;margin:0!important;padding:max(92px,calc(env(safe-area-inset-top) + 78px)) clamp(28px,5vw,56px) max(28px,calc(env(safe-area-inset-bottom) + 20px))!important;overflow-y:auto!important;overscroll-behavior:contain!important;background:#30312C!important}
+.ccw-mobile-menu[open]>summary{position:fixed!important;top:0!important;left:auto!important;right:max(24px,calc((100vw - 1080px)/2))!important;z-index:10003!important;width:72px!important;height:72px!important;display:grid!important;place-items:center!important;background:transparent!important;border:0!important;box-shadow:none!important;color:#fff!important}
+.ccw-mobile-menu[open] .ccw-hamburger{font-size:0!important;color:#fff!important;transform:none!important}
+.ccw-mobile-menu[open] .ccw-hamburger::before{content:"×"!important;display:block!important;font-size:64px!important;line-height:.78!important;font-weight:500!important;color:#fff!important}
+body.cc-nav-open .ccw-brand{position:fixed!important;left:50%!important;top:37px!important;transform:translate(-50%,-50%)!important;z-index:10002!important;opacity:1!important;visibility:visible!important}
+body.cc-nav-open .ccw-brand-logo{width:116px!important;height:auto!important;filter:brightness(0) invert(1)!important}
+.ccw-menu-links{width:min(100%,760px)!important;max-width:760px!important;margin:62px auto 0!important;display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;column-gap:42px!important;row-gap:0!important}
+.ccw-menu-meta{width:min(100%,760px)!important;max-width:760px!important;margin:auto auto 0!important;padding-top:24px!important;align-items:flex-start!important;text-align:left!important;color:rgba(247,246,241,.72)!important}
+.ccw-menu-meta-brand,.ccw-menu-meta-copy{width:100%!important;text-align:left!important}
+@media(max-width:991px){
+ .ccw-mobile-menu[open] .ccw-mobile-menu-panel{padding:max(82px,calc(env(safe-area-inset-top) + 70px)) 22px max(26px,calc(env(safe-area-inset-bottom) + 18px))!important}
+ body.cc-nav-open .ccw-brand{top:33px!important}
+ body.cc-nav-open .ccw-brand-logo{width:116px!important}
+ .ccw-mobile-menu[open]>summary{right:8px!important;width:74px!important;height:74px!important}
+ .ccw-mobile-menu[open] .ccw-hamburger::before{font-size:60px!important}
+ .ccw-mobile-menu:not([open]) .ccw-hamburger{font-size:40px!important}
+ .ccw-menu-links{width:min(100%,430px)!important;max-width:430px!important;margin:68px auto 0!important;grid-template-columns:1fr!important;justify-items:center!important}
+ .ccw-menu-meta{width:min(100%,400px)!important;max-width:400px!important;padding-top:20px!important;align-items:center!important;text-align:center!important}
+ .ccw-menu-meta-brand,.ccw-menu-meta-copy{text-align:center!important}
+}
+@media(max-width:767px){
+ .ccw-mobile-menu[open] .ccw-mobile-menu-panel{padding:max(76px,calc(env(safe-area-inset-top) + 64px)) 18px max(24px,calc(env(safe-area-inset-bottom) + 18px))!important}
+ body.cc-nav-open .ccw-brand{top:30px!important}
+ body.cc-nav-open .ccw-brand-logo{width:92px!important}
+ .ccw-mobile-menu[open]>summary{right:4px!important;width:72px!important;height:72px!important}
+ .ccw-mobile-menu[open] .ccw-hamburger::before{font-size:62px!important}
+ .ccw-mobile-menu:not([open]) .ccw-hamburger{font-size:39px!important}
+ .ccw-menu-links{width:min(100%,390px)!important;max-width:390px!important;margin:62px auto 0!important}
+ .ccw-menu-meta{width:min(100%,360px)!important;max-width:360px!important;padding-top:18px!important}
+}
+@media(max-width:479px){
+ body.cc-nav-open .ccw-brand{top:29px!important}
+ .ccw-mobile-menu[open]>summary{right:2px!important;width:70px!important;height:70px!important}
+ .ccw-mobile-menu[open] .ccw-hamburger::before{font-size:58px!important}
+ .ccw-mobile-menu:not([open]) .ccw-hamburger{font-size:38px!important}
+ .ccw-menu-links{width:min(100%,350px)!important;max-width:350px!important;margin:58px auto 0!important}
+ .ccw-menu-meta{width:min(100%,330px)!important}
+}
+@media(prefers-reduced-motion:reduce){.ccw-mobile-menu[open] .ccw-mobile-menu-panel,.ccw-menu-meta{transition:none!important;transform:none!important}}
+</style>
+<!-- CC_NAV_CANONICAL_20260923_END -->
+<!-- CC_MOTION_EASE_AUDIT_20260923_START -->
+<style>
+/* Corner Cafe — motion/ease audit, 2026-09-23.
+   Site-wide sweep for interactions that snapped instead of eased.
+   Found and fixed three: */
+
+/* 2) Form inputs jumped straight to their focused border/shadow with no
+   transition property at all. */
+:where(.w-form input:not([type="submit"]):not([type="checkbox"]):not([type="radio"]),
+       .w-form textarea,
+       .w-form select){
+  transition:border-color .22s cubic-bezier(.16,1,.3,1),box-shadow .22s cubic-bezier(.16,1,.3,1)!important;
+}
+
+/* 3) The FAQ "+"/"−" icon box has its own explicit background/color/border
+   that swaps on open — separate from the row's own (already-smooth)
+   transition, and background-color isn't inherited, so it was snapping. */
+.ccfaq-summary::after{
+  transition:background-color .22s cubic-bezier(.16,1,.3,1),border-color .22s cubic-bezier(.16,1,.3,1),color .22s cubic-bezier(.16,1,.3,1)!important;
+}
+
+</style>
+<!-- CC_MOTION_EASE_AUDIT_20260923_END -->
+
+
+<!-- CC_UI_STATES_20260923_START -->
+<style>
+/* Shared interaction states. Existing layout and third-party widgets are preserved. */
+:root{--cc-ui-ink:#3A271F;--cc-ui-hover:#654736;--cc-ui-accent:#E8D7AE}
+:where(header,main,footer) :is(a[href],button,summary,[role="tab"],input,select,textarea):focus-visible{
+ outline:3px solid var(--cc-ui-ink)!important;outline-offset:4px!important;box-shadow:0 0 0 2px #fff!important;
+}
+.ccw-mobile-menu>summary:focus-visible{
+ outline-color:var(--cc-ui-accent)!important;outline-offset:5px!important;box-shadow:0 0 0 2px #30312C!important;
+}
+:is(.cc-flow-btn,.cc-btn-dark,.ccbf-btn,.cck-btn-light){
+ transition:color .2s ease,background-color .2s ease,border-color .2s ease,box-shadow .2s ease!important;
+}
+:is(.cc-flow-btn,.cc-btn-dark,.ccbf-btn):active{
+ background:#2B1D17!important;color:#fff!important;border-color:#2B1D17!important;box-shadow:inset 0 0 0 2px #E8D7AE!important;
+}
+.cck-btn-light:active{background:#E8D7AE!important;color:#3A271F!important}
+:is(.ccw-footer-link,.ccw-footer-social,.cc-home-visit-value,.ccw-ozone-logo-link,.ccfaq-contact-link,.cce-link,.cc-jacks-link){
+ transition:color .2s ease,text-decoration-color .2s ease,background-color .2s ease!important;text-underline-offset:4px;
+}
+:is(.ccw-footer-link,.cc-home-visit-value,.ccw-ozone-logo-link,.ccfaq-contact-link,.cce-link):active{color:#3A271F!important;text-decoration:underline!important}
+:is(.cc-menu-title,.cc-gather-item-title,.cc-gather-item-link,.cce-path-title){
+ transition:color .2s ease,text-decoration-color .2s ease!important;text-underline-offset:5px;
+}
+:is(.cc-menu-item,.cc-gather-item,.cce-path,.ccp-cross-link,.cch-cross-link):active{box-shadow:inset 0 -2px 0 #3A271F!important}
+:is(.ccp-cross-link,.cch-cross-link){transition:color .2s ease,background-color .2s ease,box-shadow .2s ease!important}
+:is(.ccfaq-summary,.cch-accordion-summary){cursor:pointer;touch-action:manipulation;transition:color .2s ease,background-color .2s ease!important}
+:is(.ccfaq-summary,.cch-accordion-summary):active{background:#EDE6DA!important}
+.ccfaq-detail[open]>.ccfaq-summary{background:#FAF8F5!important}
+.ccw-mobile-menu>summary:active{border-color:#8A795F!important}
+@media(hover:hover) and (pointer:fine){
+ :is(.cc-flow-btn,.cc-btn-dark,.ccbf-btn):hover:not(:active){background:var(--cc-ui-hover)!important;border-color:var(--cc-ui-hover)!important;color:#fff!important}
+ .cck-btn-light:hover:not(:active){background:#F3EEE6!important;border-color:#654736!important;color:#3A271F!important}
+ :is(.ccw-footer-link,.cc-home-visit-value,.ccw-ozone-logo-link,.ccfaq-contact-link,.cce-link):hover:not(:active){color:#654736!important;text-decoration:underline!important}
+ :is(.cc-menu-item,.cc-gather-item,.cce-path):hover :is(h3,.cc-gather-item-link,.cce-path-title){color:#654736!important;text-decoration:underline;text-decoration-thickness:1px}
+ :is(.ccp-cross-link,.cch-cross-link):hover:not(:active){background:#F7F4EE!important;color:#3A271F!important}
+}
+:is(.cc-menu-item,.cc-gather-item,.cce-path):focus-visible :is(h3,.cc-gather-item-link,.cce-path-title){text-decoration:underline;text-underline-offset:5px}
+
+
+/* Dark footer and High Tea controls verified against rendered components. */
+footer :is(.ccf-social,.ccf-info,.ccf-footer-link,.jr-strip-cc__link){transition:color .2s ease,background-color .2s ease,border-color .2s ease!important;text-underline-offset:4px}
+footer :is(.ccf-social,.ccf-info,.ccf-footer-link,.jr-strip-cc__link):focus-visible{outline-color:#E8D7AE!important;box-shadow:0 0 0 2px #30312C!important}
+footer .ccf-footer-link[aria-current="page"]{color:#E8D7AE!important;text-decoration:underline!important}
+footer :is(.ccf-social,.ccf-info,.ccf-footer-link,.jr-strip-cc__link):active{color:#fff!important;text-decoration:underline!important}
+@media(hover:hover) and (pointer:fine){
+ footer :is(.ccf-social,.ccf-info,.ccf-footer-link,.jr-strip-cc__link):hover:not(:active){color:#E8D7AE!important;text-decoration:underline!important}
+ footer .ccf-social:hover:not(:active){background:rgba(232,215,174,.12)!important;border-color:#E8D7AE!important}
+ main a:not([class]):hover:not(:active){color:#654736!important;text-decoration:underline!important}
+}
+.cch-accordion[open] .cch-accordion-action{background:#52613B!important;border-color:#52613B!important;color:#fff!important}
+main .cch-accordion-summary:focus-visible{outline-color:#3A271F!important}
+
+@media(prefers-reduced-motion:reduce){
+ :is(header,main,footer) *, :is(header,main,footer) *::before, :is(header,main,footer) *::after,
+ :is(.ccfaq-detail,.cch-accordion)::details-content{transition:none!important;animation:none!important;scroll-behavior:auto!important}
+}
+@media(forced-colors:active){
+ :where(header,main,footer) :is(a[href],button,summary,[role="tab"],input,select,textarea):focus-visible{outline-color:Highlight!important}
+}
+</style>
+<!-- CC_UI_STATES_20260923_END -->
+<!-- CC_ANCHOR_FLOW_20260924_START -->
+<style>
+/* Keep in-page destinations visible beneath the sticky Corner Cafe header. */
+main [id]{scroll-margin-top:96px}
+@media(max-width:991px){main [id]{scroll-margin-top:88px}}
+@media(max-width:767px){main [id]{scroll-margin-top:80px}}
+</style>
+<!-- CC_ANCHOR_FLOW_20260924_END -->
+<!-- CC_MENU_TYPE_DENSITY_20260924_START -->
+<style>
+/* Dining menu typography refinement only. Keeps the shared editorial layout intact. */
+@media(max-width:767px){
+  .ccbf-h2{font-size:31px!important}
+  .ccbf-desc{font-size:16px!important;line-height:1.46!important}
+}
+@media(max-width:479px){
+  .ccbf-h2{font-size:29px!important}
+  .ccbf-desc{font-size:16px!important;line-height:1.48!important}
+}
+</style>
+<!-- CC_MENU_TYPE_DENSITY_20260924_END -->

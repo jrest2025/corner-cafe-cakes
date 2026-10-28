@@ -32,9 +32,9 @@ async def main():
             await pg.fill('#cco-address', 'Room 214, Test Resort, Denarau'); await pg.fill('#cco-receiver', 'Front desk')
             await pg.click('[data-act="time"][data-v="14:00"]'); await pg.wait_for_timeout(350)
             ok(f'{w}: with area and address the form moves on', await pg.query_selector('#cco-name') is not None)
-            await pg.fill('#cco-name', 'Test Guest'); await pg.fill('#cco-phone', '912 3456'); await pg.click('[data-act="toReview"]'); await pg.wait_for_timeout(350)
+            await pg.fill('#cco-name', 'Test Guest'); await pg.fill('#cco-phone', '912 3456'); await pg.click('text=Birthday'); await pg.wait_for_timeout(150); await pg.click('[data-act="toReview"]'); await pg.wait_for_timeout(350)
             rv = await pg.inner_text('#cc-cake-order')
-            ok(f'{w}: review shows delivery, address and price with the fee', 'delivery' in rv.lower() and 'Room 214, Test Resort, Denarau' in rv and 'For Front desk' in rv and '$110' in rv and 'plus delivery to Denarau $15' in rv, rv[-500:])
+            ok(f'{w}: review shows delivery, address and price with the fee', 'delivery' in rv.lower() and 'Room 214, Test Resort, Denarau' in rv and 'For Front desk' in rv and '$110' in rv and '$95 + delivery to Denarau $15' in rv and 'Total' in rv, rv[-500:])
             n0 = await pg.evaluate("window.__sent.length")
             await pg.click('[data-act="send"]'); await pg.wait_for_timeout(600)
             if await pg.evaluate("window.__sent.length") == n0 or await pg.query_selector('.cco-err'):
@@ -51,7 +51,7 @@ async def main():
         # collection still sends collection
         pg = await b.new_page(viewport={"width": 1024, "height": 800}); await pg.goto((HERE / PAGE).as_uri()); await pg.wait_for_timeout(450)
         await to_step3(pg); await pick_date(pg); await pg.click('[data-act="time"][data-v="14:00"]'); await pg.wait_for_timeout(300)
-        await pg.fill('#cco-name', 'Test Guest'); await pg.fill('#cco-phone', '912 3456'); await pg.click('[data-act="toReview"]'); await pg.wait_for_timeout(350)
+        await pg.fill('#cco-name', 'Test Guest'); await pg.fill('#cco-phone', '912 3456'); await pg.click('text=Birthday'); await pg.wait_for_timeout(150); await pg.click('[data-act="toReview"]'); await pg.wait_for_timeout(350)
         await pg.click('[data-act="send"]'); await pg.wait_for_timeout(600)
         sent = await pg.evaluate("window.__sent[window.__sent.length-1]")
         ok('collection orders send collection', sent.get('delivery') == {'method': 'collection'}, json.dumps(sent.get('delivery')))

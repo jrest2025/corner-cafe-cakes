@@ -1,0 +1,64 @@
+/* Corner Café Service Hub: guided practice (21 October 2026). The guide in the practice card at the top of the page,
+   and a strip at the top of each window. Gold like the rest of practice mode; the paper slip looks like paper.
+   Text sizes follow the touch standard's tokens on tablets and phones (src/staff.touch.css), and stay as before on computers. */
+@media screen {
+  /* In the practice card (dark, gold edge) */
+  #cc-staff .ccp-card .ccg-card { flex: 1 1 100%; display: grid; gap: 10px; margin-top: 4px; padding-top: 12px; border-top: 1px solid rgba(224, 165, 38, .45); min-width: 0; }
+  #cc-staff .ccg-card .ccg-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 14px; }
+  #cc-staff .ccg-card .ccg-k { margin: 0; color: #F5C451; font-size: var(--cc-fs-body, 16px); font-weight: 750; line-height: 1.35; }
+  #cc-staff .ccg-card .ccg-story { margin: 0; color: #f1f3f5; font-size: var(--cc-fs-label, 15px); line-height: 1.5; }
+  #cc-staff .ccg-card .ccg-say { margin: 0; padding: 10px 12px; border-radius: 10px; background: rgba(224, 165, 38, .14); color: #fff; font-size: var(--cc-fs-body, 16px); line-height: 1.45; }
+  #cc-staff .ccg-card .ccg-say b { color: #F5C451; }
+  #cc-staff .ccg-card .ccg-acts { display: flex; flex-wrap: wrap; gap: 8px; }
+  #cc-staff .ccg-card .ccg-show { background: #E0A526; border-color: #E0A526; color: #1f1300; }
+
+  /* What the customer wants, or the paper slip */
+  #cc-staff .ccg-facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 6px 14px; margin: 0; padding: 10px 12px; border-radius: 10px; }
+  #cc-staff .ccg-card .ccg-facts { background: rgba(255, 255, 255, .06); }
+  #cc-staff .ccg-facts > div { display: grid; gap: 1px; min-width: 0; }
+  #cc-staff .ccg-facts dt { color: #b9c2cc; font-size: var(--cc-fs-small, 12px); font-weight: 700; letter-spacing: .02em; text-transform: uppercase; }
+  #cc-staff .ccg-facts dd { margin: 0; color: #fff; font-size: var(--cc-fs-label, 15px); line-height: 1.35; overflow-wrap: anywhere; }
+  #cc-staff .ccg-facts.is-slip { background: #fffdf6 !important; border: 1px dashed #c9a24a; box-shadow: 2px 3px 0 rgba(0, 0, 0, .12); }
+  #cc-staff .ccg-facts.is-slip dt { color: #8a6a1f; }
+  #cc-staff .ccg-facts.is-slip dd { color: #2a2418; font-family: "Segoe Print", "Bradley Hand", "Comic Sans MS", cursive; font-size: var(--cc-fs-body, 16px); }
+  #cc-staff .ccg-facts .ccg-sliphead { grid-column: 1 / -1; margin: 0 0 2px; color: #6b4a00; font-size: var(--cc-fs-small, 13px); font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+
+  /* Progress dots */
+  #cc-staff .ccg-ticks { display: flex; flex-wrap: wrap; gap: 5px; margin: 0; padding: 0; list-style: none; }
+  #cc-staff .ccg-ticks li { width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid #E0A526; }
+  #cc-staff .ccg-ticks li.is-done { background: #E0A526; }
+  #cc-staff .ccg-ticks li.is-now { background: #fff; box-shadow: 0 0 0 3px rgba(224, 165, 38, .35); }
+
+  /* The strip at the top of each window */
+  #cc-staff .ccg-strip, #ccs-sheet .ccg-strip { flex: none; display: grid; gap: 8px; padding: 10px 16px; border-bottom: 2px solid #E0A526; background: #FFF9EC; color: #2a2418; }
+  #ccs-sheet .ccg-strip .ccg-line { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  #ccs-sheet .ccg-strip .ccg-ic { display: inline-grid; place-items: center; flex: none; width: 34px; height: 34px; border-radius: 50%; background: #E0A526; color: #1f1300; }
+  #ccs-sheet .ccg-strip .ccg-ic svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  #ccs-sheet .ccg-strip .ccg-say { flex: 1 1 auto; margin: 0; font-size: var(--cc-fs-label, 15px); line-height: 1.4; min-width: 0; }
+  #ccs-sheet .ccg-strip .ccg-say b { color: #6b4a00; }
+  #ccs-sheet .ccg-strip .ccg-b {
+    flex: none; min-height: var(--cc-chip-h, 44px); padding: 0 14px; border-radius: 10px; border: 1px solid #c9a24a; background: #fff; color: #4a3600;
+    font: inherit; font-size: var(--cc-btn-fs, 14px); font-weight: 700; cursor: pointer; -webkit-tap-highlight-color: transparent;
+  }
+  #ccs-sheet .ccg-strip .ccg-b.ccg-show { background: #E0A526; border-color: #E0A526; color: #1f1300; }
+  #ccs-sheet .ccg-strip .ccg-b[aria-expanded="true"] { background: #FDF3D7; }
+  #ccs-sheet .ccg-strip .ccg-b:focus-visible, #cc-staff .ccg-card button:focus-visible { outline: 3px solid #F5C451; outline-offset: 2px; }
+  #ccs-sheet .ccg-strip .ccg-facts { background: #fff; border: 1px solid #ecd9a8; }
+  #ccs-sheet .ccg-strip .ccg-facts dt { color: #8a6a1f; }
+  #ccs-sheet .ccg-strip .ccg-facts dd { color: #2a2418; }
+
+  /* Show me: where to tap, outlined for a moment */
+  .ccg-here { outline: 4px solid #E0A526 !important; outline-offset: 4px !important; border-radius: 10px; animation: ccg-pulse 1.1s ease-in-out 3; }
+  @keyframes ccg-pulse { 50% { outline-color: rgba(224, 165, 38, .35); } }
+  @media (prefers-reduced-motion: reduce) { .ccg-here { animation: none; } }
+
+  @media (max-width: 600px) {
+    #ccs-sheet .ccg-strip { padding: 8px 12px; }
+    #ccs-sheet .ccg-strip .ccg-line { flex-wrap: wrap; }
+    #ccs-sheet .ccg-strip .ccg-ic { display: none; }
+    #ccs-sheet .ccg-strip .ccg-say { flex: 1 1 100%; font-size: var(--cc-fs-label, 14px); }
+    #ccs-sheet .ccg-strip .ccg-b { flex: 1 1 0; }
+    #cc-staff .ccg-facts { grid-template-columns: 1fr 1fr; }
+  }
+}
+@media print { #cc-staff .ccg-card, #ccs-sheet .ccg-strip { display: none !important; } }

@@ -45,7 +45,7 @@
       return { k: (sheet ? 'sheet:x' : 'app:') + o.i, i: sheet ? (n % 3 ? null : o.i) : o.i, r: o.r, src: o.src === 'online' ? 'Online' : 'Walk-in', sys: sheet ? (o.src === 'online' ? 'Online sheet' : 'Walk-in sheet') : (o.src === 'online' ? 'Website' : 'Staff app'),
         st: st, cp: cp, od: o.od, odb: sheet ? 'Date taken by staff' : 'Entered in the system', odok: !(sheet && n % 5 === 0), pd: o.pd, pt: o.pt, fm: o.fm, c: o.c, cn: o.cn, it: o.it,
         lv: o.est, cv: o.fin, paid: sheet ? null : paid, ref: sheet ? null : ref, bal: sheet || st === 'cancelled' ? null : Math.max(tot - paid, 0), wn: [], pay: o.pay, ho: o.ho, ra: o.ra, rev: o.rev, cx: o.cx, ca: o.ca,
-        oc: ['birthday', 'birthday', 'anniversary', 'mothers_day', 'not_specified', 'birthday', 'other', 'fathers_day', 'wedding'][n % 9], ocd: n % 9 === 6 ? 'Farewell' : null, cmp: n % 11 === 3 ? 'mothers-day-2026' : null };
+        oc: ['birthday', 'birthday', 'anniversary', 'mothers_day', 'not_specified', 'birthday', 'other', 'fathers_day', 'wedding'][n % 9], ocd: n % 9 === 6 ? 'Farewell' : null, cmp: sheet ? null : n % 11 === 3 ? 'mothers-day-2026' : n % 13 === 6 ? 'catalogue-2026' : null };
     });
     window.__regLast = out;
     var ago = function (m) { return new Date(Date.now() - m * 6e4).toISOString(); };
@@ -102,6 +102,18 @@
     orders.push({ id: 'o11', reference: 'CC-1020', order_status: 'awaiting_approval', payment_status: 'unpaid', fulfilment_method: 'collection', order_type: 'custom', source: 'phone', created_at: new Date().toISOString(), required_date: add(8), required_time: '14:00:00', estimate_total: 150, final_total: 150, delivery_fee: 0, has_dietary: false, version: 3, customer_id: 'c2', customers: cust[1], contact_name: cust[1].full_name, contact_email: 'guest@example.invalid', order_items: [{ product_id: null, product_name: 'Custom cake', variant: 'Lemon', size_inch: null, serves_label: 'About 30 people, two tiers', unit_price: 150, quantity: 1, finish: 'custom', design_description: 'Two tier, white and gold, fresh flowers' }], order_events: [], order_attachments: window.__photoUrls ? [{ id: 'a1', storage_path: 'incoming/a/1.png', created_at: '2026-10-10T01:00:00Z' }, { id: 'a2', storage_path: 'incoming/a/2.png', created_at: '2026-10-10T02:00:00Z' }, { id: 'a3', storage_path: 'incoming/a/3.png', created_at: '2026-10-10T03:00:00Z' }, { id: 'a9', storage_path: 'incoming/a/9.png', created_at: '2026-10-09T03:00:00Z', removed_at: '2026-10-11T00:00:00Z' }] : [], payments: [] });
     orders.push({ id: 'o12', reference: 'CC-1021', order_status: 'awaiting_quote', payment_status: 'unpaid', fulfilment_method: 'collection', order_type: 'custom', source: 'walk_in', created_at: new Date().toISOString(), required_date: add(9), required_time: '11:00:00', estimate_total: 0, final_total: null, delivery_fee: 0, has_dietary: false, version: 1, customer_id: 'c2', customers: cust[1], contact_name: cust[1].full_name, order_items: [{ product_id: null, product_name: 'Custom cake', variant: null, size_inch: null, serves_label: '8 inch', unit_price: 0, quantity: 1, finish: 'custom', design_description: 'Football pitch with goal posts' }], order_events: [], order_attachments: [], payments: [] });
   }
+  // Old orders (supabase/old_orders_20261021.sql): a cake entered from a paper slip and already handed over, with the
+  // history the database writes for it (invented data)
+  if (window.__oldOrders) {
+    var ev = function (id, kind, detail, by) { return { id: id, at: new Date(Date.now() - 36e5).toISOString(), kind: kind, actor_label: by || 'Counter One', detail: detail }; };
+    orders.push({ id: 'o14', reference: 'CC-1030', order_status: 'completed', production_status: 'ready', payment_status: 'paid', fulfilment_method: 'collection', fulfilment_status: 'collected', order_type: 'standard', source: 'walk_in', created_at: new Date(Date.now() - 36e5).toISOString(), required_date: add(-6), required_time: '15:00:00', estimate_total: 68, final_total: 68, delivery_fee: 0, has_dietary: false, version: 4, revision: 0, customer_id: 'c2', customers: cust[1], contact_name: cust[1].full_name, contact_phone: cust[1].phone, handed_over_at: add(-6) + 'T03:00:00Z', completed_at: add(-6) + 'T03:00:00Z', hold_thanks: true, taken_by_name: 'Mere',
+      order_items: [{ product_name: 'Chocolate, Mudcake or Mocha', variant: 'Mudcake', size_inch: 8, unit_price: 68, quantity: 1, finish: 'standard', occasion: 'Birthday', cake_message: 'Happy 7th Birthday Ana' }],
+      order_events: [ev(901, 'created', { source: 'walk_in', status: 'awaiting_review', estimate: 68 }), ev(902, 'taken_earlier', { at: add(-9) + 'T00:00:00+00:00', text: '' }), ev(903, 'taken_by', { name: 'Mere', login: 'Counter One', was: null }),
+        ev(904, 'confirmed', { final_total: 68, note: 'Old order from a paper slip' }), ev(905, 'payment_recorded', { kind: 'full', method: 'cash', amount: 68, paid_total: 68, paid_on: add(-6) }),
+        ev(906, 'collected', { method: 'collection', to: cust[1].full_name, on: add(-6) }), ev(907, 'entered_later', { taken_on: add(-9), pickup: add(-6), paid: 'full', paid_on: add(-6), amount: 68, taken_by: 'Mere' }),
+        ev(908, 'date_corrected', { field: 'pickup date', from: '0002-01-15', to: add(-6), note: 'Pickup date set from the birthday date on the order. Data fix approved by Roneel, 21 Oct 2026' }, 'Roneel')],
+      order_attachments: [], payments: [{ id: 'p14', kind: 'full', method: 'cash', amount: 68, recorded_at: add(-6) + 'T00:00:00Z', note: 'Old order from a paper slip: paid on ' + add(-6) }], order_amendments: [] });
+  }
   var older = { id: 'o6', reference: 'CC-0500', order_status: 'completed', payment_status: 'paid', production_status: 'ready', fulfilment_method: 'delivery', delivery_zone: 'Denarau', order_type: 'standard', source: 'phone', created_at: '2025-03-01T00:00:00Z', required_date: '2025-03-08', required_time: '15:00:00', estimate_total: 70, final_total: 70, customers: { full_name: 'Test Customer A', phone: '912 0001' }, order_items: [{ product_name: 'Red Velvet', variant: null, size_inch: 8, quantity: 1, finish: 'standard', occasion: 'Birthday' }] };
   function snap(o) { var i = o.order_items[0]; return { reference: o.reference, date: o.required_date, time: o.required_time.slice(0, 5), method: o.fulfilment_method || 'collection', area: o.delivery_zone || null, customer: (o.customers.full_name.split(' ')[0] + ' ' + o.customers.full_name.split(' ').slice(-1)[0].charAt(0) + '.'), cake: i.product_name, variant: i.variant || null, size: i.size_inch, quantity: i.quantity, serves: i.serves_label || null, finish: i.finish, design: i.design_description || null, message: i.cake_message || null, occasion: i.occasion || null, has_dietary: o.has_dietary, dietary: i.dietary || [], dietary_note: null, kitchen_notes: null, order_notes: o.customer_notes || null, rush: !!o.rush_override, photos: [] }; }
   var kitchenRows = [
@@ -115,6 +127,33 @@
     { id: 'c1', full_name: 'Test Customer A', phone: '912 0001', email: 'a@example.com', orders_count: 4, completed_count: 3, completed_spend: 214, average_spend: 71.33, cancelled_count: 0, last_order_at: new Date().toISOString(), favourite_cake: 'Mudcake', occasions: ['Birthday'], marketing_opt_in: true, consent_whatsapp: true, consent_sms: true, consent_reconfirm: true, customer_no: 101, seg_repeat: true, seg_birthday_buyer: true, seg_upcoming_occasion: true, next_occasion_date: add(12), first_source: 'online' },
     { id: 'c2', full_name: 'Test Customer B', phone: '912 0002', orders_count: 1, completed_count: 0, completed_spend: 0, cancelled_count: 0, last_order_at: new Date().toISOString(), favourite_cake: null, occasions: [], marketing_opt_in: false, customer_no: 102, first_source: 'online' }
   ];
+  // Birthday Club (invented members). Only with window.__bc; otherwise the club is switched off, as it is until approved.
+  function bcPad(n) { return (n < 10 ? '0' : '') + n; }
+  function bcIn(d, m, y) { var leap = (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0; return y + '-' + bcPad(m) + '-' + bcPad(m === 2 && d === 29 && !leap ? 28 : d); }
+  function bcDiff(a, b) { return Math.round((Date.parse(a + 'T12:00:00Z') - Date.parse(b + 'T12:00:00Z')) / 864e5); }
+  function bcNext(d, m, from) { var y = +from.slice(0, 4); for (var k = 0; k < 3; k++) { var b = bcIn(d, m, y + k); if (b >= from) return b; } return null; }
+  function bcWindow(d, m, day, before, after) { var y = +day.slice(0, 4), best = null; [y - 1, y, y + 1].forEach(function (yy) { var b = bcIn(d, m, yy), df = bcDiff(day, b); if (df >= -before && df <= after && (best === null || Math.abs(df) < Math.abs(best.df))) best = { b: b, df: df }; }); return best && best.b; }
+  function bcDM(n) { var d = add(n); return [+d.slice(8, 10), +d.slice(5, 7)]; }
+  var BC = window.__bcS = window.__bcS || { on: !!window.__bc, join: !(window.__bc && window.__bc.noJoin), offer: !(window.__bc && window.__bc.noOffer), m: {}, act: [], red: [], orders: {} };
+  if (window.__bc && !window.__bc.empty) {
+    var ago = function (days, h) { var d = new Date(add(days) + 'T00:00:00+12:00'); d.setUTCHours(d.getUTCHours() + (h || 10)); return d.toISOString(); };
+    [['c3', 'Mere Test', '912 0003', 103, 0, 'staff', -10, 2], ['c10', 'Ana Test', '912 0010', 110, 3, 'staff', -30, 4], ['c4', 'Ravi Test', '912 0004', 104, 6, 'staff', -60, 1],
+      ['c5', 'Sera Test', '912 0005', 105, -2, 'staff', -90, 5], ['c8', 'Litia Test', '912 0008', 108, 5, 'staff', -5, 0], ['c6', 'Josh Test', '912 0006', 106, 40, 'staff', -20, 3],
+      ['c7', 'Priya Test', '912 0007', 107, 1, 'staff', -40, 1, true]].forEach(function (s) {
+      var dm = bcDM(s[4]);
+      if (!prof[s[0]]) prof[s[0]] = { id: s[0], customer_no: s[3], full_name: s[1], phone: s[2], alt_phone: null, email: null, preferred_contact: 'whatsapp', is_corporate: false, company: null, delivery_address: null, preferences: null, notes: null, version: 1, review_flag: null, review_note: null, archived_at: null };
+      prof[s[0]].birth_day = dm[0]; prof[s[0]].birth_month = dm[1];
+      if (!summary.some(function (x) { return x.id === s[0]; })) summary.push({ id: s[0], full_name: s[1], phone: s[2], customer_no: s[3], orders_count: s[7], completed_count: s[7], completed_spend: 60 * s[7], cancelled_count: 0, last_order_at: s[7] ? ago(-45) : null, favourite_cake: s[7] ? 'Red Velvet' : null, occasions: ['Birthday'], marketing_opt_in: false, first_source: s[5] === 'customer' ? 'online' : 'walk_in' });
+      summary.forEach(function (x) { if (x.id === s[0]) { x.birth_day = dm[0]; x.birth_month = dm[1]; } });
+      BC.m[s[0]] = { status: 'active', joined_at: ago(s[6]), via: s[5], stopped: !!s[8] }; BC.orders[s[0]] = s[7];
+      BC.act.push({ customer_id: s[0], kind: 'joined', at: ago(s[6]), by: s[5] === 'customer' ? 'Customer (online)' : 'Test Manager' });
+    });
+    BC.act.push({ customer_id: 'c4', kind: 'contact_attempt', outcome: 'no_answer', channel: 'phone', birthday: add(6), at: ago(-1, 16), by: 'Counter One' });
+    BC.act.push({ customer_id: 'c8', kind: 'contact_completed', outcome: 'wished', channel: 'phone', birthday: add(5), at: ago(-1, 15), by: 'Counter One' });
+    BC.red.push({ customer_id: 'c5', year: +add(-2).slice(0, 4), order_id: 'o40', ref: 'CC-1040', at: ago(-6, 11), value: 95 });
+    BC.act.push({ customer_id: 'c5', kind: 'offer_redeemed', at: ago(-6, 11), by: 'Counter One', order_id: 'o40' });
+  }
+  function bcCust(id) { return prof[id]; }
   var calls = window.__calls = [];
   function result(table, st) {
     if (table === 'staff_profiles') return { data: { user_id: 'u1', full_name: 'Test Manager', role: window.__role || 'manager', active: true } };
@@ -192,6 +231,170 @@
       return Promise.resolve({ data: { ok: false, message: 'Unknown request.' } }); } },
     rpc: function (fn, args) {
       if (window.__failR && window.__failR[fn]) { calls.push(['rpc-failed', fn, args]); return Promise.resolve({ error: { message: 'Failed to fetch' } }); }
+      // Marketing campaigns (invented data): one running, one starting soon, one ended
+      if (fn === 'campaign_list' || fn === 'campaign_save' || fn === 'campaign_remove' || fn === 'campaigns_active' || fn === 'order_set_campaign') {
+        calls.push(['rpc', fn, args]);
+        var CT = new Intl.DateTimeFormat('en-CA', { timeZone: 'Pacific/Fiji' }).format(new Date());
+        var cadd = function (n) { var d = new Date(CT + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+        var CP = window.__camps = window.__camps || (window.__campNone ? [] : [
+          { id: 'cp1', code: 'mothers-day-2026', name: "Mother's Day cakes", starts_on: cadd(-20), ends_on: cadd(10), channels: ['facebook', 'instagram'], spend: 150, occasion: 'mothers_day', created_by: 'Test Manager', removed: false },
+          { id: 'cp2', code: 'christmas-cakes-2026', name: 'Christmas cakes', starts_on: cadd(5), ends_on: cadd(60), channels: ['print'], spend: null, occasion: 'christmas', created_by: 'Test Manager', removed: false },
+          { id: 'cp3', code: 'spring-sale-2026', name: 'Spring sale', starts_on: cadd(-60), ends_on: cadd(-30), channels: [], spend: 80, occasion: null, created_by: 'Test Manager', removed: false }]);
+        var crole = window.__role || 'manager', cmgr = crole === 'manager' || crole === 'admin';
+        var cok = function (d) { return Promise.resolve({ data: Object.assign({ ok: true }, d) }); }, cno = function (m, f) { return Promise.resolve({ data: { ok: false, message: m, field: f } }); };
+        var pub = function (c) { var o = Object.assign({}, c); delete o.removed; return o; }, live = function (c) { return !c.removed; };
+        if (fn === 'campaign_list') {
+          if (window.__campFail) return Promise.resolve({ error: { message: 'Failed to fetch' } });
+          if (!cmgr && crole !== 'finance' && crole !== 'marketing') return cno('Your login does not have access to campaigns.');
+          return cok({ today: CT, can_edit: cmgr, campaigns: CP.filter(live).map(pub), removed: CP.filter(function (c) { return c.removed; }).map(function (c) { return { code: c.code, name: c.name }; }) });
+        }
+        if (fn === 'campaigns_active') {
+          if (crole === 'kitchen') return cno('Your login cannot create orders.');
+          return cok({ campaigns: CP.filter(function (c) { return live(c) && c.starts_on <= CT && c.ends_on >= CT; }).map(function (c) { return { code: c.code, name: c.name }; }) });
+        }
+        if (fn === 'campaign_save') {
+          if (!cmgr) return cno('Only managers can add or change campaigns.');
+          var cpv = args.p || {};
+          if (!cpv.name || cpv.name.trim().length < 2) return cno('Give the campaign a name (2 to 80 characters).', 'name');
+          if (!cpv.starts_on || !cpv.ends_on) return cno('Choose when the campaign starts and ends.', 'dates');
+          if (cpv.ends_on < cpv.starts_on) return cno('The end date cannot be before the start date.', 'dates');
+          if (cpv.spend != null && cpv.spend !== '' && !/^\d+(\.\d+)?$/.test(String(cpv.spend))) return cno('Enter the spend as a number of Fiji dollars, or leave it empty.', 'spend');
+          var cspend = cpv.spend == null || cpv.spend === '' ? null : Math.round(Number(cpv.spend) * 100) / 100;
+          if (cpv.id) {
+            var ce = CP.filter(function (c) { return c.id === cpv.id && live(c); })[0];
+            if (!ce) return cno('That campaign no longer exists.');
+            Object.assign(ce, { name: cpv.name.trim(), starts_on: cpv.starts_on, ends_on: cpv.ends_on, channels: cpv.channels || [], spend: cspend, occasion: cpv.occasion || null });
+            return cok({ campaign: pub(ce) });
+          }
+          var cbase = cpv.name.toLowerCase().replace(/['’]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+          if (!/(^|-)20\d\d(-|$)/.test(cbase)) cbase += '-' + cpv.starts_on.slice(0, 4);
+          var ccode = cbase, ck = 1; while (CP.some(function (c) { return c.code === ccode; })) ccode = cbase + '-' + (++ck);
+          var cnew = { id: 'cp' + (CP.length + 1), code: ccode, name: cpv.name.trim(), starts_on: cpv.starts_on, ends_on: cpv.ends_on, channels: cpv.channels || [], spend: cspend, occasion: cpv.occasion || null, created_by: 'Test Manager', removed: false };
+          CP.push(cnew); return cok({ campaign: pub(cnew) });
+        }
+        if (fn === 'campaign_remove') {
+          if (!cmgr) return cno('Only managers can remove campaigns.');
+          var crm = CP.filter(function (c) { return c.id === args.p_id && live(c); })[0];
+          if (!crm) return cok({});
+          var cused = (window.__regLast || []).filter(function (o) { return o.cmp === crm.code; }).length;
+          if (cused) return cno(cused + (cused === 1 ? ' order came' : ' orders came') + ' from this campaign, so it is kept. To stop it, change its end date.');
+          crm.removed = true; return cok({});
+        }
+        window.__campTagged = (window.__campTagged || []).concat([args]);
+        if (!CP.some(function (c) { return c.code === args.p_code && live(c); })) return cno('That campaign no longer exists.');
+        return cok({});
+      }
+      if (fn.indexOf('birthday_club_') === 0) {
+        calls.push(['rpc', fn, args]);
+        if (window.__bcFail && window.__bcFail[fn]) return Promise.resolve({ error: { message: 'Failed to fetch' } });
+        var BT = T, bnow = new Date().toISOString();
+        var bok = function (d) { return Promise.resolve({ data: JSON.parse(JSON.stringify(Object.assign({ ok: true }, d))) }); }, bno = function (e, m, f) { return Promise.resolve({ data: { ok: false, error: e, message: m, field: f || null } }); };
+        var brole = window.__role || 'manager', bview = brole !== 'kitchen', bcall = ['manager', 'admin', 'front_of_house', 'marketing'].indexOf(brole) > -1, bjoin = bcall, bord = bview && brole !== 'finance';
+        var OFFER = { title: 'A free cupcake with a cake', description: 'One free cupcake with a cake ordered within 2 weeks of the birthday, before or after. Once a year.', before: 14, after: 14 };
+        var bvalid = function (d, m) { return m >= 1 && m <= 12 && d >= 1 && d <= (m === 2 ? 29 : [4, 6, 9, 11].indexOf(m) > -1 ? 30 : 31); };
+        var bactive = function (id) { return BC.m[id] && BC.m[id].status === 'active'; };
+        var bused = function (id, b) { return BC.red.filter(function (r) { return r.customer_id === id && r.year === +b.slice(0, 4); })[0]; };
+        var bordCust = function (oid) { var o = orders.filter(function (x) { return x.id === oid; })[0]; if (o && o.customer_id) return o.customer_id;
+          if (oid === 'o9') { var mk = calls.filter(function (c) { return c[1] === 'staff_create_order'; }).pop(), p = mk ? mk[2].p : {}; return p.customer_id || 'c9'; } return null; };
+        var boffer = function (oid) {
+          var o = orders.filter(function (x) { return x.id === oid; })[0], cid = bordCust(oid), c = prof[cid];
+          if (!BC.offer) return { eligible: false, reason: 'off' };
+          if (!c || !bactive(cid)) return { eligible: false, reason: 'not_member' };
+          var b = bcWindow(c.birth_day, c.birth_month, o && o.created_at ? new Intl.DateTimeFormat('en-CA', { timeZone: 'Pacific/Fiji' }).format(new Date(o.created_at)) : BT, 14, 14);
+          if (!b) return { eligible: false, reason: 'outside' };
+          var u = bused(cid, b); if (u) return { eligible: false, reason: 'used', used: u.ref, birthday: b };
+          return { eligible: true, birthday: b, customer_id: cid, title: OFFER.title };
+        };
+        if (fn === 'birthday_club_home') {
+          if (!bview) return bno('forbidden', 'Your login cannot see the Birthday Club.');
+          if (!BC.on) return bok({ enabled: false, today: BT, can_call: bcall, can_join: bjoin });
+          var from = add(-3), info = Object.keys(BC.m).filter(bactive).map(function (id) {
+            var c = prof[id], mm = BC.m[id], bday = c.birth_day ? bcNext(c.birth_day, c.birth_month, from) : null;
+            var last = BC.act.filter(function (a) { return a.customer_id === id && a.birthday === bday && (a.kind === 'contact_completed' || a.kind === 'contact_attempt'); }).sort(function (a, b) { return a.at < b.at ? 1 : -1; })[0];
+            var u = bday ? bused(id, bday) : null;
+            return { id: id, name: c.full_name, phone: c.phone, no: c.customer_no, pref: c.preferred_contact, day: c.birth_day, month: c.birth_month, birthday: bday, in_days: bday ? bcDiff(bday, BT) : null,
+              joined_at: mm.joined_at, via: mm.via, stopped: !!mm.stopped, last: last ? { outcome: last.outcome, channel: last.channel, at: last.at, by: last.by } : null, used: u ? { ref: u.ref, at: u.at } : null, orders: BC.orders[id] || 0, last_order: null };
+          });
+          var members = info.slice().sort(function (a, b) { return (a.birthday || '9999') < (b.birthday || '9999') ? -1 : (a.birthday || '9999') > (b.birthday || '9999') ? 1 : a.name < b.name ? -1 : 1; });
+          var rank = function (i) { return i.in_days === 0 ? 0 : i.in_days < 0 ? 2 : 1; };
+          var due = info.filter(function (i) { return i.birthday && !i.stopped && i.in_days >= -3 && i.in_days <= (args.p_days || 7); }).sort(function (a, b) { return rank(a) - rank(b) || a.in_days - b.in_days || (a.name < b.name ? -1 : 1); })
+            .map(function (i) { var o = Object.assign({}, i); delete o.joined_at; delete o.via; delete o.stopped; return o; });
+          var month = BT.slice(0, 7), inMonth = function (a) { return new Intl.DateTimeFormat('en-CA', { timeZone: 'Pacific/Fiji' }).format(new Date(a.at)).slice(0, 7) === month; };
+          var recent = BC.act.slice().sort(function (a, b) { return a.at < b.at ? 1 : -1; }).slice(0, 12).map(function (a) { return { name: (prof[a.customer_id] || {}).full_name, id: a.customer_id, kind: a.kind, outcome: a.outcome || null, channel: a.channel || null, at: a.at, by: a.by }; });
+          return bok({ enabled: true, joining: BC.join, offer_on: BC.offer, today: BT, days: args.p_days || 7, can_call: bcall, can_join: bjoin, offer: BC.offer ? OFFER : null, members: members, due: due, recent: recent,
+            counts: { members: members.length, joined_month: BC.act.filter(function (a) { return a.kind === 'joined' && inMonth(a); }).length,
+              calls_month: BC.act.filter(function (a) { return (a.kind === 'contact_completed' || a.kind === 'contact_attempt') && inMonth(a); }).length,
+              wished_month: BC.act.filter(function (a) { return (a.outcome === 'wished' || a.outcome === 'messaged') && inMonth(a); }).length,
+              offers_year: BC.red.length, offer_value_year: BC.red.reduce(function (s, r) { return s + (r.value || 0); }, 0) } });
+        }
+        if (fn === 'birthday_club_status') {
+          if (!bview) return bno('forbidden', 'Your login cannot see the Birthday Club.');
+          if (!BC.on) return bok({ enabled: false });
+          var sc = prof[args.p_customer]; if (!sc) return bno('not_found', 'That customer was not found.');
+          if (!bactive(sc.id)) return bok({ enabled: true, joining: BC.join, offer_on: BC.offer, member: false, day: sc.birth_day, month: sc.birth_month, offer: BC.offer ? { title: OFFER.title, before: 14, after: 14 } : null });
+          var sb = BC.offer && sc.birth_day && !BC.m[sc.id].stopped ? bcWindow(sc.birth_day, sc.birth_month, BT, 14, 14) : null, su = sb ? bused(sc.id, sb) : null;
+          return bok({ enabled: true, joining: BC.join, offer_on: BC.offer, member: true, day: sc.birth_day, month: sc.birth_month, next: sc.birth_day ? bcNext(sc.birth_day, sc.birth_month, BT) : null,
+            offer: BC.offer ? { title: OFFER.title, before: 14, after: 14, birthday: sb, eligible: !!sb && !su, used: su ? su.ref : null } : null });
+        }
+        if (fn === 'birthday_club_join' || fn === 'birthday_club_join_order') {
+          if (fn === 'birthday_club_join' ? !bjoin : !bord) return bno('forbidden', fn === 'birthday_club_join' ? 'Your login cannot add Birthday Club members.' : 'Your login cannot create orders.');
+          if (!BC.on || !BC.join) return bno('off', 'The Birthday Club is not taking new members right now.');
+          var jid = args.p_customer;
+          if (fn === 'birthday_club_join_order') {
+            jid = bordCust(args.p_order);
+            if (jid === 'c9' && !prof.c9) { var mk9 = calls.filter(function (c) { return c[1] === 'staff_create_order'; }).pop(), p9 = mk9 ? mk9[2].p.customer || {} : {};
+              prof.c9 = { id: 'c9', customer_no: 109, full_name: p9.name || 'New Guest', phone: p9.phone || null, alt_phone: null, email: p9.email || null, preferred_contact: 'whatsapp', is_corporate: false, company: null, delivery_address: null, preferences: null, notes: null, version: 1, review_flag: null, review_note: null, archived_at: null, birth_day: null, birth_month: null };
+              summary.push({ id: 'c9', full_name: prof.c9.full_name, phone: prof.c9.phone, customer_no: 109, orders_count: 1, completed_count: 0, completed_spend: 0, cancelled_count: 0, last_order_at: bnow, occasions: [], marketing_opt_in: false, first_source: 'walk_in' }); }
+            var o9 = orders.filter(function (x) { return x.id === args.p_order; })[0]; if (o9 && !o9.customer_id) o9.customer_id = jid;
+          }
+          var jc = prof[jid]; if (!jc) return bno('not_found', 'That customer was not found.');
+          if (!bvalid(args.p_day, args.p_month)) return bno('birthday', 'Choose their birthday: the day and the month.', 'birthday');
+          jc.birth_day = args.p_day; jc.birth_month = args.p_month; summary.forEach(function (x) { if (x.id === jid) { x.birth_day = args.p_day; x.birth_month = args.p_month; } });
+          var was = bactive(jid);
+          if (!was) { BC.m[jid] = { status: 'active', joined_at: bnow, via: 'staff' }; BC.orders[jid] = BC.orders[jid] || (fn === 'birthday_club_join_order' ? 1 : 0); BC.act.push({ customer_id: jid, kind: 'joined', at: bnow, by: 'Test Manager', order_id: args.p_order || null }); }
+          return bok({ customer_id: jid, already: was, day: args.p_day, month: args.p_month, next: bcNext(args.p_day, args.p_month, BT) });
+        }
+        if (fn === 'birthday_club_leave') {
+          if (!bjoin) return bno('forbidden', 'Your login cannot remove Birthday Club members.');
+          if (!bactive(args.p_customer)) return bok({ already: true });
+          BC.m[args.p_customer].status = 'left'; BC.act.push({ customer_id: args.p_customer, kind: 'left', at: bnow, by: 'Test Manager' });
+          return bok({});
+        }
+        if (fn === 'birthday_club_contact') {
+          if (!bcall) return bno('forbidden', 'Your login cannot record customer calls.');
+          if (!BC.on) return bno('off', 'The Birthday Club is switched off.');
+          if (['wished', 'no_answer', 'not_interested', 'messaged'].indexOf(args.p_outcome) < 0) return bno('outcome', 'Choose what happened.', 'outcome');
+          if (['phone', 'whatsapp', 'in_person'].indexOf(args.p_channel) < 0) return bno('channel', 'Choose how you contacted them.', 'channel');
+          if (args.p_idem && BC.act.some(function (a) { return a.idem === args.p_idem; })) return bok({ repeat: true });
+          var cc = prof[args.p_customer]; if (!cc || !bactive(cc.id)) return bno('not_member', 'They are not in the Birthday Club.');
+          var cb = bcNext(cc.birth_day, cc.birth_month, add(-3));
+          BC.act.push({ customer_id: cc.id, kind: args.p_outcome === 'no_answer' ? 'contact_attempt' : 'contact_completed', outcome: args.p_outcome, channel: args.p_channel, birthday: cb, at: new Date().toISOString(), by: 'Test Manager', idem: args.p_idem });
+          return bok({ birthday: cb });
+        }
+        if (fn === 'birthday_club_order_offer') {
+          if (!bview) return bno('forbidden', 'Your login cannot see orders.');
+          var oo = orders.filter(function (x) { return x.id === args.p_order; })[0]; if (!oo) return bno('not_found', 'That order was not found.');
+          if (BC.red.some(function (r) { return r.order_id === oo.id; })) return bok({ eligible: false, reason: 'this_order', added: true });
+          if (['cancelled', 'declined', 'completed'].indexOf(oo.order_status) > -1) return bok({ eligible: false, reason: 'closed' });
+          var ro = boffer(oo.id); delete ro.customer_id;
+          return bok(Object.assign({ can_add: bord }, ro));
+        }
+        if (fn === 'birthday_club_redeem') {
+          if (!bord) return bno('forbidden', 'Your login cannot change orders.');
+          var ox = orders.filter(function (x) { return x.id === args.p_order; })[0]; if (!ox) return bno('not_found', 'That order was not found.');
+          if (BC.red.some(function (r) { return r.order_id === ox.id; })) return bok({ already: true, message: 'The free cupcake is already on this order.' });
+          if (['cancelled', 'declined', 'completed'].indexOf(ox.order_status) > -1) return bno('closed', 'This order is closed, so the offer cannot be added.');
+          var rx = boffer(ox.id);
+          if (!rx.eligible) return bno(rx.reason, { off: 'The Birthday Club offer is switched off.', not_member: 'This customer is not in the Birthday Club.', outside: 'The offer is for cakes ordered within 2 weeks of their birthday.', used: 'They already had the free cupcake for this birthday (' + rx.used + ').' }[rx.reason] || 'This order cannot have the Birthday Club offer.');
+          BC.red.push({ customer_id: rx.customer_id, year: +rx.birthday.slice(0, 4), order_id: ox.id, ref: ox.reference, at: bnow, value: ox.final_total || ox.estimate_total || 0 });
+          var it = (ox.order_items || [])[0]; if (it) it.kitchen_notes = it.kitchen_notes ? it.kitchen_notes + ' · Birthday Club: add 1 free cupcake' : 'Birthday Club: add 1 free cupcake';
+          ox.version = (ox.version || 1) + 1;
+          ox.order_events = (ox.order_events || []).concat([{ at: bnow, kind: 'birthday_offer', actor_label: 'Test Manager', detail: { title: OFFER.title, birthday: rx.birthday } }]);
+          BC.act.push({ customer_id: rx.customer_id, kind: 'offer_redeemed', at: bnow, by: 'Test Manager', order_id: ox.id });
+          return bok({ message: 'Free cupcake added. The kitchen slip says "Birthday Club: add 1 free cupcake".' });
+        }
+        return bno('unknown', 'Unknown request.');
+      }
       if (fn === 'dashboard_data') { calls.push(['rpc', fn, args]); return Promise.resolve({ data: dashFeed() }); }
       if (fn === 'dashboard_register') { calls.push(['rpc', fn, args]); return Promise.resolve({ data: regFeed() }); }
       if (fn === 'register_review_list') { calls.push(['rpc', fn, args]); var rl = window.__role || 'manager'; if (rl !== 'manager' && rl !== 'admin') return Promise.resolve({ data: { ok: false, message: 'Only managers can review register records.' } }); var rf = regFeed(); return Promise.resolve({ data: { ok: true, sync: Object.assign({}, rf.sync, { needs_review: regCards.length }), records: regCards.slice(), recent: regDecisions.slice() } }); }
@@ -206,7 +409,7 @@
       if (fn === 'admin_deleted_orders') return Promise.resolve({ data: { ok: true, orders: (window.__deleted || []).slice() } });
       if (fn === 'admin_restore_order') { calls.push(['rpc', fn, args]); var dx = (window.__deleted || []).filter(function (x) { return x.id === args.p_order; })[0]; window.__deleted = window.__deleted.filter(function (x) { return x !== dx; }); orders.push(dx.o); return Promise.resolve({ data: { ok: true, reference: dx.reference } }); }
       calls.push(['rpc', fn, args]);
-      if (fn === 'get_order_setup') return Promise.resolve({ data: window.__setupGuest ? Object.assign({}, setup, { guest_emails: true }) : setup });
+      if (fn === 'get_order_setup') { var su = window.__setupOcc ? Object.assign({}, setup, { occasions: window.__setupOcc }) : setup; if (window.__setupExtra) su = Object.assign({}, su, window.__setupExtra); return Promise.resolve({ data: window.__setupGuest ? Object.assign({}, su, { guest_emails: true }) : su }); }
       if (fn === 'staff_update_customer') {
         var pc = prof[args.p_customer], chg = args.p_changes || {};
         if (window.__custStale && !window.__custStaleDone) { window.__custStaleDone = true; pc.version += 1; return Promise.resolve({ data: { ok: false, error: 'changed', message: 'Someone else changed this customer while you had it open. Your typing is kept. Check their latest details, then save again.', current: Object.assign({}, pc) } }); }
@@ -394,8 +597,40 @@
       if (fn === 'customer_sheet_orders') return Promise.resolve({ data: { ok: true, orders: args.p_customer === 'c1' ? [{ rec_key: 'sheet:walkin|2025-11-02T01:00:00Z', reference: 'W-0412', source: 'Walk-in sheet', fulfil_date: '2025-11-03', cake: 'Black Forest', size_inch: 8, value: 85, name_on_sheet: 'TEST CUST A', how: 'auto_match' }] : [] } });
       if (fn === 'customer_history') { var rl2 = window.__role || 'manager'; if (rl2 !== 'manager' && rl2 !== 'admin') return Promise.resolve({ data: { ok: false, message: 'Only a manager can see the change history.' } }); return Promise.resolve({ data: { ok: true, changes: custHistory } }); }
       if (fn === 'staff_set_channel_consent') { var pc2 = prof[args.p_customer]; args.p_channels.forEach(function (ch) { consentLog.push({ customer_id: args.p_customer, channel: ch, destination: ch === 'email' ? (pc2.email || '').toLowerCase() : pkey(pc2.phone), granted: args.p_granted, needs_reconfirm: false, source: 'Staff: Test Manager recorded a ' + (args.p_granted ? 'yes' : 'no'), recorded_at: new Date().toISOString() }); }); return Promise.resolve({ data: { ok: true, recorded: args.p_channels.length } }); }
+      if (fn === 'staff_search_customers' && window.__bc) { var sq = args.q.trim().toLowerCase(), sd = sq.replace(/\D/g, ''); return Promise.resolve({ data: summary.filter(function (x) { return (sd.length >= 3 && String(x.phone || '').replace(/\D/g, '').indexOf(sd) > -1) || (/[a-z]/.test(sq) && x.full_name.toLowerCase().indexOf(sq) > -1); }).map(function (x) { return Object.assign({ birth_day: (prof[x.id] || {}).birth_day || null, birth_month: (prof[x.id] || {}).birth_month || null, archived_at: null, merged_into: null }, x); }) }); }
       if (fn === 'staff_search_customers') return Promise.resolve({ data: (args.q.indexOf('0001') > -1 || args.q.toLowerCase().indexOf('customer a') > -1) ? [summary[0]] : [] });
       if (fn === 'calendar_counts') { var m = {}; orders.forEach(function (o) { if (o.order_status === 'cancelled' || o.order_status === 'declined' || o.required_date < args.p_from || o.required_date > args.p_to) return; var r = m[o.required_date] = m[o.required_date] || { day: o.required_date, orders: 0, cakes: 0, deliveries: 0, attention: 0, done: 0 }; r.orders++; r.cakes += o.order_items.reduce(function (s, i) { return s + (i.quantity || 1); }, 0); if (['awaiting_review', 'awaiting_quote', 'awaiting_deposit'].indexOf(o.order_status) > -1) r.attention++; }); return Promise.resolve({ data: Object.keys(m).map(function (k) { return m[k]; }) }); }
+      // Who took the order (supabase/taken_by_20261020.sql): window.__takenFail makes it fail once per flag
+      if (fn === 'order_set_taken_by') {
+        if (window.__takenFail) { window.__takenFail = false; return Promise.resolve({ data: { ok: false, error: 'x', message: 'Test failure' } }); }
+        var tbo = orders.filter(function (x) { return x.id === args.p_order; })[0];
+        var tbDone = function () { if (tbo) { tbo.taken_by_name = args.p_name; (tbo.order_events = tbo.order_events || []).push({ at: new Date().toISOString(), kind: 'taken_by', actor_label: 'Test Manager', detail: { name: args.p_name, login: 'Test Manager', was: null } }); } window.__takenDone = Date.now(); return { data: { ok: true, name: args.p_name } }; };
+        if (window.__takenDelay) return new Promise(function (ok) { setTimeout(function () { ok(tbDone()); }, window.__takenDelay); });
+        return Promise.resolve(tbDone());
+      }
+      // Old orders, the duplicate check and corrections (supabase/old_orders_20261021.sql): invented data
+      if (fn === 'order_possible_duplicates') { if (window.__dupFail) return Promise.reject(new Error('Failed to fetch')); return Promise.resolve({ data: (window.__dups || []).slice() }); }
+      if (fn === 'staff_enter_old_order') {
+        var op = args.p, oo = op.old || {};
+        if (window.__oldErr) return Promise.resolve({ data: { ok: false, error: 'old_order', message: window.__oldErr } });
+        var otot = oo.price ? oo.price + (op.delivery && op.delivery.fee ? op.delivery.fee : 0) : op.price || (op.size_inch === 8 ? 95 : 54);
+        var opaid = oo.paid === 'full' ? otot : oo.paid === 'part' ? oo.amount : 0;
+        if (!orders.some(function (x) { return x.id === 'o15'; })) orders.push({ id: 'o15', reference: 'CC-1031', order_status: 'completed', production_status: 'ready', payment_status: opaid >= otot ? 'paid' : opaid > 0 ? 'deposit_paid' : 'unpaid', fulfilment_method: 'collection', order_type: 'standard', source: op.source, created_at: new Date().toISOString(), required_date: op.date, required_time: op.time + ':00', estimate_total: otot, final_total: otot, delivery_fee: 0, has_dietary: false, version: 5, customer_id: op.customer_id || 'c9', customers: { full_name: (op.customer && op.customer.name) || 'Test Customer B', phone: (op.customer && op.customer.phone) || '912 0002' }, order_items: [{ product_name: 'Cheesecake', size_inch: op.size_inch, quantity: op.quantity, finish: op.finish }], order_events: [], order_attachments: [], payments: [] });
+        return Promise.resolve({ data: { ok: true, old: true, order_id: 'o15', reference: 'CC-1031', status: 'completed', pickup: op.date, taken_on: oo.taken_on, paid: opaid, total: otot, paid_on: oo.paid_on } });
+      }
+      if (fn === 'staff_correct_order') {
+        var co = orders.filter(function (x) { return x.id === args.p_order; })[0], cch = args.p_changes || {}, clist = [];
+        if (!co || co.order_status !== 'completed') return Promise.resolve({ data: { ok: false, error: 'status', message: 'Only orders that were already handed over are corrected here. Use Change order.' } });
+        if (!args.p_reason || args.p_reason.trim().length < 3) return Promise.resolve({ data: { ok: false, error: 'reason', message: 'Say what is being corrected.' } });
+        if (cch.date) clist.push({ field: 'date', label: 'Date', from: 'Was', to: cch.date, kitchen: true });
+        if (cch.message != null) clist.push({ field: 'message', label: 'Cake message', from: '“Happy 7th Birthday Ana”', to: '“' + cch.message + '”', kitchen: true });
+        if (cch.size_inch) clist.push({ field: 'size', label: 'Cake size', from: '8-inch', to: cch.size_inch + '-inch', kitchen: true });
+        if (!clist.length) return Promise.resolve({ data: { ok: false, error: 'nothing', message: 'Nothing has changed yet.' } });
+        if (!args.p_commit) return Promise.resolve({ data: { ok: true, preview: true, changes: clist, warnings: [], price_before: 68, price_after: 68, paid: 68, balance_before: 0, balance_after: 0, excess_paid: 0, kitchen_ack_required: false, needs_reprint: false, time_change_cause: cch.date ? 'other' : null } });
+        co.version++; co.revision = (co.revision || 0) + 1; if (cch.date) co.required_date = cch.date;
+        co.order_events.push({ id: 990 + co.revision, at: new Date().toISOString(), kind: 'corrected', actor_label: 'Test Manager', detail: { revision: co.revision, requested_by: 'other', reason: args.p_reason.trim(), changes: clist, price_before: 68, price_after: 68 } });
+        return Promise.resolve({ data: { ok: true, revision: co.revision, reference: co.reference, kitchen_ack_required: false, needs_reprint: false, balance_after: 0, excess_paid: 0 } });
+      }
       if (fn === 'staff_create_order' && window.__createFail) return Promise.reject(new Error('Failed to fetch'));
       if (fn === 'staff_create_order' && args.p.rush && !(args.p.rush.approved_by || '').trim()) return Promise.resolve({ data: { ok: false, error: 'date', field: 'date', message: 'Enter who approved the short notice.' } });
       if (fn === 'staff_create_order' && args.p.product_code === 'custom-cake') { if (calls.filter(function (c) { return c[1] === 'staff_create_order' && c[2].p.idempotency_key === args.p.idempotency_key; }).length === 1) orders.push({ id: 'o13', reference: 'CC-1022', order_status: args.p.price ? 'awaiting_approval' : 'awaiting_quote', production_status: 'not_started', payment_status: 'unpaid', fulfilment_method: 'collection', order_type: 'custom', source: args.p.source, created_at: new Date().toISOString(), required_date: args.p.date, required_time: args.p.time + ':00', estimate_total: args.p.price || 0, final_total: args.p.price || null, delivery_fee: 0, has_dietary: false, version: 1, customers: { full_name: 'Custom Guest', phone: '912 0098' }, order_items: [{ product_id: null, product_name: 'Custom cake', variant: args.p.variant, size_inch: null, serves_label: args.p.size_note, quantity: args.p.quantity, finish: 'custom', design_description: args.p.design }], order_events: [], order_attachments: [], payments: [] }); return Promise.resolve({ data: { ok: true, order_id: 'o13', reference: 'CC-1022', status: args.p.price ? 'awaiting_approval' : 'awaiting_quote', estimate: args.p.price || 0 } }); }
@@ -449,7 +684,7 @@
         return Promise.resolve({ data: { ok: true, notes: HO } });
       }
       if (fn === 'kitchen_board') { if (window.__photoUrls) kitchenRows[0].photos = ['incoming/a/1.png', 'incoming/a/2.png']; return Promise.resolve({ data: { ok: true, today: T, orders: kitchenRows } }); }
-      if (fn === 'staff_print_brief') { var o = orders.filter(function (x) { return x.id === args.p_order; })[0]; window.__briefCalls = (window.__briefCalls || 0) + 1; window.__briefArgs = args; return Promise.resolve({ data: { ok: true, version: 2, new_version: true, changes: ['message', 'design'], first_printed_at: '2026-10-14T03:00:00Z', paper: 'A5', email: args.p_email === false ? { state: 'skipped', to: 'roneel@jacksfiji.com', cc: 'cornercafe@jacksfiji.com' } : window.__briefEmail || { state: 'queued', to: 'roneel@jacksfiji.com', cc: 'cornercafe@jacksfiji.com' }, snapshot: Object.assign(snap(o), window.__candles ? { candles: window.__candles } : {}), slip: { name: 'Mere Tavola', phone: '+679 912 3456', price: window.__slipNoPrice ? null : 68, paid: window.__slipNoPrice ? 0 : 20, source: 'phone', method: o.fulfilment_method, address: o.fulfilment_method === 'delivery' ? 'Room 214, Sheraton Denarau' : null, receiver: o.fulfilment_method === 'delivery' ? 'Front desk' : null, taken_by: 'Ana Manager', ordered_at: '2026-10-12T22:15:00Z' } } }); }
+      if (fn === 'staff_print_brief') { var o = orders.filter(function (x) { return x.id === args.p_order; })[0]; window.__briefCalls = (window.__briefCalls || 0) + 1; window.__briefAt = Date.now(); window.__briefArgs = args; return Promise.resolve({ data: { ok: true, version: 2, new_version: true, changes: ['message', 'design'], first_printed_at: '2026-10-14T03:00:00Z', paper: (window.__pr && window.__pr.paper) || 'A5', email: args.p_email === false ? { state: 'skipped', to: 'roneel@jacksfiji.com', cc: 'cornercafe@jacksfiji.com' } : window.__briefEmail || { state: 'queued', to: 'roneel@jacksfiji.com', cc: 'cornercafe@jacksfiji.com' }, snapshot: Object.assign(snap(o), window.__candles ? { candles: window.__candles } : {}), slip: { name: 'Mere Tavola', phone: '+679 912 3456', price: window.__slipNoPrice ? null : 68, paid: window.__slipNoPrice ? 0 : 20, source: 'phone', method: o.fulfilment_method, address: o.fulfilment_method === 'delivery' ? 'Room 214, Sheraton Denarau' : null, receiver: o.fulfilment_method === 'delivery' ? 'Front desk' : null, taken_by: 'Ana Manager', ordered_at: '2026-10-12T22:15:00Z' } } }); }
       if (fn === 'staff_reminders_due') { if (window.__remFail) return Promise.resolve({ error: { message: 'Failed to fetch' } }); return Promise.resolve({ data: { ok: true, rows: (window.__remDone ? [] : [{ id: 'c1', name: 'Test Customer A', phone: '912 0001', date: summary[0].next_occasion_date, reason: 'Birthday for Mia', cake: 'Mudcake', reconfirm: false }, { id: 'c2', name: 'Test Customer B', phone: '912 0002', date: summary[0].next_occasion_date, reason: 'Anniversary', cake: null, reconfirm: true }]) } }); }
       if (fn === 'staff_mark_reminded') { window.__remMarked = args; window.__remDone = true; return Promise.resolve({ data: { ok: true } }); }
       if (fn === 'staff_save_product') { window.__menuSaved = args.p; if (window.__menuFail) return Promise.reject(new Error('Failed to fetch')); return Promise.resolve({ data: { ok: true, id: args.p.id || 'p9', created: !args.p.id, changed: true } }); }
@@ -465,6 +700,7 @@
         if (ch.time) list.push({ field: 'time', label: 'Collection time', from: '2:00 PM', to: ch.time === '16:00' ? '4:00 PM' : ch.time, kitchen: true });
         if (ch.size_inch) list.push({ field: 'size', label: 'Cake size', from: '8-inch', to: ch.size_inch + '-inch', kitchen: true });
         if (ch.message != null) list.push({ field: 'message', label: 'Cake message', from: 'None', to: '“' + ch.message + '”', kitchen: true });
+        if (ch.customer_name) list.push({ field: 'customer_name', label: 'Name', from: 'Test Customer B', to: ch.customer_name, kitchen: false });
         if (ch.method) list.push({ field: 'method', label: 'Collection or delivery', from: 'Collection from the café', to: ch.method === 'delivery' ? 'Delivery' : 'Collection from the café', kitchen: true });
         if (ch.zone) list.push({ field: 'zone', label: 'Delivery area', from: 'None', to: ch.zone, kitchen: true });
         if (ch.address) list.push({ field: 'address', label: 'Delivery address', from: 'None', to: ch.address, kitchen: true });

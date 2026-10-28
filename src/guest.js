@@ -285,7 +285,7 @@
           ? '<div class="cco-total cco-total-q">' + (isDel() ? '<div class="cco-price"><span>Delivery<small>' + esc(S.zone) + '</small></span><strong>' + money(zoneFee()) + '</strong></div>' : '') + '<div class="cco-price cco-pending"' + (isDel() ? '' : ' style="padding-top:0;border-top:0"') + '><span>Cake price<small>We send it to you after we look at your design</small></span><em>To be confirmed</em></div></div>'
           : S.finish === 'custom'
           ? '<div class="cco-total cco-total-q"><div class="cco-price"><span>Cake price<small>' + esc(S.size + ' inch ' + cakeName()) + '</small></span><strong>' + money(price()) + '</strong></div><div class="cco-price cco-pending"><span>Custom design</span><em>To be confirmed</em></div></div>'
-          : '<div class="cco-total"><span>Price<small>' + esc(S.size + ' inch ' + cakeName()) + ', standard finish' + (isDel() ? ', plus delivery to ' + S.zone + ' ' + money(zoneFee()) : '') + '</small></span><strong>' + money(total()) + '</strong></div>';
+          : '<div class="cco-total"><span>' + (isDel() ? 'Total' : 'Price') + '<small>' + esc(S.size + ' inch ' + cakeName()) + ', standard finish' + (isDel() ? ' ' + money(price()) + ' + delivery to ' + S.zone + ' ' + money(zoneFee()) : '') + '</small></span><strong>' + money(total()) + '</strong></div>';
         if (!S.req && S.finish === 'custom' && isDel()) h = h.replace('<div class="cco-price cco-pending">', '<div class="cco-price"><span>Delivery<small>' + esc(S.zone) + '</small></span><strong>' + money(zoneFee()) + '</strong></div><div class="cco-price cco-pending">');
         h += S.know ? '<div class="cco-know"><p><b>No payment now.</b></p><p>We confirm availability, the ' + (S.req || S.finish === 'custom' ? 'final price' : 'price') + ' and any deposit with you.</p><p>Your cake is booked once we confirm it.</p></div>' : '<button type="button" class="cco-link" data-act="know"><span class="cco-plus" aria-hidden="true">i</span>Good to know before you send</button>';
         if (formError) h += '<p class="cco-err cco-formerr" role="alert">' + esc(formError) + '</p>';
@@ -315,12 +315,13 @@
     line('Occasion', S.occasion ? occText() : '', 3);
     line('Name', S.detailsOk ? S.name.trim() : '', 3);
     var amount = S.req ? '<em>To confirm</em>' : p == null ? '<em>Choose a size</em>' : '<strong>' + money(total()) + '</strong>';
-    var sub = !S.req && p != null && isDel() && zoneFee() != null ? 'Includes delivery, ' + money(zoneFee()) : !S.req && S.finish === 'custom' ? 'Custom design priced after we see it' : S.req ? 'We send it after we see your idea' : '';
+    var withFee = !S.req && p != null && isDel() && zoneFee() != null;
+    var sub = withFee ? 'Cake ' + money(p) + ' + delivery ' + money(zoneFee()) : !S.req && S.finish === 'custom' ? 'Custom design priced after we see it' : S.req ? 'We send it after we see your idea' : '';
     var tk = S.req ? 'req' : (S.flavour || '') + '|' + (S.variant || ''), fresh1 = tk !== ticket.last; ticket.last = tk;
     return '<div class="cco-ticket' + (S.flavour || S.req ? '' : ' cco-ticket-empty') + '"><div class="cco-tk-photo' + (fresh1 ? ' cco-tk-new' : '') + '">' + vis(S.req ? null : f || 'none', S.variant) + '</div>' +
       '<div class="cco-tk-body"><p class="cco-tk-name">' + (who ? esc(who) : 'Your cake') + '</p>' + (who ? '' : '<p class="cco-tk-hint">Choose a cake to start. Your choices show here as you go.</p>') +
       (tl.length ? '<div class="cco-tk-rows">' + tl.join('') + '</div>' : '') +
-      (who ? '<div class="cco-tk-total"><span>Price' + (sub ? '<small>' + sub + '</small>' : '') + '</span>' + amount + '</div>' : '') +
+      (who ? '<div class="cco-tk-total"><span>' + (withFee ? 'Total' : 'Price') + (sub ? '<small>' + sub + '</small>' : '') + '</span>' + amount + '</div>' : '') +
       '<p class="cco-tk-note">No payment now. We confirm with you before it is booked.</p></div></div>';
   }
   var sumsOpen = false;
@@ -345,7 +346,7 @@
     fresh = {}; animStep = -1; S.photos.forEach(function (p) { p.isNew = false; });
     var p = price(), bar = document.getElementById('cco-bar'), showBar = !!p && open < STEPS.length - 1;
     root.classList.toggle('cco-has-bar', showBar);
-    if (bar) { bar.classList.toggle('cco-show', showBar); bar.querySelector('span').textContent = [cakeName(), S.size != null ? S.size + ' inch' : ''].filter(Boolean).join(' · '); bar.querySelector('strong').textContent = p ? money(total()) : ''; }
+    if (bar) { bar.classList.toggle('cco-show', showBar); bar.querySelector('span').textContent = isDel() && zoneFee() != null ? 'Cake ' + money(p) + ' + delivery ' + money(zoneFee()) : [cakeName(), S.size != null ? S.size + ' inch' : ''].filter(Boolean).join(' · '); bar.querySelector('strong').textContent = p ? money(total()) : ''; }
     if (focusSel) { var el = root.querySelector(focusSel); if (el) { el.focus({ preventScroll: true }); reveal(el.closest('.cco-field') || el); } }
   }
   function go(i, errs, forceScroll, fromPop) {

@@ -86,6 +86,13 @@ const fact = (label: string, value: string, sub = "") =>
 const smallBtn = (href: string, label: string, primary = false) =>
   `<a href="${esc(href)}" style="display:inline-block;padding:${primary ? "14px 26px" : "12px 20px"};margin:0 8px 10px 0;background:${primary ? GREEN : "#ffffff"};color:${primary ? "#ffffff" : GREEN};border:2px solid ${GREEN};border-radius:10px;text-decoration:none;font-weight:bold;font-size:15px">${esc(label)}</a>`;
 
+// Seasonal treats on the order (Settings > Seasonal items), for example "2 × Mince Pies (Pack of 3), 1 × Gingerbread House · $59"
+function treatsLine(d: any): string {
+  const t: any[] = Array.isArray(d.treats) ? d.treats : [];
+  if (!t.length) return "";
+  const sum = t.reduce((s, x) => s + Number(x.price) * Number(x.quantity), 0);
+  return t.map((x) => `${x.quantity} × ${x.name}${x.detail ? ` (${x.detail})` : ""}`).join(", ") + ` · ${money(sum)}`;
+}
 function staffNewOrder(d: any): { subject: string; html: string } {
   const o = d.order, i = d.item ?? {}, c = d.customer ?? {}, loc = d.location, cfg = d.config ?? {};
   const custom = o.order_type === "custom";
@@ -125,15 +132,20 @@ function staffNewOrder(d: any): { subject: string; html: string } {
   b += section("02", "The cake", grid(
     kv("Cake", esc(cakeLine(i))) + kv("Finish", i.finish === "custom" ? "Custom design" : "Standard finish") +
     kv("Design", esc(i.design_description || "")) + kv("Occasion", esc(i.occasion || "")) + kv("Serves", esc(i.serves_label || "")) +
-    kv("Photos", d.attachments > 0 ? `${d.attachments} in the staff app` : "") + kv("Notes", esc(o.customer_notes || ""))) +
+    kv("Treats", esc(treatsLine(d))) + kv("Photos", d.attachments > 0 ? `${d.attachments} in the staff app` : "") + kv("Notes", esc(o.customer_notes || ""))) +
     (i.cake_message ? `<div style="margin:8px 0 4px;border:1.5px dashed ${INK};border-radius:8px;padding:12px;text-align:center"><div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:${MUTED}">Written on the cake · copy exactly</div><div style="font-size:20px;font-weight:bold;color:${INK};margin-top:4px">“${esc(i.cake_message)}”</div></div>` : ""));
   b += section("03", "Customer", grid(
     kv("Name", esc(name)) + kv("History", c.past_orders > 0 ? `Returning, ${c.past_orders} earlier order${c.past_orders > 1 ? "s" : ""}` : "New customer") +
     kv("Mobile", phone ? esc(phoneShow(phone)) + (c.preferred_contact === "whatsapp" ? ` <span style="font-weight:normal;color:${MUTED}">(WhatsApp)</span>` : "") : "") +
     kv("Email", email ? `<a href="mailto:${esc(email)}" style="color:${GREEN}">${esc(email)}</a>` : "")));
+  // A custom request has no cake price until staff price it, so its estimate is only the delivery fee:
+  // show the fee on its own and the cake as "To be priced", never a $0 cake or a fee-only total
+  const fee = delivery && Number(o.delivery_fee) > 0 ? Number(o.delivery_fee) : 0;
+  const unpriced = isRequest(i) && o.final_total == null;
   b += section("04", "Money", grid(
-    kv(custom ? "Estimate" : "Price", isRequest(i) && !total ? "To be priced" : esc(money(total))) + kv("Paid", paid > 0 ? esc(money(paid)) : "Nothing yet") +
-    kv("To pay", isRequest(i) && !total ? "" : esc(money(Math.max(total - paid, 0))))));
+    (fee ? kv("Cake price", unpriced ? "To be priced" : esc(money(Math.max(total - fee, 0)))) + kv("Delivery", esc(money(fee))) : "") +
+    kv(custom ? (fee ? "Estimate total" : "Estimate") : fee ? "Total" : "Price", unpriced ? (fee ? "" : "To be priced") : esc(money(total))) + kv("Paid", paid > 0 ? esc(money(paid)) : "Nothing yet") +
+    kv("To pay", unpriced ? "" : esc(money(Math.max(total - paid, 0))))));
 
   b += `<div style="margin:18px 0 0">` + (cfg.staff_app_url ? smallBtn(cfg.staff_app_url, custom ? "Quote it in the staff app" : "Review in the staff app", true) : "") +
     (phone ? smallBtn(waLink(phone), "WhatsApp") + smallBtn(telLink(phone), "Call") : "") + `</div>`;
@@ -280,6 +292,17 @@ async function send(to: string, subject: string, html: string, from: string, rep
 function b64(bytes: Uint8Array) { let s = ""; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000)); return btoa(s); }
 class NoRetry extends Error {}
 async function slipPaper() { try { const [r] = await db(`app_config?key=eq.kitchen_slip_paper&select=value`); return r?.value === "DL" ? "DL" : "A5"; } catch (_e) { return "A5"; } }
+// Email templates (22 Oct 2026): the published wording for a customer email, and whether an optional email is switched on.
+// If anything goes wrong reading them, the email goes out with its standard wording, as before.
+async function guestTemplate(kind: string): Promise<{ template: any | null; enabled: boolean }> {
+  try {
+    const [pub] = await db(`email_template_versions?kind=eq.${encodeURIComponent(kind)}&status=eq.published&select=id,version,subject,preheader,label,heading,tagline,intro,closing&limit=1`);
+    let enabled = true;
+    if (kind === "guest_thanks") { const [sw] = await db(`email_template_switches?kind=eq.guest_thanks&select=enabled`); if (sw && sw.enabled === false) enabled = false; }
+    return { template: pub || null, enabled };
+  } catch (_e) { return { template: null, enabled: true }; }
+}
+
 async function config() { const rows: any[] = await db(`app_config?key=in.(test_mode,test_email,from_email,reply_to)&select=key,value`); return Object.fromEntries(rows.map((r) => [r.key, r.value])); }
 
 // A sample slip with invented details, sent from Settings so the printer PC can be checked without a real order
@@ -297,6 +320,19 @@ async function testSlip() {
     `<p style="margin:0 0 10px;font-size:15px">Print the attached PDF, check it comes out the right size, then throw it away. <b>Do not bake.</b></p></div></body></html>`;
   return { subject, html, attachments: [{ filename: `TEST-001 Test slip ${paper} v1.pdf`, content: b64(pdf) }] };
 }
+// Design photos for the kitchen slip (from the slip's own snapshot): up to 4. JPG and PNG go on the slip; anything else is
+// left out and the slip says to open the order in the app.
+async function slipPhotos(paths: unknown): Promise<{ bytes: Uint8Array }[]> {
+  const list = Array.isArray(paths) ? (paths as string[]).slice(0, 4) : [];
+  const out: { bytes: Uint8Array }[] = [];
+  for (const p of list) {
+    try {
+      const r = await fetch(`${SB_URL}/storage/v1/object/cake-references/${String(p).split("/").map(encodeURIComponent).join("/")}`, { headers: { Authorization: `Bearer ${SB_KEY}`, apikey: SB_KEY } });
+      if (r.ok) out.push({ bytes: new Uint8Array(await r.arrayBuffer()) });
+    } catch (_e) { /* this photo is left out */ }
+  }
+  return out;
+}
 async function kitchenSlip(m: any, d: any) {
   const o = d.order, c = d.customer ?? {};
   const v = Number(((m.dedupe_key || "").match(/:v(\d+)$/) || [])[1]);
@@ -306,13 +342,15 @@ async function kitchenSlip(m: any, d: any) {
   if (!br) throw new NoRetry(`Slip v${v} not found for ${o.reference}.`);
   const s = br.snapshot;
   if (s.reference !== o.reference) throw new NoRetry(`Slip order number ${s.reference} does not match ${o.reference}: not sent.`);
-  let takenBy = o.source === "online" ? "Website order" : "Staff";
-  if (o.source !== "online" && o.created_by) { const [sp] = await db(`staff_profiles?user_id=eq.${o.created_by}&select=full_name`); if (sp?.full_name) takenBy = sp.full_name; }
-  const slip = { name: (o.contact_name || "").trim() || c.full_name, phone: (o.contact_phone || "").trim() || c.phone, price: o.final_total ?? o.estimate_total, paid: d.paid_total ?? 0,
+  // Who took the order: the name given on New order (the counter tablet has one shared login), else the login's name
+  const givenBy = String(o.taken_by_name || "").trim();
+  let takenBy = o.source === "online" ? "Website order" : givenBy || "Staff";
+  if (o.source !== "online" && !givenBy && o.created_by) { const [sp] = await db(`staff_profiles?user_id=eq.${o.created_by}&select=full_name`); if (sp?.full_name) takenBy = sp.full_name; }
+  const slip = { name: (o.contact_name || "").trim() || c.full_name, phone: (o.contact_phone || "").trim() || c.phone, price: isRequest(d.item ?? {}) && o.final_total == null ? null : o.final_total ?? o.estimate_total, delivery_fee: o.fulfilment_method === "delivery" ? o.delivery_fee : 0, paid: d.paid_total ?? 0,
     taken_by: takenBy, ordered_at: o.created_at, source: o.source, method: o.fulfilment_method,
     address: o.fulfilment_method === "delivery" ? o.delivery_address : null, receiver: o.fulfilment_method === "delivery" ? o.delivery_contact : null };
   const PDFLib = await import("npm:pdf-lib@1.17.1");
-  const pdf = await buildSlipPdf(PDFLib, { snapshot: s, slip, version: v, changes: br.changes || [], printedAt: br.printed_at, logoPng: await slipLogo(), location: d.location, paper: await slipPaper() });
+  const pdf = await buildSlipPdf(PDFLib, { snapshot: s, slip, version: v, changes: br.changes || [], printedAt: br.printed_at, logoPng: await slipLogo(), location: d.location, paper: await slipPaper(), photos: await slipPhotos(s.photos) });
   const name = slipFileName(s, slip, v);
   const dl = s.method === "delivery";
   const when = `${new Date(s.date + "T12:00:00Z").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" }).replace(",", "")} ${t12(s.time)}`;
@@ -379,6 +417,15 @@ async function processOutbox() {
       const d = await rpc("email_payload", { p_order: m.order_id });
       if (!d) throw new Error("order not found");
       if (m.kind.startsWith("guest_")) d.unsub = await unsubLinks(m.order_id, d);
+      if (m.kind.startsWith("guest_")) {
+        const tp = await guestTemplate(m.kind);
+        if (!tp.enabled) {
+          // Switched off in Settings, Communications, Email templates: logged, not sent, not retried
+          await db(`email_outbox?id=eq.${m.id}`, { method: "PATCH", body: JSON.stringify({ status: "failed", attempts: 5, last_error: "Not sent: this email is switched off in Settings, Email templates" }) });
+          held++; continue;
+        }
+        d.template = tp.template;
+      }
       const cfg = d.config ?? {};
       let att: { filename: string; content: string }[] | undefined;
       let { subject, html, text } = m.kind === "kitchen_slip" ? await kitchenSlip(m, d).then((k) => { att = k.attachments; return k; }) as { subject: string; html: string; text?: string } : build(m.kind, d);
@@ -389,6 +436,8 @@ async function processOutbox() {
       const unsubHeaders = guestKind && d.unsub ? { "List-Unsubscribe": `<${d.unsub.post}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" } : undefined;
       const id = await send(to, subject, html, cfg.from_email, guestKind ? cfg.reply_to : (m.kind === "kitchen_slip" ? undefined : (d.customer?.email || undefined)), att, cc, text, unsubHeaders);
       await db(`email_outbox?id=eq.${m.id}`, { method: "PATCH", body: JSON.stringify({ status: "sent", sent_at: new Date().toISOString(), provider_message_id: id, last_error: null }) });
+      // Which wording it went out with (only when a template was used; a failure here never resends the email)
+      if (d.template?.id) await db(`email_outbox?id=eq.${m.id}`, { method: "PATCH", body: JSON.stringify({ template_version_id: d.template.id }) }).catch(() => {});
       sent++;
     } catch (e) {
       // A problem that a retry cannot fix (such as a missing order number) is not retried

@@ -1,0 +1,25 @@
+/* Calendar day view (20 October 2026): empty time slots show a faint + instead of "New order at …".
+   The whole row stays one tap to start an order at that time; the full wording stays for screen readers. */
+#cc-staff .ccs-dslot .ccs-dadd{display:flex!important;align-items:center;justify-content:flex-end;width:100%;min-height:44px;padding:0 14px!important;border:1px dashed transparent!important;background:transparent!important;box-shadow:none!important}
+#cc-staff .ccs-dslot .ccs-dadd-plus{font-size:24px;font-weight:400;line-height:1;color:#c4cad2}
+#cc-staff .ccs-dslot .ccs-dadd:hover,#cc-staff .ccs-dslot .ccs-dadd:focus-visible,#cc-staff .ccs-dslot .ccs-dadd:active{border-color:#c9d3be!important;background:#f4f6ef!important}
+#cc-staff .ccs-dslot .ccs-dadd:hover .ccs-dadd-plus,#cc-staff .ccs-dslot .ccs-dadd:focus-visible .ccs-dadd-plus,#cc-staff .ccs-dslot .ccs-dadd:active .ccs-dadd-plus{color:#243247}
+
+/* Booked orders stand out from the empty calendar (20 October 2026, 8:15 AM): tinted card, a status-coloured edge,
+   a soft lift, and no extra + under a booked order (New order for this date still covers a second order). */
+#cc-staff .ccs-dslot .ccs-cev.is-full{border:1px solid #c9d6e6!important;box-shadow:0 2px 6px rgba(16,24,40,.10)!important;padding-left:16px!important}
+#cc-staff .ccs-dslot .ccs-cev.is-full::before{width:6px!important}
+#cc-staff .ccs-dslot .ccs-cev.is-full .ccs-cev-n{font-weight:700!important;color:#101828!important}
+#cc-staff .ccs-dslot .ccs-cev.is-full .ccs-cev-t{color:#101828!important}
+#cc-staff .ccs-dslot .ccs-cev.is-full.k-confirmed{background:#eef4fc!important;border-color:#b9cde8!important}
+#cc-staff .ccs-dslot .ccs-cev.is-full.k-confirmed::before{background:#2f6db5!important}
+#cc-staff .ccs-dslot .ccs-cev.is-full.k-review{background:#fff7e8!important;border-color:#f0d29a!important}
+#cc-staff .ccs-dslot .ccs-cev.is-full.k-review::before{background:#c27803!important}
+#cc-staff .ccs-dslot .ccs-cev.is-full.k-wait{background:#fdf3ea!important;border-color:#ecc9a6!important}
+#cc-staff .ccs-dslot .ccs-cev.is-full.k-wait::before{background:#c27a3a!important}
+#cc-staff .ccs-dslot .ccs-cev.is-full.k-done{background:#eef7f1!important;border-color:#b7dcc3!important;opacity:1!important}
+#cc-staff .ccs-dslot .ccs-cev.is-full.k-done::before{background:#15803d!important}
+#cc-staff .ccs-dslot .ccs-cev.is-full.k-off{background:#f4f5f7!important;border-color:#d6dae0!important}
+#cc-staff .ccs-dslot .ccs-cev.is-full.k-off::before{background:#9aa3ae!important}
+#cc-staff .ccs-dslot .ccs-cev.is-full:hover,#cc-staff .ccs-dslot .ccs-cev.is-full.is-sel{box-shadow:0 0 0 2px #59616c!important}
+#cc-staff .ccs-dslot.has-orders .ccs-dadd{display:none!important}

@@ -1,0 +1,43 @@
+{
+ "id": "/cake-orders-staff",
+ "name": "Corner Café Service Hub",
+ "short_name": "Corner Café",
+ "description": "Cake orders, calendar, customers and analytics for the Corner Café team.",
+ "start_url": "https://www.cornercafefiji.com/cake-orders-staff",
+ "scope": "https://www.cornercafefiji.com/cake-orders-staff",
+ "display": "standalone",
+ "orientation": "any",
+ "background_color": "#292d33",
+ "theme_color": "#292d33",
+ "lang": "en-FJ",
+ "categories": [
+  "business",
+  "food"
+ ],
+ "icons": [
+  {
+   "src": "https://cdn.jsdelivr.net/gh/jrest2025/corner-cafe-cakes@47672355eb35b0d67a9b6d90c14a53d291abf450/dist/pwa/icon-192.png",
+   "sizes": "192x192",
+   "type": "image/png",
+   "purpose": "any"
+  },
+  {
+   "src": "https://cdn.jsdelivr.net/gh/jrest2025/corner-cafe-cakes@47672355eb35b0d67a9b6d90c14a53d291abf450/dist/pwa/icon-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "any"
+  },
+  {
+   "src": "https://cdn.jsdelivr.net/gh/jrest2025/corner-cafe-cakes@47672355eb35b0d67a9b6d90c14a53d291abf450/dist/pwa/icon-maskable-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "maskable"
+  },
+  {
+   "src": "https://cdn.jsdelivr.net/gh/jrest2025/corner-cafe-cakes@47672355eb35b0d67a9b6d90c14a53d291abf450/dist/pwa/icon-1024.png",
+   "sizes": "1024x1024",
+   "type": "image/png",
+   "purpose": "any"
+  }
+ ]
+}

@@ -1,0 +1,90 @@
+/* Cakes by pickup day and booking time: alternative view of Daily Cake Demand. Presentation only. */
+#cc-staff #cc-demand-scroll-rail.ccdr.ccdv-off{display:none!important}
+#cc-staff #cc-cake-lead-time[hidden]{display:none!important}
+#cc-staff #cc-demand-views{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 10px}
+#cc-staff #cc-demand-views .ccdv-lbl{font-size:13px;font-weight:700;color:#475467;margin-right:2px}
+#cc-staff #cc-demand-views button{font:inherit;font-size:14px;font-weight:650;min-height:40px;padding:0 14px;border-radius:9px;border:1px solid #d0d5dd;background:#fff;color:#1d2939;cursor:pointer}
+#cc-staff #cc-demand-views button[aria-pressed="true"]{background:#eaf0fa;border-color:#2f4a7a;color:#2f4a7a}
+#cc-staff #cc-demand-views button:focus-visible{outline:3px solid #618ec7;outline-offset:2px}
+#cc-staff .cclt{margin:0 0 17px}
+#cc-staff #cc-cake-lead-time .cclt-hol{color:#9a5b00!important}
+#cc-staff #cc-cake-lead-time{--ink:#1d2939;--muted:#475467;--line:#e1e8e3;--navy:#2f4a7a;--navy-tint:#eaf0fa;background:#fff;border:1px solid var(--line);border-radius:13px;padding:18px 20px;color:var(--ink);font-size:15px;line-height:1.4;min-width:0}
+#cc-staff #cc-cake-lead-time h3{font-size:20px!important;line-height:1.3!important;font-weight:700!important;margin:0 0 4px;color:var(--ink)}
+#cc-staff #cc-cake-lead-time .cclt-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap}
+#cc-staff #cc-cake-lead-time .cclt-head p{margin:0;color:var(--muted);font-size:14px}
+#cc-staff #cc-cake-lead-time .cclt-today{display:flex;align-items:baseline;gap:6px;background:#f6f3fa;border:1px solid #e5dcef;border-radius:10px;padding:8px 14px;color:#5b3f68}
+#cc-staff #cc-cake-lead-time .cclt-today b{font-size:24px;color:#6e3f80}
+#cc-staff #cc-cake-lead-time .cclt-today small{font-size:13px}
+#cc-staff #cc-cake-lead-time .cclt-ranges{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 4px}
+#cc-staff #cc-cake-lead-time .cclt-ranges button{font:inherit;font-size:14px;font-weight:650;min-height:40px;padding:0 14px;border-radius:9px;border:1px solid #d0d5dd;background:#fff;color:var(--ink);cursor:pointer}
+#cc-staff #cc-cake-lead-time .cclt-ranges button[aria-pressed="true"]{background:var(--navy-tint);border-color:var(--navy);color:var(--navy)}
+#cc-staff #cc-cake-lead-time button:focus-visible,#cc-staff #cc-cake-lead-time .cclt-scroll:focus-visible{outline:3px solid #618ec7;outline-offset:2px}
+#cc-staff #cc-cake-lead-time .cclt-habit{margin:12px 0 14px}
+#cc-staff #cc-cake-lead-time .cclt-habit>p{margin:0 0 8px;font-size:16px}
+#cc-staff #cc-cake-lead-time .cclt-strip{display:flex;height:16px;border-radius:8px;overflow:hidden;gap:2px;background:#fff}
+#cc-staff #cc-cake-lead-time .cclt-key{list-style:none;padding:0;margin:10px 0 0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+#cc-staff #cc-cake-lead-time .cclt-key li{display:grid;grid-template-columns:14px 1fr;column-gap:7px;align-items:center;font-size:13px;color:var(--muted)}
+#cc-staff #cc-cake-lead-time .cclt-key i{width:14px;height:14px;border-radius:4px;grid-row:span 3;align-self:start;margin-top:2px}
+#cc-staff #cc-cake-lead-time .cclt-key b{font-size:20px;color:var(--ink)}
+#cc-staff #cc-cake-lead-time .cclt-key small{font-size:12px}
+#cc-staff #cc-cake-lead-time .cclt-note{font-size:12px;color:#667085;margin:8px 0 0}
+#cc-staff #cc-cake-lead-time .cclt-scroll{overflow-x:auto;overflow-y:hidden;border:1px solid #e5ece5;border-radius:9px;background:#fff}
+#cc-staff #cc-cake-lead-time .cclt-scroll svg{display:block}
+#cc-staff #cc-cake-lead-time .cclt-hit{cursor:pointer}
+#cc-staff #cc-cake-lead-time .cclt-ax{font-size:11px;fill:#667085}
+#cc-staff #cc-cake-lead-time .cclt-n{font-size:12px;font-weight:700;fill:#1d2939}
+#cc-staff #cc-cake-lead-time .cclt-busy-n{fill:#b26b00}
+#cc-staff #cc-cake-lead-time .cclt-d{font-size:12px;font-weight:650;fill:#344054}
+#cc-staff #cc-cake-lead-time .cclt-on{fill:var(--navy);font-weight:800}
+#cc-staff #cc-cake-lead-time .cclt-w{font-size:10px;fill:#667085}
+#cc-staff #cc-cake-lead-time .cclt-m{font-size:12px;font-weight:700;fill:#344054}
+#cc-staff #cc-cake-lead-time .cclt-fut{font-size:11px;fill:#667085;font-style:italic}
+#cc-staff #cc-cake-lead-time .cclt-detail{margin-top:14px;border-top:1px solid var(--line);padding-top:12px}
+#cc-staff #cc-cake-lead-time .cclt-detail h4{margin:0;font-size:17px}
+#cc-staff #cc-cake-lead-time .cclt-detail h4 small{font-weight:500;color:var(--muted);font-size:13px}
+#cc-staff #cc-cake-lead-time .cclt-detail h5{margin:10px 0 6px;font-size:13px;color:var(--muted);text-transform:none}
+#cc-staff #cc-cake-lead-time .cclt-big{margin:4px 0 0;font-size:15px}#cc-staff #cc-cake-lead-time .cclt-big b{font-size:24px}
+#cc-staff #cc-cake-lead-time .cclt-cols{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+#cc-staff #cc-cake-lead-time .cclt-parts,#cc-staff #cc-cake-lead-time .cclt-cakes{list-style:none;margin:0;padding:0}
+#cc-staff #cc-cake-lead-time .cclt-parts li{display:flex;align-items:center;gap:8px;padding:3px 0}
+#cc-staff #cc-cake-lead-time .cclt-parts i{width:14px;height:14px;border-radius:4px;flex:none}
+#cc-staff #cc-cake-lead-time .cclt-cakes li{display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-bottom:1px solid #f0f2f1}
+#cc-staff #cc-cake-lead-time .cclt-cakes b{min-width:28px;text-align:right}
+/* Tablet: Jack's Restaurants touch-friendly standard */
+@media (min-width:600px) and (max-width:1199px),(pointer:coarse) and (min-width:600px){
+  #cc-staff #cc-demand-views .ccdv-lbl{font-size:18px}#cc-staff #cc-demand-views button{font-size:18px;min-height:56px;padding:0 18px}
+  #cc-staff #cc-cake-lead-time{font-size:20px;padding:20px}
+  #cc-staff #cc-cake-lead-time h3{font-size:24px!important}#cc-staff #cc-cake-lead-time .cclt-head p{font-size:18px}
+  #cc-staff #cc-cake-lead-time .cclt-today small{font-size:17px}#cc-staff #cc-cake-lead-time .cclt-today b{font-size:30px}
+  #cc-staff #cc-cake-lead-time .cclt-ranges button{font-size:18px;min-height:56px;padding:0 18px}
+  #cc-staff #cc-cake-lead-time .cclt-habit>p{font-size:20px}
+  #cc-staff #cc-cake-lead-time .cclt-key{grid-template-columns:repeat(3,minmax(0,1fr))}
+  #cc-staff #cc-cake-lead-time .cclt-key li{font-size:17px}#cc-staff #cc-cake-lead-time .cclt-key b{font-size:24px}#cc-staff #cc-cake-lead-time .cclt-key small{font-size:17px}
+  #cc-staff #cc-cake-lead-time .cclt-note{font-size:17px}
+  #cc-staff #cc-cake-lead-time .cclt-n{font-size:15px}#cc-staff #cc-cake-lead-time .cclt-d{font-size:15px}#cc-staff #cc-cake-lead-time .cclt-w{font-size:13px}#cc-staff #cc-cake-lead-time .cclt-m{font-size:15px}#cc-staff #cc-cake-lead-time .cclt-ax,#cc-staff #cc-cake-lead-time .cclt-fut{font-size:13px}
+  #cc-staff #cc-cake-lead-time .cclt-detail h4{font-size:24px}#cc-staff #cc-cake-lead-time .cclt-detail h4 small,#cc-staff #cc-cake-lead-time .cclt-detail h5{font-size:17px}
+  #cc-staff #cc-cake-lead-time .cclt-big{font-size:20px}#cc-staff #cc-cake-lead-time .cclt-big b{font-size:32px}
+}
+/* Phone */
+@media (max-width:599px){
+  #cc-staff #cc-demand-views .ccdv-lbl{font-size:16px}#cc-staff #cc-demand-views button{font-size:17px;min-height:48px;flex:1}
+  #cc-staff #cc-cake-lead-time{font-size:18px;padding:16px}
+  #cc-staff #cc-cake-lead-time h3{font-size:21px!important}#cc-staff #cc-cake-lead-time .cclt-head p{font-size:17px}
+  #cc-staff #cc-cake-lead-time .cclt-today small{font-size:16px}
+  #cc-staff #cc-cake-lead-time .cclt-ranges{flex-wrap:nowrap;overflow-x:auto}
+  #cc-staff #cc-cake-lead-time .cclt-ranges button{font-size:17px;min-height:48px;white-space:nowrap}
+  #cc-staff #cc-cake-lead-time .cclt-habit>p{font-size:18px}
+  #cc-staff #cc-cake-lead-time .cclt-key{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #cc-staff #cc-cake-lead-time .cclt-key li{font-size:16px}#cc-staff #cc-cake-lead-time .cclt-key small,#cc-staff #cc-cake-lead-time .cclt-note{font-size:16px}
+  #cc-staff #cc-cake-lead-time .cclt-n,#cc-staff #cc-cake-lead-time .cclt-d{font-size:14px}#cc-staff #cc-cake-lead-time .cclt-w,#cc-staff #cc-cake-lead-time .cclt-ax,#cc-staff #cc-cake-lead-time .cclt-fut,#cc-staff #cc-cake-lead-time .cclt-m{font-size:12px}
+  #cc-staff #cc-cake-lead-time .cclt-detail h4{font-size:21px}#cc-staff #cc-cake-lead-time .cclt-detail h5,#cc-staff #cc-cake-lead-time .cclt-detail h4 small{font-size:16px}
+  #cc-staff #cc-cake-lead-time .cclt-cols{grid-template-columns:1fr}
+  #cc-staff #cc-cake-lead-time .cclt-big b{font-size:26px}
+}
+
+#cc-staff #cc-cake-lead-time .cclt-detail>p{font-size:inherit!important;color:var(--muted);margin:6px 0 0}
+#cc-staff #cc-cake-lead-time .cclt-habit>p{color:#1d2939!important}
+
+/* 0.2.0: the Analytics layout places sections with CSS order; keep the View switch and this view with the chart. */
+#cc-staff #cc-demand-views,#cc-staff #cc-cake-lead-time{order:1!important}
+#cc-staff #cc-demand-views.ccdv-inhead{margin:0 0 0 auto!important}

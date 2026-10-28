@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Semantic colour responsive checks</title>
+  <style>
+    body{font:16px system-ui,sans-serif;margin:20px;background:#f3f5f7;color:#20242a}
+    section{margin:0 0 24px}iframe{display:block;border:1px solid #aeb7c2;background:white;max-width:none}
+    output{display:block;margin:6px 0;font-weight:700}.pass{color:#166534}.fail{color:#b42318}
+  </style>
+</head>
+<body>
+  <h1>Semantic colour responsive checks</h1>
+  <div id="frames"></div>
+  <script>
+    const sizes=[[1440,900],[1024,820],[768,900],[390,844]];
+    const host=document.getElementById('frames');
+    sizes.forEach(([w,h])=>{
+      const section=document.createElement('section');
+      section.innerHTML=`<h2>${w} × ${h}</h2><output>Checking…</output><iframe title="CRM at ${w}px" src="semantic-colour-fixture.html?width=${w}" width="${w}" height="${h}"></iframe>`;
+      host.append(section);
+      const frame=section.querySelector('iframe'),out=section.querySelector('output');
+      frame.addEventListener('load',()=>setTimeout(()=>{
+        const d=frame.contentDocument.documentElement;
+        const ok=d.scrollWidth<=w+1;
+        const root=frame.contentDocument.getElementById('cc-staff');
+        const semantic=!!root&&getComputedStyle(root).getPropertyValue('--sc-charcoal').trim()==='#292d33';
+        out.textContent=(ok&&semantic?'PASS':'FAIL')+` — viewport ${w}px, content ${d.scrollWidth}px, semantic layer ${semantic?'loaded':'missing'}`;
+        out.className=ok&&semantic?'pass':'fail';
+      },900));
+    });
+  </script>
+</body>
+</html>

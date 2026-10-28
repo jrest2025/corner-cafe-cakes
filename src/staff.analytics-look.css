@@ -1,0 +1,68 @@
+/* Corner Cafe Analytics, one look everywhere (20 October 2026).
+   Roneel chose "One look everywhere": Overview gets the same white boxes and cards as the other tabs, with one period
+   choice per tab. Styles only: the Cake Heartbeat's code, content, order and figures are unchanged (the Daily cake demand
+   rail is not touched at all). Each rule copies the matching piece of the tab pages (src/staff.analytics-tabs.css).
+   Three ids, because the Heartbeat's own styles load after the app's. */
+
+/* The page, not one big card: Overview's boxes sit on the page like every other tab's. The 4px inner edge keeps focus
+   rings visible while the Heartbeat keeps its own overflow guard. */
+#cc-staff #ccs-main #cc-heartbeat .hb-v2{max-width:calc(100% + 8px);margin:-4px -4px 20px;padding:4px;gap:16px;background:transparent;border:0;border-radius:0;box-shadow:none}
+
+/* Title like the tab titles; "Live · updated" becomes the line under it */
+#cc-staff #ccs-main #cc-heartbeat .hb-v2-head{flex-direction:column;align-items:flex-start;gap:3px;margin:0;padding:0;border:0}
+#cc-staff #ccs-main #cc-heartbeat .hb-v2-head h2{margin:0;font-size:22px;line-height:1.25;font-weight:770;color:#243b2f;letter-spacing:-.01em}
+#cc-staff #ccs-main #cc-heartbeat .hb-v2-update{font-size:14px;line-height:1.45;color:#66776c;white-space:normal}
+#cc-staff #ccs-main #cc-heartbeat .hb-v2-live{vertical-align:1px}
+
+/* Section titles like "What to do" on the tabs; no dividing lines on the page */
+#cc-staff #ccs-main #cc-heartbeat .hb-k-heading{margin:0 0 -4px;padding:0;border:0}
+#cc-staff #ccs-main #cc-heartbeat .hb-k-heading h3{font-size:17px;font-weight:750;color:#294333}
+#cc-staff #ccs-main #cc-heartbeat .hb-k-heading p{font-size:13px;line-height:1.4;color:#6a7b70}
+
+/* The period choice looks and feels like the tabs' period chips (on touch screens it keeps its larger 44px buttons) */
+#cc-staff #ccs-main #cc-heartbeat .hb-k-heading .hb-v2-switch{display:inline-flex;flex-wrap:nowrap;gap:4px;padding:4px;max-width:100%;background:#f2f5f3;border:1px solid #dfe7e2;border-radius:11px;box-shadow:none}
+#cc-staff #ccs-main #cc-heartbeat .hb-k-heading .hb-v2-switch button{min-height:40px;padding:0 15px;border:1px solid transparent;border-radius:8px;background:transparent;color:#3e5446;font:inherit;font-size:14px;font-weight:650;line-height:1;white-space:nowrap;box-shadow:none;cursor:pointer}
+#cc-staff #ccs-main #cc-heartbeat .hb-k-heading .hb-v2-switch button:hover{background:#e8efea}
+#cc-staff #ccs-main #cc-heartbeat .hb-k-heading .hb-v2-switch button.is-on{background:#fff;border-color:#cbd9d0;color:#1f3b2c;box-shadow:0 1px 3px rgba(27,52,38,.09)}
+#cc-staff #ccs-main #cc-heartbeat .hb-k-heading .hb-v2-switch button:focus-visible{outline:3px solid rgba(61,112,155,.45);outline-offset:2px}
+
+/* Headline figures like the tabs': on the page, a coloured edge, no tinted fill */
+#cc-staff #ccs-main #cc-heartbeat .hb-k-kpis{gap:12px;margin:0}
+#cc-staff #ccs-main #cc-heartbeat .hb-k-kpi{gap:7px;min-height:0;padding:15px 17px 15px 20px;background:transparent;border-radius:13px}
+#cc-staff #ccs-main #cc-heartbeat .hb-k-top span{font-size:14px;font-weight:700;color:#566676}
+#cc-staff #ccs-main #cc-heartbeat .hb-k-kpi strong{font-size:clamp(23px,2.2vw,31px);font-weight:770;line-height:1.15;letter-spacing:-.03em;color:#263d32}
+#cc-staff #ccs-main #cc-heartbeat .hb-k-caption{min-height:0;font-size:12.5px;line-height:1.4;color:#667784}
+
+/* White boxes like the tabs' cards */
+#cc-staff #ccs-main #cc-heartbeat .hb-k-panels{gap:12px;margin:0}
+#cc-staff #ccs-main #cc-heartbeat .hb-k-panel{padding:16px 18px;background:#fff;border:1px solid #e2e8e4;border-radius:13px}
+#cc-staff #ccs-main #cc-heartbeat .hb-k-panel>header{margin:0 0 13px;padding:0 0 11px;border-bottom:1px solid #edf0ee}
+#cc-staff #ccs-main #cc-heartbeat .hb-k-panel>header h3{font-size:15.5px;font-weight:740;color:#2c4135}
+#cc-staff #ccs-main #cc-heartbeat .ccsd-season{padding:18px 20px;background:#fff;border:1px solid #e2e8e4;border-radius:13px}
+
+/* The daily breakdown opens and closes like the tabs' Details box */
+#cc-staff #ccs-main #cc-heartbeat .hb-m-details{margin:0;padding:0;background:#fbfcfb;border:1px solid #e2e8e4;border-radius:13px}
+#cc-staff #ccs-main #cc-heartbeat .hb-m-details>summary{position:relative;display:flex;align-items:center;min-height:54px;padding:15px 44px 15px 18px;border-radius:13px;list-style:none;cursor:pointer;font-size:15px;line-height:1.4;font-weight:700;color:#2c4135}
+#cc-staff #ccs-main #cc-heartbeat .hb-m-details>summary::-webkit-details-marker{display:none}
+#cc-staff #ccs-main #cc-heartbeat .hb-m-details>summary::after{content:"";position:absolute;right:20px;top:50%;width:8px;height:8px;margin-top:-6px;border-right:2px solid #6d7f73;border-bottom:2px solid #6d7f73;transform:rotate(45deg);transition:transform .15s}
+#cc-staff #ccs-main #cc-heartbeat .hb-m-details[open]>summary::after{content:"";transform:rotate(225deg);margin-top:-2px}
+#cc-staff #ccs-main #cc-heartbeat .hb-m-details>summary:hover{background:#f4f8f5}
+#cc-staff #ccs-main #cc-heartbeat .hb-m-details>summary:focus-visible{outline:3px solid rgba(61,112,155,.45);outline-offset:2px}
+#cc-staff #ccs-main #cc-heartbeat .hb-m-details .hb-v2-detail{margin:0 18px;padding:15px 0 18px;border-top:1px solid #edf0ee}
+
+/* Phones: the tabs' phone sizes */
+@media (max-width:760px){
+#cc-staff #ccs-main #cc-heartbeat .hb-v2{gap:13px}
+#cc-staff #ccs-main #cc-heartbeat .hb-v2-head h2{font-size:20px}
+#cc-staff #ccs-main #cc-heartbeat .hb-k-heading .hb-v2-switch{overflow-x:auto;scrollbar-width:none}
+#cc-staff #ccs-main #cc-heartbeat .hb-k-heading .hb-v2-switch button{padding:0 12px}
+#cc-staff #ccs-main #cc-heartbeat .hb-k-kpis{gap:8px}
+#cc-staff #ccs-main #cc-heartbeat .hb-k-kpi{gap:5px;padding:12px 12px 12px 16px}
+#cc-staff #ccs-main #cc-heartbeat .hb-k-top span{font-size:12.5px}
+#cc-staff #ccs-main #cc-heartbeat .hb-k-kpi strong{font-size:22px}
+#cc-staff #ccs-main #cc-heartbeat .hb-k-caption{font-size:12px}
+#cc-staff #ccs-main #cc-heartbeat .hb-k-panel,#cc-staff #ccs-main #cc-heartbeat .ccsd-season{padding:13px}
+#cc-staff #ccs-main #cc-heartbeat .hb-m-details>summary{min-height:44px}
+#cc-staff #ccs-main #cc-heartbeat .hb-m-details .hb-v2-detail{margin:0 13px;padding-bottom:13px}
+}
+@media (prefers-reduced-motion:reduce){#cc-staff #ccs-main #cc-heartbeat .hb-m-details>summary::after{transition:none}}
