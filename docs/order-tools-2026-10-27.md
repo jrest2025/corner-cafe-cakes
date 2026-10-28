@@ -367,3 +367,8 @@ Screens:
 - Commit 17e1f9b1a58195fdf73078724d5ea5394750e83c; only `staff.polish.js` changed (fingerprint 42719f9432ec19ab69c200c577a7766d).
 - Today "Act now" lines shown as icon chips (amber clock up to 15 min late, red after; navy due date; amber to-dos; grey waiting; red allergies). Full sentence kept as tooltip and for screen readers. Clock on Due today tags.
 - Presentation only. Rollback: loader 58 (commit 0efff71).
+
+## Loader 60 — phase 2b, order cards (28 Oct 2026, 5:53 PM Fiji)
+- Commit 24af83414ad42dd12b6515b53898b90c4838dae9; only `staff.polish.js` changed (fingerprint f94216e819e306dda7f7139fa1e3f85b).
+- Order cards: lateness clock chip and coloured time (amber up to 15 min, red after; phone flag slot), allergy red triangle, "Received …" as italic hint.
+- Presentation only. Rollback: loader 59 (commit 17e1f9b).
