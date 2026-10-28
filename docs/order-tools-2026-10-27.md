@@ -394,3 +394,4 @@ Screens:
 - Confirm, Decline, Cancel, Send quote, Send updated confirmation and Resend email: the first tap arms the button (amber, "Tap again to send", hint "This emails the customer."); a second tap within 5 seconds goes through. Kitchen printer buttons unchanged (owner's choice). polish.js block __ccMailTwice.
 - The green "Cake is ready" button (service-tools) was an action that read like a status on every confirmed order. Now "Mark cake ready", white with a tick icon; green stays for cakes that really are ready.
 - Note: older tests that press Confirm/Cancel once will need a second press.
+- Live 28 Oct 2026 8:06 PM Fiji as loader 64 (commit d287767). Rollback: re-apply ccordertoolsloader63.
