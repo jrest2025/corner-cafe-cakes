@@ -24,9 +24,9 @@ The staff page is assembled in the browser from several pieces. **Every piece is
 changes what staff see. Only editing the Webflow page does.
 
 1. **Base app**: `dist/app/staff-app.d1c119f6f0.js` at commit bd90f95e (Release D), loaded by the page footer with SRI.
-2. **Order tools loader** (Webflow registered script `ccordertoolsloader66`): 16 add-ons from `src/` at commit 45a39be5
+2. **Order tools loader** (Webflow registered script `ccordertoolsloader67`): 16 add-ons from `src/` at commit 08c375ab
    (order-tools, analytics-birthday, cake-lead-time, service-tools, seasonal, treat-orders, analytics-focus, polish, ipad,
-   flow, analytics-metrics, admin, welcome, answers, pickups, oldentry). Copies of loaders 34 to 66 are in `docs/loaderNN.js`.
+   flow, analytics-metrics, admin, welcome, answers, pickups, oldentry). Copies of loaders 34 to 67 are in `docs/loaderNN.js`.
 3. **Other registered scripts** on the page: Sentry, Birthday Club list and menu item, analytics workspace (commit 8ee47424),
    app install icons (dist/pwa), email templates screen, six small analytics and Today layout scripts from 22 October,
    the asset check (`ccAssetVerify`) and its list of expected file fingerprints (`ccAssetManifestAll`).
@@ -42,7 +42,7 @@ take the current live file with `git show <commit>:<file>`, apply checked replac
 
 ### Protected commits
 
-Branch `keep/live-pins` holds every commit the live pages and Edge Functions load (26 on 28 October 2026). **Never delete it.**
+Branch `keep/live-pins` holds every commit the live pages and Edge Functions load (28 on 28 October 2026). **Never delete it.**
 When a release pins a new commit, add it to that branch. With it in place, old branches can be deleted safely.
 
 ### Protected features
