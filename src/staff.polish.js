@@ -16,6 +16,40 @@
   win.__ccPolish20261026 = true;
 
 
+
+  // ---------- emails to customers need two taps (28 Oct 2026, Roneel) ----------
+  // Confirm, Decline, Cancel, Send quote, Send updated confirmation and Resend email can email the customer. The first
+  // tap only arms the button (amber, "Tap again to send"); a second tap within 5 seconds goes through to the app as
+  // before. Nothing else changes: the app's own checks and the server still decide what is sent.
+  (function () {
+    if (win.__ccMailTwice) return; win.__ccMailTwice = 1;
+    var SEL = '#ccs-sheet [data-act="do-confirm"], #ccs-sheet [data-act="do-decline"], #ccs-sheet [data-act="do-cancel"], #ccs-sheet [data-act="send-quote"], #ccs-sheet [data-act="mail-update"], #ccs-sheet [data-act="mail-resend"]';
+    var st = doc.createElement('style');
+    st.textContent = '#cc-staff #ccs-sheet .ccm-armed,#ccs-sheet .ccm-armed{background:#FFFAEB!important;color:#93370D!important;border:1px solid #FEC84B!important;box-shadow:none!important}' +
+      '#ccs-sheet .ccm-armed-hint{display:block;margin:6px 0 0;font-size:13px;font-style:italic;color:#93370D}';
+    doc.head.appendChild(st);
+    var armed = null, label = '', timer = null, hint = null, armedKey = null, armedUntil = 0;
+    function disarm() {
+      clearTimeout(timer);
+      if (armed && armed.isConnected) { armed.classList.remove('ccm-armed'); armed.textContent = label; }
+      if (hint && hint.isConnected) hint.remove();
+      armed = null; hint = null; armedKey = null;
+    }
+    win.addEventListener('click', function (e) {
+      var t = e.target && e.target.closest ? e.target.closest(SEL) : null;
+      if (!t) { if (armed && !(e.target && e.target.closest && e.target.closest('.ccm-armed'))) disarm(); return; }
+      if (t.disabled || t.classList.contains('is-busy')) return;
+      var key = t.getAttribute('data-act') + '|' + ((doc.querySelector('#ccs-sheet .os-tph small') || {}).textContent || '');
+      if (armedKey === key && Date.now() < armedUntil) { clearTimeout(timer); armed = null; armedKey = null; if (hint && hint.isConnected) hint.remove(); hint = null; return; }   // second tap (even if the app redrew the button): let it through
+      disarm();
+      e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+      armed = t; label = t.textContent; armedKey = key; armedUntil = Date.now() + 5000;
+      t.classList.add('ccm-armed'); t.textContent = 'Tap again to send';
+      hint = doc.createElement('small'); hint.className = 'ccm-armed-hint'; hint.textContent = 'This emails the customer.';
+      var row = t.closest('.ccs-actions-row') || t.parentNode; row.parentNode.insertBefore(hint, row.nextSibling);
+      timer = setTimeout(disarm, 5000);
+    }, true);
+  })();
   // ---------- screens settle before they show (28 Oct 2026, enterprise motion brief) ----------
   // Root cause of the jump when opening Today or Customers: the app draws the screen, then the add-ons rearrange it a
   // frame later (Today's stats, warnings and week; the Customers summary and table), so content visibly moves. After a

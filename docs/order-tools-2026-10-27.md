@@ -389,3 +389,8 @@ Screens:
 - Settings → Data and safety → Integrations: read-only cards (order database, website orders, customer emails, kitchen printing, Google Sheet backup, WhatsApp) from the existing ops_health, mirror_health and admin_print_settings checks. Managers and admins only; no database change.
 - Rollback: loader 60 (commit 24af834).
 - Live 28 Oct 2026 7:40 PM Fiji as loader 63 (commit f3924ed), built on loader 62 (phase 4 from another session, which stays). Rollback: re-apply ccordertoolsloader62. The footer hotfix "cc-order-actions-hotfix-20261028" is left in place; polish removes its copies.
+
+## 28 Oct 2026 8 PM — Customer emails need two taps; "Mark cake ready" (preview)
+- Confirm, Decline, Cancel, Send quote, Send updated confirmation and Resend email: the first tap arms the button (amber, "Tap again to send", hint "This emails the customer."); a second tap within 5 seconds goes through. Kitchen printer buttons unchanged (owner's choice). polish.js block __ccMailTwice.
+- The green "Cake is ready" button (service-tools) was an action that read like a status on every confirmed order. Now "Mark cake ready", white with a tick icon; green stays for cakes that really are ready.
+- Note: older tests that press Confirm/Cancel once will need a second press.
