@@ -32,3 +32,50 @@
 #cc-campaigns-modal .cm-loading{padding:28px;text-align:center}
 #cc-campaigns-modal .cm-footer{padding:8px 0;font-size:13px}
 @media(max-width:700px){#cc-campaigns-modal{padding:6px}#cc-campaigns-modal .cm-shell{padding:13px;border-radius:10px}#cc-campaigns-modal .cm-fields{grid-template-columns:1fr}#cc-campaigns-modal .cm-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}#cc-campaigns-modal .cm-section,#cc-campaigns-modal .cm-card{padding:13px}}
+
+/* 29 Oct 2026: compact, viewport-aware CRM campaign workspace */
+#cc-campaigns-modal{display:flex;align-items:center;justify-content:center;padding:12px;background:rgba(12,31,24,.55);backdrop-filter:blur(3px);font-size:13px;line-height:1.4}
+#cc-campaigns-modal .cm-shell{width:min(820px,100%);max-height:min(88dvh,840px);overflow-y:auto;overscroll-behavior:contain;margin:auto;padding:0 18px 12px;border:1px solid #e0e8e0;border-radius:13px;box-shadow:0 20px 56px rgba(5,25,14,.23);scrollbar-width:thin}
+#cc-campaigns-modal header{position:sticky;top:0;z-index:3;align-items:center;margin:0 -18px;padding:13px 18px;background:#fbfcf9;border-bottom:1px solid #e1e9e0}
+#cc-campaigns-modal header h2{font-size:20px;line-height:1.2;letter-spacing:-.025em}
+#cc-campaigns-modal header p{font-size:12px;margin:3px 0 0;max-width:510px}
+#cc-campaigns-modal header small{font-size:10px;letter-spacing:.08em;font-weight:700}
+#cc-campaigns-modal .cm-header-actions{display:flex;align-items:center;gap:7px;flex-shrink:0}
+#cc-campaigns-modal button,#cc-campaigns-modal select.cm-status{min-height:34px;padding:7px 10px;font-size:12px;border-radius:7px}
+#cc-campaigns-modal .cm-header-actions button{white-space:nowrap}
+#cc-campaigns-modal .cm-header-actions .cm-close{width:34px;padding:0;display:grid;place-items:center;font-size:18px;color:#496458}
+#cc-campaigns-modal .cm-section,#cc-campaigns-modal .cm-card{padding:12px;margin:10px 0;border-radius:9px}
+#cc-campaigns-modal .cm-section{background:#f5f8f4}
+#cc-campaigns-modal #cm-form-section[hidden]{display:none!important}
+#cc-campaigns-modal #cm-form-section h3{font-size:16px}
+#cc-campaigns-modal .cm-fields{gap:9px 12px}
+#cc-campaigns-modal label{font-size:11px;line-height:1.3}
+#cc-campaigns-modal label input,#cc-campaigns-modal label select{min-height:36px;margin-top:4px;padding:7px 9px;font-size:13px;border-radius:6px}
+#cc-campaigns-modal h3{font-size:15px;margin:7px 0}
+#cc-campaigns-modal h4{font-size:14px}
+#cc-campaigns-modal .cm-card{padding:12px 13px}
+#cc-campaigns-modal .cm-metrics{gap:6px;margin:10px 0}
+#cc-campaigns-modal .cm-metrics div{padding:8px 9px;border-radius:7px;min-width:0}
+#cc-campaigns-modal .cm-metrics small{display:block;font-size:10px;line-height:1.25}
+#cc-campaigns-modal .cm-metrics strong{font-size:15px;line-height:1.3;overflow-wrap:anywhere}
+#cc-campaigns-modal .cm-actions{gap:6px;margin-top:8px}
+#cc-campaigns-modal .cm-flag{font-size:11px;padding:4px 7px}
+#cc-campaigns-modal .cm-footer{font-size:11px;line-height:1.45;margin:8px 2px;color:#637568}
+#cc-campaigns-modal .cm-loading{padding:14px}
+#cc-campaigns-modal details{margin-top:8px;font-size:12px}
+#cc-campaigns-modal .cm-url{font-size:11px;padding:8px}
+@media(max-width:700px){
+ #cc-campaigns-modal{padding:6px;align-items:stretch}
+ #cc-campaigns-modal .cm-shell{max-height:calc(100dvh - 12px);padding:0 11px 12px;border-radius:10px}
+ #cc-campaigns-modal header{margin:0 -11px;padding:11px;gap:8px}
+ #cc-campaigns-modal header h2{font-size:17px}
+ #cc-campaigns-modal header p{display:none}
+ #cc-campaigns-modal .cm-header-actions{gap:4px}
+ #cc-campaigns-modal .cm-header-actions button{font-size:11px;padding:7px 8px}
+ #cc-campaigns-modal .cm-section,#cc-campaigns-modal .cm-card{padding:10px}
+ #cc-campaigns-modal .cm-fields{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+ #cc-campaigns-modal .cm-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #cc-campaigns-modal .cm-actions button{flex:1 1 auto}
+}
+@media(max-width:400px){#cc-campaigns-modal .cm-fields{grid-template-columns:1fr}#cc-campaigns-modal header small{display:none}#cc-campaigns-modal .cm-header-actions button{font-size:10px}}
+@media(prefers-reduced-motion:reduce){#cc-campaigns-modal *{scroll-behavior:auto!important}}
