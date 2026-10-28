@@ -372,3 +372,8 @@ Screens:
 - Commit 24af83414ad42dd12b6515b53898b90c4838dae9; only `staff.polish.js` changed (fingerprint f94216e819e306dda7f7139fa1e3f85b).
 - Order cards: lateness clock chip and coloured time (amber up to 15 min, red after; phone flag slot), allergy red triangle, "Received …" as italic hint.
 - Presentation only. Rollback: loader 59 (commit 17e1f9b).
+
+## Loader 61 — phase 3, Integrations page (28 Oct 2026, 6:27 PM Fiji)
+- Commit ee244c222af6b2f214f55465628164010bdc73bb; only `staff.admin.js` changed (fingerprint 489680a4f34de4c9179dec29e366d2c5).
+- Settings → Data and safety → Integrations: read-only cards (order database, website orders, customer emails, kitchen printing, Google Sheet backup, WhatsApp) from the existing ops_health, mirror_health and admin_print_settings checks. Managers and admins only; no database change.
+- Rollback: loader 60 (commit 24af834).
