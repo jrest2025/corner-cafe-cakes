@@ -402,3 +402,7 @@ Screens:
 - Leftover footer hotfix (cc-order-actions-hotfix-20261028) not removed: removing means rewriting the page's 49 KB footer block by hand, which also loads the app itself. It is inert (its row stays empty and hidden).
 - Tests: test_polish expects the deep green buttons (148 pass); new test_tonight.cjs (8 pass). test_order_tools date-step failures are unrelated (that test loads only order-tools.js, unchanged).
 - Live 28 Oct 2026 8:37 PM Fiji as loader 65 (commit 15399e9). Rollback: re-apply ccordertoolsloader64.
+
+## 28 Oct 2026 8:45 PM — Pencil goes straight to the field
+- Pencil opens Change order at the right section with the cursor in Name, Message or Design; fills Who asked = Our team and Reason = Spelling fix (editable). Review then Save as usual. Order contact name only (profile via Customers, Edit details).
+- Live as loader 66 (commit 45a39be). Rollback: re-apply ccordertoolsloader65.
