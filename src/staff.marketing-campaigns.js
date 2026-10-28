@@ -29,5 +29,25 @@ d.addEventListener('change',function(e){var t=e.target;if(t.dataset.cm==='status
 d.addEventListener('submit',function(e){if(e.target.id!=='cm-form')return;e.preventDefault();if(saving)return;var fd=new FormData(e.target),row={name:String(fd.get('name')||'').trim(),code:String(fd.get('code')||'').trim().toLowerCase(),platform:String(fd.get('platform')),budget:Number(fd.get('budget')),landing_url:String(fd.get('landing_url')||'').trim(),starts_on:fd.get('starts_on')||null,ends_on:fd.get('ends_on')||null};if(row.starts_on&&row.ends_on&&row.ends_on<row.starts_on){w.alert('End date cannot precede start date.');return}if(!/^https:\/\//i.test(row.landing_url)){w.alert('Use an HTTPS landing page.');return}saving=true;(editing?update(editing,row):create(row)).catch(function(x){w.alert(error(x))}).finally(function(){saving=false})});
 d.addEventListener('keydown',function(e){if(e.key==='Escape'&&open)close()});
 function nav(){var root=d.querySelector('#cc-staff .ccs-side .ccs-nav');if(!root||root.querySelector('[data-cm="open"]'))return;var orders=root.querySelector('[data-tab="orders"]');if(!orders)return;var b=d.createElement('button');b.type='button';b.className='ccs-nav-item';b.dataset.cm='open';b.title='Marketing campaigns';b.innerHTML='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#237348" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 11 12-5v12L3 14z"/><path d="M7 14v5h4l-1-4"/></svg><span>Marketing campaigns</span>';orders.after(b)}
-if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',nav);else nav();setInterval(nav,3000);
+/* Observe staff navigation as soon as it is created instead of waiting for a 3-second poll. */
+var navPending=false;
+function scheduleNav(){if(navPending)return;navPending=true;Promise.resolve().then(function(){navPending=false;nav()})}
+if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',scheduleNav,{once:true});else scheduleNav();
+var navObserver=new MutationObserver(function(records){
+ for(var i=0;i<records.length;i++){
+  if(records[i].addedNodes.length||records[i].removedNodes.length){scheduleNav();break}
+ }
+});
+function observeNav(){
+ var root=d.getElementById('cc-staff');
+ if(!root)return false;
+ navObserver.observe(root,{childList:true,subtree:true});
+ scheduleNav();
+ return true
+}
+if(!observeNav()){
+ var initialObserver=new MutationObserver(function(){if(observeNav())initialObserver.disconnect()});
+ initialObserver.observe(d.documentElement,{childList:true,subtree:true});
+}
+
 })(window,document);
