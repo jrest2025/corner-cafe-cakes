@@ -413,3 +413,6 @@ Screens:
 - CMS: Christmas Cookies renamed Festive Cookies (slug unchanged).
 - At deploy: Festive treats group On and can be ordered alone; order page footer to guest.seasonal.js @b646683; publish the 7 goodies; /festive out of draft; publish.
 - Specials stay separate (Roneel, 28 Oct 9 PM): website cake form no longer offers treats (WITH_CAKE=false); treats only in the Festive treats section as their own order. Staff app unchanged (counter can still add treats or wine to a cake order). test_guest_seasonal's add-on checks are superseded by test_festive_link (14 pass).
+- Seasonal stands out (28 Oct 9:30 PM, preview): side menu item Seasonal (berry red, count of new + today) while the Festive treats heading is On or treat orders are open; board renamed Seasonal orders with a Season so far strip; Analytics > Sales & Products shows a Seasonal card (booked value, orders, items, paid so far, items bar chart) from 1 Oct, treat orders plus treats on cake orders. treat-orders.js; test_treat_orders 73 pass.
+- /festive follows the same switch: On = Order buttons with the treat, Off = Coming soon (src/festive/festive-page-footer.html is the page footer).
+- Deploy plan now: publish /festive with the switch Off (Coming soon) and alone_allowed true; Roneel switches On when Chef Nilesh confirms dates.
