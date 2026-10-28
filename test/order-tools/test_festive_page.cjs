@@ -46,6 +46,27 @@ let n = 0, fails = 0; const check = (s, v, d) => { if (v) { n++; console.log('PA
       await p.fill('#cc-treat-order [data-cct-k="name"]', 'Test Guest'); await p.fill('#cc-treat-order [data-cct-k="phone"]', '9123456'); await p.click('#cc-treat-order [data-cct="send"]'); await p.waitForTimeout(300);
       const d = await p.evaluate(() => ({ sent: window.__tsent, done: !!document.querySelector('.cct-done'), cards: [...document.querySelectorAll('.ccfest-qty')].filter(q => !q.hidden).length }));
       check(tag + ': sends 2 x Mince Pies, thank-you shows, cards back to Add', d.done && d.sent && d.sent[0].treats.length === 1 && d.sent[0].treats[0].quantity === 2 && d.cards === 0, d);
+      // corporate: Start a corporate order, add 25 cookies, company + invoice needs email, delivery needs address
+      await p.click('#cc-treat-order [data-cct="again"]');
+      const corp = await p.evaluate(() => ({ panel: !!document.querySelector('#corporate .ccfest-h2'), btn: getComputedStyle(document.querySelector('.ccfest-corp-go')).display !== 'none' }));
+      await p.click('.ccfest-corp-go');
+      for (let k = 0; k < 25; k++) await p.evaluate(() => window.__ccoSeasonal.set('Festive Cookies', (window.__ccoSeasonal.info('Festive Cookies').q || 0) + 1));
+      const s1 = await p.evaluate(() => ({ line: (document.querySelector('#cc-treat-order .cct-bulkline') || {}).textContent || '', q: window.__ccoSeasonal.info('Festive Cookies').q }));
+      await p.click('#cc-treat-order [data-cct="go2"]'); await p.click('#cc-treat-order .cct-days button'); await p.click('#cc-treat-order .cct-times button'); await p.click('#cc-treat-order [data-cct="go3"]');
+      await p.fill('#cc-treat-order [data-cct-k="name"]', 'Asha Lal'); await p.fill('#cc-treat-order [data-cct-k="phone"]', '9123456');
+      await p.click('#cc-treat-order [data-cct-pay="invoice"]'); await p.click('#cc-treat-order [data-cct-ful="delivery"]');
+      await p.click('#cc-treat-order [data-cct="send"]'); await p.waitForTimeout(150);
+      const e1 = await p.evaluate(() => (document.querySelector('#cct-e-company') || {}).textContent || '');
+      await p.fill('#cc-treat-order [data-cct-k="company"]', 'Pacific Tours Ltd'); await p.click('#cc-treat-order [data-cct="send"]'); await p.waitForTimeout(150);
+      const e2 = await p.evaluate(() => (document.querySelector('#cct-e-email') || {}).textContent || '');
+      await p.fill('#cc-treat-order [data-cct-k="email"]', 'office@pacifictours.com.fj'); await p.click('#cc-treat-order [data-cct="send"]'); await p.waitForTimeout(150);
+      const e3 = await p.evaluate(() => (document.querySelector('#cct-e-addr') || {}).textContent || '');
+      await p.fill('#cc-treat-order [data-cct-k="addr"]', 'Lot 4, Queens Road, Nadi'); await p.click('#cc-treat-order [data-cct="send"]'); await p.waitForTimeout(300);
+      const d2 = await p.evaluate(() => ({ sent: window.__tsent[window.__tsent.length - 1], done: (document.querySelector('.cct-done') || {}).textContent || '' }));
+      check(tag + ': corporate panel and Start button show; 25 goodies flagged as bulk', corp.panel && corp.btn && s1.q === 25 && /bulk/i.test(s1.line), [corp, s1]);
+      check(tag + ': bulk asks for company, invoice email, delivery address', /company/i.test(e1) && /email/i.test(e2) && /address/i.test(e3), [e1, e2, e3]);
+      const P = d2.sent || {};
+      check(tag + ': bulk request sent with business details; thank-you says quote', P.business === true && P.company === 'Pacific Tours Ltd' && P.pay === 'invoice' && P.fulfilment === 'delivery' && /Queens Road/.test(P.address) && P.treats[0].quantity === 25 && /quote/i.test(d2.done) && /Pacific Tours/.test(d2.done), P);
       if (SHOTS) await p.screenshot({ path: SHOTS + '/festive-page-' + t + '.png' });
     } else {
       check(tag + ': no order module, every card says Coming soon', !s.mod && s.soon === 3 && s.order === 0, s);

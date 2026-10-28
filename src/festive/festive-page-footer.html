@@ -17,6 +17,13 @@ html:not(.ccfest-known) #festive-menu .ccfest-card-add,html:not(.ccfest-known) .
 .ccfest-qty button:disabled{opacity:.4;cursor:not-allowed}
 .ccfest-qty button:focus-visible,.ccfest-bar .ccfest-btn:focus-visible{outline:3px solid #163E32;outline-offset:2px}
 .ccfest-qty output{min-width:28px;text-align:center;font-weight:600;font-size:18px;color:#163E32}
+.ccfest-corp{display:grid;grid-template-columns:1fr auto;gap:16px 32px;align-items:end;margin:0 0 24px;padding:28px;background:#fff;border:1px solid #E8E1D5;border-radius:8px}
+.ccfest-corp .ccfest-h2{margin:4px 0 10px}.ccfest-corp .ccfest-order-desc{margin:0;max-width:62ch}
+.ccfest-corp-go{cursor:pointer}.ccfest-corp-soon{margin:0;font-size:15px;font-style:italic;color:#566358}.ccfest-corp-soon a{color:#163E32}
+html.ccfest-on .ccfest-corp-soon,html:not(.ccfest-on) .ccfest-corp-go{display:none}
+@media(max-width:760px){.ccfest-corp{grid-template-columns:1fr;padding:20px 16px}.ccfest-corp-go{width:100%;justify-content:center}}
+/* contact line: space between Call and Email */
+.ccfest-order-info a[href^="tel:"]{margin-right:22px}
 .ccfest-off{flex-basis:100%;margin:0;font-size:14px;font-style:italic;color:#9a4b12}
 /* "in your order" bar: shows while goodies are chosen and the order box is out of view */
 .ccfest-bar{position:fixed;left:50%;bottom:14px;z-index:50;transform:translate(-50%,0);width:min(560px,calc(100% - 24px));display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 10px 10px 18px;background:#fff;border:1px solid #E8E1D5;border-radius:8px;box-shadow:0 8px 28px rgba(22,62,50,.18);color:#26352D;font-size:16px;transition:opacity .16s ease-out,transform .16s ease-out}
@@ -28,7 +35,7 @@ html:not(.ccfest-known) #festive-menu .ccfest-card-add,html:not(.ccfest-known) .
 <script>
 /* 28 Oct 2026: the order box sits right after the goodies; data-cct-cards tells the order module the cards are the picker */
 (function(){var m=document.getElementById('festive-menu');if(!m||document.getElementById('cc-treat-host'))return;
-var s=document.createElement('section');s.className='ccfest-treats';s.innerHTML='<div class="ccfest-shell"><div id="cc-treat-host" data-cct-cards></div></div>';m.parentNode.insertBefore(s,m.nextSibling);})();
+var s=document.createElement('section');s.className='ccfest-treats';s.innerHTML='<div class="ccfest-shell"><div class="ccfest-corp" id="corporate"><div><p class="ccfest-kicker">Corporate &amp; bulk orders</p><h2 class="ccfest-h2">Festive gifts for your team and clients</h2><p class="ccfest-order-desc">Staff gifts, client thank-yous and office treats, handmade at Corner Caf\u00e9 in Nadi. Order 20 or more goodies, or order for your business, and we send you a quote with bulk pricing. Pay by invoice or deposit, and we can deliver to your office.</p></div><div class="ccfest-corp-act"><button type="button" class="ccfest-btn ccfest-btn-primary ccfest-corp-go">Start a corporate order</button><p class="ccfest-corp-soon">Corporate orders open soon. Call <a href="tel:+6798922760">892 2760</a>.</p></div></div><div id="cc-treat-host" data-cct-cards></div></div>';m.parentNode.insertBefore(s,m.nextSibling);})();
 </script>
 <script>
 /* Festive menu from the Webflow CMS (Festive Goodies). 28 October 2026.
@@ -96,10 +103,13 @@ document.addEventListener('DOMContentLoaded',function(){
     });
     /* hero "Order festive treats" goes to the goodies, where ordering starts */
     orderLinks.forEach(function(a){if(on){a.style.display='';a.setAttribute('href','#festive-menu');}else a.style.display='none';});
+    document.documentElement.classList.toggle('ccfest-on',!!on);
     if(on)sync();
     document.documentElement.classList.add('ccfest-known');
   }
   window.addEventListener('cct:change',function(){if(isOn)sync();});
+  /* "Start a corporate order": the order box below switches to a business order */
+  document.addEventListener('click',function(e){var b=e.target&&e.target.closest&&e.target.closest('.ccfest-corp-go');if(!b||!S()||!S().business)return;S().business();var o=document.getElementById('cc-treat-order');if(o)o.scrollIntoView({block:'nearest'});});
   document.addEventListener('click',function(e){
     var t=e.target&&e.target.closest&&e.target.closest('#festive-menu [data-treat],#festive-menu .ccfest-qty button'); if(!t||!S()||!S().set)return;
     e.preventDefault();

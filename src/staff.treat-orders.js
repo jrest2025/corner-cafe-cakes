@@ -116,16 +116,17 @@
       var tos = ((x[0] && x[0].orders) || []).filter(function (o) { return o.status !== 'cancelled' && o.pickup_date >= SEASON_FROM; });
       var ex = (x[1] || []).filter(function (e) { var o = e.orders || {}; return !o.deleted_at && !o.is_test && ['cancelled', 'declined'].indexOf(o.order_status) < 0; });
       var items = {}, value = 0, paid = 0, qty = 0, cakeOrders = {};
-      tos.forEach(function (o) { paid += Number(o.paid || 0); (o.items || []).forEach(function (i) { items[i.name] = (items[i.name] || 0) + i.quantity; qty += i.quantity; value += Number(i.price) * i.quantity; }); });
+      var corp = 0, corpValue = 0;
+      tos.forEach(function (o) { paid += Number(o.paid || 0); value += Number(o.total || 0); if (o.kind === 'bulk') { corp++; corpValue += Number(o.total || 0); } (o.items || []).forEach(function (i) { items[i.name] = (items[i.name] || 0) + i.quantity; qty += i.quantity; }); });
       ex.forEach(function (e) { items[e.name] = (items[e.name] || 0) + e.quantity; qty += e.quantity; value += Number(e.unit_price) * e.quantity; cakeOrders[e.order_id] = 1; });
-      season = { orders: tos.length, withCake: Object.keys(cakeOrders).length, qty: qty, value: value, paid: paid, items: Object.keys(items).map(function (k) { return [k, items[k]]; }).sort(function (p, q) { return q[1] - p[1]; }) };
+      season = { corp: corp, corpValue: corpValue, orders: tos.length, withCake: Object.keys(cakeOrders).length, qty: qty, value: value, paid: paid, items: Object.keys(items).map(function (k) { return [k, items[k]]; }).sort(function (p, q) { return q[1] - p[1]; }) };
       schedule(); if (B) draw();
     }, function () { seasonLoading = false; });
   }
   function seasonHtml(compact) {
     if (!season) return '';
     var s = season, max = s.items.length ? s.items[0][1] : 1;
-    var h = '<div class="cc-so-k"><span><b>' + money(s.value) + '</b> booked</span><span><b>' + (s.orders + s.withCake) + '</b> orders</span><span><b>' + s.qty + '</b> items</span>' + (compact ? '' : '<span><b>' + money(s.paid) + '</b> paid so far</span>') + '</div>';
+    var h = '<div class="cc-so-k"><span><b>' + money(s.value) + '</b> booked</span><span><b>' + (s.orders + s.withCake) + '</b> orders</span><span><b>' + s.qty + '</b> items</span>' + (compact ? '' : '<span><b>' + money(s.paid) + '</b> paid so far</span>') + (s.corp ? '<span class="cc-so-corp">' + BLDG + '<b>' + s.corp + '</b> corporate · ' + money(s.corpValue) + '</span>' : '') + '</div>';
     if (!compact && s.items.length) h += '<div class="cc-so-bars">' + s.items.slice(0, 8).map(function (it) { return '<div class="cc-so-bar"><span>' + esc(it[0]) + '</span><i style="--w:' + Math.max(4, Math.round(it[1] / max * 100)) + '%"></i><b>' + it[1] + '</b></div>'; }).join('') + '</div>';
     if (!s.qty) h += '<p class="cc-so-none"><em>No seasonal orders yet this season.</em></p>';
     return h;
@@ -165,12 +166,24 @@
     // Today: anything waiting on staff now — new requests (any day), today's pickups, and earlier ones not handed over
     return all.filter(function (o) { return o.status === 'new' || (o.status === 'confirmed' && o.pickup_date <= t); });
   }
+  // (28 Oct 2026) corporate and bulk requests from the website: company, delivery, how they want to pay, agreed price
+  var BLDG = '<svg class="cc-to-bico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 21V5a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v16"/><path d="M15 9h4a1 1 0 0 1 1 1v11"/><path d="M3 21h18M8 8h3M8 12h3M8 16h3"/></svg>';
+  var PAYPREF = { collect: 'Pays at pickup', invoice: 'Invoice', deposit: 'Deposit' };
+  function isBulk(o) { return o && o.kind === 'bulk'; }
+  function quoted(o) { return isBulk(o) && o.list_total != null && Number(o.total) < Number(o.list_total) - 0.005; }
+  function bulkHtml(o) {
+    if (!isBulk(o)) return '';
+    var bits = [o.fulfilment === 'delivery' ? 'Deliver' + (o.delivery_address ? ': ' + o.delivery_address : '') : 'Collect in Nadi', PAYPREF[o.pay_pref] || ''].filter(Boolean);
+    return '<p class="cc-to-bulk">' + BLDG + '<b>' + esc(o.company || 'Bulk order') + '</b><span>' + esc(bits.join(' · ')) + '</span>' +
+      (o.email ? '<a href="mailto:' + esc(o.email) + '">' + esc(o.email) + '</a>' : '') +
+      '<span class="cc-to-bprice">' + (quoted(o) ? 'Agreed ' + money(o.total) + ' <s>' + money(o.list_total) + '</s>' : 'List price ' + money(o.total) + ' · <em>agree a price</em>') + '</span></p>';
+  }
   function itemsLine(o) { return (o.items || []).map(function (i) { return i.quantity + ' × ' + i.name; }).join(', '); }
   function balance(o) { return Math.max(0, Number(o.total) - Number(o.paid)); }
   // One plain line that says where the order is
   function stateLine(o) {
     var bal = balance(o);
-    if (o.status === 'new') return ['is-new', 'New request · confirm it with the customer'];
+    if (o.status === 'new') return ['is-new', isBulk(o) ? 'Bulk request · agree the price, then confirm' : 'New request · confirm it with the customer'];
     if (o.status === 'confirmed') return o.pickup_date < today() ? ['is-late', 'Not handed over yet' + (bal ? ' · ' + money(bal) + ' to pay' : '')] : bal ? ['is-due', money(bal) + ' to pay at pickup'] : ['is-paid', 'Paid · ready to hand over'];
     if (o.status === 'collected') return ['is-done', 'Handed over'];
     return ['is-off', 'Cancelled' + (o.cancel_reason ? ': ' + o.cancel_reason : '')];
@@ -186,9 +199,10 @@
   function orderHtml(o) {
     var s = stateLine(o), act = B.act && B.act.id === o.id ? B.act : null, nx = nextStep(o), id = esc(o.id), more = B.more === o.id;
     var h = '<article class="cc-to-o ' + s[0] + '" data-id="' + id + '"><div class="cc-to-ot"><span class="cc-to-time">' + t12(o.pickup_time) + '</span><b class="cc-to-name">' + esc(o.name) + '</b></div>' +
-      '<p class="cc-to-what">' + esc(itemsLine(o)) + '</p>' + (o.note ? '<p class="cc-to-note">' + esc(o.note) + '</p>' : '') + '<p class="cc-to-state ' + s[0] + '">' + esc(s[1]) + '</p>';
+      '<p class="cc-to-what">' + esc(itemsLine(o)) + '</p>' + bulkHtml(o) + (o.note ? '<p class="cc-to-note">' + esc(o.note) + '</p>' : '') + '<p class="cc-to-state ' + s[0] + '">' + esc(s[1]) + '</p>';
     if (act) return h + actHtml(o, act) + '</article>';
     h += '<div class="cc-to-acts">' + (nx ? '<button type="button" class="ccs-btn cc-to-main" data-cc-to="' + nx[0] + '" data-id="' + id + '">' + esc(nx[1]) + '</button>' : '') +
+      (isBulk(o) && (o.status === 'new' || o.status === 'confirmed') && data.can_edit ? '<button type="button" class="ccs-btn ccs-ghost" data-cc-to="quote" data-id="' + id + '">' + (quoted(o) ? 'Change price' : 'Agree price') + '</button>' : '') +
       '<button type="button" class="ccs-btn ccs-ghost" data-cc-to="more" data-id="' + id + '" aria-expanded="' + more + '">' + (more ? 'Less' : 'More') + '</button></div>';
     if (more) {
       var live = o.status === 'new' || o.status === 'confirmed';
@@ -213,6 +227,11 @@
       h += '<h4>' + esc(String(o.name).split(' ')[0]) + ' still has ' + money(bal) + ' to pay</h4><div class="cc-to-acts">' +
         (data.can_pay ? '<button type="button" class="ccs-btn cc-to-main" data-cc-to="pay" data-id="' + esc(o.id) + '">Take payment</button>' : '') +
         '<button type="button" class="ccs-btn ccs-ghost" data-cc-to="collect-yes" data-id="' + esc(o.id) + '">Hand over anyway</button><button type="button" class="ccs-btn ccs-ghost" data-cc-to="act-close">Back</button></div>';
+    } else if (a.kind === 'quote') {
+      var list = Number(o.list_total != null ? o.list_total : o.total);
+      h += '<h4>Agreed price</h4><p class="cc-to-hint"><em>List price ' + money(list) + '. Enter the total you agreed, with any bulk discount and delivery.</em></p>' +
+        '<div class="ccs-field"><label class="ccs-label" for="cc-to-amt">Total</label><input class="ccs-input" id="cc-to-amt" type="number" inputmode="decimal" min="0" step="0.01" value="' + esc(a.amount != null ? a.amount : Number(o.total)) + '"></div>' +
+        '<div class="cc-to-acts"><button type="button" class="ccs-btn cc-to-main" data-cc-to="quote-save" data-id="' + esc(o.id) + '"' + (B.busy ? ' disabled' : '') + '>' + (B.busy ? 'Saving…' : 'Save price') + '</button><button type="button" class="ccs-btn ccs-ghost" data-cc-to="act-close">Back</button></div>';
     } else if (a.kind === 'cancel') {
       h += '<h4>Why is it cancelled?</h4><div class="cc-to-chips">' + REASONS.map(function (r) { return '<button type="button" class="ccs-chip" data-cc-to="reason" data-v="' + esc(r) + '" aria-pressed="' + (a.reason === r) + '">' + esc(r) + '</button>'; }).join('') + '</div>' +
         (Number(o.paid) > 0 ? '<p class="cc-to-warn">' + money(o.paid) + ' was paid. Arrange the refund as usual.</p>' : '') +
@@ -268,8 +287,8 @@
       if (!B) return; B.busy = false;
       if (!r || !r.ok) { B.err = (r && r.message) || 'Not saved.'; return draw(); }
       var o = ((data && data.orders) || []).filter(function (x) { return x.id === id; })[0];
-      B.act = null; B.more = null; B.msg = (o ? String(o.name).split(' ')[0] + ' · ' : '') + ({ confirm: 'confirmed.', pay: 'payment saved.', collected: 'handed over.', cancel: 'cancelled.' }[action] || 'saved.');
-      if (o) { o.status = r.status; o.paid = r.paid; }
+      B.act = null; B.more = null; B.msg = (o ? String(o.name).split(' ')[0] + ' · ' : '') + ({ confirm: 'confirmed.', pay: 'payment saved.', collected: 'handed over.', cancel: 'cancelled.', quote: 'price saved.' }[action] || 'saved.');
+      if (o) { o.status = r.status; o.paid = r.paid; if (r.total != null) o.total = r.total; }
       draw(); load(true);
     }, function (e) { if (!B) return; B.busy = false; B.err = errText(e); draw(); });
   }
@@ -398,6 +417,12 @@
     if (a === 'collect') { if (o && Number(o.total) - Number(o.paid) > 0.005) { B.msg = null; B.err = null; B.act = { id: id, kind: 'collect' }; return draw(); } return act(id, 'collected'); }
     if (a === 'collect-yes') return act(id, 'collected');
     if (a === 'cancel') { B.msg = null; B.err = null; B.act = { id: id, kind: 'cancel', reason: null }; return draw(); }
+    if (a === 'quote') { B.msg = null; B.err = null; B.act = { id: id, kind: 'quote', amount: null }; draw(); var qa = doc.getElementById('cc-to-amt'); if (qa) { qa.focus(); try { qa.select(); } catch (_) {} } return; }
+    if (a === 'quote-save') {
+      var qt = Number(String(B.act.amount != null ? B.act.amount : (doc.getElementById('cc-to-amt') || {}).value).replace(/[^\d.]/g, ''));
+      if (!(qt > 0)) { B.err = 'Type the agreed total.'; return draw(); }
+      return act(id, 'quote', { p_amount: Math.round(qt * 100) / 100 });
+    }
     if (a === 'reason') { B.act.reason = v; B.err = null; return draw(); }
     if (a === 'cancel-yes') { var why = String(B.act.reason || '').trim(); if (why.length < 2) { B.err = 'Tap why it is cancelled.'; return draw(); } return act(id, 'cancel', { p_note: why }); }
     if (a === 'print') { if (o) printSlip(o); return; }
@@ -448,6 +473,10 @@
       '#cc-staff .cc-to-pill.is-new{background:#ECFDF3;color:#067647}#cc-staff .cc-to-pill.is-ok{background:#E8EEF7;color:#1E3A5F}',
       '#cc-staff .cc-to-items{list-style:none;margin:10px 0 0;padding:0}#cc-staff .cc-to-items li{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-top:1px solid #F2F4F7}#cc-staff .cc-to-items small{color:#475467}',
       '#cc-staff .cc-to-note{margin:8px 0 0;background:#FFFAEB;border-radius:8px;padding:6px 10px}',
+      '#cc-staff .cc-to-bulk{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;margin:8px 0 0;padding:8px 10px;border-radius:8px;background:#EEF2F8;color:#1D2939;border:1px solid #D5DEEB}',
+      '#cc-staff .cc-to-bulk .cc-to-bico{color:#2B4C7E;flex:none}#cc-staff .cc-to-bulk b{font-weight:600;color:#1D3557}',
+      '#cc-staff .cc-to-bulk a{color:#2B4C7E}#cc-staff .cc-to-bprice{flex-basis:100%;font-size:.95em}#cc-staff .cc-to-bprice s{color:#667085;margin-left:4px}#cc-staff .cc-to-bprice em{color:#667085}',
+      '#cc-staff .cc-to-hint{margin:0 0 8px;font-size:.92em;color:#475467}',
       '#cc-staff .cc-to-money{display:flex;gap:18px;flex-wrap:wrap;margin:10px 0 0;color:#344054}#cc-staff .cc-to-money .is-due{color:#B54708}#cc-staff .cc-to-money .is-paid{color:#067647;font-weight:700}',
       '#cc-staff .cc-to-meta{margin:6px 0 0;color:#475467;font-size:15px}',
       '#cc-staff .cc-to-acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}#cc-staff .cc-to-acts a.ccs-btn{text-decoration:none;display:inline-flex;align-items:center;justify-content:center}',
