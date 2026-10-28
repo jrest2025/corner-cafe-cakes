@@ -1133,6 +1133,7 @@ async function renderSettings(){
   if(state.stab==='removed')return paneRemoved();
   if(state.stab==='history')return paneHistory();
   if(state.stab==='integrations')return paneIntegrations();
+  if(state.stab==='wording')return paneWording();
   if(state.stab==='profile')return paneProfile();
   try{var s=await call('staff_get_settings')}catch(e){$('spane').innerHTML='<div class="msg err">'+esc(errText(e))+'</div>';return}
   var admin=s.me&&s.me.role==='admin';
@@ -7126,6 +7127,74 @@ async function paneIntegrations(){var pane=$('spane');if(!pane)return;
     '<details class="kzint-jobs"'+(jb?' open':'')+'><summary><span>Scheduled jobs</span><span class="sp"></span><span class="sub">'+(jb?jb+' with a problem':J.length+' running')+'</span><svg class="kzint-chev" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.5 9.5l5.5 5.5 5.5-5.5"/></svg></summary><div class="list kzint-list">'+jobs+'</div></details>'+
     '<p class="shint">Email is sent through Resend. SMS, WhatsApp and payments are not connected.</p></div></div>';
   $('kzintr').onclick=function(){paneIntegrations()}}
+/* v147 (28 Oct 2026, Priority 1 in the Settings audit): Settings > Communications > Guest emails. Admins change the subject
+   and the opening message of each guest email; booking details, the cancel button and the sign-off stay automatic.
+   Only edits are stored (kz_email_wording); "Use the original wording" removes the edit. Saved changes show in the
+   change history. The send-booking-emails function fills the {tokens} for each booking. */
+(function(){if(!STABS.some(function(s){return s[0]==='wording'}))STABS.push(['wording','Guest emails']);
+  KZ136.G.forEach(function(g){if(g.k==='comms'&&g.items.indexOf('wording')<0){var i=g.items.indexOf('emails');g.items.splice(i<0?g.items.length:i+1,0,'wording')}});KZ136.I.wording='edit';
+  KZ136.P.edit='<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>';
+  ERR.INVALID_SUBJECT='Keep the subject to one line, up to 200 characters.';ERR.MESSAGE_TOO_LONG='Keep the message under 1,500 characters.';})();
+var KZEW=[
+  ['Booking received',[
+    ['confirm_tep_ok','Teppanyaki, booked',"You're booked for Teppanyaki at Kazumi – {reference}","Your seats at the Teppanyaki grill are booked. Our chef will cook right in front of you, so come hungry. We can't wait to welcome you."],
+    ['confirm_tep_req','Teppanyaki, request',"We have your Teppanyaki request – {reference}","Thank you for your Teppanyaki request for {guests}. We're holding your seats at the grill, and we'll confirm by {reply_by}. Nothing is final until you hear from us."],
+    ['confirm_tep_group','Teppanyaki, large group',"We have your Teppanyaki group request – {reference}","Thank you for your Teppanyaki request for {guests}. We're holding seats for your group while we work out the best way to seat you together, and we'll be in touch by {reply_by}."],
+    ['confirm_din_ok','Lunch or dinner, booked',"You're booked for {meal} at Kazumi – {reference}","Your table for {meal} is booked. We look forward to welcoming you to Kazumi."],
+    ['confirm_din_req','Lunch or dinner, request',"We have your table request – {reference}","Thank you for your table request for {guests}. We're holding the space for you, and we'll confirm by {reply_by}. Nothing is final until you hear from us."],
+    ['confirm_event','Event enquiry',"Thank you for your event enquiry – {reference}","Thank you for thinking of Kazumi for your event. We have your enquiry for {guests} guests, and our team will be in touch by {reply_by} to talk through the menu, timing and anything else you need. Nothing is final until we confirm it with you."]]],
+  ['Request confirmed',[
+    ['confirmed_tep','Teppanyaki',"Your Teppanyaki booking is confirmed – {reference}","Good news: your Teppanyaki booking for {guests} is confirmed. Our chef will cook right in front of you, so come hungry."],
+    ['confirmed_din','Lunch or dinner',"Your table at Kazumi is confirmed – {reference}","Good news: your table for {guests} is confirmed. We look forward to welcoming you."],
+    ['confirmed_event','Event',"Your event at Kazumi is confirmed – {reference}","Good news: your event at Kazumi is confirmed. We'll stay in touch about the final details."]]],
+  ['Request declined',[
+    ['declined_tep','Teppanyaki',"About your Teppanyaki request – {reference}","Thank you for your Teppanyaki request. We're sorry, but we can't seat your group at this sitting."],
+    ['declined_din','Lunch or dinner',"About your table request – {reference}","Thank you for your table request. We're sorry, but we can't seat your party at this time."],
+    ['declined_event','Event',"About your event enquiry – {reference}","Thank you for thinking of us for your event. We're sorry, but we can't host it on this date."]]],
+  ['Day before',[
+    ['reminder','Reminder',"See you tomorrow at Kazumi – {service}, {time}","We're looking forward to seeing you tomorrow. Here are your booking details."],
+    ['reminder_event','Event reminder',"See you tomorrow at Kazumi – {service}, {time}","Your event at Kazumi is tomorrow, and we're looking forward to hosting you."]]],
+  ['Changes and cancellations',[
+    ['updated','Booking changed',"Your Kazumi booking is updated – {reference}","We've updated your booking{changes}. Here are your new details."],
+    ['cancelled','Guest cancelled',"Your {service} booking is cancelled – {reference}","Your booking is cancelled. Thank you for letting us know, and we hope to welcome you another time."],
+    ['cancelled_event','Guest withdrew an event enquiry',"Your event enquiry is withdrawn – {reference}","Your event enquiry is withdrawn. Thank you for letting us know, and we hope to welcome you another time."],
+    ['cancelled_by_us','We cancelled',"We're sorry: your Kazumi booking is cancelled – {reference}","We're very sorry, but we've had to cancel your booking."]]]];
+var KZEW_TOK=[['name','First name','Mere'],['guests','Guests','4'],['date','Date','Friday, 20 November 2026'],['time','Time','5:30 PM'],['reference','Reference','KZ-4F7Q2'],
+  ['meal','Lunch or dinner','dinner'],['service','Booking type','Teppanyaki'],['reply_by','Reply by','Thursday, 4:00 PM'],['changes','What changed',' (time 5:30 PM to 7:00 PM)']];
+function kzEwFill(t){var v={};KZEW_TOK.forEach(function(k){v[k[0]]=k[2]});return String(t||'').replace(/\{([a-z_]+)\}/g,function(m,k){return k in v?v[k]:m})}
+async function paneWording(){var pane=$('spane');if(!pane)return;
+  if(!me||me.role!=='admin'){pane.innerHTML='<div class="panel"><p class="muted">Only admins can change guest email wording.</p></div>';return}
+  pane.innerHTML='<div class="skel" aria-label="Loading"><i></i><i></i><i></i></div>';
+  var W;try{W=await call('staff_email_wording')}catch(e){pane.innerHTML='<div class="msg err">'+esc(errText(e))+'</div>';return}
+  var n=Object.keys(W||{}).length;
+  pane.innerHTML='<div class="stack"><div class="panel stack kzew"><div class="row"><h2 style="margin:0">Guest emails</h2><span class="sp"></span><span class="sub kzew-count">'+(n?n+' edited':'All original')+'</span></div>'+
+    '<p class="shint">Change the subject and opening message. Booking details, the cancel button and the sign-off are added for you.</p>'+
+    KZEW.map(function(g){return '<div class="kzew-g"><div class="kzh-day">'+esc(g[0])+'</div><div class="list kzew-list">'+g[1].map(function(e){var w=W[e[0]],sub=w&&w.subject?w.subject:e[2];
+      return '<button type="button" class="kzew-row" data-k="'+e[0]+'"><span class="kzew-tx"><b>'+esc(e[1])+'</b><span class="sub">'+esc(kzEwFill(sub))+'</span></span>'+(w?'<span class="tag kzew-ed">Edited</span>':'')+kz136ic('chev','kzew-chev')+'</button>'}).join('')+'</div></div>'}).join('')+
+    '</div></div>';
+  pane.querySelectorAll('[data-k]').forEach(function(b){b.onclick=function(){var k=b.dataset.k,e=null;KZEW.forEach(function(g){g[1].forEach(function(x){if(x[0]===k)e=x})});if(e)kzEwEdit(e,W[k]||null)}})}
+function kzEwEdit(e,w){var o=$('kzew-s');if(o)o.remove();
+  var subj=w&&w.subject?w.subject:e[2],msgt=w&&w.message?w.message:e[3];
+  var d=document.createElement('div');d.id='kzew-s';d.className='kzimp kzew-sheet';d.setAttribute('role','dialog');d.setAttribute('aria-modal','true');d.setAttribute('aria-labelledby','kzew-t');
+  d.innerHTML='<div class="kzimp-scrim"></div><div class="kzimp-card kzew-card"><div class="kzimp-h"><b id="kzew-t">'+esc(e[1])+'</b><button type="button" class="kg2-ib" data-x aria-label="Close"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>'+
+    '<div class="kzew-body"><label class="kzew-l" for="kzew-su">Subject</label><input id="kzew-su" maxlength="200" value="'+esc(subj)+'">'+
+    '<label class="kzew-l" for="kzew-me">Opening message</label><textarea id="kzew-me" rows="5" maxlength="1500">'+esc(msgt)+'</textarea>'+
+    '<div class="kzew-tok" aria-label="Add a detail">'+KZEW_TOK.filter(function(t){return t[0]!=='changes'||e[0]==='updated'}).map(function(t){return '<button type="button" class="chip" data-t="'+t[0]+'">'+esc(t[1])+'</button>'}).join('')+'</div>'+
+    '<p class="shint">Tap a detail to add it where the cursor is. It is filled in for each guest.</p>'+
+    '<div class="kzew-prev" aria-live="polite"><div class="kzew-pl">Preview</div><div class="kzew-ps"></div><div class="kzew-pb"><p>Bula Mere,</p><p class="kzew-pm"></p><p class="kzew-auto">Booking details, the cancel button and the sign-off follow.</p></div></div></div>'+
+    '<div class="kzew-foot"><button type="button" class="link kzew-orig"'+(w?'':' hidden')+'>Use the original wording</button><span class="sp"></span><button type="button" class="btn" data-x>Cancel</button><button type="button" class="btn primary" id="kzew-ok">Save</button></div></div>';
+  root.appendChild(d);var su=$('kzew-su'),ms=$('kzew-me'),last=ms;
+  function prev(){d.querySelector('.kzew-ps').textContent=kzEwFill(su.value);d.querySelector('.kzew-pm').textContent=kzEwFill(ms.value)}
+  su.oninput=ms.oninput=prev;su.onfocus=function(){last=su};ms.onfocus=function(){last=ms};prev();
+  d.querySelectorAll('[data-t]').forEach(function(c){c.onmousedown=function(ev){ev.preventDefault()};c.onclick=function(){var f=last,t='{'+c.dataset.t+'}',a=f.selectionStart==null?f.value.length:f.selectionStart,b=f.selectionEnd==null?a:f.selectionEnd;
+    f.value=f.value.slice(0,a)+t+f.value.slice(b);f.focus();try{f.setSelectionRange(a+t.length,a+t.length)}catch(x){}prev()}});
+  function close(){d.remove()}
+  d.querySelector('.kzimp-scrim').onclick=close;d.querySelectorAll('[data-x]').forEach(function(x){x.onclick=close});
+  async function save(s,m,msg){try{await call('staff_save_email_wording',{p_key:e[0],p_subject:s,p_message:m});close();toast(msg);paneWording()}catch(x){toast(errText(x))}}
+  $('kzew-ok').onclick=function(){var s=su.value.trim(),m=ms.value.trim();if(!s||!m){toast('Fill in the subject and the message.');return}
+    if(s===e[2]&&m===e[3])return save('','','Original wording kept.');save(s===e[2]?'':s,m===e[3]?'':m,'Saved. New emails use this wording.')};
+  d.querySelector('.kzew-orig').onclick=function(){save('','','Original wording back.')};
+  setTimeout(function(){try{su.focus({preventScroll:true})}catch(x){}},50)}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
 })();
 
