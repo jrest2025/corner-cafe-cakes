@@ -1392,6 +1392,32 @@
     }).catch(function (e) { S.busy = false; fail(e); });
   }
   // Custom cakes: add or change the price (and, for a cake not on the menu, its flavour and size)
+  function addOnCurrent(o) {
+    return (o.cake_addon_quotes || []).some(function (q) { return q.quote_version === o.version && q.status === 'accepted' && Number(q.quoted_total) === Number(o.final_total); });
+  }
+  function saveAddOnQuote() {
+    var o = S.sheet.data, node = document.getElementById('aq-lines'), count = node ? Number(node.dataset.count) : 0, lines = [];
+    for (var i=0;i<count;i++) {
+      var description = val('aq-desc-'+i).trim(), quantity = Number(val('aq-qty-'+i)), unit_price = Number(val('aq-price-'+i));
+      if (!description || !Number.isInteger(quantity) || quantity<1 || quantity>50 || !Number.isFinite(unit_price) || unit_price<0) { panelNeed('Check each add-on name, quantity and price.'); return; }
+      lines.push({description:description,quantity:quantity,unit_price:unit_price});
+    }
+    if (!lines.length) { panelNeed('Add at least one extra.'); return; }
+    if (S.busy) return; S.busy=true;
+    sb.rpc('staff_set_addon_quote',{p_order:o.id,p_version:o.version,p_lines:lines}).then(function(r) {
+      S.busy=false;if(r.error)throw r.error;if(!r.data.ok){S.panelErr=r.data.message;return renderSheet();}
+      toast('Quotation saved. Email the customer, then record their agreement.');openOrder(o.id);loadOrders(true);
+    }).catch(function(e){S.busy=false;fail(e);});
+  }
+  function acceptAddOnQuote() {
+    var o=S.sheet.data,method=val('aq-method'),note=val('aq-evidence').trim();
+    if(note.length<3){panelNeed('Record how the customer accepted this price.');return;}
+    if(S.busy)return;S.busy=true;
+    sb.rpc('staff_accept_addon_quote',{p_order:o.id,p_version:o.version,p_method:method,p_note:note}).then(function(r){
+      S.busy=false;if(r.error)throw r.error;if(!r.data.ok){S.panelErr=r.data.message;return renderSheet();}
+      toast('Customer agreement recorded. Confirm the order when payment requirements are satisfied.');openOrder(o.id);loadOrders(true);
+    }).catch(function(e){S.busy=false;fail(e);});
+  }
   function saveQuote() {
     var o = S.sheet.data; if (S.busy) return;
     var price = num(val('q-price')), req = isReq((o.order_items || [])[0]);
@@ -4801,6 +4827,9 @@
         case 'ph-rm':
           if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = 'Tap again to remove'; setTimeout(function () { if (b.isConnected) { b.dataset.armed = ''; b.textContent = 'Remove'; } }, 4000); break; }
           removePhoto(Number(v), b); break;
+        case 'aq-save': saveAddOnQuote(); break;
+        case 'aq-accept': acceptAddOnQuote(); break;
+        case 'aq-add': (function(){ var node=document.getElementById('aq-lines'), i=Number(node.dataset.count); if(i>=8)return toast('Up to 8 extras per quote.',true); node.insertAdjacentHTML('beforeend','<div class="ccs-row"><div class="ccs-field"><label class="ccs-label" for="aq-desc-'+i+'">Extra '+(i+1)+'</label><input class="ccs-input" id="aq-desc-'+i+'" maxlength="120"></div><div class="ccs-field"><label class="ccs-label" for="aq-qty-'+i+'">Qty</label><input class="ccs-input" id="aq-qty-'+i+'" type="number" min="1" max="50" value="1"></div><div class="ccs-field"><label class="ccs-label" for="aq-price-'+i+'">Unit charge (FJD)</label><input class="ccs-input" id="aq-price-'+i+'" type="number" step="0.01" min="0" value="0"></div></div>');node.dataset.count=i+1; })(); break;
         case 'do-quote': saveQuote(); break;
         case 'send-quote': sendQuote(b); break;
         case 'cfm-how': S.cfmHow = v; renderSheet(); break;
