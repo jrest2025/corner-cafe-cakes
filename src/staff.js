@@ -1437,7 +1437,7 @@
     sb.rpc('staff_send_quote', { p_order: o.id }).then(function (r) {
       S.busy = false; clearBusy(); if (r.error) throw r.error;
       if (!r.data.ok) { S.panelErr = r.data.message; return renderSheet(); }
-      toast('Price emailed to ' + r.data.to + '. Press Confirm order once they agree.'); mailLoad(o.id);
+      toast('Price email queued for ' + r.data.to + '. Check delivery status and record customer agreement before confirming.'); mailLoad(o.id);
     }).catch(function (e) { S.busy = false; clearBusy(); fail(e); });
   }
   function deleteOrder() {
