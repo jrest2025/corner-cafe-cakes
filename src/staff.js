@@ -1200,6 +1200,9 @@
         '<p class="ccs-hint">Saving moves the order to Waiting for customer. Then email the price or tell the customer, and press Confirm order once they agree.</p>' + err +
         '<div class="ccs-actions-row"><button type="button" class="ccs-btn ccs-good" data-act="do-quote">Save price</button><button type="button" class="ccs-btn ccs-ghost" data-act="panel" data-v="">Back</button></div></div>';
     }
+    if (p === 'confirm' && addOnCurrent(o) && o.order_status === 'awaiting_approval') {
+      return '<div class="ccs-panel"><b>Confirm accepted cake order</b><p class="ccs-hint">The customer has agreed to the current add-on quotation. The original catalogue price remains unchanged.</p><dl class="ccs-kv">'+kv('Agreed total',money(o.final_total))+'</dl><div class="ccs-field"><label class="ccs-label" for="ccs-dep">Deposit needed (FJD)</label><input class="ccs-input" id="ccs-dep" type="number" min="0" step="0.01" placeholder="0 for none"></div>'+err+'<div class="ccs-actions-row"><button type="button" class="ccs-btn ccs-good" data-act="do-confirm">Confirm order</button><button type="button" class="ccs-btn ccs-ghost" data-act="panel" data-v="">Back</button></div></div>';
+    }
     if (p === 'confirm' && o.order_type === 'custom' && o.final_total != null) {
       var how = S.cfmHow;
       return '<div class="ccs-panel"><b>Confirm this custom cake</b><dl class="ccs-kv">' + kv('Cake', cakeLine((o.order_items || [])[0])) + kv('Price', money(o.final_total)) + '</dl>' +
@@ -1288,15 +1291,22 @@
     }
     var main = '', more = [], hint = '', danger = [];
     var isCustom = o.order_type === 'custom';
-    if (isCustom && (st === 'awaiting_review' || st === 'awaiting_quote') && orderer) {
+    var addOnQuote = (o.cake_addon_quotes || []).slice().sort(function (a,b) { return b.quote_version-a.quote_version; })[0];
+    var addOnRequested = o.order_type === 'standard' && (addOnQuote || /^Requested add-ons:/i.test(o.customer_notes || ''));
+    if (addOnRequested && st === 'awaiting_quote' && orderer) {
+      main = '<button type="button" class="ccs-btn ccs-good" data-act="panel" data-v="addonquote">Review add-ons and price</button>';
+      hint = 'Manager reviews the extra charges, then emails the quotation. Do not confirm yet.';
+      danger.push(['decline','Decline order']);
+    } else if (isCustom && (st === 'awaiting_review' || st === 'awaiting_quote') && orderer) {
       main = '<button type="button" class="ccs-btn ccs-good" data-act="panel" data-v="quote">Add the price</button>';
       hint = 'Add the price once the kitchen has priced the design. Nothing goes to the kitchen until you press Confirm order.';
       danger.push(['decline', 'Decline order']);
     } else if (st === 'awaiting_approval' && orderer) {
       var canMail = !!(S.setup && S.setup.guest_emails) && !!o.contact_email;
-      main = '<button type="button" class="ccs-btn ccs-good" data-act="panel" data-v="confirm">Confirm order</button>' +
+      main = (addOnRequested && (!addOnQuote || addOnQuote.status !== 'accepted' || addOnQuote.quote_version !== o.version) ? '<button type="button" class="ccs-btn ccs-good" data-act="panel" data-v="addonaccept">Record customer agreement</button>' : '<button type="button" class="ccs-btn ccs-good" data-act="panel" data-v="confirm">Confirm order</button>') +
         '<button type="button" class="ccs-btn ccs-ghost" data-act="send-quote"' + (canMail ? '' : ' disabled aria-disabled="true"') + '>Email the price to the customer</button>';
       if (isCustom) more.push(['quote', 'Change the price']);
+      if (addOnRequested) more.push(['addonquote', 'Revise add-ons and price']);
       hint = canMail ? 'Waiting for the customer to agree the price. Press Confirm order once they say yes.' : (!o.contact_email ? 'No email address on this order: tell the customer the price by phone or WhatsApp, then press Confirm order once they agree.' : 'Customer emails are off: tell the customer the price yourself, then press Confirm order once they agree.');
       danger.push(['decline', 'Decline order']);
     } else if ((st === 'awaiting_review' || st === 'awaiting_quote') && orderer) {
