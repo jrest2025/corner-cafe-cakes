@@ -4,8 +4,14 @@
 #festive-menu .ccfest-wine-offer .ccfest-btn{display:none!important}
 /* Order buttons wait for the On/Off switch (Service Hub > Settings > Seasonal items) before they show */
 html:not(.ccfest-known) #festive-menu .ccfest-card-add,html:not(.ccfest-known) .ccfest-order-link{visibility:hidden}
+.ccfest-treats{padding:0 0 64px;overflow-x:clip}.ccfest-treats #cc-treat-order{scroll-margin-top:90px}
 .ccfest-soon{display:inline-flex;align-items:center;min-height:44px;font-size:15px;color:#566358;font-style:italic}
 </style>
+<script>
+/* 28 Oct 2026: the seasonal order module (the same one as the website order system) sits right after the goodies */
+(function(){var m=document.getElementById('festive-menu');if(!m||document.getElementById('cc-treat-host'))return;
+var s=document.createElement('section');s.className='ccfest-treats';s.innerHTML='<div class="ccfest-shell"><div id="cc-treat-host"></div></div>';m.parentNode.insertBefore(s,m.nextSibling);})();
+</script>
 <script>
 /* Festive menu from the Webflow CMS (Festive Goodies). 28 October 2026.
    Edit names, prices, wording, photos and order in the Webflow CMS. Card names must match the item names in the
@@ -25,18 +31,23 @@ document.addEventListener('DOMContentLoaded',function(){
     if(!src||/placeholder/i.test(src))c.classList.add('is-nophoto');
     var note=c.querySelector('.ccfest-card-note'); if(note&&!note.textContent.trim())note.style.display='none';
   });
-  var orderLinks=[].slice.call(document.querySelectorAll('a[href="#festive-order"],a[href="/order-cake#cc-treat-order"]')).filter(function(a){return !a.classList.contains('ccfest-card-add');});
+  var orderLinks=[].slice.call(document.querySelectorAll('a[href="#festive-order"],a[href="/order-cake#cc-treat-order"],a[href="#cc-treat-order"]')).filter(function(a){return !a.classList.contains('ccfest-card-add');});
   orderLinks.forEach(function(a){a.classList.add('ccfest-order-link');});
   function apply(on){
     cards.forEach(function(c){
       var name=txt(c,'.ccfest-card-title'), add=c.querySelector('.ccfest-card-add'); if(!add||!name)return;
       var soon=c.querySelector('.ccfest-soon');
-      if(on){add.style.display='';add.setAttribute('href','/order-cake?treat='+encodeURIComponent(name)+'#cc-treat-order');add.textContent='Order';add.setAttribute('aria-label','Order '+name);if(soon)soon.remove();}
+      if(on){add.style.display='';add.setAttribute('href','#cc-treat-order');add.textContent='Order';add.setAttribute('aria-label','Order '+name);add.setAttribute('data-treat',name);if(soon)soon.remove();}
       else{add.style.display='none';if(!soon){soon=document.createElement('span');soon.className='ccfest-soon';soon.textContent='Coming soon';add.parentNode.insertBefore(soon,add);}}
     });
-    orderLinks.forEach(function(a){if(on){a.style.display='';a.setAttribute('href','/order-cake#cc-treat-order');}else a.style.display='none';});
+    orderLinks.forEach(function(a){if(on){a.style.display='';a.setAttribute('href','#cc-treat-order');}else a.style.display='none';});
     document.documentElement.classList.add('ccfest-known');
   }
+  /* "Order" on a card adds that goodie to the order module below and scrolls to it */
+  document.addEventListener('click',function(e){
+    var a=e.target&&e.target.closest&&e.target.closest('[data-treat]'); if(!a)return;
+    if(window.__ccoSeasonal&&window.__ccoSeasonal.add&&window.__ccoSeasonal.add(a.getAttribute('data-treat')))e.preventDefault();
+  });
   var done=false; function once(on){if(done)return;done=true;apply(on);}
   setTimeout(function(){once(true);},6000);   /* no answer: show the Order buttons, the order page checks again */
   try{
@@ -45,3 +56,5 @@ document.addEventListener('DOMContentLoaded',function(){
   }catch(e){once(true);}
 });
 </script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/jrest2025/corner-cafe-cakes@7643036c7114374c3736e8d04f91cb77a26c6395/src/guest.seasonal.js" integrity="sha384-LLfrhV0eWfcATOJo+nTgJcODMXNBJ2FVxAeJIzYD28GgIo4KTy1CNX4aYJP5MRdU" crossorigin="anonymous"></script>
