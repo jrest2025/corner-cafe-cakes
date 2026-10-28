@@ -360,3 +360,10 @@ Screens:
 - More options list is only re-ordered when its order is wrong.
 - Rollback: the previous loader (live 57) or revert these polish blocks.
 - Remaining: the sidebar subtitle reads "Marketing Central" for one frame before another script renames it, so the sidebar moves about 14px for one frame (shift 0.001).
+
+## Premium welcome screen — live 28 Oct 2026, 12:41 PM (approved: "deploy")
+- `ccordertoolsloader57` (footer, 1.0.57) replaces loader 56: the same 15 files (fingerprints unchanged) at commit d2ffe679, with `staff.welcome.js` (fingerprint 2ea794b6…) in place of `staff.signin.js` (Roneel: "the brown and those illustrations cheapens it").
+- Deep forest green panel with the logo, a gold rule and the hub name; warm ivory sign-in; no greeting, no illustrations. Motion: gold frame draws in once, faint light sweep every 11 seconds, logo drifts a few pixels; none with reduced motion.
+- Staff page browser title renamed to "Corner Café Marketing & Business Intelligence Hub".
+- Checks: test_welcome 17/17 (desktop, iPad, phone: wrong password, sign in, show password, returning staff, Practice mode); every loader file checked against its fingerprint at the commit.
+- Rollback: remove ccordertoolsloader57, add ccordertoolsloader56 (footer, 1.0.56), publish.
