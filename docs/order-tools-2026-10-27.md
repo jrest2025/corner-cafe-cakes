@@ -388,3 +388,4 @@ Screens:
 - Commit ee244c222af6b2f214f55465628164010bdc73bb; only `staff.admin.js` changed (fingerprint 489680a4f34de4c9179dec29e366d2c5).
 - Settings → Data and safety → Integrations: read-only cards (order database, website orders, customer emails, kitchen printing, Google Sheet backup, WhatsApp) from the existing ops_health, mirror_health and admin_print_settings checks. Managers and admins only; no database change.
 - Rollback: loader 60 (commit 24af834).
+- Live 28 Oct 2026 7:40 PM Fiji as loader 63 (commit f3924ed), built on loader 62 (phase 4 from another session, which stays). Rollback: re-apply ccordertoolsloader62. The footer hotfix "cc-order-actions-hotfix-20261028" is left in place; polish removes its copies.
