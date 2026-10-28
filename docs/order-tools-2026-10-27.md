@@ -356,3 +356,9 @@ Screens:
 - Staff page browser title renamed to "Corner Café Marketing & Business Intelligence Hub".
 - Checks: test_welcome 17/17 (desktop, iPad, phone: wrong password, sign in, show password, returning staff, Practice mode); every loader file checked against its fingerprint at the commit.
 - Rollback: remove ccordertoolsloader57, add ccordertoolsloader56 (footer, 1.0.56), publish.
+
+## Phase 1 of the Kazumi standard — live 28 Oct 2026, 5:28 PM (approved: "deploy")
+- `ccordertoolsloader58` (footer, 1.0.58) replaces loader 57: the same 16 files at commit 0efff717; only staff.polish.js changed (fingerprint 7eb7dd28…, block __ccPhase1_20261028).
+- Side menu name "Marketing & Business Intelligence Hub" (phone top bar shows the logo only); Orders filter tabs become the Show dropdown whenever they do not fit (iPad landscape included); no New order button on Analytics; main actions (New order, Save and the other filled buttons, the phone bar's New order) in Corner Café deep green #3D5230; selections keep the soft navy.
+- Tests: test_flow 20 (main button expectation updated to deep green), test_order_card 19; computer, iPad landscape and upright, phone: no sideways scrolling, no page errors. test_polish crashes before and after this change (test issue, not this change).
+- Rollback: remove ccordertoolsloader58, add ccordertoolsloader57 (1.0.57, footer), publish.
