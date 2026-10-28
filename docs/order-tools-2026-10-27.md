@@ -367,3 +367,24 @@ Screens:
 - Staff page browser title renamed to "Corner Café Marketing & Business Intelligence Hub".
 - Checks: test_welcome 17/17 (desktop, iPad, phone: wrong password, sign in, show password, returning staff, Practice mode); every loader file checked against its fingerprint at the commit.
 - Rollback: remove ccordertoolsloader57, add ccordertoolsloader56 (footer, 1.0.56), publish.
+
+## Phase 1 of the Kazumi standard — live 28 Oct 2026, 5:28 PM (approved: "deploy")
+- `ccordertoolsloader58` (footer, 1.0.58) replaces loader 57: the same 16 files at commit 0efff717; only staff.polish.js changed (fingerprint 7eb7dd28…, block __ccPhase1_20261028).
+- Side menu name "Marketing & Business Intelligence Hub" (phone top bar shows the logo only); Orders filter tabs become the Show dropdown whenever they do not fit (iPad landscape included); no New order button on Analytics; main actions (New order, Save and the other filled buttons, the phone bar's New order) in Corner Café deep green #3D5230; selections keep the soft navy.
+- Tests: test_flow 20 (main button expectation updated to deep green), test_order_card 19; computer, iPad landscape and upright, phone: no sideways scrolling, no page errors. test_polish crashes before and after this change (test issue, not this change).
+- Rollback: remove ccordertoolsloader58, add ccordertoolsloader57 (1.0.57, footer), publish.
+
+## Loader 59 — phase 2 of the Kazumi standard (28 Oct 2026, 5:39 PM Fiji)
+- Commit 17e1f9b1a58195fdf73078724d5ea5394750e83c; only `staff.polish.js` changed (fingerprint 42719f9432ec19ab69c200c577a7766d).
+- Today "Act now" lines shown as icon chips (amber clock up to 15 min late, red after; navy due date; amber to-dos; grey waiting; red allergies). Full sentence kept as tooltip and for screen readers. Clock on Due today tags.
+- Presentation only. Rollback: loader 58 (commit 0efff71).
+
+## Loader 60 — phase 2b, order cards (28 Oct 2026, 5:53 PM Fiji)
+- Commit 24af83414ad42dd12b6515b53898b90c4838dae9; only `staff.polish.js` changed (fingerprint f94216e819e306dda7f7139fa1e3f85b).
+- Order cards: lateness clock chip and coloured time (amber up to 15 min, red after; phone flag slot), allergy red triangle, "Received …" as italic hint.
+- Presentation only. Rollback: loader 59 (commit 17e1f9b).
+
+## Loader 61 — phase 3, Integrations page (28 Oct 2026, 6:27 PM Fiji)
+- Commit ee244c222af6b2f214f55465628164010bdc73bb; only `staff.admin.js` changed (fingerprint 489680a4f34de4c9179dec29e366d2c5).
+- Settings → Data and safety → Integrations: read-only cards (order database, website orders, customer emails, kitchen printing, Google Sheet backup, WhatsApp) from the existing ops_health, mirror_health and admin_print_settings checks. Managers and admins only; no database change.
+- Rollback: loader 60 (commit 24af834).

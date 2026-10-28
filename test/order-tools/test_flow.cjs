@@ -23,7 +23,7 @@ const state = p => p.evaluate(() => { const sh = document.getElementById('ccs-sh
     const tb = await p.evaluate(() => { const sh = document.getElementById('ccs-sheet'), vis = e => !!(e && e.getClientRects().length); return { tabs: [...sh.querySelectorAll('.os-detail > .ccs-secbar > .ccs-secbtn')].filter(vis).map(x => x.textContent.trim()), cake2: vis(sh.querySelector('.os-phcake')), done: (sh.querySelector('.ccp-done') || {}).textContent, st: (sh.querySelector('.ccs-sheet-head .ccs-pill.st') || {}).textContent }; });
     check(t + ' details: four tabs (rest under More), cake shown once, "Done" and "All done"', tb.tabs.length === 4 && /More/.test(tb.tabs[3]) && !tb.cake2 && /All done/.test(tb.done || '') && /^Done$/.test((tb.st || '').trim()), tb);
     await openOrder(p, 'o1'); s = await state(p);
-    check(t + ' check order: amber strip (matches the warning), main button navy, feedback in More', /pf-amber/.test(s.band) && s.good === 'rgb(36, 95, 153)' && !s.fbVis && s.more.includes('Customer feedback'), s);
+    check(t + ' check order: amber strip (matches the warning), main button deep green (28 Oct), feedback in More', /pf-amber/.test(s.band) && s.good === 'rgb(61, 82, 48)' && !s.fbVis && s.more.includes('Customer feedback'), s);
     check(t + ' check order: money owed in amber', s.owe.some(x => /^To pay.*\*$/.test(x)), s);
     await openOrder(p, 'o8'); s = await state(p);
     check(t + ' cancelled: grey strip, nothing "to pay"', /pf-none/.test(s.band) && !s.owe.some(x => /^To pay/.test(x)), s);
