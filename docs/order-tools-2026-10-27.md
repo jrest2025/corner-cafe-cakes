@@ -349,3 +349,10 @@ Screens:
 ## Design brief item 9: Today without boxes inside boxes — PREVIEW (28 Oct 2026)
 - src/staff.polish.js: on Today, Act now rows, Due today orders and This week day cells lose their own borders and shadows and sit on a soft fill (#F9FAFB, hover #F2F4F7) inside their card; status edges and the selected day keep their colour. No layout or content change.
 - Checked computer, iPad landscape, iPad upright, phone: 0 nested bordered boxes, no sideways scrolling, no page errors. Tests: test_polish 148, test_ipad 91; test_act_now 37/42 with the same 5 failures as before this change (the test data's "urgent first" dates have aged; not caused by this change).
+
+## Premium welcome screen — live 28 Oct 2026, 12:41 PM (approved: "deploy")
+- `ccordertoolsloader57` (footer, 1.0.57) replaces loader 56: the same 15 files (fingerprints unchanged) at commit d2ffe679, with `staff.welcome.js` (fingerprint 2ea794b6…) in place of `staff.signin.js` (Roneel: "the brown and those illustrations cheapens it").
+- Deep forest green panel with the logo, a gold rule and the hub name; warm ivory sign-in; no greeting, no illustrations. Motion: gold frame draws in once, faint light sweep every 11 seconds, logo drifts a few pixels; none with reduced motion.
+- Staff page browser title renamed to "Corner Café Marketing & Business Intelligence Hub".
+- Checks: test_welcome 17/17 (desktop, iPad, phone: wrong password, sign in, show password, returning staff, Practice mode); every loader file checked against its fingerprint at the commit.
+- Rollback: remove ccordertoolsloader57, add ccordertoolsloader56 (footer, 1.0.56), publish.
