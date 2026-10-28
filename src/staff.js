@@ -977,7 +977,7 @@
     h += actionsBox(o, total, paid, bal);
     h += askUpdateBox(o);
     h += fbHeadBtn(o);
-    if (!S.panel && (S.sheet.danger || []).some(function (d) { return d[0] === 'delete'; }) && secStore('order').order !== 'history') h += '<div class="os-dkdanger"><button type="button" class="ccs-link ccs-red" data-act="go-other">Delete order</button></div>';
+    // Order deletion is available in the actions section without navigating to History.
     var cut = [['cake', h.length]];
     h += '<section class="ccs-box"><h3>Cake</h3><p class="ccs-big">' + esc(cakeLine(i)) + '</p><dl class="ccs-kv">' +
       kv('Finish', i.finish === 'custom' ? 'Custom design' : 'Standard finish') + kv('Design', i.design_description) +
@@ -1027,7 +1027,7 @@
     var dz = !S.panel && S.sheet.danger && S.sheet.danger.length ? '<section class="ccs-box ccs-other"><h3>Other actions</h3><p class="ccs-hint">These change or remove the order. Each one asks before anything happens.</p><div class="ccs-actions-row ccs-more-row">' + S.sheet.danger.map(function (m) { return '<button type="button" class="ccs-link ccs-red" data-act="panel" data-v="' + m[0] + '">' + m[1] + '</button>'; }).join('') + '</div></section>' : '';
     h += '<section class="ccs-box"><h3>Activity</h3>' + (S.sheet.showHistory ? '<div class="ccs-history">' + (o.order_events || []).slice().sort(function (a, b) { return a.at < b.at ? -1 : 1; }).map(function (e) { return '<div><span>' + esc(stamp(e.at)) + '</span><span style="color:var(--ccs-ink)">' + esc(eventText(e)) + '</span></div>'; }).join('') + '</div>' : '<button type="button" class="ccs-link" data-act="history">Show history (' + (o.order_events || []).length + ')</button>') + '</section>' + dz;
     // One section at a time below the key facts and actions, so the panel fits the screen
-    var phDel = !S.panel && (S.sheet.danger || []).some(function (d) { return d[0] === 'delete'; }) && secStore('order').order !== 'history' ? '<div class="os-phdanger"><button type="button" class="ccs-link ccs-red" data-act="go-other">Delete order</button></div>' : '';
+    var phDel = ''; // Direct cancellation and deletion controls are in the order actions.
     return secSplit(h, cut, 'order', { cake: 'Cake', when: deliv ? 'Delivery' : 'Collection', kitchen: 'Kitchen', customer: 'Customer', feedback: 'Feedback', payment: 'Payment', history: 'History' }, !!S.panel) + phDel + '</div>';
   }
   // Section buttons: one section on screen at a time (fits the screen height without scrolling)
@@ -1176,13 +1176,13 @@
   }
   function actionsBox(o, total, paid, bal) {
     var orderer = canP('ord.status'), payer = canP('ord.payments');
-    if (!orderer && !payer) return '';
+    if (!orderer && !payer && !canP('ord.delete')) return '';
     var p = S.panel, err = S.panelErr ? '<p class="ccs-err">' + esc(S.panelErr) + '</p>' : '', st = o.order_status;
     S.sheet.danger = [];
     if (p === 'amend') return amendPanel(o, total, paid);
     if (p === 'addonquote') {
       var base = Number(o.estimate_total || 0), aq = (o.cake_addon_quotes || []).filter(function (q) { return q.status === 'pending' || q.status === 'accepted'; }).sort(function (a,b) { return b.quote_version-a.quote_version; })[0];
-      var rows = aq && Array.isArray(aq.lines) ? aq.lines : [{ description: (o.customer_notes || '').replace(/^Requested add-ons:\\s*/i, '').split('\\n')[0].slice(0,120), quantity: 1, unit_price: 0 }];
+      var rows = aq && Array.isArray(aq.lines) ? aq.lines : [{ description: (o.customer_notes || '').replace(/^Requested add-ons:\s*/i, '').split('\n')[0].slice(0,120), quantity: 1, unit_price: 0 }];
       var inputs = rows.map(function (x,i) { return '<div class="ccs-row"><div class="ccs-field"><label class="ccs-label" for="aq-desc-'+i+'">Extra '+(i+1)+'</label><input class="ccs-input" id="aq-desc-'+i+'" maxlength="120" value="'+esc(x.description||'')+'"></div><div class="ccs-field"><label class="ccs-label" for="aq-qty-'+i+'">Qty</label><input class="ccs-input" id="aq-qty-'+i+'" type="number" min="1" max="50" value="'+Number(x.quantity||1)+'"></div><div class="ccs-field"><label class="ccs-label" for="aq-price-'+i+'">Unit charge (FJD)</label><input class="ccs-input" id="aq-price-'+i+'" type="number" step="0.01" min="0" value="'+Number(x.unit_price||0)+'"></div><div class="ccs-field"><button type="button" class="ccs-btn ccs-ghost" data-act="aq-remove" data-v="'+i+'">Remove extra</button></div></div>'; }).join('');
       return '<div class="ccs-panel"><b>Review add-ons and approve quote</b><p class="ccs-hint">Original cake and existing charges: '+money(base)+'. Set each extra separately. A manager must approve manual price adjustments. The cake remains a standard cake.</p><div id="aq-lines" data-count="'+rows.length+'">'+inputs+'</div><button type="button" class="ccs-btn ccs-ghost" data-act="aq-add">+ Add another extra</button>'+err+'<div class="ccs-actions-row"><button type="button" class="ccs-btn ccs-good" data-act="aq-save">Save quotation</button><button type="button" class="ccs-btn ccs-ghost" data-act="panel" data-v="">Back</button></div></div>';
     }
@@ -1350,8 +1350,8 @@
     S.sheet.danger = danger;
     // A visible way to the Other actions box (at the end of History), so Cancel and Delete are easy to find
     // Administrators: a visible way to Delete (it sits in Other actions at the end of History and still asks for the order number and a reason)
-    if (danger.some(function (d) { return d[0] === 'delete'; }) && secStore('order').order !== 'history') more.push(['go-other', 'Delete order']);
-    if (!main && !more.length) return '';
+    // Cancel and Delete are directly accessible below the other order actions; no History detour.
+    if (!main && !more.length && !danger.length) return '';
     var nx = nextStep(o), phNext = '';
     // Who acts next, in plain words: the kitchen, the counter, or both
     if (st === 'confirmed') {
@@ -1364,7 +1364,8 @@
     var nxl = phNext ? '<p class="ccs-nextline os-who"><em>Next:</em> ' + esc(phNext) + '</p>' : nx ? '<p class="ccs-nextline' + (nx[1] === 'wait' ? ' is-wait' : '') + '"><em>Next:</em> ' + esc(nx[0]) + '</p>' : '';
     var told = S.sheet.readyAsk ? '<p class="ccs-note ccs-readyask">Sent the WhatsApp? <button type="button" class="ccs-link" data-act="ready-told">Yes, note it in the history</button></p>' : '';
     return '<div class="ccs-actions">' + nxl + (main ? '<div class="ccs-actions-row">' + main + '</div>' : '') + (hint ? '<p class="ccs-hint" id="ccs-brief-why">' + esc(hint) + '</p>' : '') + told + (S.panelErr ? '<p class="ccs-err">' + esc(S.panelErr) + '</p>' : '') +
-      (more.length ? '<div class="ccs-actions-row ccs-more-row">' + more.map(function (m) { return m[0] === 'go-other' ? '<button type="button" class="ccs-link ccs-red" data-act="go-other">' + m[1] + '</button>' : '<button type="button" class="ccs-link" data-act="panel" data-v="' + m[0] + '">' + m[1] + '</button>'; }).join('') + '</div>' : '') + '</div>';
+      (more.length ? '<div class="ccs-actions-row ccs-more-row">' + more.map(function (m) { return '<button type="button" class="ccs-link" data-act="panel" data-v="' + m[0] + '">' + m[1] + '</button>'; }).join('') + '</div>' : '') +
+      (danger.length ? '<div class="ccs-actions-row ccs-danger-row" aria-label="Cancel or delete order">' + danger.filter(function(d){return d[0] === 'cancel' || d[0] === 'cancel-locked' || d[0] === 'delete';}).map(function(d){return '<button type="button" class="ccs-link ccs-red" data-act="panel" data-v="'+d[0]+'">'+d[1]+'</button>';}).join('') + '</div>' : '') + '</div>';
   }
   function receiverChips(o, dl) {
     var c = o.customers, opts = [];
