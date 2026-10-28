@@ -362,3 +362,8 @@ Screens:
 - Side menu name "Marketing & Business Intelligence Hub" (phone top bar shows the logo only); Orders filter tabs become the Show dropdown whenever they do not fit (iPad landscape included); no New order button on Analytics; main actions (New order, Save and the other filled buttons, the phone bar's New order) in Corner Café deep green #3D5230; selections keep the soft navy.
 - Tests: test_flow 20 (main button expectation updated to deep green), test_order_card 19; computer, iPad landscape and upright, phone: no sideways scrolling, no page errors. test_polish crashes before and after this change (test issue, not this change).
 - Rollback: remove ccordertoolsloader58, add ccordertoolsloader57 (1.0.57, footer), publish.
+
+## Loader 59 — phase 2 of the Kazumi standard (28 Oct 2026, 5:39 PM Fiji)
+- Commit 17e1f9b1a58195fdf73078724d5ea5394750e83c; only `staff.polish.js` changed (fingerprint 42719f9432ec19ab69c200c577a7766d).
+- Today "Act now" lines shown as icon chips (amber clock up to 15 min late, red after; navy due date; amber to-dos; grey waiting; red allergies). Full sentence kept as tooltip and for screen readers. Clock on Due today tags.
+- Presentation only. Rollback: loader 58 (commit 0efff71).
