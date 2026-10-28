@@ -346,6 +346,9 @@ Screens:
 - Live check (real data): Calendar Show and Type are app dropdowns, weekday row neutral; Register links navy and underlined; no uppercase in the content; no sideways scrolling.
 - Rollback: remove ccordertoolsloader55, add ccordertoolsloader54 (1.0.54, footer), publish.
 
-## Design brief item 9: Today without boxes inside boxes — PREVIEW (28 Oct 2026)
+## Design brief item 9: Today without boxes inside boxes — LIVE (28 Oct 2026, 12:03 PM)
 - src/staff.polish.js: on Today, Act now rows, Due today orders and This week day cells lose their own borders and shadows and sit on a soft fill (#F9FAFB, hover #F2F4F7) inside their card; status edges and the selected day keep their colour. No layout or content change.
 - Checked computer, iPad landscape, iPad upright, phone: 0 nested bordered boxes, no sideways scrolling, no page errors. Tests: test_polish 148, test_ipad 91; test_act_now 37/42 with the same 5 failures as before this change (the test data's "urgent first" dates have aged; not caused by this change).
+- Approved by Roneel ("deploy", 12:02 PM). `ccordertoolsloader56` (1.0.56) replaces loader 55: commit 11deddc3, new fingerprint for staff.polish.js only.
+- Live check (real data): 13 rows and day cells on Today, none boxed, no sideways scrolling.
+- Rollback: remove ccordertoolsloader56, add ccordertoolsloader55 (1.0.55, footer), publish.
