@@ -377,3 +377,8 @@ Screens:
 - Commit ee244c222af6b2f214f55465628164010bdc73bb; only `staff.admin.js` changed (fingerprint 489680a4f34de4c9179dec29e366d2c5).
 - Settings → Data and safety → Integrations: read-only cards (order database, website orders, customer emails, kitchen printing, Google Sheet backup, WhatsApp) from the existing ops_health, mirror_health and admin_print_settings checks. Managers and admins only; no database change.
 - Rollback: loader 60 (commit 24af834).
+
+## Loader 62 — phase 4, two-step sign-in for Admins LIVE (28 Oct 2026, 7:15 PM Fiji)
+- Approved by Roneel ("deploy", 7:14 PM). Migration release_e_two_step_20261028 applied (supabase/sql/release_e_20261028.sql; checked: 3 new functions, anon cannot call two_step_status, 0 factors so nobody is locked out). Tested first in a rolled-back transaction: admin without phone unchanged; admin with phone at aal1 no access; aal2 full access; other staff unchanged.
+- Commit 6ea5f8d3989fee219c16ae045ee538cf14f89451; build/twostep.js appended to `staff.welcome.js` (fingerprint 48a9fb2f282c6f0e9c43fff555bc17b1); deep green buttons; authenticator name "Corner Café".
+- Rollback: page — loader 61 (commit ee244c2); database — supabase/sql/release_e_20261028_rollback.sql. Lost phone: Supabase, Authentication, Users, the user, remove the factor.
