@@ -15,7 +15,7 @@ function dayName(x){var d=new Date(x+'T12:00:00Z');return d.toLocaleDateString('
 function safeNum(v){var n=Number(v);return Number.isFinite(n)&&n>0?n:0}
 function units(o){return (o.items||[]).reduce(function(n,i){return n+safeNum(i.quantity)},0)}
 function creationDay(o){if(!o.created_at)return '';var d=new Date(o.created_at);return isNaN(d.getTime())?'':new Intl.DateTimeFormat('en-CA',{timeZone:'Pacific/Fiji'}).format(d)}
-function dataset(){var api=win.__ccTreatOrders,d=api&&api.data&&api.data();if(!d||!Array.isArray(d.orders))return null;return d.orders.filter(function(o){return o&&o.status!=='cancelled'&&o.status!=='collected'})}
+function dataset(){var api=win.__ccTreatOrders,d=api&&api.data&&api.data();if(!d||!Array.isArray(d.orders))return null;return d.orders.filter(function(o){return o&&o.status!=='cancelled'})}
 function node(tag,cls,txt){var n=doc.createElement(tag);if(cls)n.className=cls;if(txt!=null)n.textContent=String(txt);return n}
 function makeKpi(parent,value,title,extra){var n=node('div','cc-hb-kpi'+(extra?' is-leads':''));n.appendChild(node('b','',value));n.appendChild(node('span','',title));parent.appendChild(n)}
 function parseOrders(orders){
@@ -50,12 +50,12 @@ return counts}
 function build(host,orders,info){
 addStyle();var parent=node('section','cc-hb');parent.setAttribute('aria-label','Seasonal demand heartbeat');
 var hd=node('div','cc-hb-head'),icon=node('span','cc-hb-icon','♥');icon.setAttribute('aria-hidden','true'),copy=node('div','cc-hb-headcopy');
-copy.appendChild(node('h3','','Seasonal demand heartbeat'));copy.appendChild(node('p','cc-hb-desc','Festive enquiries and production demand · separate from cake orders'));
+copy.appendChild(node('h3','','Seasonal Orders Heartbeat'));copy.appendChild(node('p','cc-hb-desc','Festive enquiries and production demand · separate from cake orders'));
 hd.appendChild(icon);hd.appendChild(copy);
 var sw=node('div','cc-hb-toggle');sw.setAttribute('role','group');sw.setAttribute('aria-label','Forecast horizon');
 [7,14].forEach(function(n){var b=node('button','',n+' days');b.type='button';b.setAttribute('aria-pressed',String(range===n));b.dataset.ccHbRange=String(n);sw.appendChild(b)});
 hd.appendChild(sw);parent.appendChild(hd);
-var k=node('div','cc-hb-kpis');makeKpi(k,info.newLeads.length,'Awaiting confirmation',true);makeKpi(k,info.arrivals.length,'Enquiries received · last 7 days',true);
+var k=node('div','cc-hb-kpis');makeKpi(k,info.newLeads.length,'Awaiting confirmation',true);makeKpi(k,info.arrivals.length,'New order enquiries · last 7 days',true);
 makeKpi(k,info.confirmed.length,'Confirmed orders · next 14 days');makeKpi(k,info.qty,'Confirmed goodies · next 14 days');parent.appendChild(k);
 var body=node('div','cc-hb-body'),left=node('div','cc-hb-panel'),right=node('div','cc-hb-panel');
 var lh=node('div','cc-hb-panel-head');lh.appendChild(node('h4','','Upcoming item demand'));var legend=node('div','cc-hb-legend');[['cc-hb-dot','Booked'],['cc-hb-dot is-request','Unconfirmed request']].forEach(function(z){var l=node('span',''),dot=node('i',z[0]);dot.setAttribute('aria-hidden','true');l.appendChild(dot);l.appendChild(doc.createTextNode(z[1]));legend.appendChild(l)});lh.appendChild(legend);left.appendChild(lh);
@@ -68,8 +68,16 @@ parent.appendChild(node('p','cc-hb-foot','Green = confirmed product quantities s
 host.insertBefore(parent,host.firstChild);
 parent.addEventListener('click',function(e){var b=e.target.closest('[data-cc-hb-range]');if(!b)return;var val=Number(b.dataset.ccHbRange);if(val!==7&&val!==14)return;range=val;last='';sync()});
 }
+function permanentHost(){
+var body=doc.querySelector('#cc-staff #cc-to .cc-to-body');if(!body)return null;
+var host=body.querySelector(':scope > .cc-hb-slot');
+if(!host){host=node('div','cc-hb-slot');var list=body.querySelector(':scope > .cc-to-in');if(list)body.insertBefore(host,list);else body.insertBefore(host,body.firstChild)}
+return host;
+}
 function sync(){
-var host=doc.querySelector('#cc-staff #cc-to .cc-to-in');if(!host)return;var all=dataset();if(!all)return;
+var host=permanentHost();if(!host)return;var all=dataset();
+if(!all){if(!host.querySelector(':scope > .cc-hb-loading'))host.appendChild(node('p','cc-hb-loading','Loading seasonal demand from the CRM…'));return}
+var loading=host.querySelector(':scope > .cc-hb-loading');if(loading)loading.remove();
 var info=parseOrders(all),key=range+'|'+all.map(function(o){return [o.id,o.status,o.pickup_date,o.kind,o.created_at,units(o)].join(':')}).join('|');
 var old=host.querySelector(':scope > .cc-hb');if(old&&key===last)return;
 if(old)old.remove();build(host,all,info);last=key;
