@@ -13,7 +13,7 @@
   var URL = 'https://ilbrfwxblhidtlsjgxlh.supabase.co', KEY = 'sb_publishable_4c9NdubC5PYevEOSMYH0ag_mv1LJ76E', TZ = 'Pacific/Fiji';
   var DRAFT = 'cco-draft-v2', CART = 'cco-treats-v1', PHONE = '+679 892 2760';
   var menu = null, setup = null, cart = {}, lastSent = null, removedNote = null, own = null, rootEl = null;
-  var WITH_CAKE = false;   // treats added to a cake order on the website (off: specials are always their own order)
+  var WITH_CAKE = false, ON_CAKE_PAGE = false;   // seasonal items are ordered on their own page, never with a cake   // treats added to a cake order on the website (off: specials are always their own order)
 
   function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function money(n) { n = Number(n || 0); return '$' + (Math.round(n * 100) % 100 ? n.toFixed(2) : String(Math.round(n))); }
@@ -186,7 +186,11 @@
     removedNote = null; saveCart(); schedule();
   }
   function start() {
+    // (28 Oct 2026, Roneel) the seasonal order module lives on the festive page (#cc-treat-host), not on the cake page
+    var place = doc.getElementById('cc-treat-host');
+    if (place) { style(); T.mountIn(place); load(); return; }
     var root = doc.getElementById('cc-cake-order'); if (!root) return;
+    if (!ON_CAKE_PAGE) return;   // the cake page is cakes only
     rootEl = root; style(); T.mount(root); load();
     new MutationObserver(function (list) { for (var i = 0; i < list.length; i++) { var t = list[i].target; if (t.closest && t.closest('.cco-tr')) continue; return schedule(); } }).observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
     root.addEventListener('click', onClick);
@@ -280,7 +284,7 @@
       var g = (menu.groups || []), title = g.length === 1 ? g[0].name : 'Seasonal treats', h = '<div class="cct-in">';
       if (st.done) return h + doneHtml() + '</div>';
       var n = count(); if (!n && st.step > 1) st.step = 1;
-      h += '<div class="cct-head' + (st.step > 1 ? ' is-small' : '') + '"><p class="cct-k">' + (st.step > 1 ? 'Step ' + st.step + ' of 3' : 'Now available') + '</p><h2 id="cct-title">' + esc(title) + '</h2>' + (st.step === 1 ? '<p class="cct-sub">' + esc([g.length === 1 ? g[0].message : '', 'A separate order from your cake. Ordering a cake as well? Use the cake form below.'].filter(Boolean).join(' ')) + '</p>' : '') + '</div>';
+      h += '<div class="cct-head' + (st.step > 1 ? ' is-small' : '') + '"><p class="cct-k">' + (st.step > 1 ? 'Step ' + st.step + ' of 3' : 'Now available') + '</p><h2 id="cct-title">' + esc(title) + '</h2>' + (st.step === 1 ? '<p class="cct-sub">' + esc([g.length === 1 ? g[0].message : '', 'A separate order from cakes. Ordering a cake as well? Use Order a Cake.'].filter(Boolean).join(' ')) + '</p>' : '') + '</div>';
       if (st.msg) h += '<p class="cct-msg" role="status">' + esc(st.msg) + '</p>';
       if (st.step === 2) return h + stepWhen() + '</div>';
       if (st.step === 3) return h + stepWho() + '</div>';
@@ -466,11 +470,31 @@
         root.parentNode.insertBefore(host, root);
         host.addEventListener('click', click); host.addEventListener('input', input); host.addEventListener('change', input);
       },
+      mountIn: function (el) {
+        if (host || !el) return;
+        st = load(); css();
+        host = doc.createElement('section'); host.id = 'cc-treat-order'; host.hidden = true; host.setAttribute('aria-labelledby', 'cct-title');
+        el.appendChild(host);
+        host.addEventListener('click', click); host.addEventListener('input', input); host.addEventListener('change', input);
+      },
+      // add one of a treat by name (the festive page's Order buttons) and bring the module into view
+      add: function (name) {
+        if (!host || !st) return false;
+        var nk = function (s) { return String(s || '').toLowerCase().replace(/[^a-z0-9]/g, ''); };
+        var it = items().filter(function (i) { return nk(i.name) === nk(name); })[0];
+        if (!it) return false;
+        if (st.done) { st = blank(); }
+        if (st.step !== 1) st.step = 1;
+        if (!(st.q[it.id] > 0)) st.q[it.id] = 1;
+        save(); try { render(); } catch (e) { warn('treat order', e); }
+        try { host.scrollIntoView({ block: 'start' }); } catch (_) {}
+        return true;
+      },
       render: function () { try { render(); } catch (e) { warn('treat order', e); } },
       state: function () { return st; }
     };
   })();
 
-  win.__ccoSeasonal = { treatOrder: function () { return T.state(); }, cart: function () { return cart; }, menu: function () { return menu; } };
+  win.__ccoSeasonal = { treatOrder: function () { return T.state(); }, cart: function () { return cart; }, menu: function () { return menu; }, add: function (n) { return T.add(n); } };
   if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', start); else start();
 })(window, document);
