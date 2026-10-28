@@ -401,3 +401,4 @@ Screens:
 - Side menu no longer moves on screen switches: the two-line hub name is put in from a page-change callback (before paint), and the "Old orders" menu button is placed the same way once the menu is grouped (oldentry.js). Layout shift on switching: 0.002 to 0.000.
 - Leftover footer hotfix (cc-order-actions-hotfix-20261028) not removed: removing means rewriting the page's 49 KB footer block by hand, which also loads the app itself. It is inert (its row stays empty and hidden).
 - Tests: test_polish expects the deep green buttons (148 pass); new test_tonight.cjs (8 pass). test_order_tools date-step failures are unrelated (that test loads only order-tools.js, unchanged).
+- Live 28 Oct 2026 8:37 PM Fiji as loader 65 (commit 15399e9). Rollback: re-apply ccordertoolsloader64.
