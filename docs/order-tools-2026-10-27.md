@@ -412,3 +412,4 @@ Screens:
 - /festive (draft): wording from enquiry to online order; contact Call 892 2760, Email cornercafe@jacksfiji.com; enquiry form hidden; wine box says ask when you collect; card buttons say Order and link to the order page with the treat added. Footer code replaced (old enquiry-form scripts removed: they only served the hidden form).
 - CMS: Christmas Cookies renamed Festive Cookies (slug unchanged).
 - At deploy: Festive treats group On and can be ordered alone; order page footer to guest.seasonal.js @b646683; publish the 7 goodies; /festive out of draft; publish.
+- Specials stay separate (Roneel, 28 Oct 9 PM): website cake form no longer offers treats (WITH_CAKE=false); treats only in the Festive treats section as their own order. Staff app unchanged (counter can still add treats or wine to a cake order). test_guest_seasonal's add-on checks are superseded by test_festive_link (14 pass).

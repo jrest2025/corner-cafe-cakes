@@ -13,6 +13,7 @@
   var URL = 'https://ilbrfwxblhidtlsjgxlh.supabase.co', KEY = 'sb_publishable_4c9NdubC5PYevEOSMYH0ag_mv1LJ76E', TZ = 'Pacific/Fiji';
   var DRAFT = 'cco-draft-v2', CART = 'cco-treats-v1', PHONE = '+679 892 2760';
   var menu = null, setup = null, cart = {}, lastSent = null, removedNote = null, own = null, rootEl = null;
+  var WITH_CAKE = false;   // treats added to a cake order on the website (off: specials are always their own order)
 
   function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function money(n) { n = Number(n || 0); return '$' + (Math.round(n * 100) % 100 ? n.toFixed(2) : String(Math.round(n))); }
@@ -153,6 +154,9 @@
       }
       return;
     }
+    // (28 Oct 2026, Roneel) limited-time specials stay separate from cake orders on the website: no treats on the cake
+    // form; customers order them in the Festive treats section above as their own treat order (T-...).
+    if (!WITH_CAKE) { var old = root.querySelector('.cco-tr'); if (old) old.remove(); var ol = root.querySelector('.cco-tr-total'); if (ol) ol.remove(); if (Object.keys(cart).length) clearCart(); return; }
     if (!menu || !items().length) return;
     if (!root.classList.contains('cco-at-review')) return;
     var send = root.querySelector('[data-act="send"]'); if (!send) return;
@@ -276,7 +280,7 @@
       var g = (menu.groups || []), title = g.length === 1 ? g[0].name : 'Seasonal treats', h = '<div class="cct-in">';
       if (st.done) return h + doneHtml() + '</div>';
       var n = count(); if (!n && st.step > 1) st.step = 1;
-      h += '<div class="cct-head' + (st.step > 1 ? ' is-small' : '') + '"><p class="cct-k">' + (st.step > 1 ? 'Step ' + st.step + ' of 3' : 'Now available') + '</p><h2 id="cct-title">' + esc(title) + '</h2>' + (st.step === 1 ? '<p class="cct-sub">' + esc([g.length === 1 ? g[0].message : '', 'Order them on their own, no cake needed.'].filter(Boolean).join(' ')) + '</p>' : '') + '</div>';
+      h += '<div class="cct-head' + (st.step > 1 ? ' is-small' : '') + '"><p class="cct-k">' + (st.step > 1 ? 'Step ' + st.step + ' of 3' : 'Now available') + '</p><h2 id="cct-title">' + esc(title) + '</h2>' + (st.step === 1 ? '<p class="cct-sub">' + esc([g.length === 1 ? g[0].message : '', 'A separate order from your cake. Ordering a cake as well? Use the cake form below.'].filter(Boolean).join(' ')) + '</p>' : '') + '</div>';
       if (st.msg) h += '<p class="cct-msg" role="status">' + esc(st.msg) + '</p>';
       if (st.step === 2) return h + stepWhen() + '</div>';
       if (st.step === 3) return h + stepWho() + '</div>';

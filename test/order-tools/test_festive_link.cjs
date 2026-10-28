@@ -48,6 +48,11 @@ async function go(b, w, h, url, o) {
     check(t + ' reload does not add a second one', r2.i2 === 1, r2);
     check(t + ' no page errors', !errors.length, errors);
     await ctx.close();
+    ({ p, ctx, errors } = await go(b, w, h, 'https://www.cornercafefiji.com/order-cake', {}));
+    const cf = await p.evaluate(() => ({ review: document.getElementById('cc-cake-order').classList.contains('cco-at-review'), addon: !!document.querySelector('#cc-cake-order .cco-tr'), sub: (document.querySelector('#cc-treat-order .cct-sub') || {}).textContent }));
+    check(t + ' cake form last step: no treats on the cake order (specials stay separate)', cf.review && !cf.addon, cf);
+    check(t + ' Festive treats section says it is a separate order', /separate order/.test(cf.sub || ''), cf.sub);
+    await ctx.close();
     ({ p, ctx, errors } = await go(b, w, h, 'https://www.cornercafefiji.com/order-cake', { nodraft: true }));
     const r3 = await p.evaluate(() => ({ q: window.__ccoSeasonal.treatOrder().q, y: scrollY }));
     check(t + ' plain visit: nothing added, page not scrolled', Object.keys(r3.q).length === 0 && r3.y === 0, r3);
