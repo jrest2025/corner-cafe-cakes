@@ -5220,8 +5220,37 @@ var renderAnalytics;
     var any=rows.some(function(r){return r[2].some(function(v){return v})});
     var g='<div class="an-scroll"><div class="an-heat"><span></span>'+DN.map(function(d){return '<em>'+d+'</em>'}).join('')+rows.map(function(r){return '<div class="r">'+swatch(r[0])+esc(r[1])+'</div>'+r[2].map(function(n){var a=n/mx;return '<span style="background:'+(n?'color-mix(in srgb,'+COL[r[0]]+' '+Math.round(12+a*78)+'%,var(--card))':'var(--an-zero)')+';color:'+(a>.5?'#1d2a31':'var(--ink2)')+'" title="'+esc(r[1]+': '+n+' guests')+'">'+(n||'')+'</span>'}).join('')}).join('')+'</div></div>';
     return card('When are we busy?',(any?g+'<p class="an-note">Guests booked in this period, by day of the week. The darker the square, the busier.</p>':empty('No bookings in this period yet.')),'an-full','cal')}
-  function leadCard(S){var b=['same','d1_3','d4_7','d8_14','d15'],segs=[['Same day','var(--an-c-l1)',1],['1 to 3 days','var(--an-c-l2)',1],['4 to 7 days','var(--an-c-l3)',1],['8 to 14 days','var(--an-c-l4)',1],['15 days or more','var(--an-c-l5)',1]];
-    return card('How far ahead do guests book?',stacks(S,segs,function(x){var L=x.lead||{};return b.map(function(k){return N(L[k])})},{tot:function(){return ''}})+'<p class="an-note">Share of bookings in this period by how far ahead they were made. Walk-ins are not included.</p>','','clock')}
+  /* v148 (28 Oct 2026, Priority 1 in the Settings audit): admins choose where each lead-time band ends (3 to 6 bands);
+     the server counts bookings per band ('leadb', 'lead_cuts'). Before that update it falls back to the five fixed bands. */
+  function leadNames(c){var n=c.length,L=[];function d(x){return x+(x===1?' day':' days')}
+    L.push(c[0]===0?'Same day':'Up to '+d(c[0]));
+    for(var i=1;i<n;i++){var a=c[i-1]+1,z=c[i];L.push(a===z?d(a):a+' to '+d(z))}
+    L.push((c[n-1]+1)+' days or more');return L}
+  function leadCard(S){var cuts=S[0]&&Array.isArray(S[0].lead_cuts)&&S[0].lead_cuts.length?S[0].lead_cuts:null,segs,vals;
+    if(cuts&&S.every(function(x){return Array.isArray(x.leadb)})){var nm=leadNames(cuts);segs=nm.map(function(t,i){return [t,'var(--an-c-l'+(i+1)+',#4F7FB8)',1]});vals=function(x){return x.leadb.map(N)}}
+    else{var b=['same','d1_3','d4_7','d8_14','d15'];segs=[['Same day','var(--an-c-l1)',1],['1 to 3 days','var(--an-c-l2)',1],['4 to 7 days','var(--an-c-l3)',1],['8 to 14 days','var(--an-c-l4)',1],['15 days or more','var(--an-c-l5)',1]];vals=function(x){var L=x.lead||{};return b.map(function(k){return N(L[k])})}}
+    var edit=cuts&&me&&me.role==='admin'?'<button type="button" class="link an-leadb" data-leadb="1">Change bands</button>':'';
+    return card('How far ahead do guests book?',stacks(S,segs,vals,{tot:function(){return ''}})+'<p class="an-note">Share of bookings in this period by how far ahead they were made. Walk-ins are not included.</p>'+edit,'','clock')}
+  function leadEdit(){var cuts=((A.data&&A.data.sides&&A.data.sides[0]&&A.data.sides[0].lead_cuts)||[0,3,7,14]).slice(),o=$('kzlb');if(o)o.remove();
+    var d=document.createElement('div');d.id='kzlb';d.className='kzimp kzew-sheet kzlb';d.setAttribute('role','dialog');d.setAttribute('aria-modal','true');d.setAttribute('aria-labelledby','kzlb-t');
+    function rows(){return cuts.map(function(c,i){var from=i===0?0:cuts[i-1]+1;return '<div class="kzlb-r"><span class="kzlb-from">'+(i===0?'Booked up to':'From '+from+' '+(from===1?'day':'days')+' to')+'</span><input type="number" inputmode="numeric" min="0" max="365" value="'+c+'" data-i="'+i+'" aria-label="Last day of band '+(i+1)+'"><span>days</span>'+(cuts.length>2?'<button type="button" class="kg2-ib" data-rm="'+i+'" aria-label="Remove this band"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 12h12"/></svg></button>':'')+'</div>'}).join('')+
+      '<div class="kzlb-r kzlb-last"><span class="kzlb-from">'+(cuts[cuts.length-1]+1)+' days or more</span></div>'}
+    function prev(){d.querySelector('.kzlb-prev').innerHTML=leadNames(cuts).map(function(t,i){return '<span class="kzlb-chip"><i style="background:var(--an-c-l'+(i+1)+',#4F7FB8)"></i>'+esc(t)+'</span>'}).join('')}
+    function draw(){d.querySelector('.kzlb-rows').innerHTML=rows();prev();d.querySelector('.kzlb-add').hidden=cuts.length>=5;
+      d.querySelectorAll('.kzlb-rows input').forEach(function(inp){inp.oninput=function(){var v=parseInt(inp.value,10);if(!isNaN(v)){cuts[+inp.dataset.i]=v;var r=d.querySelectorAll('.kzlb-from');cuts.forEach(function(c,i){if(i>0&&r[i]){var f=cuts[i-1]+1;r[i].textContent='From '+f+' '+(f===1?'day':'days')+' to'}});r[r.length-1].textContent=(cuts[cuts.length-1]+1)+' days or more';prev()}}});
+      d.querySelectorAll('[data-rm]').forEach(function(b){b.onclick=function(){cuts.splice(+b.dataset.rm,1);draw()}})}
+    d.innerHTML='<div class="kzimp-scrim"></div><div class="kzimp-card kzew-card"><div class="kzimp-h"><b id="kzlb-t">Lead-time bands</b><button type="button" class="kg2-ib" data-x aria-label="Close"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>'+
+      '<div class="kzew-body"><p class="shint">Set the last day of each band. 0 means booked on the day. Exact booking dates are kept; this only changes how the chart groups them.</p><div class="kzlb-rows"></div>'+
+      '<button type="button" class="link kzlb-add">Add a band</button><div class="kzew-pl">Preview</div><div class="kzlb-prev"></div></div>'+
+      '<div class="kzew-foot"><button type="button" class="link kzlb-def">Use the standard bands</button><span class="sp"></span><button type="button" class="btn" data-x>Cancel</button><button type="button" class="btn primary" id="kzlb-ok">Save</button></div></div>';
+    root.appendChild(d);draw();
+    function close(){d.remove()}d.querySelector('.kzimp-scrim').onclick=close;d.querySelectorAll('[data-x]').forEach(function(x){x.onclick=close});
+    d.querySelector('.kzlb-add').onclick=function(){var l=cuts[cuts.length-1];cuts.push(Math.min(365,l<7?l*2+1:l*2));draw()};
+    d.querySelector('.kzlb-def').onclick=function(){cuts=[0,3,7,14];draw()};
+    $('kzlb-ok').onclick=async function(){var ok=cuts.length>=2&&cuts.length<=5&&cuts[0]>=0&&cuts[cuts.length-1]<=365&&cuts.every(function(c,i){return Number.isInteger(c)&&(i===0||c>cuts[i-1])});
+      if(!ok){toast('Each band must end later than the one before, between 0 and 365 days.');return}
+      this.disabled=true;try{await call('staff_save_lead_bands',{p_cuts:cuts});close();toast('Bands saved.');load()}catch(e){toast(errText(e));this.disabled=false}}}
+  document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('[data-leadb]');if(b)leadEdit()});
   function originCard(S){var segs=[['Hotel guests','var(--an-c-hotel)',1],['Locals','var(--an-c-local)',1],['Other visitors','var(--an-c-visit)',1],['Not recorded','var(--an-c-none)',1]];
     var hot={};S.forEach(function(x){(x.hotels||[]).forEach(function(h){hot[h.name]=(hot[h.name]||0)+N(h.guests)})});var top=Object.keys(hot).sort(function(a,b){return hot[b]-hot[a]}).slice(0,5),mx=top.length?hot[top[0]]:1;
     var list=top.length?'<h3 class="an-sub">Top hotels</h3><div class="an-hbars">'+top.map(function(n){return '<div class="an-hb"><span>'+esc(n)+'</span><i style="width:'+(hot[n]/mx*100).toFixed(1)+'%"></i><b>'+hot[n]+'</b></div>'}).join('')+'</div>':'';
@@ -5987,7 +6016,7 @@ function kzPracticeInstall(){
       return {code:code,name:code==='tep'?'Teppanyaki':'Lunch and dinner',bookings:Math.round(g/3.4),bookings_prev:Math.round(g/3.6),guests:g,guests_prev:Math.round(g*0.82),seated:Math.round(g*0.78),requests:z*4,
         cancelled:Math.round(g*0.06),no_show:Math.round(g*0.03),to_come:Math.round(g*0.1),not_marked:Math.round(g*0.03),walkins:z*(code==='tep'?9:22),walkin_guests:z*(code==='tep'?24:51),walkin_guests_prev:z*(code==='tep'?18:40),
         walkin_origin:{local:z*(code==='tep'?8:30),visitor:z*(code==='tep'?14:17),not_asked:z*(code==='tep'?2:4)},origin:z?{hotel:Math.round(g*0.52),local:Math.round(g*0.18),visitor:Math.round(g*0.2),unknown:Math.round(g*0.1)}:{},
-        lead:z?{same:Math.round(g/40),d1_3:Math.round(g/18),d4_7:Math.round(g/14),d8_14:Math.round(g/20),d15:Math.round(g/30)}:{},heat:heat,weekly:wk,
+        lead:z?{same:Math.round(g/40),d1_3:Math.round(g/18),d4_7:Math.round(g/14),d8_14:Math.round(g/20),d15:Math.round(g/30)}:{},lead_cuts:(window.__leadCuts||[0,3,7,14]),leadb:(window.__leadCuts||[0,3,7,14]).concat([0]).map(function(c,i){return z?Math.round(g/(14+i*6)):0}),heat:heat,weekly:wk,
         hotels:z?[{name:'Sheraton Fiji Golf and Beach Resort',guests:Math.round(g*0.18)},{name:'Hilton Fiji Beach Resort',guests:Math.round(g*0.12)},{name:'Sofitel Fiji Resort and Spa',guests:Math.round(g*0.1)},{name:'Crowne Plaza Fiji Nadi Bay',guests:Math.round(g*0.07)},{name:'Radisson Blu Resort Fiji',guests:Math.round(g*0.05)}]:[],
         occasion_list:z?[{name:'Birthday',n:code==='tep'?21:9},{name:'Anniversary',n:code==='tep'?14:6},{name:'Honeymoon',n:code==='tep'?9:2},{name:'Business Dinner',n:3}]:[],occasions:z*(code==='tep'?47:20),
         guest_keys:Math.round(g/3.4),returning:Math.round(g/3.4*0.12),groups8:z*(code==='tep'?11:4),groups8_guests:z*(code==='tep'?104:38),children:z*(code==='tep'?36:12),next7:z*(code==='tep'?182:76),next7_bookings:z*(code==='tep'?54:24),
@@ -7134,7 +7163,7 @@ async function paneIntegrations(){var pane=$('spane');if(!pane)return;
 (function(){if(!STABS.some(function(s){return s[0]==='wording'}))STABS.push(['wording','Guest emails']);
   KZ136.G.forEach(function(g){if(g.k==='comms'&&g.items.indexOf('wording')<0){var i=g.items.indexOf('emails');g.items.splice(i<0?g.items.length:i+1,0,'wording')}});KZ136.I.wording='edit';
   KZ136.P.edit='<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>';
-  ERR.INVALID_SUBJECT='Keep the subject to one line, up to 200 characters.';ERR.MESSAGE_TOO_LONG='Keep the message under 1,500 characters.';})();
+  ERR.INVALID_SUBJECT='Keep the subject to one line, up to 200 characters.';ERR.MESSAGE_TOO_LONG='Keep the message under 1,500 characters.';ERR.INVALID_BANDS='Each band must end later than the one before, between 0 and 365 days.';})();
 var KZEW=[
   ['Booking received',[
     ['confirm_tep_ok','Teppanyaki, booked',"You're booked for Teppanyaki at Kazumi – {reference}","Your seats at the Teppanyaki grill are booked. Our chef will cook right in front of you, so come hungry. We can't wait to welcome you."],

@@ -8502,3 +8502,23 @@ html body .kzew-sheet .kzew-foot .btn{min-height:48px}
 html body #kzs .kzew-sheet textarea#kzew-me{min-height:132px!important;height:auto!important;flex:none}
 html body #kzs .kzew-sheet input#kzew-su{min-height:52px!important;flex:none}
 html body #kzs .kzew-sheet .kzew-body>*{flex-shrink:0}
+/* v148 (28 Oct 2026): Analytics lead-time bands, editable by admins */
+html body #kzs{--an-c-l6:#4F7FB8}
+html body #kzs .an-leadb{display:inline-block;margin-top:8px;font-size:.9em}
+html body .kzlb .kzlb-rows{display:flex;flex-direction:column;gap:8px}
+html body .kzlb .kzlb-r{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+html body .kzlb .kzlb-from{flex:1 1 150px;color:#344054}
+html body #kzs .kzlb .kzlb-r input{width:88px!important;min-height:48px!important;text-align:center;flex:none}
+html body .kzlb .kzlb-last .kzlb-from{color:#667085;font-style:italic}
+html body .kzlb .kzlb-add{align-self:flex-start;margin:4px 0}
+html body .kzlb .kzlb-prev{display:flex;flex-wrap:wrap;gap:6px}
+html body .kzlb .kzlb-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid #EAECF0;border-radius:999px;font-size:14px;color:#344054;background:#fff}
+html body .kzlb .kzlb-chip i{width:10px;height:10px;border-radius:50%;display:inline-block}
+@media (max-width:600px){
+html body .kzlb .kzlb-r{flex-wrap:nowrap;gap:8px}
+html body .kzlb .kzlb-from{flex:1 1 auto;min-width:0;font-size:15px}
+html body #kzs .kzlb .kzlb-r input{width:64px!important}
+html body .kzlb .kzlb-r>span:not(.kzlb-from){font-size:15px;color:#667085}
+html body .kzew-sheet .kzew-foot>.link{flex:1 0 100%;order:-1;text-align:left;min-height:40px}
+html body .kzew-sheet .kzew-foot .btn{flex:1}
+html body .kzew-sheet .kzew-foot .sp{display:none}}
