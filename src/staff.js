@@ -2364,7 +2364,7 @@
   }
   function phPicker(id, label, link) { return '<label class="' + (link ? 'ccs-link ccs-phlink' : 'ccs-btn ccs-ghost ccs-phadd') + '"><input type="file" id="' + id + '" accept="image/jpeg,image/png,image/webp" multiple class="ccs-sr">' + label + '</label>'; }
   function freshDraft() { return { key: uuid(), source: null, taken: null, takenDate: '', step: 0, reached: 0, phone: '', noMob: null, matches: null, customer: null, isNew: false, name: '', email: '', whatsapp: true, optIn: null,
-    product: null, req: false, sizeNote: '', reqPrice: '', variant: null, size: null, finish: 'standard', design: '', photos: [], phErr: null, message: '', candles: '', occasion: null, occOther: '', diet: null, diets: [], dietNote: '', notes: '', qty: 1,
+    product: null, req: false, sizeNote: '', reqPrice: '', variant: null, size: null, finish: 'standard', design: '', photos: [], phErr: null, message: '', candles: '', occasion: null, occOther: '', diet: null, diets: [], dietNote: '', notes: '', addons: '', qty: 1,
     date: '', time: '', rush: '', rushBy: '', fromCal: false, method: 'collection', zone: null, address: '', fee: '', contact: '', confirmNow: false, askDeposit: false, deposit: '', payNow: false, payAmount: '', payMethod: 'cash', result: null, err: null, errField: null }; }
   var D = freshDraft();
   // Unfinished walk-in orders are kept on this device for 12 hours, per staff login, and cleared at sign out (U6)
@@ -2608,6 +2608,7 @@
     var h = '<h2 class="ccs-step-q">How should it look?</h2><div class="ccs-chips"><button type="button" class="ccs-chip" data-act="n-finish" data-v="standard" aria-pressed="' + (D.finish === 'standard') + '">Standard finish</button>' +
       (p && p.supports_custom ? '<button type="button" class="ccs-chip" data-act="n-finish" data-v="custom" aria-pressed="' + (D.finish === 'custom') + '">Custom design</button>' : '') + '</div>';
     if (!D.finish) return h;
+    if (!D.req && D.finish === 'standard') h += '<div class="ccs-field"><label class="ccs-label" for="n-addons">Add-ons or extra decorations (optional)</label><textarea class="ccs-input" id="n-addons" data-n="addons" maxlength="250" placeholder="Flowers, toppers or other additions. Review the added price with the customer.">' + esc(D.addons || '') + '</textarea><p class="ccs-hint">Requested extras need a revised quotation and the customer\'s agreement before confirmation.</p></div>';
     if (D.finish === 'custom') h += '<div class="ccs-field"><label class="ccs-label" for="n-design">Design details</label><textarea class="ccs-input" id="n-design" data-n="design" placeholder="Colours, theme, toppers, candles">' + esc(D.design) + '</textarea></div>' + ferr('design');
     if (p && p.supports_message) h += '<div class="ccs-field"><label class="ccs-label" for="n-msg">Message on the cake (optional)</label><input class="ccs-input" id="n-msg" maxlength="40" data-n="message" value="' + esc(D.message) + '"></div>' + ferr('message');
     h += '<div class="ccs-field"><label class="ccs-label" for="n-candles">Candles (optional)</label><input class="ccs-input" id="n-candles" maxlength="60" data-n="candles" placeholder="For example: number 30 candle, or 5 small candles" value="' + esc(D.candles) + '"></div>' + ferr('candles');
@@ -3061,8 +3062,8 @@
     var payAmt = D.payNow ? num(D.payAmount) : null;
     if (D.payNow && (!payAmt || payAmt <= 0)) { D.err = 'Enter the amount the customer is paying.'; D.errField = 'payment'; return refreshStep(); }
     var p = { idempotency_key: D.key, location: 'corner-cafe', source: D.source, product_code: D.req ? 'custom-cake' : D.product, variant: D.variant, size_inch: D.req ? null : D.size, quantity: D.qty,
-      finish: D.finish, design: D.design, attachments: custom ? D.photos.filter(function (x) { return x.status === 'done'; }).map(function (x) { return x.path; }) : [], message: D.message, candles: D.candles, occasion: occSend(), has_dietary: D.diet, dietary: D.diet === 'yes' ? D.diets : [], dietary_note: D.dietNote, notes: D.notes,
-      date: D.date, time: D.time, rush: tooSoon() ? { reason: D.rush, approved_by: D.rushBy } : null, confirm_now: D.confirmNow && !custom, deposit_required: dep,
+      finish: D.finish, design: D.design, attachments: custom ? D.photos.filter(function (x) { return x.status === 'done'; }).map(function (x) { return x.path; }) : [], message: D.message, candles: D.candles, occasion: occSend(), has_dietary: D.diet, dietary: D.diet === 'yes' ? D.diets : [], dietary_note: D.dietNote, notes: [(D.finish === 'standard' && (D.addons || '').trim() ? 'Requested add-ons: ' + D.addons.trim() : ''), D.notes].filter(Boolean).join('\n'), addon_request: D.finish === 'standard' && !!(D.addons || '').trim(), addon_details: D.finish === 'standard' ? (D.addons || '').trim() : '',
+      date: D.date, time: D.time, rush: tooSoon() ? { reason: D.rush, approved_by: D.rushBy } : null, confirm_now: D.confirmNow && !custom && !(D.finish === 'standard' && (D.addons || '').trim()), deposit_required: dep,
       payment: payAmt ? { amount: payAmt, method: D.payMethod, kind: dep ? 'deposit' : (payAmt >= price ? 'full' : 'deposit') } : null,
       delivery: D.method === 'delivery' ? { method: 'delivery', zone: D.zone, address: D.address, fee: zoneObj() && zoneObj().fee == null ? num(D.fee) : null, contact: D.contact } : { method: 'collection' } };
     if (D.req) { p.size_note = (D.sizeNote || '').trim(); p.price = num(D.reqPrice) > 0 ? num(D.reqPrice) : null; }
