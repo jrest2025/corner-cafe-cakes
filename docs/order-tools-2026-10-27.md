@@ -382,3 +382,8 @@ Screens:
 - Approved by Roneel ("deploy", 7:14 PM). Migration release_e_two_step_20261028 applied (supabase/sql/release_e_20261028.sql; checked: 3 new functions, anon cannot call two_step_status, 0 factors so nobody is locked out). Tested first in a rolled-back transaction: admin without phone unchanged; admin with phone at aal1 no access; aal2 full access; other staff unchanged.
 - Commit 6ea5f8d3989fee219c16ae045ee538cf14f89451; build/twostep.js appended to `staff.welcome.js` (fingerprint 48a9fb2f282c6f0e9c43fff555bc17b1); deep green buttons; authenticator name "Corner Café".
 - Rollback: page — loader 61 (commit ee244c2); database — supabase/sql/release_e_20261028_rollback.sql. Lost phone: Supabase, Authentication, Users, the user, remove the factor.
+
+## Fix — customer profiles refused for every login (28 Oct 2026, 8:50 PM Fiji)
+- Reported by Roneel ("Your login cannot see this customer", 8:44 PM). Cause: release_a_20261028 revoked app_config from authenticated; customer_summary (security_invoker) read four number settings from it, so every profile open failed from about 1 AM.
+- Approved ("deploy", 8:49 PM). Migration fix_customer_summary_config_20261028: public._cfg_public(key) returns only retarget_lead_days, retarget_window_days, high_value_spend, inactive_days; the view reads through it. app_config stays locked. Previous view text saved in public._view_backup (RLS on, no staff access).
+- Checked: admin opens the profile; view rows identical to before (tested in a rolled-back run); secrets not readable. Rollback: supabase/sql/fix_customer_summary_config_20261028_rollback.sql.
