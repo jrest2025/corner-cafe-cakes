@@ -100,8 +100,8 @@ Roles checked at 1440 × 900 with the test mock:
   PASS, side logo 39/39 (updated for Marketing Central), fit 220/220, touch 76/76, practice 75/75, practice guide
   100/100, brief 22/22.
 - Rollback files saved from Webflow before any change:
-  `docs/rollback/staff-footer-before-sidebar-contract-2026-10-21.html` (md5 9f1a7b44eaf431744dabd9b9de674eb5) and
-  `docs/rollback/staff-head-before-sidebar-contract-2026-10-21.html` (unchanged by this release).
+  `docs/history/rollback/staff-footer-before-sidebar-contract-2026-10-21.html` (md5 9f1a7b44eaf431744dabd9b9de674eb5) and
+  `docs/history/rollback/staff-head-before-sidebar-contract-2026-10-21.html` (unchanged by this release).
 
 ## Files
 
@@ -153,7 +153,7 @@ Roles checked at 1440 × 900 with the test mock:
 3. Run `FOOTER=<candidate> BUNDLE=<file> node test/run_heartbeat_guard.cjs` (must be 80/80) and
    `node tests/demand-rail-contract.test.cjs`.
 4. Check that jsDelivr serves the file at `<C>` identical to the repository.
-5. Save the current live footer as `docs/rollback/staff-footer-before-sidebar-contract-<date>.html`.
+5. Save the current live footer as `docs/history/rollback/staff-footer-before-sidebar-contract-<date>.html`.
 6. Paste the new footer into the Webflow staff page (`/cake-orders-staff`) footer custom code.
 7. Read it back byte for byte, then publish.
 8. Copy the new footer to `test/fixtures/staff-footer.html`.
@@ -162,7 +162,7 @@ The page head does not change.
 
 ## Rollback
 
-1. Put back `docs/rollback/staff-footer-before-sidebar-contract-2026-10-21.html` as the staff page footer
+1. Put back `docs/history/rollback/staff-footer-before-sidebar-contract-2026-10-21.html` as the staff page footer
    (md5 9f1a7b44eaf431744dabd9b9de674eb5). Its loader line pins commit `67831981bef7dff20b4b3898de1852ed6ae4ad30`,
    file `dist/app/staff-app.4e62b67276.js`.
 2. Read it back.
@@ -176,4 +176,4 @@ There are no database changes.
 - Written through the Webflow API, read back and compared character for character with the prepared file (identical, 49,491 characters) before publishing.
 - Heartbeat guard on that exact footer: 80 of 80 passed.
 - Published to cornercafefiji.com and www.cornercafefiji.com only (not the webflow.io address). Only the staff page had changed since the previous publish; draft and test pages stayed drafts.
-- Rollback: paste `docs/rollback/staff-footer-before-sidebar-contract-live-2026-10-21-2337.html` into the staff page footer and publish.
+- Rollback: paste `docs/history/rollback/staff-footer-before-sidebar-contract-live-2026-10-21-2337.html` into the staff page footer and publish.

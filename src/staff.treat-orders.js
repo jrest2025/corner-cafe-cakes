@@ -67,7 +67,7 @@
     if (c.today) bits.push('<b>' + c.today + '</b> to hand over today');
     else if (c.week) bits.push(c.week + ' to hand over this week');
     if (c.late) bits.push('<b>' + c.late + ' not handed over</b> from earlier days');
-    var h = '<div><h3>Treat orders</h3><p>' + bits.join(' · ') + '</p></div><button type="button" class="ccs-btn" data-cc-to="open">Open treat orders</button>';
+    var h = '<div><h3>Seasonal orders</h3><p>' + bits.join(' · ') + '</p></div><button type="button" class="ccs-btn" data-cc-to="open">Open seasonal orders</button>';
     if (!box) { box = doc.createElement('section'); box.className = 'cc-to-banner' + (c.fresh ? ' is-new' : ''); box.setAttribute('role', 'status'); var dh = main.querySelector(':scope > .ccs-dash-head'), anchor = main.querySelector(':scope > .ccs-head'); if (dh) { dh.appendChild(box); if (getComputedStyle(dh).display.indexOf('flex') > -1) dh.style.flexWrap = 'wrap'; } else if (anchor && anchor.nextSibling) main.insertBefore(box, anchor.nextSibling); else main.insertBefore(box, main.firstChild); }
     box.className = 'cc-to-banner' + (c.fresh ? ' is-new' : '');
     if (box.getAttribute('data-h') !== h) { box.innerHTML = h; box.setAttribute('data-h', h); }
@@ -76,8 +76,70 @@
   function settingsUi() {
     var tabs = doc.querySelector('#cc-staff .cc-szx .cc-szm-tabs'); if (!tabs || denied || tabs.querySelector('[data-cc-to="open"]')) return;
     var b = doc.createElement('button'); b.type = 'button'; b.className = 'ccs-chip cc-to-tab'; b.setAttribute('data-cc-to', 'open');
-    var c = data ? counts().fresh : 0; b.textContent = 'Treat orders' + (c ? ' (' + c + ' new)' : '');
+    var c = data ? counts().fresh : 0; b.textContent = 'Seasonal orders' + (c ? ' (' + c + ' new)' : '');
     tabs.appendChild(b);
+  }
+
+
+  // ---------- (28 Oct 2026) Seasonal: stands out in the side menu, follows the On/Off switch; season figures ----------
+  // Roneel: one switch (Settings > Seasonal items, heading On) and it goes live; it shows in the hub as Seasonal and
+  // stands out; Bhavin wants the season's sales. Read only: the same functions the app already uses.
+  var webOn = null, webAt = 0, season = null, seasonAt = 0, seasonLoading = false;
+  var SEASON_FROM = '2026-10-01';
+  function checkOn() {
+    if (Date.now() - webAt < 120000) return;
+    webAt = Date.now();
+    rpc('get_seasonal_menu', { p_channel: 'website' }).then(function (m) { var on = !!(m && m.ok && (m.groups || []).length); if (on !== webOn) { webOn = on; sideUi(); schedule(); } }, function () {});
+  }
+  var GIFT = '<svg class="cc-so-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8s1-5 4.5-5a2.5 2.5 0 0 1 0 5"/></svg>';
+  function sideUi() {
+    var nav = doc.querySelector('#cc-staff .ccs-side .ccs-nav'); if (!nav || denied) return;
+    var b = nav.querySelector('[data-cc-so="side"]'), show = webOn || (data && open().length > 0);
+    if (!show) { if (b) b.remove(); return; }
+    var orders = nav.querySelector('[data-tab="orders"]'); if (!orders || !orders.closest('.csc-group')) return;   // wait until the menu is grouped
+    if (!b) {
+      b = doc.createElement('button'); b.type = 'button'; b.className = 'ccs-nav-item cc-so-nav'; b.setAttribute('data-cc-so', 'side'); b.title = 'Seasonal';
+      var after = nav.querySelector('[data-ccoe="side"]') || orders; after.after(b);
+    }
+    var c = data ? counts() : null, n = c ? c.fresh + c.today : 0;
+    var h = GIFT + '<span>Seasonal</span>' + (n ? '<span class="ccs-count cc-so-n">' + n + '</span>' : '');
+    if (b.getAttribute('data-h') !== h) { b.innerHTML = h; b.setAttribute('data-h', h); b.setAttribute('aria-label', 'Seasonal orders' + (n ? ', ' + n + ' to act on' : '')); }
+  }
+  function loadSeason(force) {
+    if (seasonLoading || (!force && season && Date.now() - seasonAt < 120000)) return;
+    seasonLoading = true;
+    var c = db();
+    var a = rpc('staff_treat_orders', { p_from: SEASON_FROM });
+    var b = c ? c.from('order_extras').select('order_id,name,unit_price,quantity,orders(order_status,deleted_at,is_test)').gte('created_at', SEASON_FROM + 'T00:00:00+12:00').then(function (r) { return r && !r.error ? r.data || [] : []; }, function () { return []; }) : Promise.resolve([]);
+    Promise.all([a, b]).then(function (x) {
+      seasonLoading = false; seasonAt = Date.now();
+      var tos = ((x[0] && x[0].orders) || []).filter(function (o) { return o.status !== 'cancelled' && o.pickup_date >= SEASON_FROM; });
+      var ex = (x[1] || []).filter(function (e) { var o = e.orders || {}; return !o.deleted_at && !o.is_test && ['cancelled', 'declined'].indexOf(o.order_status) < 0; });
+      var items = {}, value = 0, paid = 0, qty = 0, cakeOrders = {};
+      tos.forEach(function (o) { paid += Number(o.paid || 0); (o.items || []).forEach(function (i) { items[i.name] = (items[i.name] || 0) + i.quantity; qty += i.quantity; value += Number(i.price) * i.quantity; }); });
+      ex.forEach(function (e) { items[e.name] = (items[e.name] || 0) + e.quantity; qty += e.quantity; value += Number(e.unit_price) * e.quantity; cakeOrders[e.order_id] = 1; });
+      season = { orders: tos.length, withCake: Object.keys(cakeOrders).length, qty: qty, value: value, paid: paid, items: Object.keys(items).map(function (k) { return [k, items[k]]; }).sort(function (p, q) { return q[1] - p[1]; }) };
+      schedule(); if (B) draw();
+    }, function () { seasonLoading = false; });
+  }
+  function seasonHtml(compact) {
+    if (!season) return '';
+    var s = season, max = s.items.length ? s.items[0][1] : 1;
+    var h = '<div class="cc-so-k"><span><b>' + money(s.value) + '</b> booked</span><span><b>' + (s.orders + s.withCake) + '</b> orders</span><span><b>' + s.qty + '</b> items</span>' + (compact ? '' : '<span><b>' + money(s.paid) + '</b> paid so far</span>') + '</div>';
+    if (!compact && s.items.length) h += '<div class="cc-so-bars">' + s.items.slice(0, 8).map(function (it) { return '<div class="cc-so-bar"><span>' + esc(it[0]) + '</span><i style="--w:' + Math.max(4, Math.round(it[1] / max * 100)) + '%"></i><b>' + it[1] + '</b></div>'; }).join('') + '</div>';
+    if (!s.qty) h += '<p class="cc-so-none"><em>No seasonal orders yet this season.</em></p>';
+    return h;
+  }
+  // Analytics: a Seasonal card at the top of Sales & Products
+  function analyticsUi() {
+    var main = doc.querySelector('#ccs-main[data-screen="dash"]'), card = doc.querySelector('#ccs-main .cc-so-card');
+    var page = main && main.querySelector(':scope > .cat-page');
+    if (!page || denied) { if (card) card.remove(); return; }
+    loadSeason();
+    if (!season) return;
+    var h = '<div class="cc-so-ch">' + GIFT + '<div><h3>Seasonal</h3><p><em>Festive treats this season, kept apart from cake sales</em></p></div><button type="button" class="ccs-btn ccs-ghost" data-cc-so="open">Open</button></div>' + seasonHtml(false);
+    if (!card) { card = doc.createElement('section'); card.className = 'cc-so-card'; page.insertBefore(card, page.firstChild); }
+    if (card.getAttribute('data-h') !== h) { card.innerHTML = h; card.setAttribute('data-h', h); }
   }
 
   // ---------- the board ----------
@@ -88,7 +150,7 @@
     var l = doc.getElementById('cc-to');
     if (!l) {
       l = doc.createElement('div'); l.id = 'cc-to'; l.className = 'cc-to'; l.setAttribute('role', 'dialog'); l.setAttribute('aria-modal', 'true'); l.setAttribute('aria-labelledby', 'cc-to-title');
-      l.innerHTML = '<div class="cc-to-hd"><h2 id="cc-to-title">Treat orders</h2><div class="cc-to-hda"></div><button type="button" class="ccs-btn ccs-ghost" data-cc-to="close">Close</button></div><div class="cc-to-body"><div class="cc-to-in"></div></div>';
+      l.innerHTML = '<div class="cc-to-hd"><h2 id="cc-to-title">Seasonal orders</h2><div class="cc-to-hda"></div><button type="button" class="ccs-btn ccs-ghost" data-cc-to="close">Close</button></div><div class="cc-to-body"><div class="cc-to-in"></div></div>';
       ['input', 'change'].forEach(function (t) { l.addEventListener(t, function (e) { e.stopPropagation(); onInput(e); }); });
       r.appendChild(l);
     }
@@ -171,6 +233,7 @@
     if (B.form) return formHtml();
     var t = today(), later = ((data && data.orders) || []).filter(function (o) { return o.status === 'confirmed' && o.pickup_date > t; }).length;
     var h = '<p class="cc-to-sum">' + esc(sumLine()) + '</p>';
+    loadSeason(); if (season && B.view !== 'past') h += '<div class="cc-so-strip"><p class="cc-so-t">Season so far</p>' + seasonHtml(true) + '</div>';
     if (B.view === 'past') h += '<button type="button" class="ccs-link cc-to-back" data-cc-to="view" data-v="today">‹ Back</button><h3 class="cc-to-ph3">Handed over and cancelled, last 2 weeks</h3>';
     else h += '<div class="cc-to-tabs" role="tablist">' + [['today', 'Today'], ['later', 'Coming up' + (later ? ' (' + later + ')' : '')]].map(function (x) { return '<button type="button" class="ccs-chip" role="tab" data-cc-to="view" data-v="' + x[0] + '" aria-selected="' + (B.view === x[0]) + '" aria-pressed="' + (B.view === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div>';
     if (B.msg) h += '<p class="cc-to-ok" role="status">' + esc(B.msg) + '</p>';
@@ -191,7 +254,7 @@
   function draw() {
     var l = doc.getElementById('cc-to'); if (!l || !B) return;
     var hda = l.querySelector('.cc-to-hda');
-    hda.innerHTML = data && data.can_create && !B.form ? '<button type="button" class="ccs-btn" data-cc-to="new">New treat order</button>' : '';
+    hda.innerHTML = data && data.can_create && !B.form ? '<button type="button" class="ccs-btn" data-cc-to="new">New seasonal order</button>' : '';
     var host = l.querySelector('.cc-to-in'), body = l.querySelector('.cc-to-body'), top = body.scrollTop, a = doc.activeElement, keep = null;
     if (a && l.contains(a)) keep = a.id ? '#' + a.id : a.getAttribute('data-cc-to') ? '[data-cc-to="' + a.getAttribute('data-cc-to') + '"]' + (a.getAttribute('data-id') ? '[data-id="' + a.getAttribute('data-id') + '"]' : '') + (a.getAttribute('data-v') ? '[data-v="' + a.getAttribute('data-v') + '"]' : '') : null;
     host.innerHTML = boardHtml();
@@ -310,6 +373,8 @@
     else if (id === 'cc-to-ftime' && e.type === 'change' && /^\d{2}:\d{2}/.test(v)) { F.time = v.slice(0, 5); draw(); }
   }
   function onClick(e) {
+    var so = e.target && e.target.closest && e.target.closest('[data-cc-so]');
+    if (so) { e.preventDefault(); openBoard(); return; }
     var b = e.target && e.target.closest && e.target.closest('[data-cc-to]'); if (!b || b.disabled) return;
     var a = b.getAttribute('data-cc-to'), id = b.getAttribute('data-id'), v = b.getAttribute('data-v');
     if (a === 'open') { openBoard(); return; }
@@ -411,6 +476,17 @@
       '#cc-staff .cc-to-main{min-width:200px}',
       '#cc-staff .cc-to-moreb{margin-top:12px;padding-top:10px;border-top:1px solid #EAECF0}',
       '#cc-staff .cc-to-pastl,#cc-staff .cc-to-back,#cc-staff .cc-to-morel,#cc-staff .cc-to-other{display:inline-flex;align-items:center;min-height:48px;padding:0 4px;margin:4px 0 8px;background:none;border:0;color:#1E3A5F;font-weight:600;text-decoration:underline;cursor:pointer;font-size:1em}',
+      // Seasonal: its own festive colour (berry red, colour by meaning: this is the special season), in the menu and on cards
+      '#cc-staff .ccs-side .cc-so-nav .cc-so-ic{width:20px;height:20px;flex:none;color:#E8A0A6}#cc-staff .ccs-side .cc-so-nav{box-shadow:inset 3px 0 0 #C0393F}',
+      '#cc-staff .ccs-side .cc-so-nav .cc-so-n{background:#C0393F!important;color:#fff!important}',
+      '#cc-staff .cc-so-card{border:1px solid #F2D4D6;border-left:4px solid #C0393F;border-radius:12px;background:#fff;padding:16px 18px;margin:0 0 20px}',
+      '#cc-staff .cc-so-ch{display:flex;align-items:center;gap:12px;margin-bottom:12px}#cc-staff .cc-so-ch > div{flex:1;min-width:0}#cc-staff .cc-so-ch h3{margin:0;font-size:20px;color:#1D2939}#cc-staff .cc-so-ch p{margin:2px 0 0;font-size:13px;color:#667085}',
+      '#cc-staff .cc-so-ch .cc-so-ic{width:28px;height:28px;color:#C0393F;flex:none}',
+      '#cc-staff .cc-so-k{display:flex;flex-wrap:wrap;gap:8px 24px;font-size:15px;color:#475467}#cc-staff .cc-so-k b{font-size:22px;color:#1D2939;font-weight:600;margin-right:4px}',
+      '#cc-staff .cc-so-bars{display:grid;gap:8px;margin-top:14px;max-width:640px}#cc-staff .cc-so-bar{display:grid;grid-template-columns:minmax(120px,200px) 1fr 36px;align-items:center;gap:10px;font-size:15px;color:#1D2939}',
+      '#cc-staff .cc-so-bar i{display:block;height:10px;border-radius:5px;background:linear-gradient(90deg,#C0393F var(--w),#F2F4F7 var(--w))}#cc-staff .cc-so-bar b{text-align:right;font-weight:600}',
+      '#cc-staff .cc-so-none{margin:10px 0 0;color:#667085;font-size:14px}',
+      '#cc-staff .cc-so-strip{border:1px solid #F2D4D6;border-left:4px solid #C0393F;border-radius:12px;padding:12px 16px;margin:0 0 14px;background:#fff}#cc-staff .cc-so-t{margin:0 0 6px;font-size:13px;color:#9B2C31;font-weight:600}',
       '#cc-staff .cc-to-ph3{margin:0 0 12px;font-size:20px}',
       '#cc-staff .cc-to-step{margin:0 0 6px;color:#475467;font-weight:600}#cc-staff .cc-to-form h3{margin:0 0 14px}',
       '#cc-staff .cc-to-recap{margin:0 0 16px;padding:10px 14px;background:#F8FAFC;border:1px solid #DCE3EB;border-radius:12px}',
@@ -423,9 +499,11 @@
   }
 
   var queued = false;
-  function schedule() { if (queued) return; queued = true; (win.requestAnimationFrame || setTimeout)(function () { queued = false; try { css(); bannerUi(); settingsUi(); } catch (e) { warn('update', e); } }); }
+  function schedule() { if (queued) return; queued = true; (win.requestAnimationFrame || setTimeout)(function () { queued = false; try { css(); bannerUi(); settingsUi(); checkOn(); sideUi(); analyticsUi(); } catch (e) { warn('update', e); } }); }
   function start() {
     var r = root(); if (!r) return setTimeout(start, 300);
+    // the menu item goes in straight from the page-change callback (before paint), so the side menu never jumps
+    new MutationObserver(function () { try { if (webOn !== null || data) sideUi(); } catch (e) {} }).observe(r, { childList: true, subtree: true });
     new MutationObserver(function (list) { for (var i = 0; i < list.length; i++) { var n = list[i].target; if (n && n.closest && n.closest('#cc-to,.cc-to-banner')) continue; return schedule(); } })
       .observe(r, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'data-screen'] });
     doc.addEventListener('click', onClick);

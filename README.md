@@ -1,58 +1,86 @@
-# Corner Café Cakes: source and recovery package
+# Corner Café Cakes: Service Hub, cake order page and database
 
-Snapshot taken 12 October 2026, after the calendar New order panel went live.
-Contains no customer records and no secret values.
+Updated 28 October 2026 (clean-up). Contains no customer records and no secret values.
 
-## System map
+**Start here.** `main` is the one line of work. It holds everything that is live, plus the Vercel host work.
+New work branches from `main` and comes back to `main`. The old `preview/*` and `feature/*` branches are history.
 
-- **Guest order page**: Webflow page `/order-cake` (page 6aca1629519070a607864b57), password protected until go-live. Code lives in the page head and footer custom code. It calls Supabase directly with the public (publishable) key.
-- **Staff app**: Webflow page `/cake-orders-staff` (page 6aca162870735ac2247de4dd), password protected. Code is split across five places because of Webflow's 50,000-character limit:
-  - footer custom code: Supabase library, code part A, and the loader
-  - embed element 34260990-dcc0-7f00-ec5b-a57eee89fd5d: app container and code part B
-  - embed element ea0a9508-456c-426a-73e3-034f6b77b1c7: code part D
-  - embed element c6b640ce-5eb9-6e91-25ed-2e994c1d7f8b: calendar styles and code part E
-  - head custom code: main styles and code part C
+## What is live
 
-  The loader joins parts A, B, D, E and C in that order and checks the length and a checksum. If anything is missing it shows "The staff app did not load properly" instead of running a broken app.
-  - Four small registered scripts (ccStaffClarity1 to 4) add the clarity styles.
-- **Staff sign-in**: each staff member signs in with their own email and password (Supabase). Sessions sign out after 12 hours without activity. On central.cornercafefiji.com a team password gate (`middleware.js`) comes first. There is no two-step (second factor) code; two-step sign-in is planned but not built.
-- **Database**: Supabase project "Corner Cafe Cakes" (ilbrfwxblhidtlsjgxlh, Sydney region, Pro plan). It is the authoritative source for orders, customers, payments and history.
-- **Email**: Edge Function `send-emails`, using Resend.
-  - A database queue (`email_outbox`) is sent on insert, and retried every 5 minutes by a cron job.
-  - Test mode sends everything to the test address.
-- **Google Sheet sync**: Edge Function `sheet-sync` plus a Google Apps Script (`sheet-sync/Corner-Cafe-cake-sheet-sync.gs`). It brings upcoming orders from the two existing Google Sheets into the app. It stays inactive until the owner sets the shared key.
+- **Guest order page**: Webflow page `/order-cake` (page 6aca1629519070a607864b57). Footer loads `dist/app/guest-app.cdf126b4b7.js`
+  (commit 947432f3) and `src/guest.seasonal.js` (commit 7dc355ab), both pinned with SRI. Calls Supabase with the public (publishable) key.
+- **Staff app (Service Hub)**: Webflow page `/cake-orders-staff` (page 6aca162870735ac2247de4dd). See below. Webflow allows at most 15 registered scripts per page and this page uses all 15: to add one, fold or remove another.
+- **Database**: Supabase project "Corner Cafe Cakes" (ilbrfwxblhidtlsjgxlh, Sydney, Pro plan). The authoritative source for orders,
+  customers, payments and history.
+- **Email**: Edge Function `send-emails` (Resend). Queue table `email_outbox`, retried every 5 minutes by cron. `email-templates`
+  (previews and tests only) imports its code from a pinned commit.
+- **Google Sheets**: `sheet-sync` (old sheets into the app), `sheet-backup` and `sheet-mirror` (every order out to the backup sheet).
+- **Error tracking**: Sentry project "Corner Cafe cakes staff app".
 
-## Live from 17 October 2026 (approved by Roneel)
+## How the live staff app is put together
 
-Jack's Restaurants Hospitality UI: `src/staff.hospitality.css`, loaded last by `build/build.py`. Grift font, side menu in Corner Café's deep green (#4B6339) with the white Corner Café logo, white working area, hairline panels with a coloured edge for urgency, Kazumi's neutral and status colours. Live file: `dist/app/staff-app.43b6a553dc.js` at commit e542c05. Rollback: paste `docs/rollback/staff-footer-before-2026-10-17.html` into the staff page footer and publish.
+The staff page is assembled in the browser from several pieces. **Every piece is loaded from an exact commit**
+(jsDelivr, with raw.githubusercontent.com as fallback), never from `main`. So changing or deleting files on `main` never
+changes what staff see. Only editing the Webflow page does.
 
-## Order completed (live 17 October 2026, approved by Roneel)
+1. **Base app**: `dist/app/staff-app.83d76f9aa9.js` at commit 697021f5 (Release F, live 28 Oct 2026). The page footer still names the
+   Release D file (`staff-app.d1c119f6f0.js` at bd90f95e); the registered script `ccAssetVerify2` swaps it for Release F with SRI on the
+   first host, and the second host falls back to Release D if Release F ever fails. Next time the footer is rewritten, point it at
+   Release F directly and drop the swap.
+2. **Order tools loader** (Webflow registered script `ccordertoolsloader68`): 16 add-ons from `src/` at commit 697021f5
+   (order-tools, analytics-birthday, cake-lead-time, service-tools, seasonal, treat-orders, analytics-focus, polish, ipad,
+   flow, analytics-metrics, admin, welcome, answers, pickups, oldentry). Copies of loaders 34 to 68 are in `docs/loaderNN.js`.
+3. **Other registered scripts** on the page: Sentry, Birthday Club list and menu item, analytics workspace (commit 8ee47424),
+   app install icons (dist/pwa), email templates screen, six small analytics and Today layout scripts from 22 October,
+   the asset check (`ccAssetVerify2`) and its list of expected file fingerprints (`ccAssetManifestAll`).
+4. **Older add-ons** pinned in the page footer: Heartbeat core (3fb6a2e1), customer directory (17e9a139), calendar dashboard
+   (fe3704f7), relationship profile (40e1cf19), finish flow (7103cd83), date picker (e414d14d), Daily cake demand (fd6e6fa6,
+   protected), analytics insights and seasonal demand (71758a89), new order clarity (0af0f630).
 
-Confirmed orders show one Order completed button. It stays locked only until the balance is paid; the kitchen marking the cake Ready is now a warning, not a lock (database change `supabase/sql/order_completed_without_kitchen_ready.sql`, applied live). Completed orders read Completed. Live file: `dist/app/staff-app.c07d484b47.js` at commit 1346812. Rollback: paste `docs/rollback/staff-footer-before-order-completed-2026-10-17.html` into the staff page footer and publish (the database change can stay; the old screen still works with it).
+**Important: `build/build.py` does not rebuild the live base app.** Since mid October the base app has been built release by
+release on top of the previous built file (see `build/release_d_settings.py`, `build/release_f_fixes.py`). The readable files
+in `src/` are the source of each part and are kept accurate, but running `build/build.py` today would produce an older app
+without practice mode, old orders, the touch standard and later releases. Make the next base app release the same way:
+take the current live file with `git show <commit>:<file>`, apply checked replacements, print the new name and SRI.
+
+### Protected commits
+
+Branch `keep/live-pins` holds every commit the live pages and Edge Functions load (29 on 28 October 2026). **Never delete it.**
+When a release pins a new commit, add it to that branch. With it in place, old branches can be deleted safely.
+
+### Protected features
+
+The Daily cake demand rail and the Heartbeat booking curve are never changed by design work (see `docs/HEARTBEAT_PROTECTED.md`).
 
 ## Folders
 
-- `src/`: readable source (staff app, guest page, styles). Edit these files, never the files in `dist`.
-- `build/build.py`: builds `dist/` from `src/` (minifies with terser and csso, then splits the staff app into five blocks). It works from the repository root (the folder above `build/`), wherever the repository is checked out.
-- `build/verify_upload.py`, `build/cmp.py`: compare what Webflow holds with `dist/`.
-- `dist/staff/`, `dist/guest/`: exactly what is live in Webflow on 12 October 2026.
-  - `guest.head.PENDING-not-live.html` is an approved-later change (guest form clarity styles) that is not live.
-- `supabase/functions/`: Edge Function source as deployed.
-- `supabase/sql/`: the SQL for the amendment and calendar phases.
-- `supabase/schema/`: full schema-only snapshot taken from the live database (all 24 migrations, 42 functions, 29 access policies, tables, indexes, triggers, cron job). No row data.
-- `sheet-sync/`: Apps Script and the row parser shared with the sync function.
-- `tests/`: mock database and browser test scripts (Playwright).
-  - Run: `python3 tests/run_cal.py` and the others against `staff-test.html`.
+- `src/`: readable source of the staff app, its add-ons, the guest page, the festive page and the unsubscribe page. Edit these.
+- `dist/app/`: the built files that are live today (base app, Release F candidate, guest app, email templates screen) and the
+  small manifests older build scripts read. Older builds were removed on 28 October 2026; they stay in git history and on
+  jsDelivr at their commits.
+- `dist/brand`, `dist/pwa`, `dist/catalogue`, `dist/festive`: images, app icons, catalogue and festive assets.
+- `dist/staff`, `dist/guest`: copies of the Webflow code blocks from 12 October 2026 (history).
+- `build/`: build and release scripts. `release_*.py` are the current pattern; the `staff_*.py` and `footer_*.py` scripts are
+  the one-off releases of 17 to 22 October, kept as a record.
+- `central/`, `middleware.js`, `vercel.json`, `scripts/`: the Vercel host for central.cornercafefiji.com. **Stale: do not switch
+  staff over** until it is rebuilt from the live page (see `docs/CENTRAL-STALE.md`).
+- `recovered/`: read-only copies of pinned files that are not in the current tree.
+- `supabase/functions/`: Edge Function source as deployed. `supabase/sql/`: every database change, by date. `supabase/schema/`
+  and `supabase/snapshot/`: schema-only snapshots (no row data).
+- `sheet-sync/`, `google-sheet/`: Apps Scripts for the sheet sync and the backup sheet.
+- `test/order-tools/`: the current browser tests (Playwright, mock database). `test/` and `tests/`: earlier tests.
+- `docs/`: how-tos that still apply (outage, restore, monitoring, central warning, Heartbeat). `docs/history/`: release notes
+  and the Webflow rollback copies, by date.
 
-## Deploying a change
+## Making a change
 
-1. Edit `src/`, then run `python3 build/build.py`.
-2. Run the tests in `tests/`.
-3. Upload the five staff blocks (or the guest head and footer) to Webflow.
-4. Read each block back and compare it with `dist/` character for character.
-5. Publish only with the owner's approval.
+1. Edit `src/`. For the base app, write a `build/release_<letter>_*.py` patch on top of the live file.
+2. Run the tests in `test/order-tools/` against the new file (`LOCAL_DIR` points the tests at local files).
+3. Commit to a branch, open a pull request into `main`.
+4. Only after the owner says **"deploy"**: update the Webflow page or loader to the new commit, publish, read it back, and add
+   the commit to `keep/live-pins`.
 
-Database changes go in as new migrations. Already-applied migrations are never edited.
+Database changes go in as new files in `supabase/sql/` and are applied as migrations. Applied migrations are never edited.
 
 ## Settings and secrets (names only)
 
@@ -74,7 +102,7 @@ Database changes go in as new migrations. Already-applied migrations are never e
   - Restoring replaces the whole database, so restore to a new project first when only part of the data is needed.
 - **Reference photos** (Storage bucket `cake-references`): not covered by database backups.
 - **Webflow**: Webflow keeps site backups (Site settings, Backups). The code is also in `dist/` here.
-- **This package**: keep it in a private GitHub repository. Git history is not a database backup.
+- **This repository**: it has to stay public for now (the live pages load files from it). Git history is not a database backup.
 
 ## Rollback
 

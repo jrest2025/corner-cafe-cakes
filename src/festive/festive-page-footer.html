@@ -1,0 +1,60 @@
+<style>
+/* 28 Oct 2026: festive orders go through the online order page (the cake app); the enquiry form is not shown */
+#festive-order{display:none!important}
+#festive-menu .ccfest-wine-offer .ccfest-btn{display:none!important}
+/* Order buttons wait for the On/Off switch (Service Hub > Settings > Seasonal items) before they show */
+html:not(.ccfest-known) #festive-menu .ccfest-card-add,html:not(.ccfest-known) .ccfest-order-link{visibility:hidden}
+.ccfest-treats{padding:0 0 64px;overflow-x:clip}.ccfest-treats #cc-treat-order{scroll-margin-top:90px}
+.ccfest-soon{display:inline-flex;align-items:center;min-height:44px;font-size:15px;color:#566358;font-style:italic}
+</style>
+<script>
+/* 28 Oct 2026: the seasonal order module (the same one as the website order system) sits right after the goodies */
+(function(){var m=document.getElementById('festive-menu');if(!m||document.getElementById('cc-treat-host'))return;
+var s=document.createElement('section');s.className='ccfest-treats';s.innerHTML='<div class="ccfest-shell"><div id="cc-treat-host"></div></div>';m.parentNode.insertBefore(s,m.nextSibling);})();
+</script>
+<script>
+/* Festive menu from the Webflow CMS (Festive Goodies). 28 October 2026.
+   Edit names, prices, wording, photos and order in the Webflow CMS. Card names must match the item names in the
+   Service Hub (Settings > Seasonal items), so "Order" adds the right treat on the order page.
+   One switch: when the Festive treats heading is On in the Service Hub, the cards say "Order" and link to the order
+   page with that treat added; when it is Off, they say "Coming soon" and nothing links to ordering. */
+document.addEventListener('DOMContentLoaded',function(){
+  var menu=document.getElementById('festive-menu'); if(!menu)return;
+  [].slice.call(menu.querySelectorAll('.w-dyn-items')).forEach(function(list){
+    var items=[].slice.call(list.children), n=function(el){var s=el.querySelector('[data-festive-sort]');var v=parseFloat(s&&s.textContent);return isNaN(v)?9999:v;};
+    items.sort(function(a,b){return n(a)-n(b);}).forEach(function(i){list.appendChild(i);});
+  });
+  var txt=function(c,sel){var e=c.querySelector(sel);return e?e.textContent.replace(/\s+/g,' ').trim():'';};
+  var cards=[].slice.call(menu.querySelectorAll('.ccfest-card'));
+  cards.forEach(function(c){
+    var img=c.querySelector('img'), src=img&&img.getAttribute('src')||'';
+    if(!src||/placeholder/i.test(src))c.classList.add('is-nophoto');
+    var note=c.querySelector('.ccfest-card-note'); if(note&&!note.textContent.trim())note.style.display='none';
+  });
+  var orderLinks=[].slice.call(document.querySelectorAll('a[href="#festive-order"],a[href="/order-cake#cc-treat-order"],a[href="#cc-treat-order"]')).filter(function(a){return !a.classList.contains('ccfest-card-add');});
+  orderLinks.forEach(function(a){a.classList.add('ccfest-order-link');});
+  function apply(on){
+    cards.forEach(function(c){
+      var name=txt(c,'.ccfest-card-title'), add=c.querySelector('.ccfest-card-add'); if(!add||!name)return;
+      var soon=c.querySelector('.ccfest-soon');
+      if(on){add.style.display='';add.setAttribute('href','#cc-treat-order');add.textContent='Order';add.setAttribute('aria-label','Order '+name);add.setAttribute('data-treat',name);if(soon)soon.remove();}
+      else{add.style.display='none';if(!soon){soon=document.createElement('span');soon.className='ccfest-soon';soon.textContent='Coming soon';add.parentNode.insertBefore(soon,add);}}
+    });
+    orderLinks.forEach(function(a){if(on){a.style.display='';a.setAttribute('href','#cc-treat-order');}else a.style.display='none';});
+    document.documentElement.classList.add('ccfest-known');
+  }
+  /* "Order" on a card adds that goodie to the order module below and scrolls to it */
+  document.addEventListener('click',function(e){
+    var a=e.target&&e.target.closest&&e.target.closest('[data-treat]'); if(!a)return;
+    if(window.__ccoSeasonal&&window.__ccoSeasonal.add&&window.__ccoSeasonal.add(a.getAttribute('data-treat')))e.preventDefault();
+  });
+  var done=false; function once(on){if(done)return;done=true;apply(on);}
+  setTimeout(function(){once(true);},6000);   /* no answer: show the Order buttons, the order page checks again */
+  try{
+    fetch('https://ilbrfwxblhidtlsjgxlh.supabase.co/rest/v1/rpc/get_seasonal_menu',{method:'POST',headers:{'Content-Type':'application/json',apikey:'sb_publishable_4c9NdubC5PYevEOSMYH0ag_mv1LJ76E'},body:JSON.stringify({p_channel:'website'})})
+      .then(function(r){return r.ok?r.json():null;}).then(function(m){once(!m||!m.ok?true:(m.groups||[]).length>0);},function(){once(true);});
+  }catch(e){once(true);}
+});
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/jrest2025/corner-cafe-cakes@7643036c7114374c3736e8d04f91cb77a26c6395/src/guest.seasonal.js" integrity="sha384-LLfrhV0eWfcATOJo+nTgJcODMXNBJ2FVxAeJIzYD28GgIo4KTy1CNX4aYJP5MRdU" crossorigin="anonymous"></script>

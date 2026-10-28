@@ -2,7 +2,7 @@
 from pathlib import Path
 import json
 ROOT=Path(__file__).resolve().parents[1]
-s=(ROOT/'docs/rollback/staff-footer-before-viewport-fit-2026-10-18.html').read_text().rstrip('\n')
+s=(ROOT/'docs/history/rollback/staff-footer-before-viewport-fit-2026-10-18.html').read_text().rstrip('\n')
 needle='document.head.appendChild(p)};s.onerror=go;'
 assert s.count(needle)==1
 css=(ROOT/'src/staff.viewport-fit.css').read_text();js=(ROOT/'src/staff.viewport-fit.js').read_text()

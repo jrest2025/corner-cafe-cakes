@@ -13,6 +13,7 @@
   var URL = 'https://ilbrfwxblhidtlsjgxlh.supabase.co', KEY = 'sb_publishable_4c9NdubC5PYevEOSMYH0ag_mv1LJ76E', TZ = 'Pacific/Fiji';
   var DRAFT = 'cco-draft-v2', CART = 'cco-treats-v1', PHONE = '+679 892 2760';
   var menu = null, setup = null, cart = {}, lastSent = null, removedNote = null, own = null, rootEl = null;
+  var WITH_CAKE = false, ON_CAKE_PAGE = false;   // seasonal items are ordered on their own page, never with a cake   // treats added to a cake order on the website (off: specials are always their own order)
 
   function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function money(n) { n = Number(n || 0); return '$' + (Math.round(n * 100) % 100 ? n.toFixed(2) : String(Math.round(n))); }
@@ -153,6 +154,9 @@
       }
       return;
     }
+    // (28 Oct 2026, Roneel) limited-time specials stay separate from cake orders on the website: no treats on the cake
+    // form; customers order them in the Festive treats section above as their own treat order (T-...).
+    if (!WITH_CAKE) { var old = root.querySelector('.cco-tr'); if (old) old.remove(); var ol = root.querySelector('.cco-tr-total'); if (ol) ol.remove(); if (Object.keys(cart).length) clearCart(); return; }
     if (!menu || !items().length) return;
     if (!root.classList.contains('cco-at-review')) return;
     var send = root.querySelector('[data-act="send"]'); if (!send) return;
@@ -182,7 +186,11 @@
     removedNote = null; saveCart(); schedule();
   }
   function start() {
+    // (28 Oct 2026, Roneel) the seasonal order module lives on the festive page (#cc-treat-host), not on the cake page
+    var place = doc.getElementById('cc-treat-host');
+    if (place) { style(); T.mountIn(place); load(); return; }
     var root = doc.getElementById('cc-cake-order'); if (!root) return;
+    if (!ON_CAKE_PAGE) return;   // the cake page is cakes only
     rootEl = root; style(); T.mount(root); load();
     new MutationObserver(function (list) { for (var i = 0; i < list.length; i++) { var t = list[i].target; if (t.closest && t.closest('.cco-tr')) continue; return schedule(); } }).observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
     root.addEventListener('click', onClick);
@@ -192,7 +200,7 @@
   // leave the current cake form separate". Saved as a treat order (T-1001…) for the Treat orders board in the Service Hub.
   // Shows only while the section is On in the Service Hub and something is on sale; otherwise nothing is added to the page.
   var T = (function () {
-    var KEYT = 'cct-draft-v1', host = null, st = null;
+    var KEYT = 'cct-draft-v1', host = null, st = null, preDone = false;
     function blank() { return { q: {}, step: 1, moreDays: false, noteOpen: false, day: null, time: null, name: '', phone: '', note: '', key: null, err: null, msg: null, done: null, sending: false }; }
     function load() { try { var d = JSON.parse(win.localStorage.getItem(KEYT) || 'null'); if (d && d.at && Date.now() - d.at < 3 * 864e5) { var b = blank(); ['q', 'step', 'day', 'time', 'name', 'phone', 'note', 'key'].forEach(function (k) { if (d[k] != null) b[k] = d[k]; }); if (d.open && !d.step) b.step = 2; return b; } } catch (_) {} return blank(); }
     function save() { try { if (st.done) win.localStorage.removeItem(KEYT); else win.localStorage.setItem(KEYT, JSON.stringify({ at: Date.now(), q: st.q, step: st.step, day: st.day, time: st.time, name: st.name, phone: st.phone, note: st.note, key: st.key })); } catch (_) {} }
@@ -276,7 +284,7 @@
       var g = (menu.groups || []), title = g.length === 1 ? g[0].name : 'Seasonal treats', h = '<div class="cct-in">';
       if (st.done) return h + doneHtml() + '</div>';
       var n = count(); if (!n && st.step > 1) st.step = 1;
-      h += '<div class="cct-head' + (st.step > 1 ? ' is-small' : '') + '"><p class="cct-k">' + (st.step > 1 ? 'Step ' + st.step + ' of 3' : 'Now available') + '</p><h2 id="cct-title">' + esc(title) + '</h2>' + (st.step === 1 ? '<p class="cct-sub">' + esc([g.length === 1 ? g[0].message : '', 'Order them on their own, no cake needed.'].filter(Boolean).join(' ')) + '</p>' : '') + '</div>';
+      h += '<div class="cct-head' + (st.step > 1 ? ' is-small' : '') + '"><p class="cct-k">' + (st.step > 1 ? 'Step ' + st.step + ' of 3' : 'Now available') + '</p><h2 id="cct-title">' + esc(title) + '</h2>' + (st.step === 1 ? '<p class="cct-sub">' + esc([g.length === 1 ? g[0].message : '', 'A separate order from cakes. Ordering a cake as well? Use Order a Cake.'].filter(Boolean).join(' ')) + '</p>' : '') + '</div>';
       if (st.msg) h += '<p class="cct-msg" role="status">' + esc(st.msg) + '</p>';
       if (st.step === 2) return h + stepWhen() + '</div>';
       if (st.step === 3) return h + stepWho() + '</div>';
@@ -298,10 +306,24 @@
       var has = menu && items().length;
       if (!has && !st.done) { host.hidden = true; return; }
       if (!st.done) checkDay();
+      // (28 Oct 2026) arriving from the festive page: /order-cake?treat=Mince%20Pies#cc-treat-order adds that treat
+      // once and brings this section into view. Only on the first step, and only if the customer has not picked it yet.
+      var go = null;
+      if (!preDone) {
+        preDone = true;
+        var pre = null; try { pre = new URLSearchParams(win.location.search).get('treat'); } catch (_) {}
+        if (pre || win.location.hash === '#cc-treat-order') {
+          go = true;
+          var nk = function (s) { return String(s || '').toLowerCase().replace(/[^a-z0-9]/g, ''); };
+          var hit = pre ? items().filter(function (i) { return nk(i.name) === nk(pre); })[0] : null;
+          if (hit && !st.done && st.step === 1 && !(st.q[hit.id] > 0)) { st.q[hit.id] = 1; save(); }
+        }
+      }
       var a = doc.activeElement, keep = focusSel || (a && host.contains(a) ? keyOf(a) : null), h = html();
       host.hidden = false;
       if (host.getAttribute('data-h') === h) return;
       host.innerHTML = h; host.setAttribute('data-h', h);
+      if (go) setTimeout(function () { try { host.scrollIntoView({ block: 'start' }); } catch (_) {} }, 60);
       if (keep) { var f = host.querySelector(keep); if (f && f.disabled) f = f.parentNode.querySelector('button:not(:disabled)'); if (f) f.focus({ preventScroll: true }); }
     }
     function keyOf(el) {
@@ -448,11 +470,31 @@
         root.parentNode.insertBefore(host, root);
         host.addEventListener('click', click); host.addEventListener('input', input); host.addEventListener('change', input);
       },
+      mountIn: function (el) {
+        if (host || !el) return;
+        st = load(); css();
+        host = doc.createElement('section'); host.id = 'cc-treat-order'; host.hidden = true; host.setAttribute('aria-labelledby', 'cct-title');
+        el.appendChild(host);
+        host.addEventListener('click', click); host.addEventListener('input', input); host.addEventListener('change', input);
+      },
+      // add one of a treat by name (the festive page's Order buttons) and bring the module into view
+      add: function (name) {
+        if (!host || !st) return false;
+        var nk = function (s) { return String(s || '').toLowerCase().replace(/[^a-z0-9]/g, ''); };
+        var it = items().filter(function (i) { return nk(i.name) === nk(name); })[0];
+        if (!it) return false;
+        if (st.done) { st = blank(); }
+        if (st.step !== 1) st.step = 1;
+        if (!(st.q[it.id] > 0)) st.q[it.id] = 1;
+        save(); try { render(); } catch (e) { warn('treat order', e); }
+        try { host.scrollIntoView({ block: 'start' }); } catch (_) {}
+        return true;
+      },
       render: function () { try { render(); } catch (e) { warn('treat order', e); } },
       state: function () { return st; }
     };
   })();
 
-  win.__ccoSeasonal = { treatOrder: function () { return T.state(); }, cart: function () { return cart; }, menu: function () { return menu; } };
+  win.__ccoSeasonal = { treatOrder: function () { return T.state(); }, cart: function () { return cart; }, menu: function () { return menu; }, add: function (n) { return T.add(n); } };
   if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', start); else start();
 })(window, document);

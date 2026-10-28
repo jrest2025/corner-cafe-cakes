@@ -3,7 +3,7 @@
 Roneel: "can we build a birthday club into the dashboard for the customers.. we can always call them up and wish them
 and offer something". Approved choices: join at the counter and on the website; a free cupcake with a cake ordered
 within 2 weeks of the birthday, once a year; the call list shows birthdays in the next 7 days, today's first.
-Database: supabase/birthday_club_20261020.sql (applied; every function checks the master switch, which stays off until
+Database: supabase/sql/birthday_club_20261020.sql (applied; every function checks the master switch, which stays off until
 the release is approved).
 
 Base: the live release (dist/app/staff-service-hub-manifest.json) unless BASE names another manifest. The marketing

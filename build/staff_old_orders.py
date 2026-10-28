@@ -4,7 +4,7 @@
 Roneel: "the form shoud allow our staff to renter orders that were taken ealier becasue we are now doing all the cake
 entries that were done previously manually" and "Yes warn for duplicates.. yes allow correctiong for old orders but all
 orders showu d have a clear audit traiut showing all changes etc".
-Database: supabase/old_orders_20261021.sql (staff_enter_old_order, order_possible_duplicates, staff_correct_order).
+Database: supabase/sql/old_orders_20261021.sql (staff_enter_old_order, order_possible_duplicates, staff_correct_order).
 
 Base: the live release (dist/app/staff-analytics-look-manifest.json) unless BASE names another manifest.
 OUT names the manifest written (default dist/app/staff-old-orders-manifest.json).

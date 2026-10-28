@@ -37,7 +37,7 @@
     if (doc.getElementById('cc-service-tools-style')) return;
     var s = doc.createElement('style'); s.id = 'cc-service-tools-style';
     s.textContent =
-      '#ccs-sheet .cc-st-ready{color:#067647!important;border-color:#ABEFC6!important;background:#ECFDF3!important}' +
+      '#ccs-sheet .cc-st-ready{color:#1D2939!important;border-color:#D0D5DD!important;background:#fff!important;display:inline-flex;align-items:center;justify-content:center;gap:8px}#ccs-sheet .cc-st-ready svg{width:18px;height:18px;flex:none}' +   // 28 Oct 2026: an action, not a status (green read as "the cake is ready")
       '#ccs-sheet .cc-st-panel{border:1px solid #ABEFC6;border-radius:12px;background:#fff;padding:14px 16px;margin:10px 0}' +
       '#ccs-sheet .cc-st-panel b.cc-st-q{display:block;color:#1D2939;margin-bottom:4px}' +
       '#ccs-sheet .cc-st-panel p{margin:0 0 10px;color:#475467;line-height:1.4}' +
@@ -84,7 +84,7 @@
     var row = sheet.querySelector('.ccs-actions-row [data-act="panel"][data-v="collected"], .ccs-actions-row [data-act="panel"][data-v="brief"]');
     row = row && row.closest('.ccs-actions-row'); if (!row) return;
     if (!row.querySelector('.cc-st-ready')) {
-      var b = doc.createElement('button'); b.type = 'button'; b.className = 'ccs-btn ccs-ghost cc-st-ready'; b.setAttribute('data-cc-ready', '1'); b.textContent = 'Cake is ready';
+      var b = doc.createElement('button'); b.type = 'button'; b.className = 'ccs-btn ccs-ghost cc-st-ready'; b.setAttribute('data-cc-ready', '1'); b.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg>Mark cake ready';
       row.insertBefore(b, row.firstChild);
     }
     var panel = sheet.querySelector('.cc-st-panel');

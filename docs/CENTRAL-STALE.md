@@ -15,7 +15,7 @@ central.cornercafefiji.com today, **staff would be rolled back to the 22 October
 - **Order tools loaders 2 to 34.** These are Webflow-registered footer scripts named `ccOrderToolsLoader` (versions 1.0.2 to
   1.0.34). The live one is `ccOrderToolsLoader34`, pinned to commit `1870847c`. Loader 35 (welcome screen, commit `ff0f0ac2`)
   was rolled back on 27 October at 8:03 PM. A grep of `central/page/` finds no `ccOrderToolsLoader` at all.
-  See `docs/order-tools-2026-10-27.md` and `docs/loader34.js`.
+  See `docs/history/order-tools-2026-10-27.md` and `docs/loader34.js`.
 - **What those loaders deliver** (files loaded by `docs/loader34.js`, from `src/`):
   - `staff.order-tools.js`: 26 October order tools
   - `staff.analytics-birthday.js`: birthday comeback
