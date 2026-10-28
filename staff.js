@@ -1134,6 +1134,7 @@ async function renderSettings(){
   if(state.stab==='history')return paneHistory();
   if(state.stab==='integrations')return paneIntegrations();
   if(state.stab==='wording')return paneWording();
+  if(state.stab==='roles')return paneRoles();
   if(state.stab==='profile')return paneProfile();
   try{var s=await call('staff_get_settings')}catch(e){$('spane').innerHTML='<div class="msg err">'+esc(errText(e))+'</div>';return}
   var admin=s.me&&s.me.role==='admin';
@@ -7224,6 +7225,68 @@ function kzEwEdit(e,w){var o=$('kzew-s');if(o)o.remove();
     if(s===e[2]&&m===e[3])return save('','','Original wording kept.');save(s===e[2]?'':s,m===e[3]?'':m,'Saved. New emails use this wording.')};
   d.querySelector('.kzew-orig').onclick=function(){save('','','Original wording back.')};
   setTimeout(function(){try{su.focus({preventScroll:true})}catch(x){}},50)}
+/* v149 (28 Oct 2026, Settings audit: editable roles and permissions). Settings > People and access > Roles (admins).
+   Custom roles sit on top of Manager or Staff and can only switch actions off; the server refuses a switched-off action
+   (NOT_PERMITTED). Admin is never restricted. Built-in levels are shown for reference. */
+(function(){if(!STABS.some(function(s){return s[0]==='roles'}))STABS.push(['roles','Roles']);
+  KZ136.G.forEach(function(g){if(g.k==='people'&&g.items.indexOf('roles')<0){var i=g.items.indexOf('staff');g.items.splice(i<0?g.items.length:i+1,0,'roles')}});KZ136.I.roles='shield';
+  ERR.NOT_PERMITTED='Your role does not include this. Ask an admin.';ERR.INVALID_ROLE_NAME='Give the role a name of 2 to 40 characters.';
+  ERR.ROLE_EXISTS='There is already a role with this name.';ERR.ROLE_LEVEL_MISMATCH='This person is on a different level from the role.';
+  /* hide Analytics for anyone whose role switches it off */
+  var q=false;new MutationObserver(function(){if(q)return;q=true;requestAnimationFrame(function(){q=false;
+    var off=!!(me&&me.denied&&me.denied.indexOf('reports.view')>=0);if(root.classList.contains('kz-no-reports')!==off)root.classList.toggle('kz-no-reports',off)})}).observe(root,{childList:true,subtree:true});})();
+var KZR_LVL={admin:['Admin','Everything, including Settings and staff accounts. Never restricted.'],manager:['Manager','Everything staff can do, plus approvals, Analytics and holidays.'],staff:['Staff','Bookings, arrivals, seating, waiting list and closures.']};
+async function paneRoles(){var pane=$('spane');if(!pane)return;
+  if(!me||me.role!=='admin'){pane.innerHTML='<div class="panel"><p class="muted">Only admins can manage roles.</p></div>';return}
+  pane.innerHTML='<div class="skel" aria-label="Loading"><i></i><i></i><i></i></div>';
+  var D;try{D=await call('staff_roles')}catch(e){pane.innerHTML='<div class="msg err">'+esc(errText(e))+'</div>';return}
+  var C=D.catalogue||[],lab={};C.forEach(function(c){lab[c.key]=c.label});
+  function inBase(b){return C.filter(function(c){return c.base==='staff'||b==='manager'})}
+  var built=['admin','manager','staff'].map(function(k){var n=(D.staff||[]).filter(function(s){return s.role===k&&s.active&&!s.role_key}).length;
+    return '<div class="kzr-row kzr-built"><span class="kzr-tx"><b>'+KZR_LVL[k][0]+'</b><span class="sub">'+esc(KZR_LVL[k][1])+'</span></span><span class="kzr-n" aria-label="'+n+' people">'+kz136ic('person')+n+'</span></div>'}).join('');
+  var custom=(D.roles||[]).map(function(r){var on=inBase(r.base).filter(function(c){return r.perms.indexOf(c.key)>=0}),off=inBase(r.base).filter(function(c){return r.perms.indexOf(c.key)<0});
+    return '<button type="button" class="kzr-row" data-r="'+esc(r.key)+'"><span class="kzr-tx"><b>'+esc(r.name)+'</b><span class="sub">Built on '+KZR_LVL[r.base][0]+(off.length?' · '+off.length+' switched off':' · nothing switched off')+'</span>'+
+      (off.length?'<span class="kzr-off">'+off.map(function(c){return '<span class="tag">'+esc(c.label)+'</span>'}).join('')+'</span>':'')+'</span><span class="kzr-n" aria-label="'+r.people.length+' people">'+kz136ic('person')+r.people.length+'</span>'+kz136ic('chev','kzew-chev')+'</button>'}).join('');
+  pane.innerHTML='<div class="stack"><div class="panel stack kzr"><div class="row"><h2 style="margin:0">Roles</h2><span class="sp"></span><button type="button" class="btn primary" id="kzr-new">New role</button></div>'+
+    '<p class="shint">A role is built on Manager or Staff and can switch actions off. The system refuses anything switched off, whatever screen it is tried from.</p>'+
+    '<div class="kzh-day">Your roles</div>'+(custom?'<div class="list kzr-list">'+custom+'</div>':'<p class="muted" style="margin:0">No custom roles yet. Everyone uses the levels below.</p>')+
+    '<div class="kzh-day">Built-in levels</div><div class="list kzr-list">'+built+'</div></div></div>';
+  $('kzr-new').onclick=function(){kzRoleEdit(D,null)};
+  pane.querySelectorAll('[data-r]').forEach(function(b){b.onclick=function(){var r=(D.roles||[]).filter(function(x){return x.key===b.dataset.r})[0];if(r)kzRoleEdit(D,r)}})}
+function kzRoleEdit(D,r){var o=$('kzr-s');if(o)o.remove();var C=D.catalogue||[];
+  var st={name:r?r.name:'',base:r?r.base:'staff',perms:r?r.perms.slice():C.filter(function(c){return c.base==='staff'}).map(function(c){return c.key}),
+    people:(D.staff||[]).filter(function(s){return r&&s.role_key===r.key}).map(function(s){return s.email})};
+  var d=document.createElement('div');d.id='kzr-s';d.className='kzimp kzew-sheet kzr-sheet';d.setAttribute('role','dialog');d.setAttribute('aria-modal','true');d.setAttribute('aria-labelledby','kzr-t');
+  d.innerHTML='<div class="kzimp-scrim"></div><div class="kzimp-card kzew-card"><div class="kzimp-h"><b id="kzr-t">'+(r?esc(r.name):'New role')+'</b><button type="button" class="kg2-ib" data-x aria-label="Close"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>'+
+    '<div class="kzew-body"><label class="kzew-l" for="kzr-nm">Name</label><input id="kzr-nm" maxlength="40" placeholder="For example Host or Supervisor" value="'+esc(st.name)+'">'+
+    '<div class="kzew-l">Built on</div><div class="kzr-seg" role="radiogroup" aria-label="Built on"><button type="button" role="radio" data-b="staff">Staff</button><button type="button" role="radio" data-b="manager">Manager</button></div>'+
+    '<div class="kzew-l">Can do</div><div class="kzr-perms"></div><div class="kzew-l">People with this role</div><div class="kzr-people"></div></div>'+
+    '<div class="kzew-foot">'+(r?'<button type="button" class="link kzr-del">Remove role</button>':'')+'<span class="sp"></span><button type="button" class="btn" data-x>Cancel</button><button type="button" class="btn primary" id="kzr-ok">Save</button></div></div>';
+  root.appendChild(d);
+  function draw(){d.querySelectorAll('[data-b]').forEach(function(b){var on=b.dataset.b===st.base;b.classList.toggle('on',on);b.setAttribute('aria-checked',on)});
+    var list=C.filter(function(c){return c.base==='staff'||st.base==='manager'});st.perms=st.perms.filter(function(k){return list.some(function(c){return c.key===k})});
+    d.querySelector('.kzr-perms').innerHTML=list.map(function(c){return '<label class="kzr-perm"><input type="checkbox" value="'+c.key+'"'+(st.perms.indexOf(c.key)>=0?' checked':'')+'><span>'+esc(c.label)+'</span></label>'}).join('');
+    d.querySelectorAll('.kzr-perm input').forEach(function(i){i.onchange=function(){if(i.checked){if(st.perms.indexOf(i.value)<0)st.perms.push(i.value)}else st.perms=st.perms.filter(function(k){return k!==i.value})}});
+    var ppl=(D.staff||[]).filter(function(s){return s.active&&s.role===st.base});st.people=st.people.filter(function(e){return ppl.some(function(s){return s.email===e})});
+    d.querySelector('.kzr-people').innerHTML=ppl.length?ppl.map(function(s){var other=s.role_key&&(!r||s.role_key!==r.key)?(D.roles||[]).filter(function(x){return x.key===s.role_key})[0]:null;
+      return '<label class="kzr-perm"><input type="checkbox" value="'+esc(s.email)+'"'+(st.people.indexOf(s.email)>=0?' checked':'')+'><span>'+esc(s.name||s.email)+(other?' <span class="sub">now '+esc(other.name)+'</span>':'')+'</span></label>'}).join('')
+      :'<p class="muted" style="margin:0">Nobody is on the '+KZR_LVL[st.base][0]+' level yet.</p>';
+    d.querySelectorAll('.kzr-people input').forEach(function(i){i.onchange=function(){if(i.checked){if(st.people.indexOf(i.value)<0)st.people.push(i.value)}else st.people=st.people.filter(function(e){return e!==i.value})}})}
+  d.querySelectorAll('[data-b]').forEach(function(b){b.onclick=function(){if(st.base===b.dataset.b)return;st.base=b.dataset.b;if(st.base==='manager')C.forEach(function(c){if(c.base==='manager'&&st.perms.indexOf(c.key)<0)st.perms.push(c.key)});draw()}});
+  draw();
+  function close(){d.remove()}d.querySelector('.kzimp-scrim').onclick=close;d.querySelectorAll('[data-x]').forEach(function(x){x.onclick=close});
+  $('kzr-ok').onclick=async function(){var nm=$('kzr-nm').value.trim();if(nm.length<2){toast(ERR.INVALID_ROLE_NAME);$('kzr-nm').focus();return}
+    this.disabled=true;try{var R=await call('staff_save_role',{p_key:r?r.key:null,p_name:nm,p_base:st.base,p_perms:st.perms});
+      var key=r?r.key:((R.roles||[]).filter(function(x){return x.name.toLowerCase()===nm.toLowerCase()})[0]||{}).key;
+      var before=(D.staff||[]).filter(function(s){return r&&s.role_key===r.key}).map(function(s){return s.email});
+      for(var i=0;i<st.people.length;i++)if(before.indexOf(st.people[i])<0)await call('staff_assign_role',{p_email:st.people[i],p_key:key});
+      for(var j=0;j<before.length;j++)if(st.people.indexOf(before[j])<0)await call('staff_assign_role',{p_email:before[j],p_key:null});
+      close();toast('Role saved.');paneRoles()}catch(e){toast(errText(e));this.disabled=false}};
+  var del=d.querySelector('.kzr-del');if(del)del.onclick=function(){if(d.querySelector('.kzr-cf'))return;var c=document.createElement('div');c.className='kzrm-cf kzr-cf';
+    c.innerHTML='<span>Remove '+esc(r.name)+'? Its people go back to the '+KZR_LVL[r.base][0]+' level.</span><div class="row"><button type="button" class="btn danger" id="kzr-delok">Remove role</button><button type="button" class="btn" id="kzr-delno">Keep</button></div>';
+    d.querySelector('.kzew-body').appendChild(c);c.scrollIntoView({block:'nearest'});$('kzr-delno').onclick=function(){c.remove()};
+    $('kzr-delok').onclick=async function(){this.disabled=true;try{await call('staff_delete_role',{p_key:r.key});close();toast('Role removed.');paneRoles()}catch(e){toast(errText(e));this.disabled=false}}};
+  setTimeout(function(){try{$('kzr-nm').focus({preventScroll:true})}catch(x){}},50)}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
 })();
 

@@ -8522,3 +8522,27 @@ html body .kzlb .kzlb-r>span:not(.kzlb-from){font-size:15px;color:#667085}
 html body .kzew-sheet .kzew-foot>.link{flex:1 0 100%;order:-1;text-align:left;min-height:40px}
 html body .kzew-sheet .kzew-foot .btn{flex:1}
 html body .kzew-sheet .kzew-foot .sp{display:none}}
+/* v149 (28 Oct 2026): Settings > Roles */
+html body #kzs.kz-no-reports [data-nav="analytics"]{display:none!important}
+html body #kzs .kzr .kzr-list{display:flex;flex-direction:column;border:1px solid var(--line,#E4E7EC);border-radius:12px;overflow:hidden}
+html body #kzs .kzr .kzr-row{display:flex;align-items:center;gap:12px;width:100%;min-height:60px;padding:12px 14px;border:0;border-top:1px solid var(--line,#E4E7EC);background:#fff;text-align:left;font:inherit;color:inherit}
+html body #kzs .kzr button.kzr-row{cursor:pointer}
+html body #kzs .kzr button.kzr-row:hover{background:#F9FAFB}
+html body #kzs .kzr .kzr-list>.kzr-row:first-child{border-top:0}
+html body #kzs .kzr .kzr-tx{display:flex;flex-direction:column;gap:4px;flex:1;min-width:0}
+html body #kzs .kzr .kzr-tx b{font-weight:500}
+html body #kzs .kzr .kzr-tx .sub{color:var(--muted,#667085);font-size:.9em}
+html body #kzs .kzr .kzr-off{display:flex;flex-wrap:wrap;gap:4px}
+html body #kzs .kzr .kzr-off .tag{background:#FEF3F2;color:#B42318;border:1px solid #FECDCA;text-decoration:line-through;text-decoration-color:rgba(180,35,24,.45)}
+html body #kzs .kzr .kzr-n{display:inline-flex;align-items:center;gap:4px;color:#475467;flex:none;font-variant-numeric:tabular-nums}
+html body #kzs .kzr .kzr-built{background:#FCFCFD}
+html body .kzr-sheet .kzr-seg{display:inline-flex;border:1px solid #D0D5DD;border-radius:10px;overflow:hidden;align-self:flex-start}
+html body .kzr-sheet .kzr-seg button{min-height:44px;padding:0 18px;border:0;background:#fff;font:inherit;color:#344054;cursor:pointer}
+html body .kzr-sheet .kzr-seg button+button{border-left:1px solid #D0D5DD}
+html body .kzr-sheet .kzr-seg button.on{background:#EEF2F8;color:#1F3A5F;font-weight:500}
+html body .kzr-sheet .kzr-perms,html body .kzr-sheet .kzr-people{display:flex;flex-direction:column;border:1px solid #EAECF0;border-radius:12px;overflow:hidden}
+html body .kzr-sheet .kzr-perm{display:flex;align-items:center;gap:12px;min-height:48px;padding:8px 14px;border-top:1px solid #EAECF0;cursor:pointer}
+html body .kzr-sheet .kzr-perm:first-child{border-top:0}
+html body #kzs .kzr-sheet .kzr-perm input{width:20px!important;height:20px!important;min-height:0!important;flex:none;accent-color:#1F3A5F}
+html body .kzr-sheet .kzr-perm .sub{color:#667085;font-size:.88em}
+html body .kzr-sheet .kzr-cf{margin-top:8px}
