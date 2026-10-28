@@ -15,6 +15,7 @@ Contains no customer records and no secret values.
 
   The loader joins parts A, B, D, E and C in that order and checks the length and a checksum. If anything is missing it shows "The staff app did not load properly" instead of running a broken app.
   - Four small registered scripts (ccStaffClarity1 to 4) add the clarity styles.
+- **Staff sign-in**: each staff member signs in with their own email and password (Supabase). Sessions sign out after 12 hours without activity. On central.cornercafefiji.com a team password gate (`middleware.js`) comes first. There is no two-step (second factor) code; two-step sign-in is planned but not built.
 - **Database**: Supabase project "Corner Cafe Cakes" (ilbrfwxblhidtlsjgxlh, Sydney region, Pro plan). It is the authoritative source for orders, customers, payments and history.
 - **Email**: Edge Function `send-emails`, using Resend.
   - A database queue (`email_outbox`) is sent on insert, and retried every 5 minutes by a cron job.
@@ -32,7 +33,7 @@ Confirmed orders show one Order completed button. It stays locked only until the
 ## Folders
 
 - `src/`: readable source (staff app, guest page, styles). Edit these files, never the files in `dist`.
-- `build/build.py`: builds `dist/` from `src/` (minifies with terser and csso, then splits the staff app into five blocks). The working folder is hard-coded on line 2; change it to the folder you run from.
+- `build/build.py`: builds `dist/` from `src/` (minifies with terser and csso, then splits the staff app into five blocks). It works from the repository root (the folder above `build/`), wherever the repository is checked out.
 - `build/verify_upload.py`, `build/cmp.py`: compare what Webflow holds with `dist/`.
 - `dist/staff/`, `dist/guest/`: exactly what is live in Webflow on 12 October 2026.
   - `guest.head.PENDING-not-live.html` is an approved-later change (guest form clarity styles) that is not live.

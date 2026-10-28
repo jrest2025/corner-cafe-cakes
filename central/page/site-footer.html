@@ -1,0 +1,206 @@
+
+
+
+
+
+<script>
+/* Corner Cafe - editorial motion runtime
+   One observer, one-shot reveals, no scroll listener, no animation library. */
+(function(){
+  var reduce=window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function visible(el){
+    if(!el || el.nodeType!==1) return false;
+    if(el.closest('nav,header,footer,[data-no-motion]')) return false;
+    var cs=getComputedStyle(el);
+    if(cs.display==='none' || cs.visibility==='hidden') return false;
+    var r=el.getBoundingClientRect();
+    return r.width>24 && r.height>12;
+  }
+
+  function cls(el){
+    return ((el && el.className) || '').toString().toLowerCase();
+  }
+
+  function addMotion(el,type,delay,mobileDelay){
+    if(!el || !visible(el) || el.dataset.ccMotionItem==='1') return;
+    el.dataset.ccMotionItem='1';
+    el.classList.add('ccm-motion');
+    if(type) el.classList.add(type);
+    el.style.setProperty('--ccm-delay',(delay||0)+'ms');
+    el.style.setProperty('--ccm-mobile-delay',(mobileDelay||0)+'ms');
+
+    if(el.tagName==='IMG' || type==='ccm-image'){
+      el.classList.add('ccm-image');
+      if(el.tagName==='IMG'){
+        if(el.complete && el.naturalWidth>0){
+          el.classList.add('ccm-ready');
+        }else{
+          el.addEventListener('load',function(){
+            el.classList.add('ccm-ready');
+          },{once:true});
+        }
+      }else{
+        el.classList.add('ccm-ready');
+      }
+    }
+  }
+
+  function largestImage(scope){
+    var imgs=[].slice.call(scope.querySelectorAll('img')).filter(visible);
+    imgs.sort(function(a,b){
+      var ar=a.getBoundingClientRect(), br=b.getBoundingClientRect();
+      return (br.width*br.height)-(ar.width*ar.height);
+    });
+    return imgs[0]||null;
+  }
+
+  function firstUsable(scope,selector){
+    var list=scope.querySelectorAll(selector);
+    for(var i=0;i<list.length;i++){
+      if(visible(list[i]) && !list[i].closest('form,.w-form,details')) return list[i];
+    }
+    return null;
+  }
+
+  function directContentBlocks(main){
+    var kids=[].slice.call(main.children).filter(function(el){
+      if(!visible(el)) return false;
+      var tag=el.tagName;
+      if(tag==='SCRIPT' || tag==='STYLE') return false;
+      if(el.classList.contains('w-embed')) return false;
+      return true;
+    });
+
+    if(kids.length) return kids;
+
+    return [].slice.call(main.querySelectorAll('section')).filter(visible);
+  }
+
+  function profileHero(section){
+    var title=firstUsable(section,'h1');
+    var copy=firstUsable(section,'.ccw-hero-copy,.cck-hero-copy,.ccp-hero-copy,.cch-hero-copy,[class*="-lead"],p');
+    var action=firstUsable(section,'a[class*="-btn"],a[class*="-primary"],a.w-button,.w-button');
+    var image=largestImage(section);
+
+    addMotion(title,'ccm-hero-title',0,0);
+    addMotion(copy,'ccm-hero-copy',40,18);
+    addMotion(image,'ccm-image',70,28);
+    addMotion(action,'ccm-hero-action',95,36);
+  }
+
+  function profileTable(section){
+    var heading=firstUsable(section,'h2,h3');
+    var table=firstUsable(section,'.cck-price-table,[class*="price-table"],table');
+    var copy=firstUsable(section,'p');
+
+    addMotion(heading,'ccm-group',0,0);
+    addMotion(copy,'ccm-motion',35,16);
+    addMotion(table,'ccm-group',65,26);
+  }
+
+  function profileGallery(section){
+    var heading=firstUsable(section,'h2,h3');
+    addMotion(heading,'ccm-group',0,0);
+
+    var imgs=[].slice.call(section.querySelectorAll('img')).filter(visible).slice(0,3);
+    imgs.forEach(function(img,i){
+      addMotion(img,'ccm-image',30+(i*38),12+(i*16));
+    });
+  }
+
+  function profileEditorial(section,index){
+    var name=cls(section);
+    var decision=/cross|request|availability|contact|enquiry|plan|custom/.test(name);
+    var heading=firstUsable(section,'h2,h3');
+    var copy=firstUsable(section,'p');
+    var image=largestImage(section);
+    var action=firstUsable(section,'a[class*="-link"],a[class*="-btn"],a[class*="-primary"],.w-button');
+
+    addMotion(heading,decision?'ccm-decision':'ccm-group',0,0);
+    addMotion(copy,'ccm-motion',35,14);
+    addMotion(image,'ccm-image',60,24);
+    addMotion(action,decision?'ccm-decision':'ccm-motion',85,32);
+
+    /* If a section has no obvious semantic targets, reveal its first substantial child. */
+    if(!heading && !copy && !image && !action){
+      var child=[].slice.call(section.children).filter(visible)[0];
+      addMotion(child,decision?'ccm-decision':'ccm-group',0,0);
+    }
+  }
+
+  function prepare(section,index){
+    if(section.dataset.ccMotionPrepared==='1') return;
+    section.dataset.ccMotionPrepared='1';
+
+    var name=cls(section);
+    var hasTable=!!section.querySelector('.cck-price-table,[class*="price-table"],table');
+    var gallery=/gallery|photo|moments/.test(name);
+
+    if(index===0 || /hero/.test(name)){
+      profileHero(section);
+    }else if(hasTable){
+      profileTable(section);
+    }else if(gallery){
+      profileGallery(section);
+    }else{
+      profileEditorial(section,index);
+    }
+  }
+
+  function reveal(section){
+    if(!section || section.dataset.ccMotionShown==='1') return;
+    section.dataset.ccMotionShown='1';
+    section.classList.add('ccm-section-in');
+  }
+
+  function init(){
+    if(reduce) return;
+
+    var main=document.querySelector('main');
+    if(!main || main.dataset.ccMotionReady==='1') return;
+    main.dataset.ccMotionReady='1';
+
+    var sections=directContentBlocks(main);
+    if(!sections.length) return;
+
+    var io=('IntersectionObserver' in window) ? new IntersectionObserver(function(entries,observer){
+      entries.forEach(function(entry){
+        if(!entry.isIntersecting) return;
+        reveal(entry.target);
+        observer.unobserve(entry.target);
+      });
+    },{
+      threshold:.035,
+      rootMargin:'0px 0px -12% 0px'
+    }) : null;
+
+    /* Prevent page-to-page flash: prepare + reveal anything already in view
+       synchronously, before the browser paints the hidden motion state. */
+    sections.forEach(function(section,index){
+      var rect=section.getBoundingClientRect();
+      var aboveFold=index===0 || rect.top<innerHeight*.90;
+      prepare(section,index);
+      if(aboveFold){
+        reveal(section);
+      }else if(io){
+        io.observe(section);
+      }else{
+        reveal(section);
+      }
+    });
+  }
+
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',init,{once:true});
+  }else{
+    init();
+  }
+
+  window.Webflow=window.Webflow||[];
+  window.Webflow.push(init);
+})();
+</script>
+
+
+<script>function loadScript(a){var b=document.getElementsByTagName("head")[0],c=document.createElement("script");c.type="text/javascript",c.src="https://tracker.metricool.com/resources/be.js",c.onreadystatechange=a,c.onload=a,b.appendChild(c)}loadScript(function(){beTracker.t({hash:"723854044cd2e26508da65c0728ce35b"})});</script>

@@ -1,0 +1,4 @@
+{
+  "//": "Scripts in this folder are older CommonJS and browser files; keep them that way although the repository root says type: module (needed for the Vercel gate, as in the Kazumi repository).",
+  "type": "commonjs"
+}

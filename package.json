@@ -1,0 +1,12 @@
+{
+  "name": "corner-cafe-service-hub-central",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:central": "node scripts/build-central.mjs",
+    "test:central": "node tests/central/build.mjs && node tests/central/gate.mjs"
+  },
+  "dependencies": {
+    "@vercel/functions": "^3.10.3"
+  }
+}

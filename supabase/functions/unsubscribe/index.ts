@@ -8,7 +8,7 @@
 
 const SB_URL = Deno.env.get("SUPABASE_URL")!;
 const SB_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const ORIGINS = ["https://www.cornercafefiji.com", "https://cornercafefiji.com"];
+const ORIGINS = ["https://www.cornercafefiji.com", "https://cornercafefiji.com", "https://central.cornercafefiji.com"];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 function cors(req: Request): Record<string, string> {
