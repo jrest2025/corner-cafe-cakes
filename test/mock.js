@@ -700,6 +700,7 @@
         if (ch.time) list.push({ field: 'time', label: 'Collection time', from: '2:00 PM', to: ch.time === '16:00' ? '4:00 PM' : ch.time, kitchen: true });
         if (ch.size_inch) list.push({ field: 'size', label: 'Cake size', from: '8-inch', to: ch.size_inch + '-inch', kitchen: true });
         if (ch.message != null) list.push({ field: 'message', label: 'Cake message', from: 'None', to: '“' + ch.message + '”', kitchen: true });
+        if (ch.customer_name) list.push({ field: 'customer_name', label: 'Name', from: 'Test Customer B', to: ch.customer_name, kitchen: false });
         if (ch.method) list.push({ field: 'method', label: 'Collection or delivery', from: 'Collection from the café', to: ch.method === 'delivery' ? 'Delivery' : 'Collection from the café', kitchen: true });
         if (ch.zone) list.push({ field: 'zone', label: 'Delivery area', from: 'None', to: ch.zone, kitchen: true });
         if (ch.address) list.push({ field: 'address', label: 'Delivery address', from: 'None', to: ch.address, kitchen: true });

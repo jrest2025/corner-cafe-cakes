@@ -420,11 +420,12 @@
     var am = sh.querySelector('[data-act="panel"][data-v="amend"]');
     var spots = [];
     var nm = sh.querySelector('.ccs-sheet-head .os-tph > b'); if (nm) spots.push(nm);
-    [].forEach.call(sh.querySelectorAll('.ccs-kv dt'), function (dt) { if (/^(Message|Design)$/.test(txt(dt)) && dt.nextElementSibling) spots.push(dt.nextElementSibling); });
+    [].forEach.call(sh.querySelectorAll('.ccs-kv dt'), function (dt) { var k = txt(dt); if (/^(Message|Design)$/.test(k) && dt.nextElementSibling) { dt.nextElementSibling.setAttribute('data-ccp-k', k === 'Message' ? 'am-msg' : 'am-design'); spots.push(dt.nextElementSibling); } });
+    if (nm) nm.setAttribute('data-ccp-k', 'am-cname');
     if (!am || sh.querySelector('[data-act^="do-"]')) { [].forEach.call(sh.querySelectorAll('.ccp-pen'), function (b) { b.remove(); }); return; }
     spots.forEach(function (el) {
       if (el.querySelector(':scope > .ccp-pen')) return;
-      var b = doc.createElement('button'); b.type = 'button'; b.className = 'ccp-pen'; b.setAttribute('aria-label', 'Fix a typo (opens Change order)'); b.title = 'Fix a typo';
+      var b = doc.createElement('button'); b.type = 'button'; b.className = 'ccp-pen'; b.setAttribute('aria-label', 'Fix the spelling'); b.title = 'Fix the spelling';
       b.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
       el.appendChild(b);
     });
@@ -432,7 +433,25 @@
   doc.addEventListener('click', function (e) {
     var b = e.target && e.target.closest ? e.target.closest('#ccs-sheet .ccp-pen') : null; if (!b) return;
     e.preventDefault(); e.stopPropagation();
-    var am = doc.querySelector('#ccs-sheet [data-act="panel"][data-v="amend"]'); if (am) am.click();
+    // straight to the field: open Change order at the right section (the app's own "am-go"), then put the cursor in it
+    var sh = doc.getElementById('ccs-sheet'), host = b.parentElement, id = (host && host.getAttribute('data-ccp-k')) || 'am-cname';
+    var go = doc.createElement('button'); go.type = 'button'; go.hidden = true; go.setAttribute('data-act', 'am-go'); go.setAttribute('data-v', id === 'am-cname' ? 'cust' : 'look');
+    (sh.querySelector('.ccs-sheet-body') || sh).appendChild(go); go.click(); if (go.isConnected) go.remove();
+    var tries = 0, filled = false;
+    (function focus() {
+      // a spelling fix is the team's own change: "Our team" and the reason "Spelling fix" are filled in (still editable)
+      if (!filled && doc.getElementById('am-reason')) {
+        filled = true;
+        var by = doc.querySelector('#ccs-sheet [data-act="am-set"][data-f="by"][data-v="staff"]');
+        if (by && !doc.querySelector('#ccs-sheet [data-act="am-set"][data-f="by"][aria-pressed="true"]')) by.click();
+        var rs = doc.getElementById('am-reason');
+        if (rs && !rs.value.trim()) { rs.value = 'Spelling fix'; rs.dispatchEvent(new Event('input', { bubbles: true })); rs.dispatchEvent(new Event('change', { bubbles: true })); }
+      }
+      var f = doc.getElementById(id);
+      if (!f && id === 'am-design') f = doc.getElementById('am-msg');
+      if (f) { f.scrollIntoView({ block: 'center' }); f.focus(); try { var n = f.value.length; f.setSelectionRange(n, n); } catch (e) {} return; }
+      if (++tries < 20) setTimeout(focus, 50);
+    })();
   }, true);
   (function () {
     var s = doc.createElement('style');
