@@ -7,11 +7,12 @@ html:not(.ccfest-known) #festive-menu .ccfest-card-add,html:not(.ccfest-known) .
 .ccfest-treats{padding:0 0 64px;overflow-x:clip}.ccfest-treats #cc-treat-order{scroll-margin-top:90px}
 .ccfest-soon{display:inline-flex;align-items:center;min-height:44px;font-size:15px;color:#566358;font-style:italic}
 /* the card's own Webflow button (ccfest-btn ccfest-btn-primary), a little smaller to sit beside the price */
-#festive-menu .ccfest-card-add.ccfest-btn{min-height:48px;padding:10px 22px;text-decoration:none;cursor:pointer}
+#festive-menu .ccfest-card-add.ccfest-btn{min-height:48px;padding:10px 22px;color:#fff;text-decoration:none;cursor:pointer}
+#festive-menu .ccfest-card-add.ccfest-btn:hover{color:#fff}
 #festive-menu .ccfest-card.is-in-order{border-color:#163E32;box-shadow:0 0 0 1px #163E32}
 .ccfest-qty{display:inline-flex;align-items:center;gap:6px}
 .ccfest-qty[hidden]{display:none}
-.ccfest-qty button{width:48px;height:48px;border-radius:4px;border:1px solid #163E32;background:#fff;color:#163E32;font:600 22px/1 inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.ccfest-qty button{width:48px;height:48px;border-radius:4px;border:1px solid #163E32;background:#fff;color:#163E32;font-family:inherit;font-size:22px;font-weight:600;line-height:1;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .ccfest-qty button:hover:not(:disabled){background:#F3F5F1}
 .ccfest-qty button:disabled{opacity:.4;cursor:not-allowed}
 .ccfest-qty button:focus-visible,.ccfest-bar .ccfest-btn:focus-visible{outline:3px solid #163E32;outline-offset:2px}
@@ -49,6 +50,8 @@ document.addEventListener('DOMContentLoaded',function(){
     var note=c.querySelector('.ccfest-card-note'); if(note&&!note.textContent.trim())note.style.display='none';
   });
   var orderLinks=[].slice.call(document.querySelectorAll('a[href="#festive-order"],a[href="/order-cake#cc-treat-order"],a[href="#cc-treat-order"]')).filter(function(a){return !a.classList.contains('ccfest-card-add');});
+  /* wine is counter only ("ask our team when you collect"), so its enquiry button is not shown */
+  orderLinks=orderLinks.filter(function(a){if(/wine/i.test(a.textContent)){a.style.display='none';return false;}return true;});
   orderLinks.forEach(function(a){a.classList.add('ccfest-order-link');});
   var S=function(){return window.__ccoSeasonal;}, isOn=false;
   function soonOn(c,add){var soon=c.querySelector('.ccfest-soon');if(!soon){soon=document.createElement('span');soon.className='ccfest-soon';soon.textContent='Coming soon';add.parentNode.insertBefore(soon,add);}}
@@ -77,7 +80,7 @@ document.addEventListener('DOMContentLoaded',function(){
   function bar(){
     var s=S(), n=isOn&&s&&s.count?s.count():0;
     if(!barEl){if(!n)return;barEl=document.createElement('div');barEl.className='ccfest-bar';barEl.hidden=true;barEl.setAttribute('role','region');barEl.setAttribute('aria-label','Your festive order');
-      barEl.innerHTML='<span></span><button type="button" class="ccfest-btn ccfest-btn-primary">View order</button>';document.body.appendChild(barEl);
+      barEl.innerHTML='<span></span><button type="button" class="ccfest-btn ccfest-btn-primary">View order</button>';(menu.closest('.ccfest')||document.body).appendChild(barEl);
       barEl.querySelector('button').addEventListener('click',function(){var o=document.getElementById('cc-treat-order');if(o)o.scrollIntoView({block:'start'});var f=o&&o.querySelector('button:not(:disabled)');if(f)f.focus({preventScroll:true});});
       var o=document.getElementById('cc-treat-order');
       if(o&&'IntersectionObserver' in window)new IntersectionObserver(function(e){boxSeen=e[0].isIntersecting;bar();}).observe(o);}
@@ -100,10 +103,11 @@ document.addEventListener('DOMContentLoaded',function(){
   document.addEventListener('click',function(e){
     var t=e.target&&e.target.closest&&e.target.closest('#festive-menu [data-treat],#festive-menu .ccfest-qty button'); if(!t||!S()||!S().set)return;
     e.preventDefault();
-    if(t.hasAttribute('data-treat')){var nm=t.getAttribute('data-treat');if(S().set(nm,1)){var q=t.parentNode.querySelector('.ccfest-qty [data-q="1"]');if(q)q.focus({preventScroll:true});}return;}
+    var kb=e.detail===0;
+    if(t.hasAttribute('data-treat')){var nm=t.getAttribute('data-treat');if(S().set(nm,1)&&kb){var q=t.parentNode.querySelector('.ccfest-qty [data-q="1"]');if(q)q.focus({preventScroll:true});}return;}
     var box=t.closest('.ccfest-qty'), name=box.getAttribute('data-name'), i=S().info(name); if(!i)return;
     S().set(name,i.q+(+t.getAttribute('data-q')));
-    if(!S().info(name).q){var a=box.parentNode.querySelector('.ccfest-card-add');if(a)a.focus({preventScroll:true});}
+    if(kb&&!S().info(name).q){var a=box.parentNode.querySelector('.ccfest-card-add');if(a)a.focus({preventScroll:true});}
   });
   document.addEventListener('keydown',function(e){var t=e.target;if((e.key==='Enter'||e.key===' ')&&t&&t.matches&&t.matches('#festive-menu [data-treat]')){e.preventDefault();t.click();}});
   var done=false; function once(on){if(done)return;done=true;apply(on);}

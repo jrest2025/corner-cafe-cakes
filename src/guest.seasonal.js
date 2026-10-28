@@ -249,7 +249,7 @@
     function errFor(f) { return st.err && st.err.field === f ? '<p class="cct-err" id="cct-e-' + f + '">' + esc(st.err.message) + '</p>' : ''; }
     function recap(withWhen) {
       var n = count();
-      return '<div class="cct-recap"><span><b>' + n + ' treat' + (n > 1 ? 's' : '') + '</b> · ' + money(sum()) + (withWhen && st.day && st.time != null ? '<br>' + esc(nice(st.day)) + ', ' + label(st.time) : '') + '</span><button type="button" class="cct-link" data-cct="go1">Change</button></div>';
+      return '<div class="cct-recap"><span><b>' + n + K(' treat', ' goodie') + (n > 1 ? 's' : '') + '</b> · ' + money(sum()) + (withWhen && st.day && st.time != null ? '<br>' + esc(nice(st.day)) + ', ' + label(st.time) : '') + '</span><button type="button" class="cct-link" data-cct="go1">Change</button></div>';
     }
     function stepWhen() {
       var dl = days(8), h = '<div class="cct-det" id="cct-det">' + recap(false) + '<h3' + K('', ' class="ccfest-card-title"') + '>When would you like to collect?</h3>';
@@ -283,7 +283,7 @@
         '<p class="cct-when">' + esc(nice(d.day)) + ', ' + label(d.time) + '</p>' +
         '<ul class="cct-sum">' + d.lines.map(function (l) { return '<li><span>' + l.q + ' × ' + esc(l.name) + '</span><b>' + money(l.price * l.q) + '</b></li>'; }).join('') + '<li class="cct-tot"><span>Total</span><b>' + money(d.total) + '</b></li></ul>' +
         '<p class="cct-fine">Reference ' + esc(d.ref) + ' · Corner Café' + (setup && setup.location && setup.location.address ? ', ' + esc(setup.location.address) : '') + '</p>' +
-        '<button type="button" class="' + K('cct-ghost', 'ccfest-btn cct-wf-outline') + '" data-cct="again">Order more treats</button></div>';
+        '<button type="button" class="' + K('cct-ghost', 'ccfest-btn cct-wf-outline') + '" data-cct="again">' + K('Order more treats', 'Order more goodies') + '</button></div>';
     }
     // Festive page: the goodie cards above are the picker (Add, − / +), so this box is only the order itself and the steps
     function cardsHtml(n) {
@@ -512,6 +512,8 @@
         '#cc-treat-order.is-cards .cct-recap{border-radius:4px;background:#FAF8F3;border-color:#E8E1D5}',
         '#cc-treat-order.is-cards .cct-link,#cc-treat-order.is-cards .cct-msg a,#cc-treat-order.is-cards .cct-fine a{color:#163E32}',
         '#cc-treat-order.is-cards button:focus-visible,#cc-treat-order.is-cards input:focus-visible,#cc-treat-order.is-cards textarea:focus-visible{outline:3px solid #163E32;outline-offset:2px}',
+        '#cc-treat-order.is-cards .cct-done,#cc-treat-order.is-cards .cct-done:focus{outline:none}',
+        '#cc-treat-order.is-cards .cct-done .ccfest-h2{margin:0 0 6px}',
         '#cc-treat-order.is-cards .cct-fine{font-size:14px;font-style:italic;color:#566358}',
         '@media(max-width:520px){#cc-treat-order.is-cards .cct-in{padding:20px 16px 18px}#cc-treat-order.is-cards .cct-lines li{grid-template-columns:1fr auto;row-gap:4px}#cc-treat-order.is-cards .cct-lines li b{grid-column:2}#cc-treat-order.is-cards .cct-ln{grid-column:1/-1}}'
       ].join('\n');

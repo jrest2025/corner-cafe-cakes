@@ -31,10 +31,21 @@ let n = 0, fails = 0; const check = (s, v, d) => { if (v) { n++; console.log('PA
     const s = await p.evaluate(() => { const m = document.getElementById('cc-treat-order'); return { mod: !!m && !m.hidden, afterMenu: !!document.querySelector('#festive-menu + .ccfest-treats #cc-treat-order'), soon: document.querySelectorAll('.ccfest-soon').length, order: [...document.querySelectorAll('.ccfest-card-add')].filter(a => getComputedStyle(a).display !== 'none').length, form: document.getElementById('festive-order').offsetHeight }; });
     if (on) {
       check(tag + ': order module shown right after the goodies', s.mod && s.afterMenu, s);
-      check(tag + ': every card says Order, enquiry form hidden', s.order === 3 && s.soon === 0 && s.form === 0, s);
-      const y0 = await p.evaluate(() => { const r = [...document.querySelectorAll('.ccfest-card-add')][1].click(); return [scrollY, document.documentElement.scrollHeight, innerHeight, Math.round(document.getElementById('cc-treat-order').getBoundingClientRect().top)]; }); await p.waitForTimeout(600); if (process.env.DBG) console.log('dbg', y0, await p.evaluate(() => { const wide = [...document.querySelectorAll('body *')].filter(e => e.getBoundingClientRect().right > 392 && !e.closest('.cct-grid')).slice(0, 6).map(e => e.tagName + '.' + String(e.className).slice(0, 30) + ':' + Math.round(e.getBoundingClientRect().right)); return [document.documentElement.scrollWidth, innerWidth, wide]; }), await p.evaluate(() => [scrollY, Math.round(document.getElementById('cc-treat-order').getBoundingClientRect().top)]));
-      const r = await p.evaluate(() => ({ q: window.__ccoSeasonal.treatOrder().q, top: Math.round(document.getElementById('cc-treat-order').getBoundingClientRect().top), vh: innerHeight, url: location.pathname }));
-      check(tag + ': Order on Mince Pies adds one and scrolls to the module, same page', r.q.i2 === 1 && Object.keys(r.q).filter(k => r.q[k] > 0).length === 1 && r.top < r.vh / 2 && r.url === '/festive', r);
+      check(tag + ': every card has Add, enquiry form hidden', s.order === 3 && s.soon === 0 && s.form === 0, s);
+      const g = await p.evaluate(() => document.querySelectorAll('#festive-menu .ccfest-card-add').length);
+      await p.click('#festive-menu .w-dyn-item:nth-child(2) .ccfest-card-add');
+      await p.click('#festive-menu .w-dyn-item:nth-child(2) .ccfest-qty [data-q="1"]');
+      const r = await p.evaluate(() => ({ q: window.__ccoSeasonal.treatOrder().q, out: document.querySelector('#festive-menu .w-dyn-item:nth-child(2) .ccfest-qty output').textContent, grid: !!document.querySelector('#cc-treat-order .cct-grid'), lines: document.querySelectorAll('#cc-treat-order .cct-lines li:not(.cct-tot)').length, wf: !!document.querySelector('#cc-treat-order .ccfest-btn.ccfest-btn-primary') && !!document.querySelector('#cc-treat-order .ccfest-h2'), url: location.pathname, bar: document.querySelector('.ccfest-bar') && !document.querySelector('.ccfest-bar').hidden }));
+      check(tag + ': Add then + on Mince Pies makes 2, shown on the card and once in the order box (no second photo grid)', r.q.i2 === 2 && r.out === '2' && !r.grid && r.lines === 1 && r.url === '/festive', r);
+      await p.evaluate(() => { document.querySelector('main').insertAdjacentHTML('afterbegin', '<div style="height:1400px"></div>'); scrollTo(0, 0); }); await p.waitForTimeout(250);
+      const bar = await p.evaluate(() => { const b = document.querySelector('.ccfest-bar'); return b && !b.hidden && b.textContent; });
+      await p.evaluate(() => document.getElementById('cc-treat-order').scrollIntoView()); await p.waitForTimeout(250);
+      const bar2 = await p.evaluate(() => document.querySelector('.ccfest-bar').hidden);
+      check(tag + ': order box uses the page Webflow classes; "2 goodies" bar shows only while the box is off screen', r.wf && /2 goodies/.test(bar || '') && bar2, [r.wf, bar, bar2]);
+      await p.click('#cc-treat-order [data-cct="go2"]'); await p.click('#cc-treat-order .cct-days button'); await p.click('#cc-treat-order .cct-times button'); await p.click('#cc-treat-order [data-cct="go3"]');
+      await p.fill('#cc-treat-order [data-cct-k="name"]', 'Test Guest'); await p.fill('#cc-treat-order [data-cct-k="phone"]', '9123456'); await p.click('#cc-treat-order [data-cct="send"]'); await p.waitForTimeout(300);
+      const d = await p.evaluate(() => ({ sent: window.__tsent, done: !!document.querySelector('.cct-done'), cards: [...document.querySelectorAll('.ccfest-qty')].filter(q => !q.hidden).length }));
+      check(tag + ': sends 2 x Mince Pies, thank-you shows, cards back to Add', d.done && d.sent && d.sent[0].treats.length === 1 && d.sent[0].treats[0].quantity === 2 && d.cards === 0, d);
       if (SHOTS) await p.screenshot({ path: SHOTS + '/festive-page-' + t + '.png' });
     } else {
       check(tag + ': no order module, every card says Coming soon', !s.mod && s.soon === 3 && s.order === 0, s);
