@@ -657,7 +657,7 @@
   #ccs-sheet .ccs-actions > .ccs-actions-row:not(.ccs-more-row) { display: grid !important; grid-template-columns: 1fr 1fr; gap: 8px; }
   #ccs-sheet .ccs-actions > .ccs-actions-row:not(.ccs-more-row) > .ccs-btn { grid-column: auto; min-height: 44px !important; font-size: 15px !important; }
   #ccs-sheet .ccs-actions > .ccs-actions-row:not(.ccs-more-row) > .ccs-btn:not(.ccs-ghost) { grid-column: 1 / -1; min-height: 52px !important; font-size: 17px !important; }
-  #ccs-sheet .ccs-more-row [data-act="go-other"] { display: none !important; }
+  #ccs-sheet .ccs-more-row [data-act="go-other"] { display: inline-flex !important; }
   #ccs-sheet .os-phdanger { display: block; text-align: center; padding: 16px 0 8px; margin-top: 8px; border-top: 1px solid #EAECF0; }
   #ccs-sheet .os-detail .ccs-secbar { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; overflow: visible !important; -webkit-mask-image: none !important; mask-image: none !important; padding-right: 4px !important; width: 100%; }
   #ccs-sheet .os-detail .ccs-secbar .ccs-secbtn { justify-content: center; padding: 0 4px !important; font-size: 15px !important; min-width: 0; }
@@ -720,7 +720,7 @@
 #ccs-sheet .ccs-ostrip > .os-paidfull { grid-column: 1 / -1 !important; }
 #ccs-sheet .ccs-ostrip > .os-paidfull b { color: #027A48 !important; }
 #ccs-sheet .ccs-actions [data-v="collected"][disabled] { display: none !important; }
-#ccs-sheet .ccs-more-row [data-act="go-other"] { display: none !important; }
+#ccs-sheet .ccs-more-row [data-act="go-other"] { display: inline-flex !important; }
 #ccs-sheet .os-dkdanger { display: none; }
 /* Tablets and computers: the same header, contact buttons and button layout as phones */
 @media (min-width: 760px) {
