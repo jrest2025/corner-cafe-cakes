@@ -1371,3 +1371,85 @@
   function start() { new MutationObserver(tick).observe(doc.documentElement, { childList: true, subtree: true }); tick(); setInterval(function () { [].forEach.call(doc.querySelectorAll('#cc-staff .ccq2-line'), function (sp) { if (/late/i.test(sp.getAttribute('data-ccq2-src') || '')) { sp.innerHTML = chips(sp.getAttribute('data-ccq2-src')) + '<span class="ccq2-sr">' + esc(sp.getAttribute('data-ccq2-src')) + '</span>'; } }); }, 60000); }
   if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', start); else start();
 })();
+
+/* Corner Café: phase 2b, order cards (28 Oct 2026). Marker __ccPhase2b_20261028.
+ * Same status language as Today: a clock for lateness (amber up to 15 minutes, red after), a red triangle for allergies,
+ * "Received …" as a small italic hint. Presentation only; reads what the cards already say. */
+(function () {
+  'use strict';
+  var win = window, doc = document;
+  if (win.__ccPhase2b_20261028) return;
+  win.__ccPhase2b_20261028 = true;
+  var P = {
+    clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v4.8l3.2 2"/>',
+    alert: '<path d="M12 4l9 16H3z"/><path d="M12 10v4.5M12 17.5h.01"/>',
+    hash: '<path d="M5 9h14M5 15h14M10 4l-2 16M16 4l-2 16"/>'
+  };
+  function ic(n) { return '<svg class="ccq2-i" viewBox="0 0 24 24" aria-hidden="true">' + P[n] + '</svg>'; }
+  function fiji(o) { return new Intl.DateTimeFormat('en-GB', Object.assign({ timeZone: 'Pacific/Fiji' }, o)).format(new Date()); }
+  function nowMin() { var p = fiji({ hour: 'numeric', minute: 'numeric', hour12: false }).split(':'); return +p[0] * 60 + +p[1]; }
+  function mins(t) { var m = /(\d{1,2}):(\d{2}) ([AP]M)/.exec(t || ''); return m ? (+m[1] % 12 + (m[3] === 'PM' ? 12 : 0)) * 60 + +m[2] : null; }
+  function dur(n) { var h = Math.floor(n / 60), m = n % 60; return h ? h + ' hr' + (m ? ' ' + m + ' min' : '') : m + ' min'; }
+  function pills(card) {
+    [].forEach.call(card.querySelectorAll('.ccs-pill.s-alert:not([data-ccq2])'), function (p) {
+      var t = p.textContent.trim(), n = null, w = t;
+      if (t === 'Dietary or allergy') { n = 'alert'; w = 'Allergy'; }
+      else if (t === 'Allergies to check') { n = 'alert'; w = 'Check allergies'; }
+      else if (t === 'Overdue') n = 'clock';
+      else if (t === 'No order number') n = 'hash';
+      p.setAttribute('data-ccq2', t);
+      if (n) { p.innerHTML = ic(n) + '<span>' + w + '</span>'; p.classList.add('ccq2-pill'); p.title = t; }
+    });
+    var meta = card.querySelector('.vr-order-meta:not([data-ccq2])') || card.querySelector('.ccs-meta:not([data-ccq2])');
+    if (meta && !meta.querySelector('.vr-order-meta') && /\sReceived /.test(meta.textContent)) {
+      var tx = meta.textContent, i = tx.lastIndexOf(' · Received ');
+      if (i > -1) { meta.setAttribute('data-ccq2', '1'); meta.innerHTML = ''; meta.appendChild(doc.createTextNode(tx.slice(0, i) + ' ')); var em = doc.createElement('em'); em.className = 'ccq2-h'; em.textContent = tx.slice(i + 3); meta.appendChild(em); }
+    }
+  }
+  function late(card, todayTxt, now) {
+    var open = !/\bk-(done|off)\b/.test(card.className), when = card.querySelector('.ccs-when'), pt = card.querySelector('.ccs-prow-t');
+    var txt = (when ? when.textContent : '') + ' ' + (pt ? pt.textContent : ''), due = mins(txt);
+    var isToday = txt.indexOf(todayTxt) > -1;
+    var by = open && isToday && due != null ? now - due : 0, tone = by > 15 ? 'red' : 'amber', label = by > 0 ? dur(by) + ' late' : '';
+    var tags = card.querySelector('.ccs-tags'), chip = card.querySelector('.ccq2-late');
+    if (!label) { if (chip) chip.remove(); if (pt) { pt.classList.remove('ccq2-t-amber', 'ccq2-t-red'); var pi = pt.querySelector('.ccq2-i'); if (pi) pi.remove(); } var pf0 = card.querySelector('.ccq2-pflag'); if (pf0) pf0.remove(); card.classList.remove('ccq2-islate'); var w0 = when && when.querySelector('.ccq2-t-amber, .ccq2-t-red'); if (w0) { w0.classList.remove('ccq2-t-amber', 'ccq2-t-red'); var i0 = w0.querySelector('.ccq2-i'); if (i0) i0.remove(); } return; }
+    if (tags && (!chip || chip.getAttribute('data-l') !== label + tone)) {
+      if (chip) chip.remove();
+      tags.insertAdjacentHTML('beforebegin', '<span class="ccq2-c ccq2-' + tone + ' ccq2-late" data-l="' + label + tone + '">' + ic('clock') + '<span>' + label + '</span></span>');
+    }
+    var wt = when && when.querySelector('span:not(.ccq2-c)');
+    if (wt && !wt.classList.contains('ccq2-t-' + tone)) { wt.classList.remove('ccq2-t-amber', 'ccq2-t-red'); wt.classList.add('ccq2-t-' + tone); }
+    if (pt && !pt.classList.contains('ccq2-t-' + tone)) {
+      pt.classList.remove('ccq2-t-amber', 'ccq2-t-red'); pt.classList.add('ccq2-t-' + tone); pt.title = label;
+    }
+    var row = card.querySelector('.ccs-prow'), pf = row && row.querySelector('.ccq2-pflag');   // phone: lateness takes the one flag slot
+    if (row && (!pf || pf.getAttribute('data-l') !== label + tone)) {
+      if (pf) pf.remove();
+      row.insertAdjacentHTML('beforeend', '<span class="ccq2-c ccq2-' + tone + ' ccq2-pflag" data-l="' + label + tone + '">' + ic('clock') + '<span>' + label + '</span></span>');
+      card.classList.add('ccq2-islate');
+    }
+  }
+  var CSS = [
+    '#cc-staff .ccs-card .ccs-pill.ccq2-pill{display:inline-flex;align-items:center;gap:5px}',
+    '#cc-staff .ccs-card .ccs-pill.ccq2-pill .ccq2-i{width:15px;height:15px}',
+    '#cc-staff .ccs-card .ccq2-late{display:flex;width:max-content;margin:2px 0 6px;min-height:26px;font-size:14px}',
+    '#cc-staff .ccs-when .ccq2-t-amber{color:#B54708!important}#cc-staff .ccs-when .ccq2-t-red{color:#B42318!important}#cc-staff .ccs-when .ccq2-t-amber,#cc-staff .ccs-when .ccq2-t-red{display:inline-flex;align-items:center;gap:4px}#cc-staff .ccs-when .ccq2-i{width:15px;height:15px}',
+    '#cc-staff .ccs-card .ccs-pill.vr-allergy.ccq2-pill::before{content:none!important;display:none!important}',
+    '#cc-staff .ccs-card .ccq2-h{font-size:.92em;font-style:italic;color:#667085;font-weight:400}',
+    '#cc-staff .ccs-prow-t.ccq2-t-amber > span,#cc-staff .ccs-prow-t.ccq2-t-red > span{white-space:nowrap!important}#cc-staff .ccs-prow-t .ccq2-i{width:15px;height:15px;flex:none}',
+    '#cc-staff .ccs-prow-t.ccq2-t-amber > span{color:#B54708!important}#cc-staff .ccs-prow-t.ccq2-t-red > span{color:#B42318!important}',
+    '#cc-staff .ccs-card.ccq2-islate .ccs-prow{flex-wrap:nowrap!important}#cc-staff .ccs-card.ccq2-islate .ccs-prow-m{min-width:0;flex:1 1 auto}',
+    ':root:not(#cc-t0):not(#cc-t1) #cc-staff .ccs-card.ccq2-islate .ccs-prow > .ccs-prow-f{display:none!important}',
+    '#cc-staff .ccs-prow > .ccq2-pflag{display:none;flex:none;margin-left:auto;align-self:center;font-size:14px}',
+    '@media (max-width:700px){#cc-staff .ccs-card.ccq2-islate .ccs-prow > .ccq2-pflag{display:inline-flex}}'
+  ].join('\n');
+  function run() {
+    if (!doc.getElementById('ccq2b-style')) { var s = doc.createElement('style'); s.id = 'ccq2b-style'; s.textContent = CSS; doc.head.appendChild(s); }
+    var todayTxt = fiji({ weekday: 'short', day: 'numeric', month: 'short' }), now = nowMin();
+    [].forEach.call(doc.querySelectorAll('#cc-staff .ccs-card[data-act="open-order"]'), function (c) { pills(c); late(c, todayTxt, now); });
+  }
+  var t = null;
+  function tick() { if (t) return; t = setTimeout(function () { t = null; try { run(); } catch (e) { if (win.console) console.warn('[Phase 2b]', e); } }, 40); }
+  function start() { new MutationObserver(tick).observe(doc.documentElement, { childList: true, subtree: true }); tick(); setInterval(tick, 60000); }
+  if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', start); else start();
+})();
