@@ -9,7 +9,7 @@ const post = deny => `(function(){var o=window.__ccsMock.rpc.bind(window.__ccsMo
  window.__ccsMock.rpc=function(fn,a){
  if(fn==='settings_history')return Promise.resolve({data:{ok:true,entries:[],more:false,areas:[]}});
  if(fn==='mirror_health')return Promise.resolve({data:${deny ? "{ok:false}" : "{ok:true,state:'current',minutes:1,last_ack_at:iso(1),sheet_title:'Corner Café Cake Orders Backup',sheet_url:'https://docs.google.com/spreadsheets/d/X/edit',emails_failed:0,emails_waiting:0,is_admin:true}"}});
- if(fn==='ops_health')return Promise.resolve({data:{database:true,sheet_read:false,email:true,backup:null,checked_at:iso(0)}});
+ if(fn==='admin_ops_health')return Promise.resolve({data:{database:true,sheet_read:false,email:true,backup:null,checked_at:iso(0)}});
  if(fn==='admin_print_settings')return Promise.resolve({data:{ok:true,primary:'printer@example.com',verified:false,last_test:null,test_mode:false,sender:'Corner Café Cakes <cakes@example.com>'}});
  if(window.__watch)window.__seen.push(fn);
  return o(fn,a)};})();`;

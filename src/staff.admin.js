@@ -100,7 +100,7 @@
   function histRow() { return H.allowed ? [{ k: 'Settings history', b: null, d: null, status: '', flag: '', ic: svg('history'), hist: true }] : []; }
   function bc() { return win.__ccsBc && typeof win.__ccsBc.rpc === 'function' ? win.__ccsBc : null; }
   // ---------- Integrations (Phase 3, 28 Oct 2026): read-only, what the hub is connected to and whether each link works ----------
-  // Uses the checks the system already runs (ops_health, mirror_health, admin_print_settings); nothing here can change a setting.
+  // Uses the checks the system already runs (admin_ops_health, mirror_health, admin_print_settings); nothing here can change a setting.
   var INT = { allowed: null, busy: false, at: 0, oh: null, mh: null, pr: null, web: '', err: null };
   function intRow() {
     if (!INT.allowed) return [];
@@ -114,7 +114,7 @@
   function intLoad() {
     if (!bc() || INT.busy) return; INT.busy = true; INT.err = null;
     var b = bc(), done = 0, fin = function () { if (++done === 3) { INT.busy = false; INT.at = Date.now(); schedule(); } };
-    b.rpc('ops_health').then(function (r) { INT.oh = r && r.data || null; if (!INT.oh) INT.err = 'Could not check. Check the internet connection.'; fin(); }, function () { INT.err = 'Could not check. Check the internet connection.'; fin(); });
+    b.rpc('admin_ops_health').then(function (r) { INT.oh = r && r.data || null; if (!INT.oh) INT.err = 'Could not check. Check the internet connection.'; fin(); }, function () { INT.err = 'Could not check. Check the internet connection.'; fin(); });
     b.rpc('mirror_health').then(function (r) { var d = r && r.data; if (d && d.ok) INT.mh = d; fin(); }, fin);
     b.rpc('admin_print_settings').then(function (r) { var d = r && r.data; INT.pr = d && d.ok ? d : null; fin(); }, fin);
   }

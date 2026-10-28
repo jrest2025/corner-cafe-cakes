@@ -251,7 +251,7 @@
   // Time buckets across the period (day, week or month), each with the matching bucket of the period before
   function ovSpan(r) {
     var t = today(), from = r.from, to = r.to > t ? t : r.to;
-    if (r.all) { from = t; DX.data.orders.forEach(function (o) { var x = dxD(o); if (x && x < from) from = x; }); }
+    if (r.all) { from = t; DX.data.orders.forEach(function (o) { var x = dxD(o); if (x && x >= '2000-01-01' && x < from) from = x; }); }  // ignore mistyped years (e.g. 0001) so the chart cannot break
     return { from: from, to: to, days: daysBetween(from, to) + 1 };
   }
   function ovUnit(sp, n) { var u = DX.unit; if (u === 'd' && sp.days > 120) u = null; if (u === 'w' && sp.days > 1200) u = null; return u || (sp.days <= 45 ? (n != null && n < 30 && sp.days > 14 ? 'w' : 'd') : sp.days <= 200 ? 'w' : 'm'); }
