@@ -28,10 +28,34 @@ d.addEventListener('click',function(e){var t=e.target.closest&&e.target.closest(
 d.addEventListener('change',function(e){var t=e.target;if(t.dataset.cm==='status'&&open)update(t.dataset.id,{status:t.value}).catch(function(x){w.alert(error(x));load()})});
 d.addEventListener('submit',function(e){if(e.target.id!=='cm-form')return;e.preventDefault();if(saving)return;var fd=new FormData(e.target),row={name:String(fd.get('name')||'').trim(),code:String(fd.get('code')||'').trim().toLowerCase(),platform:String(fd.get('platform')),budget:Number(fd.get('budget')),landing_url:String(fd.get('landing_url')||'').trim(),starts_on:fd.get('starts_on')||null,ends_on:fd.get('ends_on')||null};if(row.starts_on&&row.ends_on&&row.ends_on<row.starts_on){w.alert('End date cannot precede start date.');return}if(!/^https:\/\//i.test(row.landing_url)){w.alert('Use an HTTPS landing page.');return}saving=true;(editing?update(editing,row):create(row)).catch(function(x){w.alert(error(x))}).finally(function(){saving=false})});
 d.addEventListener('keydown',function(e){if(e.key==='Escape'&&open)close()});
-function nav(){var root=d.querySelector('#cc-staff .ccs-side .ccs-nav');if(!root||root.querySelector('[data-cm="open"]'))return;var orders=root.querySelector('[data-tab="orders"]');if(!orders)return;var b=d.createElement('button');b.type='button';b.className='ccs-nav-item';b.dataset.cm='open';b.title='Marketing campaigns';b.innerHTML='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#237348" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 11 12-5v12L3 14z"/><path d="M7 14v5h4l-1-4"/></svg><span>Marketing campaigns</span>';orders.after(b)}
+function nav(){var root=d.querySelector('#cc-staff .ccs-side .ccs-nav');if(!root||root.querySelector('[data-cm="open"]'))return;var orders=root.querySelector('[data-tab="orders"]');if(!orders)return;var b=d.createElement('button');b.type='button';b.className='ccs-nav-item';b.dataset.cm='open';b.title='Marketing campaigns';b.innerHTML='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#237348" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 11 12-5v12L3 14z"/><path d="M7 14v5h4l-1-4"/></svg><span>Marketing campaigns</span>';orders.after(b);
+ /* Keep primary mobile actions unobstructed. The Marketing action is offered inside More. */
+ b.classList.add('cc-marketing-secondary');
+}
+/* Mobile: expose Marketing within the existing More area rather than as a bottom tab. */
+var mobileQuery=w.matchMedia('(max-width: 767px)');
+function moreLink(){
+ var root=d.getElementById('cc-staff');if(!root)return;
+ var nav=root.querySelector('.ccs-nav');
+ var original=nav&&nav.querySelector('[data-cm="open"]');
+ if(!original)return;
+ if(!mobileQuery.matches)return;
+ var moreButtons=Array.from(root.querySelectorAll('button')).filter(function(el){
+  return (el.textContent||'').trim().toLowerCase()==='more' || el.getAttribute('data-tab')==='more';
+ });
+ var more=moreButtons[moreButtons.length-1];if(!more)return;
+ /* A More drawer is an existing app view; add our entry when it is present. */
+ var candidates=Array.from(root.querySelectorAll('[role="dialog"],[role="menu"],.ccs-more,.ccs-drawer,.ccs-sheet,.ccs-mobile-menu'));
+ var host=candidates.filter(function(el){return el.offsetWidth>0&&el.offsetHeight>0&&el.contains(more)===false}).pop();
+ if(!host){host=more.closest('[role="dialog"],[role="menu"],.ccs-more,.ccs-drawer,.ccs-sheet,.ccs-mobile-menu')}
+ if(!host)return;
+ if(host.querySelector('[data-cm="more-open"]'))return;
+ var b=d.createElement('button');b.type='button';b.className='ccs-nav-item cc-marketing-more-item';b.dataset.cm='open';b.setAttribute('data-cm','more-open');b.innerHTML='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#237348" stroke-width="2" aria-hidden="true"><path d="m3 11 12-5v12L3 14z"/></svg><span>Marketing campaigns</span>';host.appendChild(b);
+}
+function secondaryNav(){nav();moreLink()}
 /* Observe staff navigation as soon as it is created instead of waiting for a 3-second poll. */
 var navPending=false;
-function scheduleNav(){if(navPending)return;navPending=true;Promise.resolve().then(function(){navPending=false;nav()})}
+function scheduleNav(){if(navPending)return;navPending=true;Promise.resolve().then(function(){navPending=false;secondaryNav()})}
 if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',scheduleNav,{once:true});else scheduleNav();
 var navObserver=new MutationObserver(function(records){
  for(var i=0;i<records.length;i++){
