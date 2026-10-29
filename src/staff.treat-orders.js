@@ -54,6 +54,66 @@
       late: o.filter(function (x) { return x.pickup_date < t; }).length, today: o.filter(function (x) { return x.pickup_date === t; }).length };
   }
 
+
+  // Seasonal Orders is part of Cake Orders, not a permanent second dashboard.
+  // The authoritative menu RPC already applies the manager's group On/Off switch
+  // and each item's selling dates. An empty menu removes this section.
+  var liveSale = null, saleAt = 0, saleBusy = false;
+  function checkSale(force) {
+    if (saleBusy || (!force && saleAt && Date.now() - saleAt < 30000)) return;
+    saleBusy = true;
+    rpc('get_seasonal_menu', { p_channel: 'counter' }).then(function (d) {
+      saleBusy = false;
+      liveSale = d && d.ok ? d : { groups: [] };
+      saleAt = Date.now();
+      schedule();
+    }, function (e) {
+      saleBusy = false; saleAt = Date.now();
+      warn('season visibility', e);
+      // Never show an unverified On state after the sale check fails.
+      liveSale = { groups: [] }; schedule();
+    });
+  }
+  function ordersUi() {
+    var main = doc.querySelector('#cc-staff #ccs-main');
+    var box = doc.getElementById('cc-to-inline');
+    if (!main || main.getAttribute('data-screen') !== 'orders' || denied) {
+      if (box) box.remove(); return;
+    }
+    checkSale(false);
+    var groups = liveSale && liveSale.groups || [];
+    if (!groups.length) { if (box) box.remove(); return; }
+    if (!data) load();
+    var c = data ? counts() : { fresh: 0, today: 0, late: 0, week: 0 };
+    var pending = open().sort(function (a,b) {
+      var pa = a.status === 'new' ? 0 : a.pickup_date < today() ? 1 : a.pickup_date === today() ? 2 : 3;
+      var pb = b.status === 'new' ? 0 : b.pickup_date < today() ? 1 : b.pickup_date === today() ? 2 : 3;
+      return pa - pb || (a.pickup_date + (a.pickup_time || '')).localeCompare(b.pickup_date + (b.pickup_time || ''));
+    }).slice(0, 3);
+    var label = groups.length === 1 ? groups[0].name : 'Seasonal orders';
+    var h = '<header class="cc-to-inline-head"><span class="cc-to-inline-icon" aria-hidden="true">✦</span>' +
+      '<div class="cc-to-inline-title"><h2>' + esc(label) + '</h2><p>Seasonal orders <span class="cc-to-live">On sale</span></p></div>' +
+      '<div class="cc-to-inline-actions"><button type="button" class="ccs-btn ccs-ghost" data-cc-to="open">View all</button>' +
+      (data && data.can_create ? '<button type="button" class="ccs-btn" data-cc-to="new-seasonal">New seasonal order</button>' : '') + '</div></header>' +
+      '<div class="cc-to-inline-stats"><span><b>' + c.fresh + '</b> to confirm</span><span><b>' + c.today + '</b> due today</span>' +
+      (c.late ? '<span class="cc-to-alert"><b>' + c.late + '</b> overdue</span>' : '<span><b>' + c.week + '</b> due this week</span>') + '</div>';
+    if (pending.length) {
+      h += '<div class="cc-to-inline-list">' + pending.map(function (o) {
+        var state = stateLine(o), desc = itemsLine(o);
+        return '<button type="button" class="cc-to-inline-order" data-cc-to="open-item" data-id="' + esc(o.id) + '">' +
+          '<span class="cc-to-inline-when">' + esc(nice(o.pickup_date)) + '<small>' + esc(t12(o.pickup_time)) + '</small></span>' +
+          '<span class="cc-to-inline-who"><b>' + esc(o.name) + '</b><small>' + esc(o.reference || '') + ' · ' + esc(desc) + '</small></span>' +
+          '<span class="cc-to-inline-status ' + state[0] + '">' + esc((STATUS[o.status] || ['Order'])[0]) + '</span><span class="cc-to-inline-arrow" aria-hidden="true">›</span></button>';
+      }).join('') + '</div>';
+    } else h += '<p class="cc-to-inline-empty">No seasonal requests need action right now.</p>';
+    if (!box) { box = doc.createElement('section'); box.id = 'cc-to-inline'; box.className = 'cc-to-inline'; box.setAttribute('aria-label', 'Seasonal orders'); }
+    if (box.getAttribute('data-h') !== h) { box.innerHTML = h; box.setAttribute('data-h', h); }
+    var head = main.querySelector(':scope > .ccs-head');
+    if (box.parentElement !== main || (head && box.previousElementSibling !== head)) {
+      if (head) head.insertAdjacentElement('afterend', box); else main.insertBefore(box, main.firstChild);
+    }
+  }
+
   // ---------- Today banner ----------
   function bannerUi() {
     var main = doc.querySelector('#ccs-main[data-screen="today"]'), box = doc.querySelector('#ccs-main .cc-to-banner');
@@ -313,6 +373,13 @@
     var b = e.target && e.target.closest && e.target.closest('[data-cc-to]'); if (!b || b.disabled) return;
     var a = b.getAttribute('data-cc-to'), id = b.getAttribute('data-id'), v = b.getAttribute('data-v');
     if (a === 'open') { openBoard(); return; }
+    if (a === 'new-seasonal') { openBoard(); newForm(); return; }
+    if (a === 'open-item' && id) {
+      var selected = ((data && data.orders) || []).filter(function (x) { return x.id === id; })[0];
+      openBoard(selected && selected.status === 'confirmed' && selected.pickup_date > today() ? 'later' : 'today');
+      if (B) { B.more = id; draw(); }
+      return;
+    }
     if (!B) return;
     var o = ((data && data.orders) || []).filter(function (x) { return x.id === id; })[0];
     if (a === 'close') return closeBoard();
@@ -357,6 +424,19 @@
     if (doc.getElementById('cc-to-style')) return;
     var s = doc.createElement('style'); s.id = 'cc-to-style';
     s.textContent = [
+      '#ccs-main[data-screen="orders"] .cc-to-inline{background:#fff;border:1px solid #dde5df;border-radius:12px;padding:12px 14px;margin:0 0 14px;min-width:0;box-shadow:0 1px 2px #253b2820}',
+      '#ccs-main[data-screen="orders"] .cc-to-inline-head{display:flex;align-items:center;gap:12px;min-width:0}',
+      '#ccs-main .cc-to-inline-icon{width:36px;height:36px;border-radius:10px;background:#edf4e8;color:#486c3d;display:grid;place-items:center;font-size:22px;flex:none}',
+      '#ccs-main .cc-to-inline-title{min-width:0;flex:1}#ccs-main .cc-to-inline-title h2{font:650 17px/1.25 inherit;color:#243247;margin:0}#ccs-main .cc-to-inline-title p{font-size:13px;color:#526176;margin:2px 0 0}',
+      '#ccs-main .cc-to-live{display:inline-flex;align-items:center;border-radius:999px;background:#e8f4ea;color:#276142;padding:2px 8px;font-weight:650;font-size:12px;margin-left:5px}',
+      '#ccs-main .cc-to-inline-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}#ccs-main .cc-to-inline-actions .ccs-btn{min-height:36px!important;padding:6px 12px!important;font-size:13px!important;border-radius:8px}',
+      '#ccs-main .cc-to-inline-stats{display:flex;gap:5px 16px;flex-wrap:wrap;padding:8px 0;margin-top:10px;border-top:1px solid #edf1ed;color:#526176;font-size:13px}#ccs-main .cc-to-inline-stats b{font-variant-numeric:tabular-nums;font-weight:700;color:#243247}#ccs-main .cc-to-inline-stats .cc-to-alert{color:#a2402b}#ccs-main .cc-to-inline-stats .cc-to-alert b{color:inherit}',
+      '#ccs-main .cc-to-inline-list{border-top:1px solid #edf1ed}#ccs-main .cc-to-inline-order{display:grid;grid-template-columns:95px minmax(0,1fr) auto 14px;gap:12px;align-items:center;width:100%;padding:9px 3px;text-align:left;border:0;border-bottom:1px solid #f0f2f0;background:#fff;color:#243247;cursor:pointer;font:inherit}#ccs-main .cc-to-inline-order:last-child{border-bottom:0}#ccs-main .cc-to-inline-order:hover{background:#f7faf7}',
+      '#ccs-main .cc-to-inline-when{font-size:13px;font-weight:650}#ccs-main .cc-to-inline-when small{display:block;font-size:12px;font-weight:400;color:#526176}#ccs-main .cc-to-inline-who{min-width:0;font-size:14px}#ccs-main .cc-to-inline-who b{display:block;font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#ccs-main .cc-to-inline-who small{display:block;font-size:12px;color:#526176;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+      '#ccs-main .cc-to-inline-status{font-size:12px;border:1px solid #dce4e0;border-radius:999px;padding:3px 9px;white-space:nowrap;color:#486477;background:#f5f8fa}#ccs-main .cc-to-inline-status.is-new{color:#286548;background:#edf8ef;border-color:#cde6d3}#ccs-main .cc-to-inline-arrow{font-size:22px;color:#66816b}',
+      '#ccs-main .cc-to-inline-empty{font-size:13px;color:#526176;margin:8px 0 0;padding:8px 0 0;border-top:1px solid #edf1ed}',
+      '@media(max-width:700px){#ccs-main .cc-to-inline-head{flex-wrap:wrap;gap:8px}#ccs-main .cc-to-inline-actions{width:100%;justify-content:flex-start}#ccs-main .cc-to-inline-order{grid-template-columns:70px minmax(0,1fr) auto;gap:8px}#ccs-main .cc-to-inline-arrow{display:none}#ccs-main .cc-to-inline-status{font-size:11px;padding:3px 6px}#ccs-main .cc-to-inline-who small{font-size:11px}}',
+      '@media(min-width:1024px){#cc-staff .cc-to{inset:24px;max-width:1080px;margin:auto;border:1px solid #dce3e6;border-radius:16px;box-shadow:0 0 0 100vmax rgba(27,42,32,.30),0 18px 48px rgba(20,35,30,.16);overflow:hidden}#cc-staff .cc-to-body{padding:12px 18px 22px}#cc-staff .cc-to-hd{padding:10px 18px}#cc-staff .cc-to-hd h2{font-size:20px}#cc-staff .cc-to-day{margin-bottom:12px}#cc-staff .cc-to-o{padding:9px 12px;margin-bottom:6px}#cc-staff .cc-to-acts{margin-top:8px}}',
       '#ccs-main .cc-to-banner{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;border:1px solid #C7D7E8;border-left:6px solid #31597A;border-radius:12px;background:#F5F8FC;padding:14px 16px;margin:0 0 14px}',
       '#ccs-main .ccs-dash-head .cc-to-banner{margin:16px 0 0;flex:0 0 100%;width:100%;order:99}',
       '#ccs-main .cc-to-banner.is-new{border-color:#A6D8B8;border-left-color:#079455;background:#F6FEF9}',
@@ -423,14 +503,14 @@
   }
 
   var queued = false;
-  function schedule() { if (queued) return; queued = true; (win.requestAnimationFrame || setTimeout)(function () { queued = false; try { css(); bannerUi(); settingsUi(); } catch (e) { warn('update', e); } }); }
+  function schedule() { if (queued) return; queued = true; (win.requestAnimationFrame || setTimeout)(function () { queued = false; try { css(); bannerUi(); ordersUi(); settingsUi(); } catch (e) { warn('update', e); } }); }
   function start() {
     var r = root(); if (!r) return setTimeout(start, 300);
-    new MutationObserver(function (list) { for (var i = 0; i < list.length; i++) { var n = list[i].target; if (n && n.closest && n.closest('#cc-to,.cc-to-banner')) continue; return schedule(); } })
+    new MutationObserver(function (list) { for (var i = 0; i < list.length; i++) { var n = list[i].target; if (n && n.closest && n.closest('#cc-to,.cc-to-banner,.cc-to-inline')) continue; return schedule(); } })
       .observe(r, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'data-screen'] });
     doc.addEventListener('click', onClick);
     doc.addEventListener('keydown', onKey, true);
-    setInterval(function () { at = 0; if (B && !B.act && !B.form) load(true); else schedule(); }, 120000);
+    setInterval(function () { at = 0; if (B && !B.act && !B.form) load(true); else schedule(); if (doc.querySelector('#cc-staff #ccs-main[data-screen="orders"]')) checkSale(true); }, 120000);
     schedule();
   }
   win.__ccTreatOrders = { open: openBoard, data: function () { return data; }, reload: function () { return load(true); } };
