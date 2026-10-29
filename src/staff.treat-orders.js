@@ -54,6 +54,65 @@
       late: o.filter(function (x) { return x.pickup_date < t; }).length, today: o.filter(function (x) { return x.pickup_date === t; }).length };
   }
 
+  // Seasonal Orders is part of Cake Orders, not a permanent second dashboard.
+  // The authoritative menu RPC already applies the manager's group On/Off switch
+  // and each item's selling dates. An empty menu removes this section.
+  var liveSale = null, saleAt = 0, saleBusy = false;
+  function checkSale(force) {
+    if (saleBusy || (!force && saleAt && Date.now() - saleAt < 30000)) return;
+    saleBusy = true;
+    rpc('get_seasonal_menu', { p_channel: 'counter' }).then(function (d) {
+      saleBusy = false;
+      liveSale = d && d.ok ? d : { groups: [] };
+      saleAt = Date.now();
+      schedule();
+    }, function (e) {
+      saleBusy = false; saleAt = Date.now();
+      warn('season visibility', e);
+      // Never show an unverified On state after the sale check fails.
+      liveSale = { groups: [] }; schedule();
+    });
+  }
+  function ordersUi() {
+    var main = doc.querySelector('#cc-staff #ccs-main');
+    var box = doc.getElementById('cc-to-inline');
+    if (!main || main.getAttribute('data-screen') !== 'orders' || denied) {
+      if (box) box.remove(); return;
+    }
+    checkSale(false);
+    var groups = liveSale && liveSale.groups || [];
+    if (!groups.length) { if (box) box.remove(); return; }
+    if (!data) load();
+    var c = data ? counts() : { fresh: 0, today: 0, late: 0, week: 0 };
+    var pending = open().sort(function (a,b) {
+      var pa = a.status === 'new' ? 0 : a.pickup_date < today() ? 1 : a.pickup_date === today() ? 2 : 3;
+      var pb = b.status === 'new' ? 0 : b.pickup_date < today() ? 1 : b.pickup_date === today() ? 2 : 3;
+      return pa - pb || (a.pickup_date + (a.pickup_time || '')).localeCompare(b.pickup_date + (b.pickup_time || ''));
+    }).slice(0, 3);
+    var label = groups.length === 1 ? groups[0].name : 'Seasonal orders';
+    var h = '<header class="cc-to-inline-head"><span class="cc-to-inline-icon" aria-hidden="true">✦</span>' +
+      '<div class="cc-to-inline-title"><h2>' + esc(label) + '</h2><p>Seasonal orders <span class="cc-to-live">On sale</span></p></div>' +
+      '<div class="cc-to-inline-actions"><button type="button" class="ccs-btn ccs-ghost" data-cc-to="open">View all</button>' +
+      (data && data.can_create ? '<button type="button" class="ccs-btn" data-cc-to="new-seasonal">New seasonal order</button>' : '') + '</div></header>' +
+      '<div class="cc-to-inline-stats"><span><b>' + c.fresh + '</b> to confirm</span><span><b>' + c.today + '</b> due today</span>' +
+      (c.late ? '<span class="cc-to-alert"><b>' + c.late + '</b> overdue</span>' : '<span><b>' + c.week + '</b> due this week</span>') + '</div>';
+    if (pending.length) {
+      h += '<div class="cc-to-inline-list">' + pending.map(function (o) {
+        var state = stateLine(o), desc = itemsLine(o);
+        return '<button type="button" class="cc-to-inline-order" data-cc-to="open-item" data-id="' + esc(o.id) + '">' +
+          '<span class="cc-to-inline-when">' + esc(nice(o.pickup_date)) + '<small>' + esc(t12(o.pickup_time)) + '</small></span>' +
+          '<span class="cc-to-inline-who"><b>' + esc(o.name) + '</b><small>' + esc(o.reference || '') + ' · ' + esc(desc) + '</small></span>' +
+          '<span class="cc-to-inline-status ' + state[0] + '">' + esc((STATUS[o.status] || ['Order'])[0]) + '</span><span class="cc-to-inline-arrow" aria-hidden="true">›</span></button>';
+      }).join('') + '</div>';
+    } else h += '<p class="cc-to-inline-empty">No seasonal requests need action right now.</p>';
+    if (!box) { box = doc.createElement('section'); box.id = 'cc-to-inline'; box.className = 'cc-to-inline'; box.setAttribute('aria-label', 'Seasonal orders'); }
+    if (box.getAttribute('data-h') !== h) { box.innerHTML = h; box.setAttribute('data-h', h); }
+    var head = main.querySelector(':scope > .ccs-head');
+    if (box.parentElement !== main || (head && box.previousElementSibling !== head)) {
+      if (head) head.insertAdjacentElement('afterend', box); else main.insertBefore(box, main.firstChild);
+    }
+  }
+
   // ---------- Today banner ----------
   function bannerUi() {
     var main = doc.querySelector('#ccs-main[data-screen="today"]'), box = doc.querySelector('#ccs-main .cc-to-banner');
@@ -67,7 +126,7 @@
     if (c.today) bits.push('<b>' + c.today + '</b> to hand over today');
     else if (c.week) bits.push(c.week + ' to hand over this week');
     if (c.late) bits.push('<b>' + c.late + ' not handed over</b> from earlier days');
-    var h = '<div><h3>Treat orders</h3><p>' + bits.join(' · ') + '</p></div><button type="button" class="ccs-btn" data-cc-to="open">Open treat orders</button>';
+    var h = '<div><h3>Seasonal orders</h3><p>' + bits.join(' · ') + '</p></div><button type="button" class="ccs-btn" data-cc-to="open">Open seasonal orders</button>';
     if (!box) { box = doc.createElement('section'); box.className = 'cc-to-banner' + (c.fresh ? ' is-new' : ''); box.setAttribute('role', 'status'); var dh = main.querySelector(':scope > .ccs-dash-head'), anchor = main.querySelector(':scope > .ccs-head'); if (dh) { dh.appendChild(box); if (getComputedStyle(dh).display.indexOf('flex') > -1) dh.style.flexWrap = 'wrap'; } else if (anchor && anchor.nextSibling) main.insertBefore(box, anchor.nextSibling); else main.insertBefore(box, main.firstChild); }
     box.className = 'cc-to-banner' + (c.fresh ? ' is-new' : '');
     if (box.getAttribute('data-h') !== h) { box.innerHTML = h; box.setAttribute('data-h', h); }
@@ -76,8 +135,66 @@
   function settingsUi() {
     var tabs = doc.querySelector('#cc-staff .cc-szx .cc-szm-tabs'); if (!tabs || denied || tabs.querySelector('[data-cc-to="open"]')) return;
     var b = doc.createElement('button'); b.type = 'button'; b.className = 'ccs-chip cc-to-tab'; b.setAttribute('data-cc-to', 'open');
-    var c = data ? counts().fresh : 0; b.textContent = 'Treat orders' + (c ? ' (' + c + ' new)' : '');
+    var c = data ? counts().fresh : 0; b.textContent = 'Seasonal orders' + (c ? ' (' + c + ' new)' : '');
     tabs.appendChild(b);
+  }
+
+
+  // ---------- (28 Oct 2026) Seasonal: stands out in the side menu, follows the On/Off switch; season figures ----------
+  // Roneel: one switch (Settings > Seasonal items, heading On) and it goes live; it shows in the hub as Seasonal and
+  // stands out; Bhavin wants the season's sales. Read only: the same functions the app already uses.
+  var webOn = null, webAt = 0, season = null, seasonAt = 0, seasonLoading = false;
+  var SEASON_FROM = '2026-10-01';
+  function checkOn() {
+    if (Date.now() - webAt < 120000) return;
+    // (28 Oct 2026) only count a check that got an answer: the app's database link can arrive after this add-on,
+    // so a first check that could not run is retried a few seconds later instead of two minutes later
+    if (!db()) { setTimeout(schedule, 1500); return; }
+    webAt = Date.now();
+    rpc('get_seasonal_menu', { p_channel: 'website' }).then(function (m) { var on = !!(m && m.ok && (m.groups || []).length); if (on !== webOn) { webOn = on; sideUi(); schedule(); } }, function () { webAt = Date.now() - 110000; setTimeout(schedule, 10500); });
+  }
+  var GIFT = '<svg class="cc-so-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8s1-5 4.5-5a2.5 2.5 0 0 1 0 5"/></svg>';
+  function sideUi() {
+    // Seasonal now lives within Cake Orders. Remove the former duplicate side-menu item.
+    var old = doc.querySelector('#cc-staff .ccs-side .ccs-nav [data-cc-so="side"]');
+    if (old) old.remove();
+  }
+  function loadSeason(force) {
+    if (seasonLoading || (!force && season && Date.now() - seasonAt < 120000)) return;
+    seasonLoading = true;
+    var c = db();
+    var a = rpc('staff_treat_orders', { p_from: SEASON_FROM });
+    var b = c ? c.from('order_extras').select('order_id,name,unit_price,quantity,orders(order_status,deleted_at,is_test)').gte('created_at', SEASON_FROM + 'T00:00:00+12:00').then(function (r) { return r && !r.error ? r.data || [] : []; }, function () { return []; }) : Promise.resolve([]);
+    Promise.all([a, b]).then(function (x) {
+      seasonLoading = false; seasonAt = Date.now();
+      var tos = ((x[0] && x[0].orders) || []).filter(function (o) { return o.status !== 'cancelled' && o.pickup_date >= SEASON_FROM; });
+      var ex = (x[1] || []).filter(function (e) { var o = e.orders || {}; return !o.deleted_at && !o.is_test && ['cancelled', 'declined'].indexOf(o.order_status) < 0; });
+      var items = {}, value = 0, paid = 0, qty = 0, cakeOrders = {};
+      var corp = 0, corpValue = 0;
+      tos.forEach(function (o) { paid += Number(o.paid || 0); value += Number(o.total || 0); if (o.kind === 'bulk') { corp++; corpValue += Number(o.total || 0); } (o.items || []).forEach(function (i) { items[i.name] = (items[i.name] || 0) + i.quantity; qty += i.quantity; }); });
+      ex.forEach(function (e) { items[e.name] = (items[e.name] || 0) + e.quantity; qty += e.quantity; value += Number(e.unit_price) * e.quantity; cakeOrders[e.order_id] = 1; });
+      season = { corp: corp, corpValue: corpValue, orders: tos.length, withCake: Object.keys(cakeOrders).length, qty: qty, value: value, paid: paid, items: Object.keys(items).map(function (k) { return [k, items[k]]; }).sort(function (p, q) { return q[1] - p[1]; }) };
+      schedule(); if (B) draw();
+    }, function () { seasonLoading = false; });
+  }
+  function seasonHtml(compact) {
+    if (!season) return '';
+    var s = season, max = s.items.length ? s.items[0][1] : 1;
+    var h = '<div class="cc-so-k"><span><b>' + money(s.value) + '</b> booked</span><span><b>' + (s.orders + s.withCake) + '</b> orders</span><span><b>' + s.qty + '</b> items</span>' + (compact ? '' : '<span><b>' + money(s.paid) + '</b> paid so far</span>') + (s.corp ? '<span class="cc-so-corp">' + BLDG + '<b>' + s.corp + '</b> corporate · ' + money(s.corpValue) + '</span>' : '') + '</div>';
+    if (!compact && s.items.length) h += '<div class="cc-so-bars">' + s.items.slice(0, 8).map(function (it) { return '<div class="cc-so-bar"><span>' + esc(it[0]) + '</span><i style="--w:' + Math.max(4, Math.round(it[1] / max * 100)) + '%"></i><b>' + it[1] + '</b></div>'; }).join('') + '</div>';
+    if (!s.qty) h += '<p class="cc-so-none"><em>No seasonal orders yet this season.</em></p>';
+    return h;
+  }
+  // Analytics: a Seasonal card at the top of Sales & Products
+  function analyticsUi() {
+    var main = doc.querySelector('#ccs-main[data-screen="dash"]'), card = doc.querySelector('#ccs-main .cc-so-card');
+    var page = main && main.querySelector(':scope > .cat-page');
+    if (!page || denied) { if (card) card.remove(); return; }
+    loadSeason();
+    if (!season) return;
+    var h = '<div class="cc-so-ch">' + GIFT + '<div><h3>Seasonal</h3><p><em>Festive treats this season, kept apart from cake sales</em></p></div><button type="button" class="ccs-btn ccs-ghost" data-cc-so="open">Open</button></div>' + seasonHtml(false);
+    if (!card) { card = doc.createElement('section'); card.className = 'cc-so-card'; page.insertBefore(card, page.firstChild); }
+    if (card.getAttribute('data-h') !== h) { card.innerHTML = h; card.setAttribute('data-h', h); }
   }
 
   // ---------- the board ----------
@@ -88,7 +205,7 @@
     var l = doc.getElementById('cc-to');
     if (!l) {
       l = doc.createElement('div'); l.id = 'cc-to'; l.className = 'cc-to'; l.setAttribute('role', 'dialog'); l.setAttribute('aria-modal', 'true'); l.setAttribute('aria-labelledby', 'cc-to-title');
-      l.innerHTML = '<div class="cc-to-hd"><h2 id="cc-to-title">Treat orders</h2><div class="cc-to-hda"></div><button type="button" class="ccs-btn ccs-ghost" data-cc-to="close">Close</button></div><div class="cc-to-body"><div class="cc-to-in"></div></div>';
+      l.innerHTML = '<div class="cc-to-hd"><h2 id="cc-to-title">Seasonal orders</h2><div class="cc-to-hda"></div><button type="button" class="ccs-btn ccs-ghost" data-cc-to="close">Close</button></div><div class="cc-to-body"><div class="cc-to-in"></div></div>';
       ['input', 'change'].forEach(function (t) { l.addEventListener(t, function (e) { e.stopPropagation(); onInput(e); }); });
       r.appendChild(l);
     }
@@ -103,12 +220,24 @@
     // Today: anything waiting on staff now — new requests (any day), today's pickups, and earlier ones not handed over
     return all.filter(function (o) { return o.status === 'new' || (o.status === 'confirmed' && o.pickup_date <= t); });
   }
+  // (28 Oct 2026) corporate and bulk requests from the website: company, delivery, how they want to pay, agreed price
+  var BLDG = '<svg class="cc-to-bico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 21V5a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v16"/><path d="M15 9h4a1 1 0 0 1 1 1v11"/><path d="M3 21h18M8 8h3M8 12h3M8 16h3"/></svg>';
+  var PAYPREF = { collect: 'Pays at pickup', invoice: 'Invoice', deposit: 'Deposit' };
+  function isBulk(o) { return o && o.kind === 'bulk'; }
+  function quoted(o) { return isBulk(o) && o.list_total != null && Number(o.total) < Number(o.list_total) - 0.005; }
+  function bulkHtml(o) {
+    if (!isBulk(o)) return '';
+    var bits = [o.fulfilment === 'delivery' ? 'Deliver' + (o.delivery_address ? ': ' + o.delivery_address : '') : 'Collect in Nadi', PAYPREF[o.pay_pref] || ''].filter(Boolean);
+    return '<p class="cc-to-bulk">' + BLDG + '<b>' + esc(o.company || 'Bulk order') + '</b><span>' + esc(bits.join(' · ')) + '</span>' +
+      (o.email ? '<a href="mailto:' + esc(o.email) + '">' + esc(o.email) + '</a>' : '') +
+      '<span class="cc-to-bprice">' + (quoted(o) ? 'Agreed ' + money(o.total) + ' <s>' + money(o.list_total) + '</s>' : 'List price ' + money(o.total) + ' · <em>agree a price</em>') + '</span></p>';
+  }
   function itemsLine(o) { return (o.items || []).map(function (i) { return i.quantity + ' × ' + i.name; }).join(', '); }
   function balance(o) { return Math.max(0, Number(o.total) - Number(o.paid)); }
   // One plain line that says where the order is
   function stateLine(o) {
     var bal = balance(o);
-    if (o.status === 'new') return ['is-new', 'New request · confirm it with the customer'];
+    if (o.status === 'new') return ['is-new', isBulk(o) ? 'Bulk request · agree the price, then confirm' : 'New request · confirm it with the customer'];
     if (o.status === 'confirmed') return o.pickup_date < today() ? ['is-late', 'Not handed over yet' + (bal ? ' · ' + money(bal) + ' to pay' : '')] : bal ? ['is-due', money(bal) + ' to pay at pickup'] : ['is-paid', 'Paid · ready to hand over'];
     if (o.status === 'collected') return ['is-done', 'Handed over'];
     return ['is-off', 'Cancelled' + (o.cancel_reason ? ': ' + o.cancel_reason : '')];
@@ -124,9 +253,10 @@
   function orderHtml(o) {
     var s = stateLine(o), act = B.act && B.act.id === o.id ? B.act : null, nx = nextStep(o), id = esc(o.id), more = B.more === o.id;
     var h = '<article class="cc-to-o ' + s[0] + '" data-id="' + id + '"><div class="cc-to-ot"><span class="cc-to-time">' + t12(o.pickup_time) + '</span><b class="cc-to-name">' + esc(o.name) + '</b></div>' +
-      '<p class="cc-to-what">' + esc(itemsLine(o)) + '</p>' + (o.note ? '<p class="cc-to-note">' + esc(o.note) + '</p>' : '') + '<p class="cc-to-state ' + s[0] + '">' + esc(s[1]) + '</p>';
+      '<p class="cc-to-what">' + esc(itemsLine(o)) + '</p>' + bulkHtml(o) + (o.note ? '<p class="cc-to-note">' + esc(o.note) + '</p>' : '') + '<p class="cc-to-state ' + s[0] + '">' + esc(s[1]) + '</p>';
     if (act) return h + actHtml(o, act) + '</article>';
     h += '<div class="cc-to-acts">' + (nx ? '<button type="button" class="ccs-btn cc-to-main" data-cc-to="' + nx[0] + '" data-id="' + id + '">' + esc(nx[1]) + '</button>' : '') +
+      (isBulk(o) && (o.status === 'new' || o.status === 'confirmed') && data.can_edit ? '<button type="button" class="ccs-btn ccs-ghost" data-cc-to="quote" data-id="' + id + '">' + (quoted(o) ? 'Change price' : 'Agree price') + '</button>' : '') +
       '<button type="button" class="ccs-btn ccs-ghost" data-cc-to="more" data-id="' + id + '" aria-expanded="' + more + '">' + (more ? 'Less' : 'More') + '</button></div>';
     if (more) {
       var live = o.status === 'new' || o.status === 'confirmed';
@@ -151,6 +281,11 @@
       h += '<h4>' + esc(String(o.name).split(' ')[0]) + ' still has ' + money(bal) + ' to pay</h4><div class="cc-to-acts">' +
         (data.can_pay ? '<button type="button" class="ccs-btn cc-to-main" data-cc-to="pay" data-id="' + esc(o.id) + '">Take payment</button>' : '') +
         '<button type="button" class="ccs-btn ccs-ghost" data-cc-to="collect-yes" data-id="' + esc(o.id) + '">Hand over anyway</button><button type="button" class="ccs-btn ccs-ghost" data-cc-to="act-close">Back</button></div>';
+    } else if (a.kind === 'quote') {
+      var list = Number(o.list_total != null ? o.list_total : o.total);
+      h += '<h4>Agreed price</h4><p class="cc-to-hint"><em>List price ' + money(list) + '. Enter the total you agreed, with any bulk discount and delivery.</em></p>' +
+        '<div class="ccs-field"><label class="ccs-label" for="cc-to-amt">Total</label><input class="ccs-input" id="cc-to-amt" type="number" inputmode="decimal" min="0" step="0.01" value="' + esc(a.amount != null ? a.amount : Number(o.total)) + '"></div>' +
+        '<div class="cc-to-acts"><button type="button" class="ccs-btn cc-to-main" data-cc-to="quote-save" data-id="' + esc(o.id) + '"' + (B.busy ? ' disabled' : '') + '>' + (B.busy ? 'Saving…' : 'Save price') + '</button><button type="button" class="ccs-btn ccs-ghost" data-cc-to="act-close">Back</button></div>';
     } else if (a.kind === 'cancel') {
       h += '<h4>Why is it cancelled?</h4><div class="cc-to-chips">' + REASONS.map(function (r) { return '<button type="button" class="ccs-chip" data-cc-to="reason" data-v="' + esc(r) + '" aria-pressed="' + (a.reason === r) + '">' + esc(r) + '</button>'; }).join('') + '</div>' +
         (Number(o.paid) > 0 ? '<p class="cc-to-warn">' + money(o.paid) + ' was paid. Arrange the refund as usual.</p>' : '') +
@@ -171,6 +306,7 @@
     if (B.form) return formHtml();
     var t = today(), later = ((data && data.orders) || []).filter(function (o) { return o.status === 'confirmed' && o.pickup_date > t; }).length;
     var h = '<p class="cc-to-sum">' + esc(sumLine()) + '</p>';
+    loadSeason(); if (season && B.view !== 'past') h += '<div class="cc-so-strip"><p class="cc-so-t">Season so far</p>' + seasonHtml(true) + '</div>';
     if (B.view === 'past') h += '<button type="button" class="ccs-link cc-to-back" data-cc-to="view" data-v="today">‹ Back</button><h3 class="cc-to-ph3">Handed over and cancelled, last 2 weeks</h3>';
     else h += '<div class="cc-to-tabs" role="tablist">' + [['today', 'Today'], ['later', 'Coming up' + (later ? ' (' + later + ')' : '')]].map(function (x) { return '<button type="button" class="ccs-chip" role="tab" data-cc-to="view" data-v="' + x[0] + '" aria-selected="' + (B.view === x[0]) + '" aria-pressed="' + (B.view === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div>';
     if (B.msg) h += '<p class="cc-to-ok" role="status">' + esc(B.msg) + '</p>';
@@ -191,7 +327,7 @@
   function draw() {
     var l = doc.getElementById('cc-to'); if (!l || !B) return;
     var hda = l.querySelector('.cc-to-hda');
-    hda.innerHTML = data && data.can_create && !B.form ? '<button type="button" class="ccs-btn" data-cc-to="new">New treat order</button>' : '';
+    hda.innerHTML = data && data.can_create && !B.form ? '<button type="button" class="ccs-btn" data-cc-to="new">New seasonal order</button>' : '';
     var host = l.querySelector('.cc-to-in'), body = l.querySelector('.cc-to-body'), top = body.scrollTop, a = doc.activeElement, keep = null;
     if (a && l.contains(a)) keep = a.id ? '#' + a.id : a.getAttribute('data-cc-to') ? '[data-cc-to="' + a.getAttribute('data-cc-to') + '"]' + (a.getAttribute('data-id') ? '[data-id="' + a.getAttribute('data-id') + '"]' : '') + (a.getAttribute('data-v') ? '[data-v="' + a.getAttribute('data-v') + '"]' : '') : null;
     host.innerHTML = boardHtml();
@@ -205,8 +341,8 @@
       if (!B) return; B.busy = false;
       if (!r || !r.ok) { B.err = (r && r.message) || 'Not saved.'; return draw(); }
       var o = ((data && data.orders) || []).filter(function (x) { return x.id === id; })[0];
-      B.act = null; B.more = null; B.msg = (o ? String(o.name).split(' ')[0] + ' · ' : '') + ({ confirm: 'confirmed.', pay: 'payment saved.', collected: 'handed over.', cancel: 'cancelled.' }[action] || 'saved.');
-      if (o) { o.status = r.status; o.paid = r.paid; }
+      B.act = null; B.more = null; B.msg = (o ? String(o.name).split(' ')[0] + ' · ' : '') + ({ confirm: 'confirmed.', pay: 'payment saved.', collected: 'handed over.', cancel: 'cancelled.', quote: 'price saved.' }[action] || 'saved.');
+      if (o) { o.status = r.status; o.paid = r.paid; if (r.total != null) o.total = r.total; }
       draw(); load(true);
     }, function (e) { if (!B) return; B.busy = false; B.err = errText(e); draw(); });
   }
@@ -310,9 +446,18 @@
     else if (id === 'cc-to-ftime' && e.type === 'change' && /^\d{2}:\d{2}/.test(v)) { F.time = v.slice(0, 5); draw(); }
   }
   function onClick(e) {
+    var so = e.target && e.target.closest && e.target.closest('[data-cc-so]');
+    if (so) { e.preventDefault(); openBoard(); return; }
     var b = e.target && e.target.closest && e.target.closest('[data-cc-to]'); if (!b || b.disabled) return;
     var a = b.getAttribute('data-cc-to'), id = b.getAttribute('data-id'), v = b.getAttribute('data-v');
     if (a === 'open') { openBoard(); return; }
+    if (a === 'new-seasonal') { openBoard(); newForm(); return; }
+    if (a === 'open-item' && id) {
+      var selected = ((data && data.orders) || []).filter(function (x) { return x.id === id; })[0];
+      openBoard(selected && selected.status === 'confirmed' && selected.pickup_date > today() ? 'later' : 'today');
+      if (B) { B.more = id; draw(); }
+      return;
+    }
     if (!B) return;
     var o = ((data && data.orders) || []).filter(function (x) { return x.id === id; })[0];
     if (a === 'close') return closeBoard();
@@ -333,6 +478,12 @@
     if (a === 'collect') { if (o && Number(o.total) - Number(o.paid) > 0.005) { B.msg = null; B.err = null; B.act = { id: id, kind: 'collect' }; return draw(); } return act(id, 'collected'); }
     if (a === 'collect-yes') return act(id, 'collected');
     if (a === 'cancel') { B.msg = null; B.err = null; B.act = { id: id, kind: 'cancel', reason: null }; return draw(); }
+    if (a === 'quote') { B.msg = null; B.err = null; B.act = { id: id, kind: 'quote', amount: null }; draw(); var qa = doc.getElementById('cc-to-amt'); if (qa) { qa.focus(); try { qa.select(); } catch (_) {} } return; }
+    if (a === 'quote-save') {
+      var qt = Number(String(B.act.amount != null ? B.act.amount : (doc.getElementById('cc-to-amt') || {}).value).replace(/[^\d.]/g, ''));
+      if (!(qt > 0)) { B.err = 'Type the agreed total.'; return draw(); }
+      return act(id, 'quote', { p_amount: Math.round(qt * 100) / 100 });
+    }
     if (a === 'reason') { B.act.reason = v; B.err = null; return draw(); }
     if (a === 'cancel-yes') { var why = String(B.act.reason || '').trim(); if (why.length < 2) { B.err = 'Tap why it is cancelled.'; return draw(); } return act(id, 'cancel', { p_note: why }); }
     if (a === 'print') { if (o) printSlip(o); return; }
@@ -357,6 +508,19 @@
     if (doc.getElementById('cc-to-style')) return;
     var s = doc.createElement('style'); s.id = 'cc-to-style';
     s.textContent = [
+      '#ccs-main[data-screen="orders"] .cc-to-inline{background:#fff;border:1px solid #dde5df;border-radius:12px;padding:12px 14px;margin:0 0 14px;min-width:0;box-shadow:0 1px 2px #253b2820}',
+      '#ccs-main[data-screen="orders"] .cc-to-inline-head{display:flex;align-items:center;gap:12px;min-width:0}',
+      '#ccs-main .cc-to-inline-icon{width:36px;height:36px;border-radius:10px;background:#edf4e8;color:#486c3d;display:grid;place-items:center;font-size:22px;flex:none}',
+      '#ccs-main .cc-to-inline-title{min-width:0;flex:1}#ccs-main .cc-to-inline-title h2{font-size:17px;font-weight:650;line-height:1.25;color:#243247;margin:0}#ccs-main .cc-to-inline-title p{font-size:13px;color:#526176;margin:2px 0 0}',
+      '#ccs-main .cc-to-live{display:inline-flex;align-items:center;border-radius:999px;background:#e8f4ea;color:#276142;padding:2px 8px;font-weight:650;font-size:12px;margin-left:5px}',
+      '#ccs-main .cc-to-inline-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}#ccs-main .cc-to-inline-actions .ccs-btn{min-height:36px!important;padding:6px 12px!important;font-size:13px!important;border-radius:8px}',
+      '#ccs-main .cc-to-inline-stats{display:flex;gap:5px 16px;flex-wrap:wrap;padding:8px 0;margin-top:10px;border-top:1px solid #edf1ed;color:#526176;font-size:13px}#ccs-main .cc-to-inline-stats b{font-variant-numeric:tabular-nums;font-weight:700;color:#243247}#ccs-main .cc-to-inline-stats .cc-to-alert{color:#a2402b}#ccs-main .cc-to-inline-stats .cc-to-alert b{color:inherit}',
+      '#ccs-main .cc-to-inline-list{border-top:1px solid #edf1ed}#ccs-main .cc-to-inline-order{display:grid;grid-template-columns:95px minmax(0,1fr) auto 14px;gap:12px;align-items:center;width:100%;padding:9px 3px;text-align:left;border:0;border-bottom:1px solid #f0f2f0;background:#fff;color:#243247;cursor:pointer;font:inherit}#ccs-main .cc-to-inline-order:last-child{border-bottom:0}#ccs-main .cc-to-inline-order:hover{background:#f7faf7}',
+      '#ccs-main .cc-to-inline-when{font-size:13px;font-weight:650}#ccs-main .cc-to-inline-when small{display:block;font-size:12px;font-weight:400;color:#526176}#ccs-main .cc-to-inline-who{min-width:0;font-size:14px}#ccs-main .cc-to-inline-who b{display:block;font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#ccs-main .cc-to-inline-who small{display:block;font-size:12px;color:#526176;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+      '#ccs-main .cc-to-inline-status{font-size:12px;border:1px solid #dce4e0;border-radius:999px;padding:3px 9px;white-space:nowrap;color:#486477;background:#f5f8fa}#ccs-main .cc-to-inline-status.is-new{color:#286548;background:#edf8ef;border-color:#cde6d3}#ccs-main .cc-to-inline-arrow{font-size:22px;color:#66816b}',
+      '#ccs-main .cc-to-inline-empty{font-size:13px;color:#526176;margin:8px 0 0;padding:8px 0 0;border-top:1px solid #edf1ed}',
+      '@media(max-width:700px){#ccs-main .cc-to-inline-head{flex-wrap:wrap;gap:8px}#ccs-main .cc-to-inline-actions{width:100%;justify-content:flex-start}#ccs-main .cc-to-inline-order{grid-template-columns:70px minmax(0,1fr) auto;gap:8px}#ccs-main .cc-to-inline-arrow{display:none}#ccs-main .cc-to-inline-status{font-size:11px;padding:3px 6px}#ccs-main .cc-to-inline-who small{font-size:11px}}',
+      '@media(min-width:1024px){#cc-staff .cc-to{inset:24px;max-width:1080px;margin:auto;border:1px solid #dce3e6;border-radius:16px;box-shadow:0 0 0 100vmax rgba(27,42,32,.30),0 18px 48px rgba(20,35,30,.16);overflow:hidden}#cc-staff .cc-to-body{padding:12px 18px 22px}#cc-staff .cc-to-hd{padding:10px 18px}#cc-staff .cc-to-hd h2{font-size:20px}#cc-staff .cc-to-day{margin-bottom:12px}#cc-staff .cc-to-o{padding:9px 12px;margin-bottom:6px}#cc-staff .cc-to-acts{margin-top:8px}}',
       '#ccs-main .cc-to-banner{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;border:1px solid #C7D7E8;border-left:6px solid #31597A;border-radius:12px;background:#F5F8FC;padding:14px 16px;margin:0 0 14px}',
       '#ccs-main .ccs-dash-head .cc-to-banner{margin:16px 0 0;flex:0 0 100%;width:100%;order:99}',
       '#ccs-main .cc-to-banner.is-new{border-color:#A6D8B8;border-left-color:#079455;background:#F6FEF9}',
@@ -383,6 +547,10 @@
       '#cc-staff .cc-to-pill.is-new{background:#ECFDF3;color:#067647}#cc-staff .cc-to-pill.is-ok{background:#E8EEF7;color:#1E3A5F}',
       '#cc-staff .cc-to-items{list-style:none;margin:10px 0 0;padding:0}#cc-staff .cc-to-items li{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-top:1px solid #F2F4F7}#cc-staff .cc-to-items small{color:#475467}',
       '#cc-staff .cc-to-note{margin:8px 0 0;background:#FFFAEB;border-radius:8px;padding:6px 10px}',
+      '#cc-staff .cc-to-bulk{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;margin:8px 0 0;padding:8px 10px;border-radius:8px;background:#EEF2F8;color:#1D2939;border:1px solid #D5DEEB}',
+      '#cc-staff .cc-to-bulk .cc-to-bico{color:#2B4C7E;flex:none}#cc-staff .cc-to-bulk b{font-weight:600;color:#1D3557}',
+      '#cc-staff .cc-to-bulk a{color:#2B4C7E}#cc-staff .cc-to-bprice{flex-basis:100%;font-size:.95em}#cc-staff .cc-to-bprice s{color:#667085;margin-left:4px}#cc-staff .cc-to-bprice em{color:#667085}',
+      '#cc-staff .cc-to-hint{margin:0 0 8px;font-size:.92em;color:#475467}',
       '#cc-staff .cc-to-money{display:flex;gap:18px;flex-wrap:wrap;margin:10px 0 0;color:#344054}#cc-staff .cc-to-money .is-due{color:#B54708}#cc-staff .cc-to-money .is-paid{color:#067647;font-weight:700}',
       '#cc-staff .cc-to-meta{margin:6px 0 0;color:#475467;font-size:15px}',
       '#cc-staff .cc-to-acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}#cc-staff .cc-to-acts a.ccs-btn{text-decoration:none;display:inline-flex;align-items:center;justify-content:center}',
@@ -411,6 +579,17 @@
       '#cc-staff .cc-to-main{min-width:200px}',
       '#cc-staff .cc-to-moreb{margin-top:12px;padding-top:10px;border-top:1px solid #EAECF0}',
       '#cc-staff .cc-to-pastl,#cc-staff .cc-to-back,#cc-staff .cc-to-morel,#cc-staff .cc-to-other{display:inline-flex;align-items:center;min-height:48px;padding:0 4px;margin:4px 0 8px;background:none;border:0;color:#1E3A5F;font-weight:600;text-decoration:underline;cursor:pointer;font-size:1em}',
+      // Seasonal: its own festive colour (berry red, colour by meaning: this is the special season), in the menu and on cards
+      '#cc-staff .ccs-side .cc-so-nav .cc-so-ic{width:20px;height:20px;flex:none;color:#E8A0A6}#cc-staff .ccs-side .cc-so-nav{box-shadow:inset 3px 0 0 #C0393F}',
+      '#cc-staff .ccs-side .cc-so-nav .cc-so-n{background:#C0393F!important;color:#fff!important}',
+      '#cc-staff .cc-so-card{border:1px solid #F2D4D6;border-left:4px solid #C0393F;border-radius:12px;background:#fff;padding:16px 18px;margin:0 0 20px}',
+      '#cc-staff .cc-so-ch{display:flex;align-items:center;gap:12px;margin-bottom:12px}#cc-staff .cc-so-ch > div{flex:1;min-width:0}#cc-staff .cc-so-ch h3{margin:0;font-size:20px;color:#1D2939}#cc-staff .cc-so-ch p{margin:2px 0 0;font-size:13px;color:#667085}',
+      '#cc-staff .cc-so-ch .cc-so-ic{width:28px;height:28px;color:#C0393F;flex:none}',
+      '#cc-staff .cc-so-k{display:flex;flex-wrap:wrap;gap:8px 24px;font-size:15px;color:#475467}#cc-staff .cc-so-k b{font-size:22px;color:#1D2939;font-weight:600;margin-right:4px}',
+      '#cc-staff .cc-so-bars{display:grid;gap:8px;margin-top:14px;max-width:640px}#cc-staff .cc-so-bar{display:grid;grid-template-columns:minmax(120px,200px) 1fr 36px;align-items:center;gap:10px;font-size:15px;color:#1D2939}',
+      '#cc-staff .cc-so-bar i{display:block;height:10px;border-radius:5px;background:linear-gradient(90deg,#C0393F var(--w),#F2F4F7 var(--w))}#cc-staff .cc-so-bar b{text-align:right;font-weight:600}',
+      '#cc-staff .cc-so-none{margin:10px 0 0;color:#667085;font-size:14px}',
+      '#cc-staff .cc-so-strip{border:1px solid #F2D4D6;border-left:4px solid #C0393F;border-radius:12px;padding:12px 16px;margin:0 0 14px;background:#fff}#cc-staff .cc-so-t{margin:0 0 6px;font-size:13px;color:#9B2C31;font-weight:600}',
       '#cc-staff .cc-to-ph3{margin:0 0 12px;font-size:20px}',
       '#cc-staff .cc-to-step{margin:0 0 6px;color:#475467;font-weight:600}#cc-staff .cc-to-form h3{margin:0 0 14px}',
       '#cc-staff .cc-to-recap{margin:0 0 16px;padding:10px 14px;background:#F8FAFC;border:1px solid #DCE3EB;border-radius:12px}',
@@ -423,16 +602,18 @@
   }
 
   var queued = false;
-  function schedule() { if (queued) return; queued = true; (win.requestAnimationFrame || setTimeout)(function () { queued = false; try { css(); bannerUi(); settingsUi(); } catch (e) { warn('update', e); } }); }
+  function schedule() { if (queued) return; queued = true; (win.requestAnimationFrame || setTimeout)(function () { queued = false; try { css(); bannerUi(); ordersUi(); settingsUi(); checkOn(); sideUi(); analyticsUi(); } catch (e) { warn('update', e); } }); }
   function start() {
     var r = root(); if (!r) return setTimeout(start, 300);
-    new MutationObserver(function (list) { for (var i = 0; i < list.length; i++) { var n = list[i].target; if (n && n.closest && n.closest('#cc-to,.cc-to-banner')) continue; return schedule(); } })
+    // the menu item goes in straight from the page-change callback (before paint), so the side menu never jumps
+    new MutationObserver(function () { try { if (webOn !== null || data) sideUi(); } catch (e) {} }).observe(r, { childList: true, subtree: true });
+    new MutationObserver(function (list) { for (var i = 0; i < list.length; i++) { var n = list[i].target; if (n && n.closest && n.closest('#cc-to,.cc-to-banner,.cc-to-inline')) continue; return schedule(); } })
       .observe(r, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'data-screen'] });
     doc.addEventListener('click', onClick);
     doc.addEventListener('keydown', onKey, true);
-    setInterval(function () { at = 0; if (B && !B.act && !B.form) load(true); else schedule(); }, 120000);
+    setInterval(function () { at = 0; if (B && !B.act && !B.form) load(true); else schedule(); if (doc.querySelector('#cc-staff #ccs-main[data-screen="orders"]')) checkSale(true); }, 120000);
     schedule();
   }
-  win.__ccTreatOrders = { open: openBoard, data: function () { return data; }, reload: function () { return load(true); } };
+  win.__ccTreatOrders = { open: openBoard, data: function () { return data; }, reload: function () { return load(true); }, state: function () { return { webOn: webOn, webAt: webAt, denied: denied, db: !!db() }; } };
   if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', start); else start();
 })(window, document);
