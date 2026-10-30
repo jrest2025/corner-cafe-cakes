@@ -993,7 +993,7 @@
     var deliv = o.fulfilment_method === 'delivery', closedSt = ['completed', 'declined', 'cancelled'].indexOf(o.order_status) > -1;
     cut.push(['when', h.length]);
     h += '<section class="ccs-box"><h3>' + (deliv ? 'Delivery' : 'Collection') + '</h3><p class="ccs-big">' + esc(nice(o.required_date, true)) + ' at ' + esc(t12(o.required_time)) + '</p>' +
-      (deliv ? '<dl class="ccs-kv">' + kv('Area', o.delivery_zone) + kv('Address', o.delivery_address) + kv('Receiving', o.delivery_contact) + kv('Delivery fee', o.delivery_fee != null ? money(o.delivery_fee) : '') + '</dl>' : '<p class="ccs-hint">Collect from the café counter.</p>') +
+      (deliv ? '<dl class="ccs-kv">' + kv('Area', o.delivery_zone) + kv('Address', o.delivery_address) + kv('Receiving', o.delivery_contact) + kv('Delivery fee', o.delivery_fee != null ? (Number(o.delivery_fee) === 0 ? 'Complimentary · ' + money(0) : money(o.delivery_fee)) : '') + '</dl>' : '<p class="ccs-hint">Collect from the café counter.</p>') +
       (o.handed_over_at ? '<p class="ccs-hint">Handed over ' + esc(stamp(o.handed_over_at)) + (o.handover_to ? ' to ' + esc(o.handover_to) : '') + '</p>' : '') +
       (o.rush_override ? '<p class="ccs-note">Short-notice order: ' + esc(o.rush_reason) + '</p>' : '') +
       (!closedSt && canP('ord.edit') ? '<button type="button" class="ccs-link" data-act="am-go" data-v="deliv">Change collection or delivery</button>' : '') + '</section>';
@@ -1163,6 +1163,7 @@
       stage: 'Kitchen: ' + (STAGE_LABEL[d.to] || d.to) + (d.qc_by ? ', checked by ' + d.qc_by : ''),
       brief_printed: 'Kitchen slip v' + d.version + (d.new_version ? ' printed' : ' reprinted') + (d.changes && d.changes.length ? ' (changed: ' + d.changes.join(', ') + ')' : ''),
       fulfilment: d.method === 'delivery' ? 'Set to delivery, ' + (d.zone || '') + ', fee ' + money(d.fee) : 'Set to collection',
+       delivery_waived: 'Complimentary delivery to ' + (d.zone || 'the guest') + ' (usual fee ' + money(d.standard_fee || 0) + ')' + (d.reason ? ': ' + d.reason : ''),
       assigned: d.to ? 'Assigned to ' + d.to : 'Assignment cleared', amended: 'Amended, revision ' + d.revision + (d.reason ? ' (' + d.reason + ')' : ''), kitchen_ack: 'Kitchen acknowledged the changes', candles_changed: 'Candles ' + (d.to ? (d.from ? 'changed to “' + d.to + '”' : 'added: “' + d.to + '”') : 'removed'), deleted: 'Deleted', restored: 'Restored after being deleted', imported: 'Brought in from the Google Sheet', sheet_linked: 'Linked to its Google Sheet row' };
     map.quoted = 'Price set to ' + money(d.price) + (d.total != null && Number(d.total) !== Number(d.price) ? ' (total ' + money(d.total) + ' with delivery)' : '') + (d.size ? ', size: ' + d.size : '') + (d.flavour ? ', flavour: ' + d.flavour : '');
     map.photo_removed = 'Photo removed from the order' + (d.file ? ' (' + d.file + ')' : '');
@@ -1236,7 +1237,8 @@
       return '<div class="ccs-panel"><b>Collection or delivery</b><div class="ccs-chips"><button type="button" class="ccs-chip" data-act="f-method" data-v="collection" aria-pressed="' + (F.method === 'collection') + '">Collect from café</button><button type="button" class="ccs-chip" data-act="f-method" data-v="delivery" aria-pressed="' + (F.method === 'delivery') + '">Delivery</button></div>' +
         (F.method === 'delivery' ? '<div class="ccs-field"><span class="ccs-label">Area</span><div class="ccs-chips">' + zones.map(function (z) { return '<button type="button" class="ccs-chip" data-act="f-zone" data-v="' + esc(z.name) + '" aria-pressed="' + (F.zone === z.name) + '">' + esc(z.name) + (z.fee != null ? ' · ' + money(z.fee) : '') + '</button>'; }).join('') + '</div></div>' +
           '<div class="ccs-field"><label class="ccs-label" for="f-address">Delivery address</label><input class="ccs-input" id="f-address" data-f="address" value="' + esc(F.address) + '"></div>' +
-          (zf && zf.fee == null ? '<div class="ccs-field"><label class="ccs-label" for="f-fee">Delivery fee (FJD)</label><input class="ccs-input" id="f-fee" data-f="fee" inputmode="decimal" value="' + esc(F.fee) + '"></div>' : '') +
+          (zf ? '<div class="ccs-field"><span class="ccs-label">Delivery charge</span><div class="ccs-chips" role="group" aria-label="Delivery charge"><button type="button" class="ccs-chip" data-act="f-fee-mode" data-v="standard" aria-pressed="' + !F.waived + '">Standard fee' + (zf.fee != null ? ' · ' + money(zf.fee) : '') + '</button><button type="button" class="ccs-chip" data-act="f-fee-mode" data-v="complimentary" aria-pressed="' + !!F.waived + '">Complimentary · FJ$0</button></div></div>' : '') +
+          (F.waived ? (F.wasWaived && F.zone === F.originalZone ? '<p class="ccs-hint">Delivery was already complimentary for this order.</p>' : '<div class="ccs-field"><label class="ccs-label" for="f-waiver-reason">Why is the delivery complimentary? (required)</label><input class="ccs-input" id="f-waiver-reason" data-f="waiverReason" value="' + esc(F.waiverReason || '') + '" placeholder="For example: customer goodwill" maxlength="200"></div>') : (zf && zf.fee == null ? '<div class="ccs-field"><label class="ccs-label" for="f-fee">Delivery fee (FJD)</label><input class="ccs-input" id="f-fee" data-f="fee" inputmode="decimal" value="' + esc(F.fee) + '"></div>' : '')) +
           '<div class="ccs-field"><label class="ccs-label" for="f-contact">Who receives it (optional)</label><input class="ccs-input" id="f-contact" data-f="contact" value="' + esc(F.contact) + '" placeholder="Name, room or reception"></div>' : '') +
         '<p class="ccs-hint">The delivery fee is added to the order price.</p>' + err +
         '<div class="ccs-actions-row"><button type="button" class="ccs-btn ccs-good" data-act="do-fulfil">Save</button><button type="button" class="ccs-btn ccs-ghost" data-act="panel" data-v="">Back</button></div></div>';
@@ -1429,8 +1431,12 @@
   function saveFulfil() {
     var o = S.sheet.data, F = S.ful; if (S.busy) return;
     if (F.method === 'delivery' && !F.zone) { S.panelErr = 'Choose a delivery area.'; return renderSheet(); }
+    var newWaiver = F.method === 'delivery' && F.waived && (!F.wasWaived || F.zone !== F.originalZone);
+    if (newWaiver && (F.waiverReason || '').trim().length < 3) { S.panelErr = 'Add a reason for complimentary delivery.'; return renderSheet(); }
     S.busy = true; S.panelErr = null;
-    sb.rpc('staff_set_fulfilment', { p_order: o.id, p_version: o.version, p_method: F.method, p_zone: F.method === 'delivery' ? F.zone : null, p_address: F.method === 'delivery' ? F.address : null, p_fee: F.method === 'delivery' ? num(F.fee) : null, p_contact: F.method === 'delivery' ? F.contact : null })
+    var args = { p_order: o.id, p_version: o.version, p_method: F.method, p_zone: F.method === 'delivery' ? F.zone : null, p_address: F.method === 'delivery' ? F.address : null, p_fee: F.method === 'delivery' ? (F.waived ? 0 : num(F.fee)) : null, p_contact: F.method === 'delivery' ? F.contact : null };
+    if (newWaiver) args.p_reason = F.waiverReason.trim();
+    sb.rpc(newWaiver ? 'staff_set_fulfilment_with_waiver' : 'staff_set_fulfilment', args)
       .then(function (r) {
         S.busy = false; if (r.error) throw r.error;
         if (!r.data.ok) { if (r.data.error === 'changed') { S.panelErr = CONFLICT; reloadOrderKeep(o.id); } else { S.panelErr = r.data.message; renderSheet(); } return; }
@@ -2029,6 +2035,7 @@
       (a.method === 'delivery' ? '<div class="ccs-row"><div class="ccs-field"><label class="ccs-label" for="am-zone">Delivery area</label><select class="ccs-input" id="am-zone" data-am="zone"><option value="">Choose an area</option>' +
         zones.map(function (x) { return '<option value="' + esc(x.name) + '"' + (x.name === a.zone ? ' selected' : '') + '>' + esc(x.name) + (x.fee != null ? ' (' + money(Number(x.fee)) + ')' : '') + '</option>'; }).join('') + '</select></div>' +
         fld('am-fee', 'fee', 'Delivery fee (FJD)', a.fee, ' inputmode="decimal" style="max-width:180px"') + '</div>' +
+        (zNow && zNow.fee != null ? '<div class="ccs-chips" role="group" aria-label="Delivery charge"><button type="button" class="ccs-chip" data-act="am-fee-mode" data-v="standard" aria-pressed="' + (num(a.fee) !== 0) + '">Standard fee · ' + money(zNow.fee) + '</button><button type="button" class="ccs-chip" data-act="am-fee-mode" data-v="complimentary" aria-pressed="' + (num(a.fee) === 0) + '">Complimentary · FJ$0</button></div>' : '') +
         (zNow && zNow.fee != null && num(a.fee) !== Number(zNow.fee) ? '<p class="ccs-hint">The usual fee for ' + esc(zNow.name) + ' is ' + money(Number(zNow.fee)) + '. The change history records both.</p>' : '') +
         area('am-addr', 'address', 'Delivery address', a.address) + fld('am-dcontact', 'dcontact', 'Who receives it (optional)', a.dcontact) : ''));
     if (isReq((o.order_items || [])[0])) h += '<p class="ccs-hint">Custom cake: change its flavour, size or price with Change the price on the order' + (OPEN.indexOf(o.order_status) > -1 && ['awaiting_review','awaiting_quote','awaiting_approval'].indexOf(o.order_status) > -1 ? '' : ' (before it is confirmed)') + '.</p>';
@@ -4747,7 +4754,7 @@
         case 'history': S.sheet.showHistory = true; renderSheet(); break;
         case 'panel': if (S.panel && S.panel !== v && hasTyping() && !confirmDiscard(b)) break; if (S.panel === 'amend' && S.panel !== v && S.sheet && S.sheet.id) wipPut('am:' + S.sheet.id, null); S.panel = v || null; S.panelErr = null; S.dirty = {}; S.cfmHow = null; if (v === 'pay') { S.payKey = uuid(); S.payMethod = 'cash'; }
           if (v === 'amend') S.am = amendInit(S.sheet.data);
-          if (v === 'fulfil') { var od = S.sheet.data; S.ful = { method: od.fulfilment_method || 'collection', zone: od.delivery_zone, address: od.delivery_address || '', fee: od.delivery_fee != null ? String(Number(od.delivery_fee)) : '', contact: od.delivery_contact || '' }; }
+          if (v === 'fulfil') { var od = S.sheet.data, zOld = ((S.setup && S.setup.delivery_zones) || []).filter(function (z) { return z.name === od.delivery_zone; })[0], alreadyFree = od.fulfilment_method === 'delivery' && Number(od.delivery_fee) === 0 && zOld && Number(zOld.fee) > 0; S.ful = { method: od.fulfilment_method || 'collection', zone: od.delivery_zone, originalZone: od.delivery_zone || '', address: od.delivery_address || '', fee: od.delivery_fee != null ? String(Number(od.delivery_fee)) : '', contact: od.delivery_contact || '', waived: !!alreadyFree, wasWaived: !!alreadyFree, waiverReason: '' }; }
           renderSheet(); var sb_ = document.querySelector('#ccs-sheet .ccs-sheet-body'); if (sb_ && v) sb_.scrollTop = 0; break;
         case 'method': S.payMethod = v; root.querySelectorAll('#ccs-method .ccs-chip').forEach(function (c) { c.setAttribute('aria-pressed', c.dataset.v === v); }); break;
         case 'do-confirm': {
@@ -4788,7 +4795,8 @@
         case 'do-collected': if (val('ccs-note').trim().length < 2) { panelNeed(S.sheet.data.fulfilment_method === 'delivery' ? 'Enter who received the cake.' : 'Enter who collected the cake.'); break; } act('collected', { p_note: val('ccs-note').trim() }); break;
         case 'do-fulfil': saveFulfil(); break;
         case 'f-method': S.ful.method = v; renderSheet(); break;
-        case 'f-zone': S.ful.zone = v; renderSheet(); break;
+        case 'f-zone': S.ful.zone = v; if (!S.ful.waived) { var zF = ((S.setup && S.setup.delivery_zones) || []).filter(function (x) { return x.name === v; })[0]; S.ful.fee = zF && zF.fee != null ? String(Number(zF.fee)) : ''; } renderSheet(); break;
+        case 'f-fee-mode': { var zF2 = ((S.setup && S.setup.delivery_zones) || []).filter(function (x) { return x.name === S.ful.zone; })[0]; S.ful.waived = v === 'complimentary'; if (!S.ful.waived) { S.ful.fee = zF2 && zF2.fee != null ? String(Number(zF2.fee)) : ''; S.ful.waiverReason = ''; } renderSheet(); break; }
         case 'do-brief': { var pk0 = slipPick(); if (!(pk0.email || pk0.dl || pk0.print)) break; printBrief(v, { email: pk0.email, dl: pk0.dl, print: pk0.print }); break; }
         case 'brief-email': printBrief(S.slip.paper, { email: true }); break;
         case 'brief-pdf': markBusy(b, 'Preparing…'); briefPdf(); break;
@@ -4819,6 +4827,7 @@
         case 'tm-tab': S.settings.tmTab = v; S.settings.tmOpen = true; view(); break;
         case 'k-refresh': loadKitchen(); break;
         case 'am-set': amendSet(b.dataset.f, v); break;
+        case 'am-fee-mode': { var zAm = ((S.setup && S.setup.delivery_zones) || []).filter(function (x) { return x.name === S.am.zone; })[0]; amendSet('fee', v === 'complimentary' ? '0' : (zAm && zAm.fee != null ? String(Number(zAm.fee)) : S.am.fee)); break; }
         case 'am-diet': var dl_ = S.am.diets.indexOf(v); if (dl_ > -1) S.am.diets.splice(dl_, 1); else S.am.diets.push(v); S.am.preview = null; renderSheet(); break;
         case 'am-open': S.am.open[v] = !S.am.open[v]; renderSheet(); break;
         // Delivery and candles are changed through Change order, so every change goes into the same change history
