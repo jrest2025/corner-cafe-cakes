@@ -2365,7 +2365,7 @@
   function phPicker(id, label, link) { return '<label class="' + (link ? 'ccs-link ccs-phlink' : 'ccs-btn ccs-ghost ccs-phadd') + '"><input type="file" id="' + id + '" accept="image/jpeg,image/png,image/webp" multiple class="ccs-sr">' + label + '</label>'; }
   function freshDraft() { return { key: uuid(), source: null, taken: null, takenDate: '', step: 0, reached: 0, phone: '', noMob: null, matches: null, customer: null, isNew: false, name: '', email: '', whatsapp: true, optIn: null,
     product: null, req: false, sizeNote: '', reqPrice: '', variant: null, size: null, finish: 'standard', design: '', photos: [], phErr: null, message: '', candles: '', occasion: null, occOther: '', diet: null, diets: [], dietNote: '', notes: '', qty: 1,
-    date: '', time: '', rush: '', rushBy: '', fromCal: false, method: 'collection', zone: null, address: '', fee: '', contact: '', confirmNow: false, askDeposit: false, deposit: '', payNow: false, payAmount: '', payMethod: 'cash', result: null, err: null, errField: null }; }
+    date: '', time: '', rush: '', rushBy: '', fromCal: false, method: 'collection', zone: null, address: '', fee: '', deliveryWaived: false, deliveryWaiverReason: '', contact: '', confirmNow: false, askDeposit: false, deposit: '', payNow: false, payAmount: '', payMethod: 'cash', result: null, err: null, errField: null }; }
   var D = freshDraft();
   // Unfinished walk-in orders are kept on this device for 12 hours, per staff login, and cleared at sign out (U6)
   function draftKey() { return S.me ? 'ccs-draft-' + S.me.user_id : null; }
@@ -2518,9 +2518,9 @@
   function sizeObj() { var p = prod(); return p && D.size ? p.sizes.filter(function (s) { return s.inch === D.size; })[0] : null; }
   function dPrice() { if (D.req) { var rp = num(D.reqPrice); return rp != null && rp > 0 ? rp : null; } var s = sizeObj(); return s ? Number(s.price) * (D.qty || 1) : null; }
   function zoneObj() { return ((S.setup && S.setup.delivery_zones) || []).filter(function (z) { return z.name === D.zone; })[0] || null; }
-  function dFee() { if (D.method !== 'delivery') return 0; var z = zoneObj(); if (!z) return 0; return z.fee != null ? Number(z.fee) : (num(D.fee) || 0); }
+  function dFee() { if (D.method !== 'delivery') return 0; var z = zoneObj(); if (!z) return 0; if (D.deliveryWaived) return 0; return z.fee != null ? Number(z.fee) : (num(D.fee) || 0); }
   function dTotal() { var p = dPrice(); return p == null ? null : p + dFee(); }
-  function delivOk() { if (D.method !== 'delivery') return true; var z = zoneObj(), f = num(D.fee); return !!z && D.address.trim().length >= 5 && (z.fee != null || (f != null && f >= 0)); }
+  function delivOk() { if (D.method !== 'delivery') return true; var z = zoneObj(), f = num(D.fee); return !!z && D.address.trim().length >= 5 && (D.deliveryWaived ? (D.deliveryWaiverReason || '').trim().length >= 3 : (z.fee != null || (f != null && f >= 0))); }
   function leadDays() { var L = S.setup.location, p = prod(); return D.finish === 'custom' ? L.lead_days_custom : (p ? p.lead_days : L.lead_days_standard); }
   function minDate() { return addDays(today(), leadDays()); }
   // Quick picks for who approved a short-notice order: the signed-in manager, then names used recently on this device
@@ -2627,7 +2627,8 @@
     if (dl) {
       h += '<div class="ccs-panel"><div class="ccs-field"><span class="ccs-label">Delivery area</span><div class="ccs-chips">' + zones.map(function (z) { return '<button type="button" class="ccs-chip" data-act="n-zone" data-v="' + esc(z.name) + '" aria-pressed="' + (D.zone === z.name) + '">' + esc(z.name) + (z.fee != null ? ' · ' + money(z.fee) : ' · set fee') + '</button>'; }).join('') + '</div>' + ferr('zone') + '</div>' +
         '<div class="ccs-field"><label class="ccs-label" for="n-address">Delivery address</label><input class="ccs-input" id="n-address" data-n="address" value="' + esc(D.address) + '" placeholder="Street, resort or business name" autocomplete="off"></div>' + ferr('address') +
-        (zo && zo.fee == null ? '<div class="ccs-field"><label class="ccs-label" for="n-fee">Delivery fee (FJD)</label><input class="ccs-input" id="n-fee" data-n="fee" inputmode="decimal" value="' + esc(D.fee) + '"></div>' + ferr('fee') : '') +
+        (zo ? '<div class="ccs-field"><span class="ccs-label">Delivery charge</span><div class="ccs-chips" role="group" aria-label="Delivery charge"><button type="button" class="ccs-chip" data-act="n-delivery-charge" data-v="standard" aria-pressed="' + !D.deliveryWaived + '">Standard fee' + (zo.fee != null ? ' · ' + money(zo.fee) : '') + '</button><button type="button" class="ccs-chip" data-act="n-delivery-charge" data-v="complimentary" aria-pressed="' + !!D.deliveryWaived + '">Complimentary · FJ$0</button></div></div>' : '') +
+        (D.deliveryWaived ? '<div class="ccs-field"><label class="ccs-label" for="n-delivery-waiver-reason">Reason for complimentary delivery (required)</label><input class="ccs-input" id="n-delivery-waiver-reason" data-n="deliveryWaiverReason" value="' + esc(D.deliveryWaiverReason || '') + '" placeholder="For example: customer goodwill" maxlength="200"></div>' + ferr('fee') : (zo && zo.fee == null ? '<div class="ccs-field"><label class="ccs-label" for="n-fee">Delivery fee (FJD)</label><input class="ccs-input" id="n-fee" data-n="fee" inputmode="decimal" value="' + esc(D.fee) + '"></div>' + ferr('fee') : '')) +
         '<div class="ccs-field"><label class="ccs-label" for="n-contact">Who receives it (optional)</label><input class="ccs-input" id="n-contact" data-n="contact" value="' + esc(D.contact) + '" placeholder="Name, room or reception"></div></div>';
     }
     // Quick date choices from the earliest allowed day; the calendar stays for anything else (U21)
@@ -2657,7 +2658,7 @@
   }
   function stepPay(inSlip) {
     var price = dTotal(), custom = D.finish === 'custom';
-    var h = (inSlip ? '' : '<h2 class="ccs-step-q">Price and payment</h2>') + (D.method === 'delivery' && !(D.req && price == null) ? '<dl class="ccs-kv"><dt>Cake</dt><dd>' + money(dPrice()) + '</dd><dt>Delivery</dt><dd>' + money(dFee()) + ', ' + esc(D.zone || '') + '</dd></dl>' : '') +
+    var h = (inSlip ? '' : '<h2 class="ccs-step-q">Price and payment</h2>') + (D.method === 'delivery' && !(D.req && price == null) ? '<dl class="ccs-kv"><dt>Cake</dt><dd>' + money(dPrice()) + '</dd><dt>Delivery</dt><dd>' + (D.deliveryWaived ? 'Complimentary' : money(dFee())) + ', ' + esc(D.zone || '') + '</dd></dl>' : '') +
       (D.req ? '<div class="ccs-total"><span>' + (price == null ? 'Price' : 'Agreed price') + '</span><b>' + (price == null ? 'To be priced' : money(price)) + '</b></div>' : '<div class="ccs-total"><span>' + (custom ? 'Starting price before custom design' : 'Price') + '</span><b>' + money(price) + '</b></div>');
     if (D.req) h += '<p class="ccs-note">' + (price == null ? 'Saved as Needs a price. Add the price from the order when it is ready.' : 'Saved as Waiting for customer. Press Confirm order on the order once the customer agrees.') + ' The kitchen gets it only after Confirm order.</p>';
     else if (custom) h += '<p class="ccs-note">Custom cakes are saved as Needs a quote. Confirm the final price from the order once the design is priced.</p>';
@@ -3064,7 +3065,7 @@
       finish: D.finish, design: D.design, attachments: custom ? D.photos.filter(function (x) { return x.status === 'done'; }).map(function (x) { return x.path; }) : [], message: D.message, candles: D.candles, occasion: occSend(), has_dietary: D.diet, dietary: D.diet === 'yes' ? D.diets : [], dietary_note: D.dietNote, notes: D.notes,
       date: D.date, time: D.time, rush: tooSoon() ? { reason: D.rush, approved_by: D.rushBy } : null, confirm_now: D.confirmNow && !custom, deposit_required: dep,
       payment: payAmt ? { amount: payAmt, method: D.payMethod, kind: dep ? 'deposit' : (payAmt >= price ? 'full' : 'deposit') } : null,
-      delivery: D.method === 'delivery' ? { method: 'delivery', zone: D.zone, address: D.address, fee: zoneObj() && zoneObj().fee == null ? num(D.fee) : null, contact: D.contact } : { method: 'collection' } };
+      delivery: D.method === 'delivery' ? { method: 'delivery', zone: D.zone, address: D.address, fee: D.deliveryWaived ? 0 : (zoneObj() && zoneObj().fee == null ? num(D.fee) : null), waiver_reason: D.deliveryWaived ? D.deliveryWaiverReason.trim() : null, contact: D.contact } : { method: 'collection' } };
     if (D.req) { p.size_note = (D.sizeNote || '').trim(); p.price = num(D.reqPrice) > 0 ? num(D.reqPrice) : null; }
     if (D.customer) { p.customer_id = D.customer.id; if (D.optIn === true || D.optIn === false) p.consent = D.optIn ? 'yes' : 'no'; } else if (D.noMob === 'none') p.customer = { name: D.name, phone: '', email: D.email, whatsapp: false, opt_in: false, no_contact: true };
     else p.customer = { name: D.name, phone: D.phone, email: D.email, whatsapp: D.whatsapp, opt_in: D.optIn === true };
@@ -4938,13 +4939,14 @@
         case 'n-time': D.time = v;
           if (D.method === 'delivery' && !zoneObj()) { D.err = 'Choose a delivery area.'; D.errField = 'zone'; refreshStep(); break; }
           if (D.method === 'delivery' && D.address.trim().length < 5) { D.err = 'Enter the delivery address.'; D.errField = 'address'; refreshStep(); break; }
-          if (!delivOk()) { D.err = 'Enter the delivery fee for this area.'; D.errField = 'fee'; refreshStep(); break; }
+          if (!delivOk()) { D.err = D.deliveryWaived ? 'Add a reason for complimentary delivery.' : 'Enter the delivery fee for this area.'; D.errField = 'fee'; refreshStep(); break; }
           if (tooSoon() && D.rush.trim().length < 3) { D.err = 'Add a reason for the short notice first.'; D.errField = 'rush'; refreshStep(); break; }
           if (tooSoon() && D.rushBy.trim().length < 2) { D.err = 'Enter who approved the short notice.'; D.errField = 'rushBy'; refreshStep(); break; } goStep(nextOpen(4)); break;
         case 'n-date': D.date = v; D.dateOther = false; D.errField = null; refreshStep(); var tc = document.querySelector('#ccs-nstep-3 [data-act="n-time"]'); if (tc && tc.scrollIntoView) tc.scrollIntoView({ behavior: 'smooth', block: 'center' }); break;
         case 'n-date-other': D.dateOther = true; refreshStep(); var di = document.getElementById('n-date'); if (di) di.focus(); break;
         case 'n-method': D.method = v; if (v === 'collection') { D.zone = null; } D.errField = null; refreshStep(); break;
         case 'n-zone': D.zone = v; D.errField = null; refreshStep(); break;
+        case 'n-delivery-charge': D.deliveryWaived = v === 'complimentary'; if (!D.deliveryWaived) D.deliveryWaiverReason = ''; D.errField = null; refreshStep(); break;
         case 'n-askdep': D.askDeposit = true; refreshStep(); break;
         case 'n-dep': D.deposit = String(v === 'full' ? dTotal() : Math.round(dTotal() / 2)); refreshStep(); break;
         case 'n-paynow': D.payNow = true; D.payAmount = D.askDeposit && D.deposit ? D.deposit : String(dTotal()); refreshStep(); break;
