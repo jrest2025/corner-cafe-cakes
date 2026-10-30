@@ -993,7 +993,7 @@
     var deliv = o.fulfilment_method === 'delivery', closedSt = ['completed', 'declined', 'cancelled'].indexOf(o.order_status) > -1;
     cut.push(['when', h.length]);
     h += '<section class="ccs-box"><h3>' + (deliv ? 'Delivery' : 'Collection') + '</h3><p class="ccs-big">' + esc(nice(o.required_date, true)) + ' at ' + esc(t12(o.required_time)) + '</p>' +
-      (deliv ? '<dl class="ccs-kv">' + kv('Area', o.delivery_zone) + kv('Address', o.delivery_address) + kv('Receiving', o.delivery_contact) + kv('Delivery fee', o.delivery_fee != null ? money(o.delivery_fee) : '') + '</dl>' : '<p class="ccs-hint">Collect from the café counter.</p>') +
+      (deliv ? '<dl class="ccs-kv">' + kv('Area', o.delivery_zone) + kv('Address', o.delivery_address) + kv('Receiving', o.delivery_contact) + kv('Delivery fee', o.delivery_fee != null ? (Number(o.delivery_fee) === 0 ? 'Complimentary · ' + money(0) : money(o.delivery_fee)) : '') + '</dl>' : '<p class="ccs-hint">Collect from the café counter.</p>') +
       (o.handed_over_at ? '<p class="ccs-hint">Handed over ' + esc(stamp(o.handed_over_at)) + (o.handover_to ? ' to ' + esc(o.handover_to) : '') + '</p>' : '') +
       (o.rush_override ? '<p class="ccs-note">Short-notice order: ' + esc(o.rush_reason) + '</p>' : '') +
       (!closedSt && canP('ord.edit') ? '<button type="button" class="ccs-link" data-act="am-go" data-v="deliv">Change collection or delivery</button>' : '') + '</section>';
@@ -1163,6 +1163,7 @@
       stage: 'Kitchen: ' + (STAGE_LABEL[d.to] || d.to) + (d.qc_by ? ', checked by ' + d.qc_by : ''),
       brief_printed: 'Kitchen slip v' + d.version + (d.new_version ? ' printed' : ' reprinted') + (d.changes && d.changes.length ? ' (changed: ' + d.changes.join(', ') + ')' : ''),
       fulfilment: d.method === 'delivery' ? 'Set to delivery, ' + (d.zone || '') + ', fee ' + money(d.fee) : 'Set to collection',
+       delivery_waived: 'Complimentary delivery to ' + (d.zone || 'the guest') + ' (usual fee ' + money(d.standard_fee || 0) + ')' + (d.reason ? ': ' + d.reason : ''),
       assigned: d.to ? 'Assigned to ' + d.to : 'Assignment cleared', amended: 'Amended, revision ' + d.revision + (d.reason ? ' (' + d.reason + ')' : ''), kitchen_ack: 'Kitchen acknowledged the changes', candles_changed: 'Candles ' + (d.to ? (d.from ? 'changed to “' + d.to + '”' : 'added: “' + d.to + '”') : 'removed'), deleted: 'Deleted', restored: 'Restored after being deleted', imported: 'Brought in from the Google Sheet', sheet_linked: 'Linked to its Google Sheet row' };
     map.quoted = 'Price set to ' + money(d.price) + (d.total != null && Number(d.total) !== Number(d.price) ? ' (total ' + money(d.total) + ' with delivery)' : '') + (d.size ? ', size: ' + d.size : '') + (d.flavour ? ', flavour: ' + d.flavour : '');
     map.photo_removed = 'Photo removed from the order' + (d.file ? ' (' + d.file + ')' : '');
@@ -1236,7 +1237,8 @@
       return '<div class="ccs-panel"><b>Collection or delivery</b><div class="ccs-chips"><button type="button" class="ccs-chip" data-act="f-method" data-v="collection" aria-pressed="' + (F.method === 'collection') + '">Collect from café</button><button type="button" class="ccs-chip" data-act="f-method" data-v="delivery" aria-pressed="' + (F.method === 'delivery') + '">Delivery</button></div>' +
         (F.method === 'delivery' ? '<div class="ccs-field"><span class="ccs-label">Area</span><div class="ccs-chips">' + zones.map(function (z) { return '<button type="button" class="ccs-chip" data-act="f-zone" data-v="' + esc(z.name) + '" aria-pressed="' + (F.zone === z.name) + '">' + esc(z.name) + (z.fee != null ? ' · ' + money(z.fee) : '') + '</button>'; }).join('') + '</div></div>' +
           '<div class="ccs-field"><label class="ccs-label" for="f-address">Delivery address</label><input class="ccs-input" id="f-address" data-f="address" value="' + esc(F.address) + '"></div>' +
-          (zf && zf.fee == null ? '<div class="ccs-field"><label class="ccs-label" for="f-fee">Delivery fee (FJD)</label><input class="ccs-input" id="f-fee" data-f="fee" inputmode="decimal" value="' + esc(F.fee) + '"></div>' : '') +
+          (zf ? '<div class="ccs-field"><span class="ccs-label">Delivery charge</span><div class="ccs-chips" role="group" aria-label="Delivery charge"><button type="button" class="ccs-chip" data-act="f-fee-mode" data-v="standard" aria-pressed="' + !F.waived + '">Standard fee' + (zf.fee != null ? ' · ' + money(zf.fee) : '') + '</button><button type="button" class="ccs-chip" data-act="f-fee-mode" data-v="complimentary" aria-pressed="' + !!F.waived + '">Complimentary · FJ$0</button></div></div>' : '') +
+          (F.waived ? (F.wasWaived && F.zone === F.originalZone ? '<p class="ccs-hint">Delivery was already complimentary for this order.</p>' : '<div class="ccs-field"><label class="ccs-label" for="f-waiver-reason">Why is the delivery complimentary? (required)</label><input class="ccs-input" id="f-waiver-reason" data-f="waiverReason" value="' + esc(F.waiverReason || '') + '" placeholder="For example: customer goodwill" maxlength="200"></div>') : (zf && zf.fee == null ? '<div class="ccs-field"><label class="ccs-label" for="f-fee">Delivery fee (FJD)</label><input class="ccs-input" id="f-fee" data-f="fee" inputmode="decimal" value="' + esc(F.fee) + '"></div>' : '')) +
           '<div class="ccs-field"><label class="ccs-label" for="f-contact">Who receives it (optional)</label><input class="ccs-input" id="f-contact" data-f="contact" value="' + esc(F.contact) + '" placeholder="Name, room or reception"></div>' : '') +
         '<p class="ccs-hint">The delivery fee is added to the order price.</p>' + err +
         '<div class="ccs-actions-row"><button type="button" class="ccs-btn ccs-good" data-act="do-fulfil">Save</button><button type="button" class="ccs-btn ccs-ghost" data-act="panel" data-v="">Back</button></div></div>';
@@ -1429,8 +1431,12 @@
   function saveFulfil() {
     var o = S.sheet.data, F = S.ful; if (S.busy) return;
     if (F.method === 'delivery' && !F.zone) { S.panelErr = 'Choose a delivery area.'; return renderSheet(); }
+    var newWaiver = F.method === 'delivery' && F.waived && (!F.wasWaived || F.zone !== F.originalZone);
+    if (newWaiver && (F.waiverReason || '').trim().length < 3) { S.panelErr = 'Add a reason for complimentary delivery.'; return renderSheet(); }
     S.busy = true; S.panelErr = null;
-    sb.rpc('staff_set_fulfilment', { p_order: o.id, p_version: o.version, p_method: F.method, p_zone: F.method === 'delivery' ? F.zone : null, p_address: F.method === 'delivery' ? F.address : null, p_fee: F.method === 'delivery' ? num(F.fee) : null, p_contact: F.method === 'delivery' ? F.contact : null })
+    var args = { p_order: o.id, p_version: o.version, p_method: F.method, p_zone: F.method === 'delivery' ? F.zone : null, p_address: F.method === 'delivery' ? F.address : null, p_fee: F.method === 'delivery' ? (F.waived ? 0 : num(F.fee)) : null, p_contact: F.method === 'delivery' ? F.contact : null };
+    if (newWaiver) args.p_reason = F.waiverReason.trim();
+    sb.rpc(newWaiver ? 'staff_set_fulfilment_with_waiver' : 'staff_set_fulfilment', args)
       .then(function (r) {
         S.busy = false; if (r.error) throw r.error;
         if (!r.data.ok) { if (r.data.error === 'changed') { S.panelErr = CONFLICT; reloadOrderKeep(o.id); } else { S.panelErr = r.data.message; renderSheet(); } return; }
@@ -2029,6 +2035,7 @@
       (a.method === 'delivery' ? '<div class="ccs-row"><div class="ccs-field"><label class="ccs-label" for="am-zone">Delivery area</label><select class="ccs-input" id="am-zone" data-am="zone"><option value="">Choose an area</option>' +
         zones.map(function (x) { return '<option value="' + esc(x.name) + '"' + (x.name === a.zone ? ' selected' : '') + '>' + esc(x.name) + (x.fee != null ? ' (' + money(Number(x.fee)) + ')' : '') + '</option>'; }).join('') + '</select></div>' +
         fld('am-fee', 'fee', 'Delivery fee (FJD)', a.fee, ' inputmode="decimal" style="max-width:180px"') + '</div>' +
+        (zNow && zNow.fee != null ? '<div class="ccs-chips" role="group" aria-label="Delivery charge"><button type="button" class="ccs-chip" data-act="am-fee-mode" data-v="standard" aria-pressed="' + (num(a.fee) !== 0) + '">Standard fee · ' + money(zNow.fee) + '</button><button type="button" class="ccs-chip" data-act="am-fee-mode" data-v="complimentary" aria-pressed="' + (num(a.fee) === 0) + '">Complimentary · FJ$0</button></div>' : '') +
         (zNow && zNow.fee != null && num(a.fee) !== Number(zNow.fee) ? '<p class="ccs-hint">The usual fee for ' + esc(zNow.name) + ' is ' + money(Number(zNow.fee)) + '. The change history records both.</p>' : '') +
         area('am-addr', 'address', 'Delivery address', a.address) + fld('am-dcontact', 'dcontact', 'Who receives it (optional)', a.dcontact) : ''));
     if (isReq((o.order_items || [])[0])) h += '<p class="ccs-hint">Custom cake: change its flavour, size or price with Change the price on the order' + (OPEN.indexOf(o.order_status) > -1 && ['awaiting_review','awaiting_quote','awaiting_approval'].indexOf(o.order_status) > -1 ? '' : ' (before it is confirmed)') + '.</p>';
@@ -2365,7 +2372,7 @@
   function phPicker(id, label, link) { return '<label class="' + (link ? 'ccs-link ccs-phlink' : 'ccs-btn ccs-ghost ccs-phadd') + '"><input type="file" id="' + id + '" accept="image/jpeg,image/png,image/webp" multiple class="ccs-sr">' + label + '</label>'; }
   function freshDraft() { return { key: uuid(), source: null, taken: null, takenDate: '', step: 0, reached: 0, phone: '', noMob: null, matches: null, customer: null, isNew: false, name: '', email: '', whatsapp: true, optIn: null,
     product: null, req: false, sizeNote: '', reqPrice: '', variant: null, size: null, finish: 'standard', design: '', photos: [], phErr: null, message: '', candles: '', occasion: null, occOther: '', diet: null, diets: [], dietNote: '', notes: '', qty: 1,
-    date: '', time: '', rush: '', rushBy: '', fromCal: false, method: 'collection', zone: null, address: '', fee: '', contact: '', confirmNow: false, askDeposit: false, deposit: '', payNow: false, payAmount: '', payMethod: 'cash', result: null, err: null, errField: null }; }
+    date: '', time: '', rush: '', rushBy: '', fromCal: false, method: 'collection', zone: null, address: '', fee: '', deliveryWaived: false, deliveryWaiverReason: '', contact: '', confirmNow: false, askDeposit: false, deposit: '', payNow: false, payAmount: '', payMethod: 'cash', result: null, err: null, errField: null }; }
   var D = freshDraft();
   // Unfinished walk-in orders are kept on this device for 12 hours, per staff login, and cleared at sign out (U6)
   function draftKey() { return S.me ? 'ccs-draft-' + S.me.user_id : null; }
@@ -2518,9 +2525,9 @@
   function sizeObj() { var p = prod(); return p && D.size ? p.sizes.filter(function (s) { return s.inch === D.size; })[0] : null; }
   function dPrice() { if (D.req) { var rp = num(D.reqPrice); return rp != null && rp > 0 ? rp : null; } var s = sizeObj(); return s ? Number(s.price) * (D.qty || 1) : null; }
   function zoneObj() { return ((S.setup && S.setup.delivery_zones) || []).filter(function (z) { return z.name === D.zone; })[0] || null; }
-  function dFee() { if (D.method !== 'delivery') return 0; var z = zoneObj(); if (!z) return 0; return z.fee != null ? Number(z.fee) : (num(D.fee) || 0); }
+  function dFee() { if (D.method !== 'delivery') return 0; var z = zoneObj(); if (!z) return 0; if (D.deliveryWaived) return 0; return z.fee != null ? Number(z.fee) : (num(D.fee) || 0); }
   function dTotal() { var p = dPrice(); return p == null ? null : p + dFee(); }
-  function delivOk() { if (D.method !== 'delivery') return true; var z = zoneObj(), f = num(D.fee); return !!z && D.address.trim().length >= 5 && (z.fee != null || (f != null && f >= 0)); }
+  function delivOk() { if (D.method !== 'delivery') return true; var z = zoneObj(), f = num(D.fee); return !!z && D.address.trim().length >= 5 && (D.deliveryWaived ? (D.deliveryWaiverReason || '').trim().length >= 3 : (z.fee != null || (f != null && f >= 0))); }
   function leadDays() { var L = S.setup.location, p = prod(); return D.finish === 'custom' ? L.lead_days_custom : (p ? p.lead_days : L.lead_days_standard); }
   function minDate() { return addDays(today(), leadDays()); }
   // Quick picks for who approved a short-notice order: the signed-in manager, then names used recently on this device
@@ -2627,7 +2634,8 @@
     if (dl) {
       h += '<div class="ccs-panel"><div class="ccs-field"><span class="ccs-label">Delivery area</span><div class="ccs-chips">' + zones.map(function (z) { return '<button type="button" class="ccs-chip" data-act="n-zone" data-v="' + esc(z.name) + '" aria-pressed="' + (D.zone === z.name) + '">' + esc(z.name) + (z.fee != null ? ' · ' + money(z.fee) : ' · set fee') + '</button>'; }).join('') + '</div>' + ferr('zone') + '</div>' +
         '<div class="ccs-field"><label class="ccs-label" for="n-address">Delivery address</label><input class="ccs-input" id="n-address" data-n="address" value="' + esc(D.address) + '" placeholder="Street, resort or business name" autocomplete="off"></div>' + ferr('address') +
-        (zo && zo.fee == null ? '<div class="ccs-field"><label class="ccs-label" for="n-fee">Delivery fee (FJD)</label><input class="ccs-input" id="n-fee" data-n="fee" inputmode="decimal" value="' + esc(D.fee) + '"></div>' + ferr('fee') : '') +
+        (zo ? '<div class="ccs-field"><span class="ccs-label">Delivery charge</span><div class="ccs-chips" role="group" aria-label="Delivery charge"><button type="button" class="ccs-chip" data-act="n-delivery-charge" data-v="standard" aria-pressed="' + !D.deliveryWaived + '">Standard fee' + (zo.fee != null ? ' · ' + money(zo.fee) : '') + '</button><button type="button" class="ccs-chip" data-act="n-delivery-charge" data-v="complimentary" aria-pressed="' + !!D.deliveryWaived + '">Complimentary · FJ$0</button></div></div>' : '') +
+        (D.deliveryWaived ? '<div class="ccs-field"><label class="ccs-label" for="n-delivery-waiver-reason">Reason for complimentary delivery (required)</label><input class="ccs-input" id="n-delivery-waiver-reason" data-n="deliveryWaiverReason" value="' + esc(D.deliveryWaiverReason || '') + '" placeholder="For example: customer goodwill" maxlength="200"></div>' + ferr('fee') : (zo && zo.fee == null ? '<div class="ccs-field"><label class="ccs-label" for="n-fee">Delivery fee (FJD)</label><input class="ccs-input" id="n-fee" data-n="fee" inputmode="decimal" value="' + esc(D.fee) + '"></div>' + ferr('fee') : '')) +
         '<div class="ccs-field"><label class="ccs-label" for="n-contact">Who receives it (optional)</label><input class="ccs-input" id="n-contact" data-n="contact" value="' + esc(D.contact) + '" placeholder="Name, room or reception"></div></div>';
     }
     // Quick date choices from the earliest allowed day; the calendar stays for anything else (U21)
@@ -2657,7 +2665,7 @@
   }
   function stepPay(inSlip) {
     var price = dTotal(), custom = D.finish === 'custom';
-    var h = (inSlip ? '' : '<h2 class="ccs-step-q">Price and payment</h2>') + (D.method === 'delivery' && !(D.req && price == null) ? '<dl class="ccs-kv"><dt>Cake</dt><dd>' + money(dPrice()) + '</dd><dt>Delivery</dt><dd>' + money(dFee()) + ', ' + esc(D.zone || '') + '</dd></dl>' : '') +
+    var h = (inSlip ? '' : '<h2 class="ccs-step-q">Price and payment</h2>') + (D.method === 'delivery' && !(D.req && price == null) ? '<dl class="ccs-kv"><dt>Cake</dt><dd>' + money(dPrice()) + '</dd><dt>Delivery</dt><dd>' + (D.deliveryWaived ? 'Complimentary' : money(dFee())) + ', ' + esc(D.zone || '') + '</dd></dl>' : '') +
       (D.req ? '<div class="ccs-total"><span>' + (price == null ? 'Price' : 'Agreed price') + '</span><b>' + (price == null ? 'To be priced' : money(price)) + '</b></div>' : '<div class="ccs-total"><span>' + (custom ? 'Starting price before custom design' : 'Price') + '</span><b>' + money(price) + '</b></div>');
     if (D.req) h += '<p class="ccs-note">' + (price == null ? 'Saved as Needs a price. Add the price from the order when it is ready.' : 'Saved as Waiting for customer. Press Confirm order on the order once the customer agrees.') + ' The kitchen gets it only after Confirm order.</p>';
     else if (custom) h += '<p class="ccs-note">Custom cakes are saved as Needs a quote. Confirm the final price from the order once the design is priced.</p>';
@@ -3064,7 +3072,7 @@
       finish: D.finish, design: D.design, attachments: custom ? D.photos.filter(function (x) { return x.status === 'done'; }).map(function (x) { return x.path; }) : [], message: D.message, candles: D.candles, occasion: occSend(), has_dietary: D.diet, dietary: D.diet === 'yes' ? D.diets : [], dietary_note: D.dietNote, notes: D.notes,
       date: D.date, time: D.time, rush: tooSoon() ? { reason: D.rush, approved_by: D.rushBy } : null, confirm_now: D.confirmNow && !custom, deposit_required: dep,
       payment: payAmt ? { amount: payAmt, method: D.payMethod, kind: dep ? 'deposit' : (payAmt >= price ? 'full' : 'deposit') } : null,
-      delivery: D.method === 'delivery' ? { method: 'delivery', zone: D.zone, address: D.address, fee: zoneObj() && zoneObj().fee == null ? num(D.fee) : null, contact: D.contact } : { method: 'collection' } };
+      delivery: D.method === 'delivery' ? { method: 'delivery', zone: D.zone, address: D.address, fee: D.deliveryWaived ? 0 : (zoneObj() && zoneObj().fee == null ? num(D.fee) : null), waiver_reason: D.deliveryWaived ? D.deliveryWaiverReason.trim() : null, contact: D.contact } : { method: 'collection' } };
     if (D.req) { p.size_note = (D.sizeNote || '').trim(); p.price = num(D.reqPrice) > 0 ? num(D.reqPrice) : null; }
     if (D.customer) { p.customer_id = D.customer.id; if (D.optIn === true || D.optIn === false) p.consent = D.optIn ? 'yes' : 'no'; } else if (D.noMob === 'none') p.customer = { name: D.name, phone: '', email: D.email, whatsapp: false, opt_in: false, no_contact: true };
     else p.customer = { name: D.name, phone: D.phone, email: D.email, whatsapp: D.whatsapp, opt_in: D.optIn === true };
@@ -4746,7 +4754,7 @@
         case 'history': S.sheet.showHistory = true; renderSheet(); break;
         case 'panel': if (S.panel && S.panel !== v && hasTyping() && !confirmDiscard(b)) break; if (S.panel === 'amend' && S.panel !== v && S.sheet && S.sheet.id) wipPut('am:' + S.sheet.id, null); S.panel = v || null; S.panelErr = null; S.dirty = {}; S.cfmHow = null; if (v === 'pay') { S.payKey = uuid(); S.payMethod = 'cash'; }
           if (v === 'amend') S.am = amendInit(S.sheet.data);
-          if (v === 'fulfil') { var od = S.sheet.data; S.ful = { method: od.fulfilment_method || 'collection', zone: od.delivery_zone, address: od.delivery_address || '', fee: od.delivery_fee != null ? String(Number(od.delivery_fee)) : '', contact: od.delivery_contact || '' }; }
+          if (v === 'fulfil') { var od = S.sheet.data, zOld = ((S.setup && S.setup.delivery_zones) || []).filter(function (z) { return z.name === od.delivery_zone; })[0], alreadyFree = od.fulfilment_method === 'delivery' && Number(od.delivery_fee) === 0 && zOld && Number(zOld.fee) > 0; S.ful = { method: od.fulfilment_method || 'collection', zone: od.delivery_zone, originalZone: od.delivery_zone || '', address: od.delivery_address || '', fee: od.delivery_fee != null ? String(Number(od.delivery_fee)) : '', contact: od.delivery_contact || '', waived: !!alreadyFree, wasWaived: !!alreadyFree, waiverReason: '' }; }
           renderSheet(); var sb_ = document.querySelector('#ccs-sheet .ccs-sheet-body'); if (sb_ && v) sb_.scrollTop = 0; break;
         case 'method': S.payMethod = v; root.querySelectorAll('#ccs-method .ccs-chip').forEach(function (c) { c.setAttribute('aria-pressed', c.dataset.v === v); }); break;
         case 'do-confirm': {
@@ -4787,7 +4795,8 @@
         case 'do-collected': if (val('ccs-note').trim().length < 2) { panelNeed(S.sheet.data.fulfilment_method === 'delivery' ? 'Enter who received the cake.' : 'Enter who collected the cake.'); break; } act('collected', { p_note: val('ccs-note').trim() }); break;
         case 'do-fulfil': saveFulfil(); break;
         case 'f-method': S.ful.method = v; renderSheet(); break;
-        case 'f-zone': S.ful.zone = v; renderSheet(); break;
+        case 'f-zone': S.ful.zone = v; if (!S.ful.waived) { var zF = ((S.setup && S.setup.delivery_zones) || []).filter(function (x) { return x.name === v; })[0]; S.ful.fee = zF && zF.fee != null ? String(Number(zF.fee)) : ''; } renderSheet(); break;
+        case 'f-fee-mode': { var zF2 = ((S.setup && S.setup.delivery_zones) || []).filter(function (x) { return x.name === S.ful.zone; })[0]; S.ful.waived = v === 'complimentary'; if (!S.ful.waived) { S.ful.fee = zF2 && zF2.fee != null ? String(Number(zF2.fee)) : ''; S.ful.waiverReason = ''; } renderSheet(); break; }
         case 'do-brief': { var pk0 = slipPick(); if (!(pk0.email || pk0.dl || pk0.print)) break; printBrief(v, { email: pk0.email, dl: pk0.dl, print: pk0.print }); break; }
         case 'brief-email': printBrief(S.slip.paper, { email: true }); break;
         case 'brief-pdf': markBusy(b, 'Preparing…'); briefPdf(); break;
@@ -4818,6 +4827,7 @@
         case 'tm-tab': S.settings.tmTab = v; S.settings.tmOpen = true; view(); break;
         case 'k-refresh': loadKitchen(); break;
         case 'am-set': amendSet(b.dataset.f, v); break;
+        case 'am-fee-mode': { var zAm = ((S.setup && S.setup.delivery_zones) || []).filter(function (x) { return x.name === S.am.zone; })[0]; amendSet('fee', v === 'complimentary' ? '0' : (zAm && zAm.fee != null ? String(Number(zAm.fee)) : S.am.fee)); break; }
         case 'am-diet': var dl_ = S.am.diets.indexOf(v); if (dl_ > -1) S.am.diets.splice(dl_, 1); else S.am.diets.push(v); S.am.preview = null; renderSheet(); break;
         case 'am-open': S.am.open[v] = !S.am.open[v]; renderSheet(); break;
         // Delivery and candles are changed through Change order, so every change goes into the same change history
@@ -4938,13 +4948,14 @@
         case 'n-time': D.time = v;
           if (D.method === 'delivery' && !zoneObj()) { D.err = 'Choose a delivery area.'; D.errField = 'zone'; refreshStep(); break; }
           if (D.method === 'delivery' && D.address.trim().length < 5) { D.err = 'Enter the delivery address.'; D.errField = 'address'; refreshStep(); break; }
-          if (!delivOk()) { D.err = 'Enter the delivery fee for this area.'; D.errField = 'fee'; refreshStep(); break; }
+          if (!delivOk()) { D.err = D.deliveryWaived ? 'Add a reason for complimentary delivery.' : 'Enter the delivery fee for this area.'; D.errField = 'fee'; refreshStep(); break; }
           if (tooSoon() && D.rush.trim().length < 3) { D.err = 'Add a reason for the short notice first.'; D.errField = 'rush'; refreshStep(); break; }
           if (tooSoon() && D.rushBy.trim().length < 2) { D.err = 'Enter who approved the short notice.'; D.errField = 'rushBy'; refreshStep(); break; } goStep(nextOpen(4)); break;
         case 'n-date': D.date = v; D.dateOther = false; D.errField = null; refreshStep(); var tc = document.querySelector('#ccs-nstep-3 [data-act="n-time"]'); if (tc && tc.scrollIntoView) tc.scrollIntoView({ behavior: 'smooth', block: 'center' }); break;
         case 'n-date-other': D.dateOther = true; refreshStep(); var di = document.getElementById('n-date'); if (di) di.focus(); break;
         case 'n-method': D.method = v; if (v === 'collection') { D.zone = null; } D.errField = null; refreshStep(); break;
         case 'n-zone': D.zone = v; D.errField = null; refreshStep(); break;
+        case 'n-delivery-charge': D.deliveryWaived = v === 'complimentary'; if (!D.deliveryWaived) D.deliveryWaiverReason = ''; D.errField = null; refreshStep(); break;
         case 'n-askdep': D.askDeposit = true; refreshStep(); break;
         case 'n-dep': D.deposit = String(v === 'full' ? dTotal() : Math.round(dTotal() / 2)); refreshStep(); break;
         case 'n-paynow': D.payNow = true; D.payAmount = D.askDeposit && D.deposit ? D.deposit : String(dTotal()); refreshStep(); break;

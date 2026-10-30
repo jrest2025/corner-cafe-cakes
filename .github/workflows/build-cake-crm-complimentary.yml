@@ -1,0 +1,47 @@
+name: Build Corner Cafe staff bundle
+on:
+  push:
+    branches: [feature/complimentary-delivery-20261030]
+    paths:
+      - 'src/**'
+      - 'build/**'
+      - 'supabase/functions/send-emails/slip_pdf.js'
+      - '.github/workflows/build-cake-crm-complimentary.yml'
+permissions:
+  contents: write
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout reviewed branch
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: true
+      - name: Build and syntax-check
+        run: |
+          set -eu
+          node --check src/staff.js
+          python3 build/build.py
+          node --check dist/staff.full.js
+          node --check dist/staff.min.js
+          node --check "$(find dist/app -maxdepth 1 -name 'staff-app.*.js' | head -n 1)"
+          python3 - <<'PY'
+          import glob, json, hashlib, base64
+          p=json.load(open('dist/app/manifest.json'))
+          assert len(glob.glob('dist/app/staff-app.*.js'))==1
+          b=open(p['file'],'rb').read()
+          assert p['bytes']==len(b)
+          assert p['sri']=='sha384-'+base64.b64encode(hashlib.sha384(b).digest()).decode()
+          print('Validated asset:', p['file'], p['bytes'])
+          PY
+      - name: Commit only verified staff bundle
+        run: |
+          set -eu
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add dist/app/manifest.json
+          git add dist/app/staff-app.*.js
+          if ! git diff --cached --quiet; then
+            git commit -m "build: publish verified complimentary delivery staff bundle"
+            git push
+          fi
