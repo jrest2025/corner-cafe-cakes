@@ -1926,13 +1926,10 @@
   function custTile() {
     var cc = doc.querySelector('#cc-staff .ccs-ccount b'); if (cc) onFile = Math.max(onFile, parseInt(cc.textContent, 10) || 0);
     [].forEach.call(doc.querySelectorAll('#cc-staff .cw-metric[data-ccdr="customers"]'), function (k) {
-      setT(k.querySelector('.cw-metric-label'), 'Customers who ordered');
-      var v = k.querySelector('.cw-metric-value'); if (!v) return;
-      var em = k.querySelector('.ccx-onfile');
-      if (!onFile) { if (em) em.remove(); return; }
-      if (!em) { em = doc.createElement('em'); em.className = 'ccx-onfile'; v.insertAdjacentElement('afterend', em); }
-      setT(em, onFile + ' on file');
-      var al = 'Customers who ordered: ' + v.textContent + ', of ' + onFile + ' on file. Open matching records';
+      var l = k.querySelector('.cw-metric-label'), v = k.querySelector('.cw-metric-value'); if (!l) return;
+      var h = 'Customers who ordered' + (onFile ? '<em class="ccx-onfile">' + onFile + ' on file</em>' : '');
+      if (l.innerHTML !== h) l.innerHTML = h;
+      var al = 'Customers who ordered: ' + (v ? v.textContent : '') + (onFile ? ', of ' + onFile + ' on file' : '') + '. Open matching records';
       if (k.getAttribute('aria-label') !== al) k.setAttribute('aria-label', al);
     });
   }
