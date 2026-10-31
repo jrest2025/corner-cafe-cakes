@@ -5,7 +5,7 @@ so main now matches what customers and staff see. Every older branch is kept in 
 
 ## Staff app (cornercafefiji.com/cake-orders-staff)
 - Main app bundle: https://corner-cafe-staff-assets.vercel.app/staff-app-complimentary-20261030.js, built from `src/staff.js` (complimentary delivery release, 30 Oct).
-- Add-ons loader: `ccordertoolsloader80` (31 Oct 2026, 2:02 PM). Add-ons from commit eaf7dc8 (same as 087b0a8 except `staff.polish.js` (shell tidy), `staff.pickups.js` and `staff.cake-lead-time.js` 0.4.0 (distinctive colours)); treat orders from 3233aa4. Asset list: `ccAssetManifestAll4` (adds the two analytics workspace files).
+- Add-ons loader: `ccordertoolsloader81` (31 Oct 2026, 2:02 PM). Add-ons from commit eaf7dc8 (same as 087b0a8 except `staff.polish.js` (shell tidy), `staff.pickups.js` and `staff.cake-lead-time.js` 0.4.0 (distinctive colours)); treat orders from 3233aa4. Asset list: `ccAssetManifestAll4` (adds the two analytics workspace files).
 - Rollback: put back `ccordertoolsloader73` (or 71 with `ccAssetManifestAll`) on the staff page, publish.
 
 | File | Live commit |

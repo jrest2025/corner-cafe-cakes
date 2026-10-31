@@ -481,3 +481,8 @@ Screens:
 - Not done (would need rewriting a whole 50 KB code block by hand): second copy of seasonal heartbeat in the page footer (already a no-op, guard), old lead-time copy in the page head. Optional manual edits for Roneel in Webflow.
 - Checked live: 4 tiles on first load and after returning, Show more/fewer works, no console errors.
 - Rollback: manifest ccassetmanifestall2 + loader 79.
+
+## 31 Oct 2026, 3:27 PM: cleanup stage 3, shared frame (loader 81, commit e9bb9be)
+- window.__ccFrame: one queue; add-on passes run in the same frame before drawing, follow-on changes settle in the same frame (max 8 rounds). Converted: polish (6 schedulers), order-tools, seasonal, flow (2), answers, admin (2), pickups, service-tools, analytics-focus, oldentry, analytics-birthday. Not converted: treat-orders (pinned commit), welcome/two-step (sign-in only), ipad (already immediate).
+- Measured live: unfinished frames painted when opening Today 0/0/0 (was 7/2/2); Customers 4 change rounds over 0.4 s on repeat visits (was 20 over 1.05 s; first visit still loads data). Tests: same results as before the change (old failures unchanged).
+- Rollback: loader 80.
