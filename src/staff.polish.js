@@ -77,13 +77,21 @@
   (function () {
     if (win.__ccSettle) return; win.__ccSettle = 1;
     var st = doc.createElement('style');
-    st.textContent = 'html[data-ccm="settle"] #cc-staff #ccs-main{opacity:0!important}html[data-ccm="in"] #cc-staff #ccs-main{transition:opacity 140ms cubic-bezier(.2,0,0,1)}@media (prefers-reduced-motion:reduce){html[data-ccm="in"] #cc-staff #ccs-main{transition:none}}#cc-staff .ccs-side .ccs-brand small{white-space:nowrap;overflow:hidden;text-overflow:clip}';
+    st.textContent = '@keyframes ccxSoft{from{opacity:.7}to{opacity:1}}html[data-ccm="soft"] #cc-staff #ccs-main{animation:ccxSoft 180ms cubic-bezier(.2,0,0,1) both}@media (prefers-reduced-motion:reduce){html[data-ccm="soft"] #cc-staff #ccs-main{animation:none}}html[data-ccm="settle"] #cc-staff #ccs-main{opacity:0!important}html[data-ccm="in"] #cc-staff #ccs-main{transition:opacity 140ms cubic-bezier(.2,0,0,1)}@media (prefers-reduced-motion:reduce){html[data-ccm="in"] #cc-staff #ccs-main{transition:none}}#cc-staff .ccs-side .ccs-brand small{white-space:nowrap;overflow:hidden;text-overflow:clip}';
     doc.head.appendChild(st);
     var timer = null, quiet = 0, mo = null, t0 = 0;
     // the app rewrites #ccs-main's own class on every render, so the switch lives on <html>
     var H = doc.documentElement;
     function reveal() { if (mo) { mo.disconnect(); mo = null; } clearTimeout(timer); H.setAttribute('data-ccm', 'in'); setTimeout(function () { if (H.getAttribute('data-ccm') === 'in') H.removeAttribute('data-ccm'); }, 200); }
+    // 31 Oct 2026 (Roneel: "really really smooth"): measured on his screen, nothing moves any more after a screen change,
+    // so the content no longer hides (that was a blank flash on every tap). It now eases in from 70%, never blank.
+    var softT = null;
+    function soft() {
+      if (doc.documentElement.hasAttribute('data-ccx-hold')) return;   // Analytics keeps its own short hold
+      H.setAttribute('data-ccm', 'soft'); clearTimeout(softT); softT = setTimeout(function () { if (H.getAttribute('data-ccm') === 'soft') H.removeAttribute('data-ccm'); }, 400);
+    }
     function settle() {
+      return soft();
       var m = doc.getElementById('cc-staff'); if (!m) return;
       if (mo) mo.disconnect();
       H.setAttribute('data-ccm', 'settle'); quiet = 0; t0 = Date.now();
@@ -1697,7 +1705,8 @@
   function run() { if (busy) return; busy = true; try { css(); placeMenu(); moreTiles(); } catch (e) { if (win.console) console.warn('[Shell tidy]', e); } busy = false; }
   function start() {
     // synchronous (before paint), so the menu never visibly jumps
-    new MutationObserver(run).observe(doc.documentElement, { childList: true, subtree: true });
+    // 31 Oct: changes inside the page content (most of them) cannot move the menu, so they are skipped (was 60 ms per screen change)
+    new MutationObserver(function (recs) { var m = doc.getElementById('ccs-main'); for (var i = 0; i < recs.length; i++) { if (!m || !m.contains(recs[i].target)) return run(); } }).observe(doc.documentElement, { childList: true, subtree: true });
     win.addEventListener('resize', run);
     run();
   }
@@ -1807,6 +1816,12 @@
   var NAVY = '#245F99', G = '#3D5230', GH = '#32441F';
   var DESK = win.matchMedia ? win.matchMedia('(min-width:1100px) and (pointer:fine)') : { matches: true };
   var css = [
+    // smooth (31 Oct): "Loading…" only shows if loading really takes a while; colours never fade in when a screen opens;
+    // the order window slides on its own layer
+    '@keyframes ccxShow{from{opacity:0}to{opacity:1}}#cc-staff .ccs-loading{animation:ccxShow 120ms ease-out 350ms both}',
+    'html body #cc-staff .ccs-btn{transition-property:box-shadow,transform!important;transition-duration:.12s!important}',
+    'html body #cc-staff .ccs-mini,html body #cc-staff .cc-act-row,html body #cc-staff .ccs-card{transition-property:box-shadow!important;transition-duration:.12s!important}',
+    '#cc-staff #ccs-sheet{will-change:transform}#cc-staff #ccs-shade{will-change:opacity}',
     // Today: late chip
     '#cc-staff #ccs-main .tq-left.ccx-late{display:inline-flex!important;align-items:center;gap:5px;white-space:nowrap!important;text-align:left!important}',
     '#cc-staff #ccs-main .tq-left.ccx-late .ccq2-i{width:14px;height:14px;flex:none;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}',
@@ -1818,8 +1833,9 @@
     'html body #cc-staff #ccs-main .kw-main .kw-secs{align-self:start!important}',
     'html body #cc-staff #ccs-main .kw-main .kw-secs>.kw-sec{width:auto!important;max-width:none!important;align-self:stretch!important;flex:0 0 auto!important}}',
     // one main button colour: Corner Café deep green (Roneel, 28 Oct). Some filled buttons were still the old blue.
-    'html:not(#ccq0) body:not(#ccq1) #cc-staff .ccs-btn.ccx-main:not([disabled]){background:' + G + '!important;border-color:' + G + '!important;color:#fff!important}',
-    '@media (hover:hover){html:not(#ccq0) body:not(#ccq1) #cc-staff .ccs-btn.ccx-main:not([disabled]):hover{background:' + GH + '!important;border-color:' + GH + '!important}}',
+    // (same buttons the app paints blue: filled, not ghost, not good, not danger; CSS only, so nothing is measured while drawing)
+    'html:not(#ccq0) body:not(#ccq1) #cc-staff#cc-staff .ccs-btn:not(.ccs-ghost):not(.ccs-good):not(.ccs-danger):not([disabled]){background:' + G + '!important;border-color:' + G + '!important;color:#fff!important}',
+    '@media (hover:hover){html:not(#ccq0) body:not(#ccq1) #cc-staff#cc-staff .ccs-btn:not(.ccs-ghost):not(.ccs-good):not(.ccs-danger):not([disabled]):hover{background:' + GH + '!important;border-color:' + GH + '!important}}',
     // Campaign Manager in the app's look
     '#cc-staff .cw-metric .ccx-onfile{display:block;font-size:13px;font-style:italic;font-weight:400;color:#667085;line-height:1.3}',
     '#cc-campaigns-modal .cm-shell{font-family:inherit;color:#1D2939;border-radius:16px!important;background:#fff!important}',
@@ -1913,14 +1929,6 @@
       if (m && (!m[1] || /^short[\s-]*notice[.!]*$/i.test(m[1].trim()))) p.textContent = 'Short-notice order';
     });
   }
-  // filled buttons still in the old blue: mark them once so they take the deep green
-  function mains() {
-    [].forEach.call(doc.querySelectorAll('#cc-staff .ccs-btn:not(.ccx-main):not(.ccx-nm)'), function (b) {
-      if (!b.offsetParent || b.disabled || b.matches(':hover')) return;
-      var bg = win.getComputedStyle(b).backgroundColor;
-      if (bg === 'rgb(36, 95, 153)') b.classList.add('ccx-main'); else b.classList.add('ccx-nm');
-    });
-  }
   // Customers: the tile counts people with a real order; the list counts every record. Say so at a glance.
   var onFile = 0;
   function custTile() {
@@ -1934,7 +1942,7 @@
     });
   }
   var q = false;
-  function run() { q = false; try { styles(); mains(); custTile(); var main = doc.querySelector('#cc-staff #ccs-main[data-screen="today"]'); if (main) today(main); notes(); } catch (e) { if (win.console) console.warn('[Steady]', e); } }
+  function run() { q = false; try { styles(); if (doc.querySelector('#cc-staff .cw-metric[data-ccdr="customers"]')) custTile(); var main = doc.querySelector('#cc-staff #ccs-main[data-screen="today"]'); if (main) today(main); notes(); } catch (e) { if (win.console) console.warn('[Steady]', e); } }
   function schedule() { if (q) return; q = true; (win.requestAnimationFrame || setTimeout)(run); }
   // the old Today add-on keeps its own buttons state; these two buttons are handled here instead (it no longer hears the page)
   win.addEventListener('click', function (e) {
