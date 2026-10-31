@@ -1840,6 +1840,9 @@
     // order window (computers): opens at its full size, so it no longer grows from a small "Loading" box and re-centres
     // each time the app redraws it (it jumped about 290 px, then wobbled while the details arrived)
     '@media (min-width:1280px){html body #ccs-sheet.ccs-sheet.is-review{height:min(830px,calc(var(--cc-edge-height,100dvh) - 32px))!important}}',
+    // Campaign Manager (computers): opens near the top at a steady size; it used to appear small, then grow and re-centre
+    // when its figures arrived (the window is rebuilt when they load, so it is not faded in: that would play twice)
+    '@media (min-width:760px){#cc-campaigns-modal{align-items:flex-start!important;padding-top:max(12px,8vh)!important}#cc-campaigns-modal .cm-shell{min-height:min(600px,84vh);margin:0 auto auto!important}}',
     // Today: late chip
     '#cc-staff #ccs-main .tq-left.ccx-late{display:inline-flex!important;align-items:center;gap:5px;white-space:nowrap!important;text-align:left!important}',
     '#cc-staff #ccs-main .tq-left.ccx-late .ccq2-i{width:14px;height:14px;flex:none;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}',
