@@ -510,3 +510,7 @@ Screens:
 - Live check: Calendar, Today, profile first opens all zoom in from the centre (1156 to 1180, 784 to 800); Today 4 tiles.
 - Audit (all screens): no layout shifts except side menu collapse (instant snap by design) and small KPI reflow on two Analytics tabs.
 - Rollback: loader 85.
+
+## 31 Oct 2026, 4:46 PM: side menu brand (loader 87, commit a748f68)
+- Logo 176 px (160 on screens under 880 px tall), centred with 34/26 px space, collapse button moved to the top corner (30 px, soft until hover), hub name in Figtree 10 px with 0.2em spacing under a short hairline, divider under the brand. Collapsed menu and phones unchanged.
+- Rollback: loader 86.
