@@ -96,7 +96,10 @@
     // bar height: scaled to a normal busy day (95th percentile), so one very large day does not flatten the rest
     var tot = Object.keys(by).map(function (d) { return by[d].reduce(function (s, o) { return s + cakesOf(o); }, 0); }).sort(function (a, b) { return a - b; });
     top = tot.length ? Math.max(4, tot[Math.floor((tot.length - 1) * 0.95)]) : 1;
-    if (diff(min, today) > 730) min = add(today, -730);
+    // (31 Oct 2026, cleanup stage 4) the rail shows one year back and four months ahead: it drew every day from Oct 2024
+    // to Aug 2029 (1,757 columns, 13,000 page elements, most of the Analytics page) and the browser laid it all out each visit
+    if (diff(min, today) > 365) min = add(today, -365);
+    if (diff(today, max) > 120) max = add(today, 120);
     min = add(min, -wd(min));
     var bk = {}, total = {}, first = null;
     Object.keys(by).forEach(function (d) {
