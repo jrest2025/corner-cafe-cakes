@@ -486,3 +486,9 @@ Screens:
 - window.__ccFrame: one queue; add-on passes run in the same frame before drawing, follow-on changes settle in the same frame (max 8 rounds). Converted: polish (6 schedulers), order-tools, seasonal, flow (2), answers, admin (2), pickups, service-tools, analytics-focus, oldentry, analytics-birthday. Not converted: treat-orders (pinned commit), welcome/two-step (sign-in only), ipad (already immediate).
 - Measured live: unfinished frames painted when opening Today 0/0/0 (was 7/2/2); Customers 4 change rounds over 0.4 s on repeat visits (was 20 over 1.05 s; first visit still loads data). Tests: same results as before the change (old failures unchanged).
 - Rollback: loader 80.
+
+## 31 Oct 2026, 3:42 PM: cleanup stage 4, Analytics (loader 82, commit 9d91d22)
+- Pickups: charts reused when the app redraws Analytics with identical orders (key = JSON of orders + today). analytics-focus: no getClientRects per pass. Polish: chips dropdown and KPI count measured only when changed.
+- Live: busy time opening Analytics 1.2 to 1.4 s (was 2.0 to 3.3 s); no errors.
+- Found, not changed (Roneel: do not touch the charts for now): busy-days rail draws 1,757 day columns (Oct 2024 to Aug 2029), about 13,000 elements; a rolling window (one year back, four months ahead) was previewed and reverted.
+- Rollback: loader 81.
