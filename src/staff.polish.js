@@ -1821,6 +1821,7 @@
     'html:not(#ccq0) body:not(#ccq1) #cc-staff .ccs-btn.ccx-main:not([disabled]){background:' + G + '!important;border-color:' + G + '!important;color:#fff!important}',
     '@media (hover:hover){html:not(#ccq0) body:not(#ccq1) #cc-staff .ccs-btn.ccx-main:not([disabled]):hover{background:' + GH + '!important;border-color:' + GH + '!important}}',
     // Campaign Manager in the app's look
+    '#cc-staff .cw-metric .ccx-onfile{display:block;font-size:13px;font-style:italic;font-weight:400;color:#667085;line-height:1.3}',
     '#cc-campaigns-modal .cm-shell{font-family:inherit;color:#1D2939;border-radius:16px!important;background:#fff!important}',
     '#cc-campaigns-modal .cm-shell section,#cc-campaigns-modal .cm-shell header{background:#fff!important}',
     '#cc-campaigns-modal button:focus{outline:none}#cc-campaigns-modal button:focus-visible{outline:2px solid #B2CCE8!important;outline-offset:2px}',
@@ -1920,8 +1921,23 @@
       if (bg === 'rgb(36, 95, 153)') b.classList.add('ccx-main'); else b.classList.add('ccx-nm');
     });
   }
+  // Customers: the tile counts people with a real order; the list counts every record. Say so at a glance.
+  var onFile = 0;
+  function custTile() {
+    var cc = doc.querySelector('#cc-staff .ccs-ccount b'); if (cc) onFile = Math.max(onFile, parseInt(cc.textContent, 10) || 0);
+    [].forEach.call(doc.querySelectorAll('#cc-staff .cw-metric[data-ccdr="customers"]'), function (k) {
+      setT(k.querySelector('.cw-metric-label'), 'Customers who ordered');
+      var v = k.querySelector('.cw-metric-value'); if (!v) return;
+      var em = k.querySelector('.ccx-onfile');
+      if (!onFile) { if (em) em.remove(); return; }
+      if (!em) { em = doc.createElement('em'); em.className = 'ccx-onfile'; v.insertAdjacentElement('afterend', em); }
+      setT(em, onFile + ' on file');
+      var al = 'Customers who ordered: ' + v.textContent + ', of ' + onFile + ' on file. Open matching records';
+      if (k.getAttribute('aria-label') !== al) k.setAttribute('aria-label', al);
+    });
+  }
   var q = false;
-  function run() { q = false; try { styles(); mains(); var main = doc.querySelector('#cc-staff #ccs-main[data-screen="today"]'); if (main) today(main); notes(); } catch (e) { if (win.console) console.warn('[Steady]', e); } }
+  function run() { q = false; try { styles(); mains(); custTile(); var main = doc.querySelector('#cc-staff #ccs-main[data-screen="today"]'); if (main) today(main); notes(); } catch (e) { if (win.console) console.warn('[Steady]', e); } }
   function schedule() { if (q) return; q = true; (win.requestAnimationFrame || setTimeout)(run); }
   // the old Today add-on keeps its own buttons state; these two buttons are handled here instead (it no longer hears the page)
   win.addEventListener('click', function (e) {
