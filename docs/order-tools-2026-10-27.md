@@ -503,3 +503,10 @@ Screens:
 - Live check: one position and size (69/600) from opening; order window still one size (zoom-in only).
 - Checked smooth already: Kitchen Open details, customer profile.
 - Rollback: loader 84.
+
+## 31 Oct 2026, 4:33 PM: popup resting places (loader 86, commit 3acaef9)
+- The app rebuilds #ccs-sheet on every screen change, parked as a closed side panel (translateX 100%). The first order/profile opened on a screen flew about 1,200 px from the right to the centre, and orders loaded at 800 px then jumped to 1180. Now: a click on open-order/open-kitchen/cal-pre marks the window as an order (1180 from the start); when the window changes between side panel and centred window, it is placed at its own closed resting place (transition off, one reflow) before opening.
+- Orders: polish Phase 1 tabs() measures only when the tab row or width changes.
+- Live check: Calendar, Today, profile first opens all zoom in from the centre (1156 to 1180, 784 to 800); Today 4 tiles.
+- Audit (all screens): no layout shifts except side menu collapse (instant snap by design) and small KPI reflow on two Analytics tabs.
+- Rollback: loader 85.
