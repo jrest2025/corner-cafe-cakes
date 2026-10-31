@@ -497,3 +497,9 @@ Screens:
 - Order window on computers (>=1280 px) opens at full size (min(830px, screen - 32px)); it used to grow from a 178 px Loading box and re-centre (jump about 290 px) and wobble on redraws. Live check: one size (830) the whole time.
 - __ccFrame.quiet: dropdown open/close (polish ddOpen/ddClose, not a pick) no longer wakes the add-on passes. Live check: Customers Show filter Repeat 469 -> 86 and back.
 - Rollback: loader 82.
+
+## 31 Oct 2026, 4:07 PM: Campaign Manager steady (loader 85, commit 1634392)
+- Top-anchored (8vh), min-height min(600px, 84vh) from 760 px up; it used to appear at about 300 px and grow to 530 px with a re-centre jump when figures loaded (the add-on rebuilds the whole window, so no fade: it would play twice).
+- Live check: one position and size (69/600) from opening; order window still one size (zoom-in only).
+- Checked smooth already: Kitchen Open details, customer profile.
+- Rollback: loader 84.
