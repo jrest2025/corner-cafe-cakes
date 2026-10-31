@@ -1465,6 +1465,10 @@
     var ft = main.querySelector(':scope > .ccs-tabs');
     if (!ft || !ft.querySelector('.ccs-tab[data-act="filter"]') || !main.querySelector('.ccp-narrow')) { if (main.classList.contains('ccq-tight')) main.classList.remove('ccq-tight'); return; }
     if (innerWidth < 900) { main.classList.remove('ccq-tight'); return; }   // the 899px rule already applies
+    // (31 Oct) measure only when the tab row is new or the window changed size: measuring on every pass made Orders
+    // (about 100 order cards) re-lay out the whole page about 10 times while it opened
+    var sig = innerWidth + ':' + ft.childElementCount + ':' + main.classList.contains('ccq-tight');
+    if (ft.__ccqSig === sig) return; ft.__ccqSig = sig;
     if (!main.classList.contains('ccq-tight')) {
       if (ft.scrollWidth > ft.clientWidth + 2) { need = ft.scrollWidth; main.classList.add('ccq-tight'); }
     } else if (need && ft.clientWidth >= need + 8) { main.classList.remove('ccq-tight'); }
@@ -1843,6 +1847,8 @@
     // Campaign Manager (computers): opens near the top at a steady size; it used to appear small, then grow and re-centre
     // when its figures arrived (the window is rebuilt when they load, so it is not faded in: that would play twice)
     '@media (min-width:760px){#cc-campaigns-modal{align-items:flex-start!important;padding-top:max(12px,8vh)!important}#cc-campaigns-modal .cm-shell{min-height:min(600px,84vh);margin:0 auto auto!important}}',
+    // order window opened while still loading: already the width of an order (it used to load at 800 px, then jump to 1180)
+    '@media (min-width:1280px){html body #ccs-sheet.ccs-sheet.is-review[data-ccx-kind="order"]{width:min(1180px,94vw)!important}}',
     // Today: late chip
     '#cc-staff #ccs-main .tq-left.ccx-late{display:inline-flex!important;align-items:center;gap:5px;white-space:nowrap!important;text-align:left!important}',
     '#cc-staff #ccs-main .tq-left.ccx-late .ccq2-i{width:14px;height:14px;flex:none;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}',
@@ -1962,8 +1968,34 @@
       if (k.getAttribute('aria-label') !== al) k.setAttribute('aria-label', al);
     });
   }
+  // The app's pop-up window is one element used two ways: a side panel (Add customer) and a centred window (orders,
+  // customer profiles). Each screen change builds a fresh one parked as a closed side panel, so the first order opened on a
+  // screen flew in from the right edge to the centre (about 1,200 px) while changing size. Now each opening starts from its
+  // own resting place: the centred window zooms in where it will stand, the side panel slides in from the right.
+  var kind = null, watched = null, DESKW = win.matchMedia ? win.matchMedia('(min-width:1280px)') : { matches: true };
+  win.addEventListener('click', function (e) {
+    var a = e.target && e.target.closest && e.target.closest('#cc-staff [data-act]'); if (!a) return;
+    var v = a.getAttribute('data-act');
+    if (/^(open-order|open-kitchen|cal-pre)$/.test(v)) kind = 'order'; else if (v === 'open-customer' || v === 'cust-new') kind = 'other';
+  }, true);
+  var smo = win.MutationObserver ? new MutationObserver(function (list) {
+    list.forEach(function (r) {
+      var t = r.target, was = r.oldValue || '';
+      if (!t.classList.contains('ccs-open') || /\bccs-open\b/.test(was)) return;
+      if (kind === 'order') t.setAttribute('data-ccx-kind', 'order'); else if (kind) t.removeAttribute('data-ccx-kind');
+      kind = null;
+      var rev = t.classList.contains('is-review');
+      if (/\bis-review\b/.test(was) === rev && t.__ccxSeen) return;
+      t.__ccxSeen = true;
+      t.style.setProperty('transition', 'none', 'important'); t.classList.remove('ccs-open');
+      if (rev && DESKW.matches) t.style.setProperty('transform', 'translate(-50%,-50%) scale(.98)', 'important');
+      void t.offsetWidth;   // the closed resting place, drawn once without movement
+      t.style.removeProperty('transition'); t.style.removeProperty('transform'); t.classList.add('ccs-open');
+    });
+  }) : null;
+  function sheetWatch() { var sh = doc.getElementById('ccs-sheet'); if (smo && sh && sh !== watched) { watched = sh; smo.disconnect(); smo.observe(sh, { attributes: true, attributeFilter: ['class'], attributeOldValue: true }); } }
   var q = false;
-  function run() { q = false; try { styles(); if (doc.querySelector('#cc-staff .cw-metric[data-ccdr="customers"]')) custTile(); var main = doc.querySelector('#cc-staff #ccs-main[data-screen="today"]'); if (main) today(main); notes(); } catch (e) { if (win.console) console.warn('[Steady]', e); } }
+  function run() { q = false; try { styles(); sheetWatch(); if (doc.querySelector('#cc-staff .cw-metric[data-ccdr="customers"]')) custTile(); var main = doc.querySelector('#cc-staff #ccs-main[data-screen="today"]'); if (main) today(main); notes(); } catch (e) { if (win.console) console.warn('[Steady]', e); } }
   function schedule() { win.__ccFrame(run); }
   // the old Today add-on keeps its own buttons state; these two buttons are handled here instead (it no longer hears the page)
   win.addEventListener('click', function (e) {
