@@ -434,3 +434,8 @@ Screens:
 - Checked live: loader 72 and manifest 2 load, no new console errors on a fresh load, menu identical on six screens, phone bar 4 places with no overflow.
 - Rollback: re-apply `ccordertoolsloader71` and `ccAssetManifestAll`, remove 72 and manifest 2, publish.
 - Branch tidy: main now matches live; every branch kept in `archive/all-branches-20261031` (see docs/BRANCHES.md). Deleting branches and pushing tags is blocked for this session; branches can be deleted on GitHub.
+
+## 31 Oct 2026 12:42 PM — Cake pickups by day: distinctive colours (live, loader 73)
+- One clear colour per booking-time group, warm for short notice and cool for booked ahead: 0–3 days orange #F28C28, 4–7 golden yellow #F2C14E, 8–14 teal #2A9D8F, 15–30 blue #3F6FD8, 31+ deep teal #1F5F57; not known grey #98A2B3. Busier-than-usual marker near-black.
+- "By booking time" chart (staff.cake-lead-time.js) unchanged: it is loaded twice (page head @595c7f9 and the loader), so it needs its own fix.
+- Rollback: re-apply ccordertoolsloader72, publish.
