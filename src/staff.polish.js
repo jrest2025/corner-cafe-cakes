@@ -1772,7 +1772,7 @@
   ].join('\n');
   (doc.head || H).appendChild(st);
   var t = null, mo = null;
-  function ready() { var m = doc.getElementById('ccs-main'); return !!(m && m.querySelector('.an-mods') && m.querySelector('.cc-nav5') && m.querySelector('.cat-page')); }
+  function ready() { var m = doc.getElementById('ccs-main'); return !!(m && m.querySelector('.an-mods')); }   // 31 Oct: show as soon as the menu rows are in
   function show() {
     if (mo) { mo.disconnect(); mo = null; } clearTimeout(t);
     if (!H.hasAttribute('data-ccx-hold')) return;
@@ -1785,11 +1785,137 @@
     var quiet = 0, root = doc.getElementById('cc-staff');
     mo = new MutationObserver(function () { quiet = 0; });
     if (root) mo.observe(root, { childList: true, subtree: true });
-    (function tick() { if (!mo) return; if (ready() && ++quiet >= 2) return show(); win.requestAnimationFrame(tick); })();
-    t = setTimeout(show, 900);   // never stays hidden
+    (function tick() { if (!mo) return; if (ready() && ++quiet >= 1) return show(); win.requestAnimationFrame(tick); })();
+    t = setTimeout(show, 400);   // never stays hidden (was 0.9 s, looked blank)
   }
   doc.addEventListener('click', function (e) {
     var b = e.target && e.target.closest && e.target.closest('#cc-staff [data-tab="dash"]');
     if (b && !b.classList.contains('on') && b.getAttribute('aria-current') !== 'page') hold();
   }, true);
+})();
+
+/* Corner Café: steady screens (31 Oct 2026). Marker __ccSteady20261031.
+ * Seen on Roneel's screen: Today looked different after leaving it and coming back (4 tiles became 2, a cake 5 hours late said
+ * "Due now"). The older Today add-on only watched the first copy of the page, which the app replaces on every screen change.
+ * This keeps Today the same every time: 4 tiles on computers, and late cakes get one short clock chip (amber up to 15 min, red after).
+ * Also: Kitchen without the empty white area, Campaign Manager in the app's look, one main button colour, no repeated
+ * "short notice". Presentation only: no data, no actions, no order changes. */
+(function () {
+  'use strict';
+  var win = window, doc = document;
+  if (win.__ccSteady20261031) return; win.__ccSteady20261031 = true;
+  var NAVY = '#245F99', NAVY_D = '#1C4C7C';
+  var DESK = win.matchMedia ? win.matchMedia('(min-width:1100px) and (pointer:fine)') : { matches: true };
+  var css = [
+    // Today: late chip
+    '#cc-staff #ccs-main .tq-left.ccx-late{display:inline-flex!important;align-items:center;gap:5px;white-space:nowrap!important;text-align:left!important}',
+    '#cc-staff #ccs-main .tq-left.ccx-late .ccq2-i{width:14px;height:14px;flex:none;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}',
+    '#cc-staff #ccs-main .tq-left.ccx-late.is-amber{background:#FFFAEB!important;border-color:#FEDF89!important;color:#B54708!important}',
+    // Kitchen (computers): next cake and counts on the left, lists on the right, no tall empty card
+    '@media (min-width:1100px){html body #cc-staff #ccs-main .kw-main{grid-template-areas:"next side" "counts side"!important;grid-template-rows:auto 1fr!important;align-items:start!important}',
+    'html body #cc-staff #ccs-main .kw-main .kw-next{height:auto!important;min-height:0!important;align-self:start!important}',
+    'html body #cc-staff #ccs-main .kw-main .kw-counts{align-self:start!important;grid-template-columns:repeat(3,minmax(0,1fr))!important}',
+    'html body #cc-staff #ccs-main .kw-main .kw-secs{align-self:start!important}',
+    'html body #cc-staff #ccs-main .kw-main .kw-secs>.kw-sec{width:auto!important;max-width:none!important;align-self:stretch!important;flex:0 0 auto!important}}',
+    // one main button colour: navy (green stays only for "good/ready" actions)
+    'html body #cc-staff .ccs-btn.ccs-new,html body #cc-staff .ccs-btn.ccs-newtop,html body #cc-staff .ccs-topnew,html body #cc-staff .ccs-toolbar .ccs-btn[data-act="cust-new"]{background:' + NAVY + '!important;border-color:' + NAVY + '!important;color:#fff!important}',
+    '@media (hover:hover){html body #cc-staff .ccs-btn.ccs-new:hover,html body #cc-staff .ccs-btn.ccs-newtop:hover,html body #cc-staff .ccs-topnew:hover,html body #cc-staff .ccs-toolbar .ccs-btn[data-act="cust-new"]:hover{background:' + NAVY_D + '!important;border-color:' + NAVY_D + '!important}}',
+    // Campaign Manager in the app's look
+    '#cc-campaigns-modal .cm-shell{font-family:inherit;color:#1D2939;border-radius:16px!important}',
+    '#cc-campaigns-modal header small{font-size:12px!important;letter-spacing:.06em;color:#667085!important}',
+    '#cc-campaigns-modal #cm-title{font-size:24px!important;font-weight:600!important;color:#101828!important}',
+    '#cc-campaigns-modal header p{font-size:13px!important;font-style:italic;color:#667085!important}',
+    '#cc-campaigns-modal h3{font-size:18px!important;font-weight:600!important;color:#101828!important}',
+    '#cc-campaigns-modal .cm-card{border:1px solid #E4E7EC!important;border-radius:14px!important;box-shadow:0 1px 2px rgba(16,24,40,.05)!important}',
+    '#cc-campaigns-modal .cm-card h4{font-size:17px!important;font-weight:600!important;color:#101828!important}',
+    '#cc-campaigns-modal .cm-card small{font-size:13px!important;color:#667085!important}',
+    '#cc-campaigns-modal .cm-flag{font-size:13px!important;padding:4px 10px!important;border-radius:999px!important;background:#F2F4F7!important;color:#344054!important;border:1px solid #E4E7EC!important}',
+    '#cc-campaigns-modal .cm-metrics>div{background:#fff!important;border:1px solid #E4E7EC!important;border-radius:12px!important;padding:12px 14px!important}',
+    '#cc-campaigns-modal .cm-metrics>div small{font-size:13px!important;color:#475467!important;font-style:normal}',
+    '#cc-campaigns-modal .cm-metrics>div strong{font-size:20px!important;font-weight:600!important;color:#101828!important;font-variant-numeric:tabular-nums}',
+    '#cc-campaigns-modal button{min-height:40px!important;padding:0 14px!important;border-radius:10px!important;font-size:14px!important;font-weight:500!important;border:1px solid #D0D5DD!important;background:#fff!important;color:#1D2939!important;cursor:pointer}',
+    '#cc-campaigns-modal button:hover{background:#F9FAFB!important}',
+    '#cc-campaigns-modal button.cm-primary{background:' + NAVY + '!important;border-color:' + NAVY + '!important;color:#fff!important}',
+    '#cc-campaigns-modal button.cm-primary:hover{background:' + NAVY_D + '!important}',
+    '#cc-campaigns-modal button.cm-close{width:40px!important;padding:0!important;border-radius:999px!important;font-size:20px!important}',
+    '#cc-campaigns-modal label{font-size:14px!important;color:#344054!important}',
+    '#cc-campaigns-modal input,#cc-campaigns-modal textarea,#cc-campaigns-modal select{min-height:42px;font-size:15px!important;color:#1D2939!important;border:1px solid #D0D5DD!important;border-radius:10px!important;background-color:#fff!important;padding:0 12px!important}',
+    '#cc-campaigns-modal textarea{padding:10px 12px!important}',
+    '#cc-campaigns-modal select{-webkit-appearance:none;appearance:none;padding-right:36px!important;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%23475467%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpath d=%27M6 9l6 6 6-6%27/%3E%3C/svg%3E")!important;background-repeat:no-repeat!important;background-position:right 10px center!important;background-size:16px!important}',
+    '#cc-campaigns-modal input:focus,#cc-campaigns-modal textarea:focus,#cc-campaigns-modal select:focus{outline:2px solid #B2CCE8!important;border-color:' + NAVY + '!important}',
+    '#cc-campaigns-modal section>p,#cc-campaigns-modal .cm-shell>p{font-size:13px!important;font-style:italic;color:#667085!important}'
+  ].join('\n');
+  function styles() { if (doc.getElementById('ccx-steady-style')) return; var s = doc.createElement('style'); s.id = 'ccx-steady-style'; s.textContent = css; (doc.head || doc.documentElement).appendChild(s); }
+  var CLOCK = '<svg class="ccq2-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v4.8l3.2 2"/></svg>';
+  function nowMin() { var p = new Intl.DateTimeFormat('en-GB', { timeZone: 'Pacific/Fiji', hour: 'numeric', minute: 'numeric', hour12: false }).format(new Date()).split(':'); return (+p[0] % 24) * 60 + +p[1]; }
+  function mins(t) { var m = /(\d{1,2}):(\d{2})\s*([AP]M)/i.exec(t || ''); return m ? (+m[1] % 12 + (m[3].toUpperCase() === 'PM' ? 12 : 0)) * 60 + +m[2] : null; }
+  function dur(n) { var h = Math.floor(n / 60), m = n % 60; return h ? h + ' hr' + (m ? ' ' + m + ' min' : '') : m + ' min'; }
+  function setT(el, v) { if (el && el.textContent !== v) el.textContent = v; }
+  function tog(el, k, v) { if (el && el.classList.contains(k) !== v) el.classList.toggle(k, v); }
+  var expanded = false;
+  function kpi(kind, title, icon, jump) {
+    var b = doc.createElement('button'); b.type = 'button'; b.className = 'cc-ops-kpi cc-ops-' + kind; b.setAttribute('data-cc-ops-jump', jump);
+    b.innerHTML = '<strong class="cc-ops-number">—</strong><span class="cc-ops-label">' + title + '</span><svg viewBox="0 0 24 24" aria-hidden="true">' + icon + '</svg>';
+    return b;
+  }
+  function today(main) {
+    var stats = main.querySelector(':scope>.tq-stats'), warn = main.querySelector(':scope>.tq-warn');
+    var due = main.querySelector(':scope>.tq-main>.ccs-panel-card:not(.tp-needs)');
+    // late cakes: one short chip, the same on every visit
+    if (due) {
+      var now = nowMin();
+      [].forEach.call(due.querySelectorAll('.ccs-mini'), function (c) {
+        var left = c.querySelector('.tq-left'); if (!left) return;
+        var tt = c.querySelector('.ccs-mini-t') || c.querySelector('.ccs-prow-t'), d = mins(tt && tt.textContent);
+        var by = d == null ? 0 : now - d;
+        if (by <= 0) { if (left.classList.contains('ccx-late')) { left.classList.remove('ccx-late'); left.removeAttribute('data-ccx'); } return; }
+        var label = dur(by) + ' late', tone = by > 15 ? 'is-red' : 'is-amber';
+        if (left.getAttribute('data-ccx') === label + tone && left.querySelector('.ccq2-i')) return;
+        left.setAttribute('data-ccx', label + tone); left.classList.add('ccx-late', 'ccq2-left');
+        tog(left, 'is-red', tone === 'is-red'); tog(left, 'is-amber', tone === 'is-amber');
+        left.innerHTML = CLOCK + '<span>' + label + '</span>';
+      });
+    }
+    if (!stats || !warn || !DESK.matches) return;
+    // the 4 tiles (same as the first visit)
+    var list = warn.querySelector('.cc-act-list'), rows = list ? [].slice.call(list.querySelectorAll(':scope>.cc-act-row')) : [];
+    var count = rows.filter(function (x) { return x.classList.contains('is-red'); }).length, hidden = count ? rows.length - count : Math.max(0, rows.length - 3);
+    tog(main, 'cc-ops-ready', true); tog(main, 'cc-ops-has-urgent', count > 0); tog(main, 'cc-ops-expanded', expanded);
+    var urgent = stats.querySelector('.cc-ops-urgent');
+    if (!urgent) { urgent = kpi('urgent', 'Urgent actions', '<path d="M12 3 2.7 20h18.6L12 3Z"/><path d="M12 9v4.5M12 17.5h.01"/>', 'warn'); stats.insertBefore(urgent, stats.firstChild); }
+    setT(urgent.querySelector('strong'), String(count)); urgent.setAttribute('aria-label', count + ' urgent actions. Go to Act now.');
+    var hand = stats.querySelector('.cc-ops-handover');
+    if (!hand) { hand = kpi('handover', 'Handed over', '<circle cx="12" cy="12" r="9"/><path d="m8 12 2.5 2.5L16 9"/>', 'due'); stats.appendChild(hand); }
+    var td = stats.querySelector('.tq-stat[data-v="today"]'), hint = (td && td.querySelector('small')) || (due && due.querySelector('.ccs-card-head .ccs-hint'));
+    var m = ((hint && hint.textContent) || '').match(/(\d+)\s+of\s+(\d+)\s+handed\s+over/i);
+    setT(hand.querySelector('strong'), m ? m[1] + ' / ' + m[2] : '—');
+    var hd = warn.querySelector('.cc-act-h');
+    if (hd) {
+      var tg = hd.querySelector('.cc-ops-toggle');
+      if (hidden > 0) {
+        if (!tg) { tg = doc.createElement('button'); tg.type = 'button'; tg.className = 'cc-ops-toggle'; tg.setAttribute('data-cc-ops-toggle', '1'); hd.appendChild(tg); }
+        setT(tg, expanded ? 'Show fewer' : 'Show ' + hidden + ' more'); tg.setAttribute('aria-expanded', String(expanded));
+      } else if (tg) { tg.remove(); expanded = false; }
+    }
+  }
+  function notes() {
+    [].forEach.call(doc.querySelectorAll('#cc-staff .ccs-note:not([data-ccx])'), function (p) {
+      var m = /^Short-notice order:\s*(.*)$/i.exec(p.textContent.trim()); p.setAttribute('data-ccx', '1');
+      if (m && (!m[1] || /^short[\s-]*notice[.!]*$/i.test(m[1].trim()))) p.textContent = 'Short-notice order';
+    });
+  }
+  var q = false;
+  function run() { q = false; try { styles(); var main = doc.querySelector('#cc-staff #ccs-main[data-screen="today"]'); if (main) today(main); notes(); } catch (e) { if (win.console) console.warn('[Steady]', e); } }
+  function schedule() { if (q) return; q = true; (win.requestAnimationFrame || setTimeout)(run); }
+  // the old Today add-on keeps its own buttons state; these two buttons are handled here instead (it no longer hears the page)
+  win.addEventListener('click', function (e) {
+    var t = e.target && e.target.closest && e.target.closest('#cc-staff .cc-ops-toggle, #cc-staff [data-cc-ops-jump]'); if (!t) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    if (t.classList.contains('cc-ops-toggle')) { expanded = !expanded; schedule(); return; }
+    var main = doc.querySelector('#cc-staff #ccs-main[data-screen="today"]');
+    var tgt = main && main.querySelector(t.getAttribute('data-cc-ops-jump') === 'warn' ? ':scope>.tq-warn' : ':scope>.tq-main');
+    if (tgt) tgt.scrollIntoView({ behavior: 'auto', block: 'start' });
+  }, true);
+  function start() { new MutationObserver(schedule).observe(doc.documentElement, { childList: true, subtree: true }); schedule(); setInterval(schedule, 30000); }
+  if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', start); else start();
 })();
