@@ -38,7 +38,9 @@
   // How far ahead cakes were booked: the same groups and colours as the "By booking time" chart (CCCakeLeadTime)
   // Booking-time groups come from Settings > Lead-time groups (28 Oct 2026; default 0-3, 4-7, 8-14, 15-30, 31+ days),
   // the same groups as the other "how far ahead" charts. Longest ahead is darkest; the booking date unknown stays grey.
-  var SHADES = ['#c4e3cd', '#9fd0ae', '#74b48a', '#4f9a6c', '#2f7a50', '#1f5f3f', '#123d28'];
+  // (31 Oct 2026, Roneel: "it has to be distinctive") one clear colour per group, warm for short notice, cool for booked ahead:
+  // orange (rush) · golden yellow · teal · blue · deep teal (furthest ahead). Grey = booking date not known.
+  var SHADES = ['#F28C28', '#F2C14E', '#2A9D8F', '#3F6FD8', '#1F5F57'];
   var BUCKETS = [], BANDS = [];
   function setBands() {
     var src = win.__ccsBands && win.__ccsBands.length ? win.__ccsBands : [['0–3 days', 0, 3], ['4–7 days', 4, 7], ['8–14 days', 8, 14], ['15–30 days', 15, 30], ['31+ days', 31, 9999]];
@@ -48,7 +50,7 @@
       var lo = src[k][1], hi = src[k][2], lab = hi >= 9999 ? lo + ' or more days ahead' : lo === hi ? (lo ? lo + (lo === 1 ? ' day ahead' : ' days ahead') : 'Same day') : lo + ' to ' + hi + ' days ahead';
       out.push(['b' + k, lab, SHADES[Math.round(k * (SHADES.length - 1) / Math.max(1, n - 1))]]);
     }
-    out.push(['unknown', 'Booking date not known', '#cbd2d9']);
+    out.push(['unknown', 'Booking date not known', '#98A2B3']);
     BUCKETS.length = 0; Array.prototype.push.apply(BUCKETS, out);
   }
   setBands();
@@ -402,7 +404,7 @@
       P + ' .pk-mix{display:flex;height:14px;border-radius:999px;overflow:hidden;gap:2px}' + P + ' .pk-mix i{display:block;min-width:4px}',
       P + ' .pk-mixleg{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:8px 0 0}' + P + ' .pk-mixleg span{display:flex;flex-direction:column}' + P + ' .pk-mixleg em{font-style:normal;font-size:13px;color:#475467;display:flex;align-items:center;gap:6px}' + P + ' .pk-mixleg em i{width:12px;height:12px;border-radius:3px;display:inline-block;flex:none}' + P + ' .pk-mixleg b{font-size:20px;font-weight:600}' + P + ' .pk-mixleg small{font-size:12.5px;color:#667085}',
       '@media (max-width:760px){' + P + ' .pk-mixleg{grid-template-columns:repeat(2,minmax(0,1fr))!important}}',
-      P + ' .pk-col.is-over .pk-stack{border-top:4px solid #0b3d29}' + P + ' .pk-col.is-over .pk-n{color:#0b3d29}',
+      P + ' .pk-col.is-over .pk-stack{border-top:4px solid #101828}' + P + ' .pk-col.is-over .pk-n{color:#101828}',
       P + ' .pk-col.is-today .pk-track{box-shadow:0 0 0 2px #1D2939}' + P + ' .pk-col.is-today .pk-d{background:#1D2939;color:#fff;border-radius:999px;padding:0 6px}',
       P + ' .pk-d{font-size:16px;font-weight:600;line-height:22px;color:#1D2939}' + P + ' .pk-w{font-size:13px;line-height:18px;color:#475467}' + P + ' .pk-col:nth-child(7n) {}',
       P + ' .pk-ev{width:44px;height:22px;position:relative;overflow:visible}',
