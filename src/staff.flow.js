@@ -191,10 +191,11 @@
   ].join(''));
 
   // ============ ORDERS ============
+  // rows sized to their content: a long list can no longer squash the heading to nothing (title hidden under the search)
   // computers and iPads: search and status tabs share one row
   var OR = [];
   [NI, IP].forEach(function (P) {
-    OR.push(P + M('orders') + '{display:grid!important;grid-template-columns:minmax(220px,360px) minmax(0,1fr)!important;column-gap:12px!important;row-gap:12px!important;align-content:start!important}');
+    OR.push(P + M('orders') + '{display:grid!important;grid-template-columns:minmax(220px,360px) minmax(0,1fr)!important;column-gap:12px!important;row-gap:12px!important;align-content:start!important;grid-template-rows:none!important;grid-auto-rows:max-content!important}');
     OR.push(P + M('orders') + ' > *{grid-column:1 / -1;margin-top:0!important;margin-bottom:0!important}');
     OR.push(P + M('orders') + ' > .ccs-toolbar{grid-column:1!important;min-width:0;align-self:center!important}');
     OR.push(P + M('orders') + ' > .ccs-toolbar .ccs-search{width:100%!important;max-width:none!important}');
@@ -231,7 +232,7 @@
   css.push(at(WIDE, CU));
   // wide screens: Follow-ups due beside the three numbers
   function fuSide(P) { var C = P + M('customers*') + '.ccp-has-fu'; return [
-    C + '{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;column-gap:12px!important;row-gap:12px!important;align-content:start!important}',
+    C + '{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;column-gap:12px!important;row-gap:12px!important;align-content:start!important;grid-template-rows:none!important;grid-auto-rows:max-content!important}',
     C + ' > *{grid-column:1 / -1;margin-top:0!important;margin-bottom:0!important}',
     C + ' > .ccp-fu{grid-column:1!important;align-self:stretch!important}',
     C + ' > .cw-summary{grid-column:2!important;align-self:stretch!important;grid-template-columns:1fr!important;grid-auto-rows:1fr!important;gap:8px!important}',
@@ -289,7 +290,7 @@
   var KI = [];
   [NI, IP].forEach(function (P) {
     var K = P + M('kitchen*');
-    KI.push(K + '{display:grid!important;grid-template-columns:auto minmax(0,1fr)!important;column-gap:12px!important;row-gap:12px!important;align-content:start!important}');
+    KI.push(K + '{display:grid!important;grid-template-columns:auto minmax(0,1fr)!important;column-gap:12px!important;row-gap:12px!important;align-content:start!important;grid-template-rows:none!important;grid-auto-rows:max-content!important}');
     KI.push(K + ' > *{grid-column:1 / -1;margin-top:0!important;margin-bottom:0!important}');
     KI.push(K + ' > .ccs-toolbar:has(+ .tp-urgent){grid-column:1!important;align-self:center!important}');
     KI.push(K + ' > .ccs-toolbar + .tp-urgent{grid-column:2!important;align-self:center!important}');
@@ -299,7 +300,7 @@
   // ============ REGISTER ============
   // computers and iPad landscape: the three numbers and the review tabs share one row
   function regRow(P) { var R = P + M('register'); return [
-    R + '{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;column-gap:12px!important;row-gap:12px!important;align-content:start!important}',
+    R + '{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;column-gap:12px!important;row-gap:12px!important;align-content:start!important;grid-template-rows:none!important;grid-auto-rows:max-content!important}',
     R + ' > *{grid-column:1 / -1;margin-top:0!important;margin-bottom:0!important}',
     R + ' > .ccs-kpis:has(+ .ccs-secbar){grid-column:1!important;align-self:center!important;display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important}',
     R + ' > .ccs-kpis + .ccs-secbar{grid-column:2!important;align-self:center!important}'
@@ -433,5 +434,84 @@
   var q = false;
   function tick() { if (q) return; q = true; (win.requestAnimationFrame || setTimeout)(function () { q = false; try { remBadge(); moreTiles(); actNow(); } catch (e) { if (win.console) console.warn('[Flow]', e); } }); }
   function start() { styles(); new MutationObserver(tick).observe(doc.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-screen'] }); tick(); }
+  if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', start); else start();
+})();
+
+/* Order card (28 Oct 2026, Roneel): only the order number under the name; the cake details' labels stand out; the
+ * Collection details sit under the cake on the Cake tab, so the separate Collection tab goes (one less tab). The
+ * collection box is drawn from the order itself (read-only); its Change button is the app's own (am-go deliv). */
+(function () {
+  'use strict';
+  var win = window, doc = document;
+  if (win.__ccOrderCard20261028) return;
+  win.__ccOrderCard20261028 = true;
+  var S = '#cc-staff #ccs-sheet';
+  var CSS = [
+    S + ' .ccs-kv dt{font-weight:600!important;color:#1D2939!important}',
+    S + ' .ccs-kv dd{color:#344054}',
+    S + ' .ccs-secbar .ccs-secbtn[data-v="when"]{display:none!important}',
+    S + ' .ocx-when h3{margin:0 0 6px}',
+    S + ' .ocx-when .ocx-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}',
+    S + ' .ocx-when .ocx-row svg{width:22px;height:22px;flex:none;color:#475467;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}'
+  ].join('');
+  function styles() { if (doc.getElementById('ocx-style')) return; var s = doc.createElement('style'); s.id = 'ocx-style'; s.textContent = CSS; doc.head.appendChild(s); }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  var cli = null;
+  function sb() { if (!cli && win.supabase && win.supabase.createClient) cli = win.supabase.createClient('https://ilbrfwxblhidtlsjgxlh.supabase.co', 'sb_publishable_4c9NdubC5PYevEOSMYH0ag_mv1LJ76E', { auth: { persistSession: true, storageKey: 'cc-cakes-staff' } }); return cli; }
+  var cache = {};   // order id -> { key, data, busy }
+  function longDate(iso) { try { return new Intl.DateTimeFormat('en-GB', { timeZone: 'Pacific/Fiji', weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(iso + 'T12:00:00+12:00')); } catch (e) { return iso; } }
+  function t12(t) { if (!t) return ''; var h = +t.slice(0, 2), m = t.slice(3, 5); return (h % 12 || 12) + ':' + m + ' ' + (h < 12 ? 'AM' : 'PM'); }
+  function money(v) { var n = Number(v); return isFinite(n) ? '$' + (n % 1 ? n.toFixed(2) : n) : ''; }
+  function stamp(ts) { try { var d = new Date(ts); return new Intl.DateTimeFormat('en-GB', { timeZone: 'Pacific/Fiji', weekday: 'short', day: 'numeric', month: 'short' }).format(d) + ', ' + new Intl.DateTimeFormat('en-US', { timeZone: 'Pacific/Fiji', hour: 'numeric', minute: '2-digit' }).format(d); } catch (e) { return ''; } }
+  var IC_CUP = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="7.5" width="15" height="13" rx="2.5"/><path d="M8.5 7.5V6a3.5 3.5 0 0 1 7 0v1.5M8.5 11.5a3.5 3.5 0 0 0 7 0"/></svg>';
+  var IC_VAN = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6.5h11v9H3zM14 9.5h4l3 3v3h-7"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/></svg>';
+  function box(o, canEdit) {
+    var dl = o.fulfilment_method === 'delivery', kv = '';
+    function row(k, v) { return v == null || v === '' ? '' : '<dt>' + esc(k) + '</dt><dd>' + esc(v) + '</dd>'; }
+    if (dl) kv = '<dl class="ccs-kv">' + row('Area', o.delivery_zone) + row('Address', o.delivery_address) + row('Receiving', o.delivery_contact) + row('Delivery fee', o.delivery_fee != null ? money(o.delivery_fee) : '') + '</dl>';
+    var done = ['completed', 'declined', 'cancelled'].indexOf(o.order_status) > -1;
+    return '<section class="ccs-box ocx-when"><h3>' + (dl ? 'Delivery' : 'Collection') + '</h3><div class="ocx-row">' + (dl ? IC_VAN : IC_CUP) + '<p class="ccs-big" style="margin:0">' + esc(longDate(o.required_date)) + (o.required_time ? ' at ' + esc(t12(o.required_time)) : '') + '</p></div>' +
+      (dl ? kv : '<p class="ccs-hint">Collect from the café counter.</p>') +
+      (o.handed_over_at ? '<p class="ccs-hint">Handed over ' + esc(stamp(o.handed_over_at)) + (o.handover_to ? ' to ' + esc(o.handover_to) : '') + '</p>' : '') +
+      (o.rush_override ? '<p class="ccs-note">Short-notice order: ' + esc(o.rush_reason || '') + '</p>' : '') +
+      (!done && canEdit ? '<button type="button" class="ccs-link" data-act="am-go" data-v="deliv">Change collection or delivery</button>' : '') + '</section>';
+  }
+  function apply() {
+    var sh = doc.getElementById('ccs-sheet'); if (!sh) return;
+    var info = win.__ccsBc && typeof win.__ccsBc.sheet === 'function' ? win.__ccsBc.sheet() : null;
+    if (!info || info.type !== 'order' || !info.id) return;
+    // 1. only the order number under the name
+    var sm = sh.querySelector('.ccs-sheet-head .os-tph small');
+    if (sm && sm.textContent.indexOf(' · ') > -1) sm.textContent = sm.textContent.split(' · ')[0];
+    // 2. Collection lives on the Cake tab
+    var tabs = sh.querySelector('.ccs-secbar'); if (!tabs) return;
+    var whenBtn = tabs.querySelector('[data-act="secgo"][data-v="when"]'), cakeBtn = tabs.querySelector('[data-act="secgo"][data-v="cake"]');
+    if (!whenBtn || !cakeBtn) return;
+    if (whenBtn.getAttribute('aria-selected') === 'true') { cakeBtn.click(); return; }
+    if (cakeBtn.getAttribute('aria-selected') !== 'true') return;
+    var body = sh.querySelector('.ccs-secbody'); if (!body) return;
+    var strip = sh.querySelector('.os-when b'), key = info.id + '|' + (strip ? strip.textContent : '');
+    var c = cache[info.id];
+    if (!c || c.key !== key) {
+      if (c && c.busy) return;
+      c = cache[info.id] = { key: key, data: c && c.data, busy: true };
+      var client = sb();
+      if (!client) { c.busy = false; return; }
+      Promise.resolve(client.from('orders').select('id,order_status,fulfilment_method,required_date,required_time,delivery_zone,delivery_address,delivery_contact,delivery_fee,handed_over_at,handover_to,rush_override,rush_reason').eq('id', info.id).maybeSingle())
+        .then(function (r) { c.busy = false; if (r && r.data) c.data = r.data; schedule(); }, function () { c.busy = false; });
+      if (!c.data) return;
+    }
+    if (!c.data || !c.data.required_date) return;
+    var canEdit = !!sh.querySelector('.ccs-secbody [data-act^="am-go"], [data-act="panel:amend"]');
+    var html = box(c.data, canEdit), old = body.querySelector(':scope > .ocx-when');
+    if (old && old.__h === html) return;
+    if (old) old.remove();
+    var w = doc.createElement('div'); w.innerHTML = html; var el = w.firstChild; el.__h = html;
+    var first = body.querySelector(':scope > .ccs-box, :scope > section');
+    if (first && first.nextSibling) body.insertBefore(el, first.nextSibling); else body.appendChild(el);
+  }
+  var q = false;
+  function schedule() { if (q) return; q = true; (win.requestAnimationFrame || setTimeout)(function () { q = false; try { styles(); apply(); } catch (e) { if (win.console) console.warn('[Order card]', e); } }); }
+  function start() { new MutationObserver(schedule).observe(doc.body, { childList: true, subtree: true }); schedule(); }
   if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', start); else start();
 })();

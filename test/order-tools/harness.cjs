@@ -12,7 +12,7 @@ async function open(b, w, h, o) {
   o = o || {};
   const html = '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' + head + (o.extraHead || '') +
     '<script>window.__role=' + JSON.stringify(o.role || 'manager') + ';window.__oldOrders=true;' + (o.pre || '') + mock + (o.post || '') + 'window.supabase={createClient:function(){return window.__ccsMock}};</script></head>' +
-    '<body style="margin:0"><div id="cc-staff"></div>' + footBase + (o.registered === false ? '' : registered) + (o.extraFoot || '') + '</body></html>';
+    '<body style="margin:0"><div id="cc-staff"></div>' + (o.footBase ? o.footBase(footBase) : footBase) + (o.registered === false ? '' : registered) + (o.extraFoot || '') + '</body></html>';
   const ctx = await b.newContext({ viewport: { width: w, height: h }, hasTouch: w < 1100 || !!o.ipad, isMobile: w < 760 || !!o.ipad });
   const p = await ctx.newPage(), errors = [], logs = [];
   p.on('pageerror', e => errors.push(e.message));

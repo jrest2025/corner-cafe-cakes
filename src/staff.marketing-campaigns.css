@@ -79,5 +79,3 @@
 }
 @media(max-width:400px){#cc-campaigns-modal .cm-fields{grid-template-columns:1fr}#cc-campaigns-modal header small{display:none}#cc-campaigns-modal .cm-header-actions button{font-size:10px}}
 @media(prefers-reduced-motion:reduce){#cc-campaigns-modal *{scroll-behavior:auto!important}}
-
-@media(max-width:767px){#cc-staff .ccs-nav [data-cm=open].cc-marketing-secondary{display:none!important}#cc-staff .cc-marketing-more-item{display:flex;align-items:center;gap:10px;width:100%;padding:12px 14px;color:#244a35;background:transparent;border:0;text-align:left;font:inherit}}

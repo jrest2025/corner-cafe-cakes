@@ -21,7 +21,6 @@
   var MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   function shortDay(d) { return WD[weekday(d)].slice(0, 3) + ' ' + (+d.slice(8)) + ' ' + MON[+d.slice(5, 7) - 1]; }
   function dayWord(d, today) { return d === today ? 'today' : d === add(today, 1) ? 'tomorrow' : shortDay(d); }
-  function fijiToday() { try { return new Intl.DateTimeFormat('en-CA', { timeZone: 'Pacific/Fiji', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()); } catch (e) { return new Date(Date.now() + 12 * 3600000).toISOString().slice(0, 10); } }
   function sum(a) { return a.reduce(function (t, n) { return t + n; }, 0); }
   function pl(n, word) { return n === 1 ? word : word + 's'; }
   function money(v) { return '$' + Math.round(v).toLocaleString('en-US'); }
@@ -54,11 +53,9 @@
     return it.reduce(function (n, i) { var q = Number(i && i[3]); return n + (isFinite(q) && q > 0 ? q : 1); }, 0);
   }
   function value(o) {
-    var M = global.CCCakeMetrics; if (M) return M.value(o);
     var v = o.cv != null ? Number(o.cv) : o.lv != null ? Number(o.lv) : null;
-    return v != null && isFinite(v) && v > 0 ? Math.max(0, v - (Number(o.ref) || 0)) : null;
+    return v != null && isFinite(v) && v >= 0 ? v : null;
   }
-  function isSale(o) { return !!o && o.st !== 'cancelled' && o.st !== 'declined' && (o.cp === 'recorded' || o.cp === 'assumed'); }
   function identity(o) { var k = o && o.c; return typeof k === 'string' && k.trim().length >= 4 ? k.trim() : ''; }
   function byPickup(a, b) { return a.pd < b.pd ? -1 : a.pd > b.pd ? 1 : String(a.pt || '') < String(b.pt || '') ? -1 : 1; }
   function refs(list, today) {
@@ -242,16 +239,14 @@
 
     // 8. How far ahead customers book.
     function avgLead(list) {
-      var leads = list.map(function (o) { return diff(o.od, o.pd); }).filter(function (n) { return n >= 0 && n <= 180; }).sort(function (a, b) { return a - b; });
-      if (!leads.length) return null;
-      var m = Math.floor(leads.length / 2), med = leads.length % 2 ? leads[m] : Math.round((leads[m - 1] + leads[m]) / 2);
-      return { avg: med, n: leads.length };
+      var leads = list.map(function (o) { return diff(o.od, o.pd); }).filter(function (n) { return n >= 0; });
+      return leads.length ? { avg: Math.round(sum(leads) / leads.length), n: leads.length } : null;
     }
     var leadNow = avgLead(recent), leadBefore = avgLead(bookedBetween(add(today, -59), add(today, -30)));
     if (leadNow && leadNow.n >= 8) {
       var shift = leadBefore && leadBefore.n >= 8 ? leadNow.avg - leadBefore.avg : null;
       out.push({ id: 'lead', tone: 'trend', tag: 'Trend', priority: shift != null && Math.abs(shift) >= 2 ? 42 : 22,
-        big: leadNow.avg + ' ' + pl(leadNow.avg, 'day'), title: 'typical (median) time between booking and pickup',
+        big: leadNow.avg + ' ' + pl(leadNow.avg, 'day'), title: 'on average between booking and pickup',
         why: (shift != null ? 'Previous 30 days: ' + leadBefore.avg + ' ' + pl(leadBefore.avg, 'day') + ' · ' : '') + leadNow.n + ' orders in the last 30 days',
         action: shift != null && shift <= -2 ? 'More last-minute orders: keep room for short-notice cakes' :
           shift != null && shift >= 2 ? 'Customers are planning earlier: promote occasions sooner' : 'No change needed' });
@@ -275,12 +270,12 @@
         viz: split(parts) });
     }
 
-    // 10. Returning customers: had a completed sale with a pickup before the window ("has ordered before").
-    var start = add(today, -29), first = {};
-    all.forEach(function (o) { var id = identity(o); if (id && isSale(o) && (!first[id] || o.pd < first[id])) first[id] = o.pd; });
+    // 10. Returning customers.
+    var counts = {};
+    all.forEach(function (o) { var id = identity(o); if (id) counts[id] = (counts[id] || 0) + 1; });
     var people = {};
     recent.forEach(function (o) { var id = identity(o); if (id) people[id] = true; });
-    var ids = Object.keys(people), back = ids.filter(function (id) { return !!first[id] && first[id] < start; }).length;
+    var ids = Object.keys(people), back = ids.filter(function (id) { return counts[id] >= 2; }).length;
     if (ids.length >= 10) {
       out.push({ id: 'returning', tone: 'good', tag: 'Customers', priority: 24, big: pct(back, ids.length) + '%',
         title: 'of customers in the last 30 days had ordered before',
@@ -408,7 +403,7 @@
     if (!host || typeof host.querySelector !== 'function') return false;
     var main = host.querySelector('.hb-v2');
     if (!main) return false;
-    var today = iso(options && options.today) || fijiToday();
+    var today = iso(options && options.today) || new Date().toISOString().slice(0, 10);
     var orders = payload && (payload.allOrders || payload.orders);
     state.last = { orders: Array.isArray(orders) ? orders : [], today: today };
     polish(main, payload);

@@ -15,6 +15,113 @@
   if (win.__ccPolish20261026) return;
   win.__ccPolish20261026 = true;
 
+
+
+
+  // ---------- side menu name before the first paint (28 Oct 2026) ----------
+  // The app draws the side menu with its own short subtitle; a later pass swaps in the two-line hub name, so the
+  // menu moved by about 14px on every screen switch. The same swap now happens in a page-change callback, which runs
+  // before the browser paints, so the menu never moves. (The later pass sees the name already there and does nothing.)
+  (function () {
+    if (win.__ccSideName) return; win.__ccSideName = 1;
+    function swap() {
+      var bs = doc.querySelectorAll('#cc-staff .ccs-side .ccs-brand');
+      for (var i = 0; i < bs.length; i++) {
+        var br = bs[i]; if (br.querySelector(':scope > .ccq-hub')) continue;
+        var sm = br.querySelector(':scope > small'); if (sm) { sm.classList.add('ccq-src'); sm.style.setProperty('display', 'none', 'important'); }
+        var n = doc.createElement('span'); n.className = 'ccq-hub'; n.innerHTML = 'Marketing &amp; Business<br>Intelligence Hub'; br.appendChild(n);
+      }
+    }
+    var root = doc.getElementById('cc-staff') || doc.body;
+    new MutationObserver(swap).observe(root, { childList: true, subtree: true });
+    swap();
+  })();
+  // ---------- emails to customers need two taps (28 Oct 2026, Roneel) ----------
+  // Confirm, Decline, Cancel, Send quote, Send updated confirmation and Resend email can email the customer. The first
+  // tap only arms the button (amber, "Tap again to send"); a second tap within 5 seconds goes through to the app as
+  // before. Nothing else changes: the app's own checks and the server still decide what is sent.
+  (function () {
+    if (win.__ccMailTwice) return; win.__ccMailTwice = 1;
+    var SEL = '#ccs-sheet [data-act="do-confirm"], #ccs-sheet [data-act="do-decline"], #ccs-sheet [data-act="do-cancel"], #ccs-sheet [data-act="send-quote"], #ccs-sheet [data-act="mail-update"], #ccs-sheet [data-act="mail-resend"]';
+    var st = doc.createElement('style');
+    st.textContent = '#cc-staff #ccs-sheet .ccm-armed,#ccs-sheet .ccm-armed{background:#FFFAEB!important;color:#93370D!important;border:1px solid #FEC84B!important;box-shadow:none!important}' +
+      '#ccs-sheet .ccm-armed-hint{display:block;margin:6px 0 0;font-size:13px;font-style:italic;color:#93370D}';
+    doc.head.appendChild(st);
+    var armed = null, label = '', timer = null, hint = null, armedKey = null, armedUntil = 0;
+    function disarm() {
+      clearTimeout(timer);
+      if (armed && armed.isConnected) { armed.classList.remove('ccm-armed'); armed.textContent = label; }
+      if (hint && hint.isConnected) hint.remove();
+      armed = null; hint = null; armedKey = null;
+    }
+    win.addEventListener('click', function (e) {
+      var t = e.target && e.target.closest ? e.target.closest(SEL) : null;
+      if (!t) { if (armed && !(e.target && e.target.closest && e.target.closest('.ccm-armed'))) disarm(); return; }
+      if (t.disabled || t.classList.contains('is-busy')) return;
+      var key = t.getAttribute('data-act') + '|' + ((doc.querySelector('#ccs-sheet .os-tph small') || {}).textContent || '');
+      if (armedKey === key && Date.now() < armedUntil) { clearTimeout(timer); armed = null; armedKey = null; if (hint && hint.isConnected) hint.remove(); hint = null; return; }   // second tap (even if the app redrew the button): let it through
+      disarm();
+      e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+      armed = t; label = t.textContent; armedKey = key; armedUntil = Date.now() + 5000;
+      t.classList.add('ccm-armed'); t.textContent = 'Tap again to send';
+      hint = doc.createElement('small'); hint.className = 'ccm-armed-hint'; hint.textContent = 'This emails the customer.';
+      var row = t.closest('.ccs-actions-row') || t.parentNode; row.parentNode.insertBefore(hint, row.nextSibling);
+      timer = setTimeout(disarm, 5000);
+    }, true);
+  })();
+  // ---------- screens settle before they show (28 Oct 2026, enterprise motion brief) ----------
+  // Root cause of the jump when opening Today or Customers: the app draws the screen, then the add-ons rearrange it a
+  // frame later (Today's stats, warnings and week; the Customers summary and table), so content visibly moves. After a
+  // sidebar tap the content area stays invisible until the page has been quiet for two frames (never longer than
+  // 260ms), then fades in over 140ms. With reduced motion it simply appears.
+  (function () {
+    if (win.__ccSettle) return; win.__ccSettle = 1;
+    var st = doc.createElement('style');
+    st.textContent = 'html[data-ccm="settle"] #cc-staff #ccs-main{opacity:0!important}html[data-ccm="in"] #cc-staff #ccs-main{transition:opacity 140ms cubic-bezier(.2,0,0,1)}@media (prefers-reduced-motion:reduce){html[data-ccm="in"] #cc-staff #ccs-main{transition:none}}#cc-staff .ccs-side .ccs-brand small{white-space:nowrap;overflow:hidden;text-overflow:clip}';
+    doc.head.appendChild(st);
+    var timer = null, quiet = 0, mo = null, t0 = 0;
+    // the app rewrites #ccs-main's own class on every render, so the switch lives on <html>
+    var H = doc.documentElement;
+    function reveal() { if (mo) { mo.disconnect(); mo = null; } clearTimeout(timer); H.setAttribute('data-ccm', 'in'); setTimeout(function () { if (H.getAttribute('data-ccm') === 'in') H.removeAttribute('data-ccm'); }, 200); }
+    function settle() {
+      var m = doc.getElementById('cc-staff'); if (!m) return;
+      if (mo) mo.disconnect();
+      H.setAttribute('data-ccm', 'settle'); quiet = 0; t0 = Date.now();
+      mo = new MutationObserver(function () { quiet = 0; });
+      mo.observe(m, { subtree: true, childList: true, attributes: true });
+      (function tick() {
+        if (!mo) return;
+        if (++quiet >= 3 || Date.now() - t0 > 260) return reveal();
+        win.requestAnimationFrame(tick);
+      })();
+      clearTimeout(timer); timer = setTimeout(reveal, 300);   // never stays hidden
+    }
+    doc.addEventListener('click', function (e) {
+      var b = e.target && e.target.closest && e.target.closest('#cc-staff .ccs-side [data-tab], #cc-staff .ccs-bnav [data-tab]');
+      if (b && !b.classList.contains('on') && b.getAttribute('aria-current') !== 'page') settle();
+    }, true);
+  })();
+  // ---------- motion stability (28 Oct 2026, enterprise motion brief) ----------
+  // Root cause of the flicker and jerky feel: several add-ons re-write the same class or attribute on every pass.
+  // A same-value write still counts as a page change, which wakes every other add-on, which write again: a loop
+  // running about 60 times a second while nobody touches the screen. Writes that change nothing are now skipped,
+  // so the page settles. Real changes go through exactly as before. Only class, aria-*, data-*, title, role,
+  // tabindex and hidden are covered (never src, href or value).
+  (function () {
+    if (win.__ccNoopGuard) return; win.__ccNoopGuard = 1;
+    var SAFE = /^(class|aria-[\w-]+|data-[\w-]+|title|role|tabindex|hidden)$/;
+    var EP = win.Element && win.Element.prototype, TL = win.DOMTokenList && win.DOMTokenList.prototype;
+    if (!EP || !TL) return;
+    var sa = EP.setAttribute;
+    EP.setAttribute = function (n, v) { if (SAFE.test(n) && this.getAttribute(n) === String(v)) return; return sa.apply(this, arguments); };
+    var cd = Object.getOwnPropertyDescriptor(EP, 'className');
+    if (cd && cd.set && cd.configurable) Object.defineProperty(EP, 'className', { get: cd.get, set: function (v) { if (cd.get.call(this) === String(v)) return; cd.set.call(this, v); }, configurable: true, enumerable: cd.enumerable });
+    var add = TL.add, rem = TL.remove, tog = TL.toggle;
+    TL.add = function () { for (var i = 0; i < arguments.length; i++) if (!this.contains(arguments[i])) return add.apply(this, arguments); };
+    TL.remove = function () { for (var i = 0; i < arguments.length; i++) if (this.contains(arguments[i])) return rem.apply(this, arguments); };
+    TL.toggle = function (c, f) { if (arguments.length > 1) { var has = this.contains(c); if (!!f === has) return has; } return tog.apply(this, arguments); };
+  })();
+
   // ---------- icons (Lucide-style outlines, like the sidebar) ----------
   var P = {
     clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
@@ -294,6 +401,65 @@
   }
   // Order details flow: the colour strip says the same thing as the page, the next step leads, risky actions wait behind "More options"
   var moreOpen = {};
+  // (28 Oct 2026) the Delete and Cancel boxes scroll into view when they open, so the tap never looks like nothing happened
+  var panelSeen = null;
+  function panelInView() {
+    var go = doc.querySelector('#ccs-sheet [data-act="do-delete"], #ccs-sheet [data-act="do-cancel"]');
+    var pn = go && go.closest('.ccs-panel');
+    if (!pn) { panelSeen = null; return; }
+    var key = go.getAttribute('data-act') + '|' + ((doc.querySelector('#ccs-sheet .os-tph small') || {}).textContent || '');
+    if (panelSeen === key) return;
+    panelSeen = key;
+    pn.scrollIntoView({ block: 'start' });
+  }
+
+  // (28 Oct 2026) a small pencil beside the customer's name and the cake message: fixes typos through the app's own
+  // Change order screen (same checks, same history). Shown only where Change order is offered.
+  function pencils() {
+    var sh = doc.getElementById('ccs-sheet'); if (!sh || !sh.classList.contains('ccs-open')) return;
+    var am = sh.querySelector('[data-act="panel"][data-v="amend"]');
+    var spots = [];
+    var nm = sh.querySelector('.ccs-sheet-head .os-tph > b'); if (nm) spots.push(nm);
+    [].forEach.call(sh.querySelectorAll('.ccs-kv dt'), function (dt) { var k = txt(dt); if (/^(Message|Design)$/.test(k) && dt.nextElementSibling) { dt.nextElementSibling.setAttribute('data-ccp-k', k === 'Message' ? 'am-msg' : 'am-design'); spots.push(dt.nextElementSibling); } });
+    if (nm) nm.setAttribute('data-ccp-k', 'am-cname');
+    if (!am || sh.querySelector('[data-act^="do-"]')) { [].forEach.call(sh.querySelectorAll('.ccp-pen'), function (b) { b.remove(); }); return; }
+    spots.forEach(function (el) {
+      if (el.querySelector(':scope > .ccp-pen')) return;
+      var b = doc.createElement('button'); b.type = 'button'; b.className = 'ccp-pen'; b.setAttribute('aria-label', 'Fix the spelling'); b.title = 'Fix the spelling';
+      b.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
+      el.appendChild(b);
+    });
+  }
+  doc.addEventListener('click', function (e) {
+    var b = e.target && e.target.closest ? e.target.closest('#ccs-sheet .ccp-pen') : null; if (!b) return;
+    e.preventDefault(); e.stopPropagation();
+    // straight to the field: open Change order at the right section (the app's own "am-go"), then put the cursor in it
+    var sh = doc.getElementById('ccs-sheet'), host = b.parentElement, id = (host && host.getAttribute('data-ccp-k')) || 'am-cname';
+    var go = doc.createElement('button'); go.type = 'button'; go.hidden = true; go.setAttribute('data-act', 'am-go'); go.setAttribute('data-v', id === 'am-cname' ? 'cust' : 'look');
+    (sh.querySelector('.ccs-sheet-body') || sh).appendChild(go); go.click(); if (go.isConnected) go.remove();
+    var tries = 0, filled = false;
+    (function focus() {
+      // a spelling fix is the team's own change: "Our team" and the reason "Spelling fix" are filled in (still editable)
+      if (!filled && doc.getElementById('am-reason')) {
+        filled = true;
+        var by = doc.querySelector('#ccs-sheet [data-act="am-set"][data-f="by"][data-v="staff"]');
+        if (by && !doc.querySelector('#ccs-sheet [data-act="am-set"][data-f="by"][aria-pressed="true"]')) by.click();
+        var rs = doc.getElementById('am-reason');
+        if (rs && !rs.value.trim()) { rs.value = 'Spelling fix'; rs.dispatchEvent(new Event('input', { bubbles: true })); rs.dispatchEvent(new Event('change', { bubbles: true })); }
+      }
+      var f = doc.getElementById(id);
+      if (!f && id === 'am-design') f = doc.getElementById('am-msg');
+      if (f) { f.scrollIntoView({ block: 'center' }); f.focus(); try { var n = f.value.length; f.setSelectionRange(n, n); } catch (e) {} return; }
+      if (++tries < 20) setTimeout(focus, 50);
+    })();
+  }, true);
+  (function () {
+    var s = doc.createElement('style');
+    s.textContent = '#ccs-sheet .ccp-pen{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;margin:0 0 0 6px;padding:0;border:0;border-radius:8px;background:transparent;color:#667085;cursor:pointer;vertical-align:middle}' +
+      '#ccs-sheet .ccp-pen:hover{background:#F2F4F7;color:#1D2939}#ccs-sheet .ccp-pen svg{width:18px;height:18px}' +
+      '#ccs-sheet .os-tph > b .ccp-pen{width:32px;height:32px;margin-left:4px}';
+    doc.head.appendChild(s);
+  })();
   function sheetFlow() {
     var sh = doc.getElementById('ccs-sheet'); if (!sh || !sh.classList.contains('ccs-open')) return;
     var head = sh.querySelector('.ccs-sheet-head'), pill = head && head.querySelector('.ccs-pill.st'), band = head && head.querySelector('.os-band');
@@ -319,8 +485,23 @@
       if (!fb) return;
       acts = doc.createElement('div'); acts.className = 'ccs-actions ccp-made'; fb.parentNode.insertBefore(acts, fb.nextSibling);
     }
+    // 3b. (28 Oct 2026) one Cancel and one Delete: the page's "Manage order" hotfix row stays (empty and hidden, so it is not
+    // rebuilt) but its copies go; "Delete order" opens the delete box in place instead of jumping to History
+    [].forEach.call(acts.querySelectorAll('.cc-order-actions-row'), function (r) {
+      [].forEach.call(r.querySelectorAll('.cc-ot-cancel'), function (c) { r.parentNode.insertBefore(c, r); });
+      [].forEach.call(r.querySelectorAll('.cc-order-direct, .cc-order-actions-title'), function (c) { c.remove(); });
+      r.classList.add('ccp-gone');
+    });
+    [].forEach.call(acts.querySelectorAll('.cc-order-direct'), function (c) { c.remove(); });
+    [].forEach.call(acts.querySelectorAll('[data-act="go-other"]'), function (g) {
+      var d = doc.createElement('button'); d.type = 'button'; d.className = 'ccs-btn ccs-ghost cc-pol-del';
+      d.setAttribute('data-act', 'panel'); d.setAttribute('data-v', 'delete'); d.textContent = 'Delete order';
+      g.parentNode.replaceChild(d, g);
+    });
+    var dels = acts.querySelectorAll('[data-act="panel"][data-v="delete"]'); for (var di = 1; di < dels.length; di++) dels[di].remove();
+    var cans = acts.querySelectorAll('[data-act="panel"][data-v="cancel"], [data-act="panel"][data-v="cancel-locked"]'); for (var ci = 1; ci < cans.length; ci++) cans[ci].remove();
     // 4. risky or rare actions go behind one quiet "More options" button
-    var risky = [].slice.call(acts.querySelectorAll('[data-act="panel"][data-v="cancel"], [data-act="panel"][data-v="cancel-locked"], [data-act="panel"][data-v="delete"], [data-act="go-other"]'));
+    var risky =[].slice.call(acts.querySelectorAll('[data-act="panel"][data-v="cancel"], [data-act="panel"][data-v="cancel-locked"], [data-act="panel"][data-v="delete"], [data-act="go-other"]'));
     if (done || off) risky = risky.concat([].slice.call(acts.querySelectorAll('[data-act="panel"][data-v="amend"]')));
     if (!done && fb && !concern) risky.unshift(fb.querySelector('button'));
     risky = risky.filter(Boolean);
@@ -341,7 +522,8 @@
       b.classList.add('ccp-mitem'); list.appendChild(b);
     });
     // most dangerous last
-    [].slice.call(list.children).sort(function (a, b) { var w = function (x) { return /Delete/.test(txt(x)) ? 3 : /Cancel/.test(txt(x)) ? 2 : 1; }; return w(a) - w(b); }).forEach(function (x) { list.appendChild(x); });
+    var srt = [].slice.call(list.children).sort(function (a, b) { var w = function (x) { return /Delete/.test(txt(x)) ? 3 : /Cancel/.test(txt(x)) ? 2 : 1; }; return w(a) - w(b); });
+    if (srt.some(function (x, k) { return list.children[k] !== x; })) srt.forEach(function (x) { list.appendChild(x); });   // only when the order is wrong (re-appending every pass kept the page busy)
     var open = !!moreOpen[ref]; box.classList.toggle('is-open', open); box.querySelector('.ccp-more-b').setAttribute('aria-expanded', String(open));
     [].forEach.call(acts.querySelectorAll(':scope > .ccs-actions-row'), function (r) { if (!r.children.length) r.classList.add('ccp-gone'); });
     sh.__ccpRef = ref;
@@ -494,6 +676,9 @@
   function orders(main) {
     var all = main.querySelector('.ccs-tab[data-act="filter"][data-v="recent"]');
     if (all && !all.querySelector('.ccs-n') && txt(all) !== 'All') { all.title = txt(all); all.textContent = 'All'; }
+    // narrow screens (iPad upright, phones): the filter tabs no longer fit; one "Show" dropdown instead (28 Oct 2026)
+    var ft = main.querySelector(':scope > .ccs-tabs');
+    if (ft && ft.querySelector('.ccs-tab[data-act="filter"]')) dd(ft, { label: 'Show', item: '.ccs-tab[data-act="filter"]', hideClass: 'ccp-narrowsrc', cls: 'ccp-narrow ccdd-wide', icons: { '*': 'filter' } });
     tags(main);
   }
   // At most two tags on an order card: allergy first, then the most useful other one. The rest stay in the order.
@@ -1050,8 +1235,9 @@
       if (/^kitchen/.test(scr)) kitchen(main);
       if (/^orders/.test(scr) || main.querySelector('.ccs-list .ccs-card')) orders(main);
       if (main.querySelector('.ccs-setnav')) settings(main);
+      if (scr === 'calendar') [['cal-status', 'Show', 'filter'], ['cal-type', 'Type', 'box']].forEach(function (c) { var s = doc.getElementById(c[0]); if (s && s.tagName === 'SELECT') dd(s, { label: c[1], hide: s.closest('label') || s, icons: { '*': c[2] } }); });
       if (main.querySelector('.cat-page, .dx-filters')) analytics(main);
-      refine(main); sheet(); sheetFlow(); custFlow(); sheetTabs(); sheetNextOnce(); var shx = doc.getElementById('ccs-sheet'); if (shx) words(shx); var popx = doc.querySelectorAll('#cc-staff .tx-pop, #cc-staff [class*="-pop"]'); [].forEach.call(popx, function (x) { if (!main.contains(x)) words(x); }); pulseName();
+      refine(main); sheet(); sheetFlow(); panelInView(); pencils(); custFlow(); sheetTabs(); sheetNextOnce(); var shx = doc.getElementById('ccs-sheet'); if (shx) words(shx); var popx = doc.querySelectorAll('#cc-staff .tx-pop, #cc-staff [class*="-pop"]'); [].forEach.call(popx, function (x) { if (!main.contains(x)) words(x); }); pulseName();
       seasonal(); treatBoard();
     } catch (e) { warn('update', e); }
   }
@@ -1103,3 +1289,349 @@
   win.__ccPolish = { run: run, dropdowns: function () { return DD.length; } };
   if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', start); else start();
 })(window, document);
+
+/* Design foundation (28 Oct 2026, Roneel: enterprise design brief, items 1-3; his text and button sizes stay).
+ * One pass over the app's own style sheets (never Webflow's), changing presentation values only:
+ *  - font weights: 650-900 and "bold" become 600 (one heavy weight across the app; headings stay semi-bold)
+ *  - light neutral grey borders (15+ near-identical greys) become one border colour, #E4E7EC
+ *  - corner sizes: 7 -> 8, 9 and 11 -> 10, 13 to 18 and 22 -> 12 (pills, circles and small chart radii untouched)
+ *  - resting card shadows become one quiet shadow; menus, sheets, pop-ups, tooltips and focus rings keep theirs
+ * Plus: page titles all carry their sidebar icon, no uppercase eyebrow over the title, and selections use the soft
+ * navy of the Orders tabs (Handover cards, Analytics categories) instead of thick black or solid teal.
+ * Sheets added later (add-ons load after the app) are processed as they appear. Undo: remove this block. */
+(function () {
+  'use strict';
+  var win = window, doc = document;
+  if (win.__ccDesign20261028) return;
+  win.__ccDesign20261028 = true;
+  var BORDER = '#E4E7EC', SHADOW = '0 1px 2px rgba(16, 24, 40, 0.05)';
+  var RAD = { '7px': '8px', '9px': '10px', '11px': '10px', '13px': '12px', '14px': '12px', '15px': '12px', '16px': '12px', '18px': '12px', '22px': '12px' };
+  var KEEP_SHADOW = /sheet|modal|dialog|menu|pop|dd-|ccdd|toast|drop|tip|tooltip|focus|hover|active|is-open|pressed|selected|is-on|is-cur|pin|sticky|bar\b|float|overlay|ring|cce-m|cc2s|drag/i;
+  function rgb(v) {
+    if (!v) return null; v = v.trim();
+    var m = v.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+    if (m) { var h = m[1].length === 3 ? m[1].replace(/./g, '$&$&') : m[1]; return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)]; }
+    m = v.match(/^rgba?\(\s*(\d+)[ ,]+(\d+)[ ,]+(\d+)\s*(?:[,/]\s*([\d.]+%?))?\)$/i);
+    if (m && (m[4] == null || parseFloat(m[4]) >= 0.99)) return [+m[1], +m[2], +m[3]];
+    return null;
+  }
+  function neutralLight(v) { var c = rgb(v); if (!c) return false; var mx = Math.max.apply(null, c), mn = Math.min.apply(null, c); return mn >= 205 && mx <= 242 && mx - mn <= 22 && !(c[0] === 228 && c[1] === 231 && c[2] === 236); }
+  var SIDES = ['top', 'right', 'bottom', 'left'];
+  function fix(rule) {
+    var st = rule.style, sel = rule.selectorText || '';
+    var fs = st.getPropertyValue('font-size');
+    if (/^(9|10|11|12)(\.\d+)?px$/.test(fs.trim()) && !/nav|side|brand|logo/i.test(sel)) st.setProperty('font-size', '13px', st.getPropertyPriority('font-size'));
+    var w = st.getPropertyValue('font-weight');
+    if (w && (/^(bold|bolder)$/i.test(w) || (+w >= 650 && +w <= 900))) st.setProperty('font-weight', '600', st.getPropertyPriority('font-weight'));
+    SIDES.forEach(function (s) {
+      var p = 'border-' + s + '-color', v = st.getPropertyValue(p);
+      if (v && neutralLight(v)) st.setProperty(p, BORDER, st.getPropertyPriority(p));
+    });
+    ['border-top-left-radius', 'border-top-right-radius', 'border-bottom-right-radius', 'border-bottom-left-radius'].forEach(function (p) {
+      var v = st.getPropertyValue(p); if (v && RAD[v.trim()]) st.setProperty(p, RAD[v.trim()], st.getPropertyPriority(p));
+    });
+    // colour and radius tokens: only line/border-type variables, so backgrounds are never touched
+    for (var i = 0; i < st.length; i++) {
+      var n = st[i]; if (n.indexOf('--') !== 0) continue;
+      var val = st.getPropertyValue(n).trim();
+      if (/line|divider|border|stroke|edge|rule/i.test(n) && neutralLight(val)) st.setProperty(n, BORDER, st.getPropertyPriority(n));
+      else if (/radius|rad\b|-r$/i.test(n) && RAD[val]) st.setProperty(n, RAD[val], st.getPropertyPriority(n));
+    }
+    var sh = st.getPropertyValue('box-shadow');
+    if (sh && sh !== 'none' && !/inset/.test(sh) && !/\b0(px)? 0(px)? 0(px)? [1-9]/.test(sh) && !KEEP_SHADOW.test(sel)) st.setProperty('box-shadow', SHADOW, st.getPropertyPriority('box-shadow'));
+  }
+  function walk(rules) { for (var i = 0; i < rules.length; i++) { var r = rules[i]; if (r.cssRules && !r.style) walk(r.cssRules); else if (r.style && r.selectorText) { try { fix(r); } catch (e) {} } } }
+  var done = typeof WeakMap === 'function' ? new WeakMap() : null;
+  function pass() {
+    [].forEach.call(doc.querySelectorAll('style'), function (el) {
+      if (el.id === 'ccd-style' || !el.sheet) return;
+      var sig = el.textContent.length;
+      if (done && done.get(el) === sig) return;
+      try { walk(el.sheet.cssRules); } catch (e) {}
+      if (done) done.set(el, sig);
+    });
+  }
+  var NAVY = 'rgb(36, 95, 153)', SOFT = 'rgb(234, 243, 252)';
+  var CSS = [
+    '#cc-staff b,#cc-staff strong,#cc-staff h1,#cc-staff h2,#cc-staff h3,#cc-staff h4,#cc-staff h5,#cc-staff h6,#cc-staff th{font-weight:600}',
+    // page titles: no uppercase line above the title
+    '#cc-staff #ccs-main > .ccs-head .ccs-eyebrow{display:none!important}',
+    // selections: the soft navy of the Orders tabs
+    '#cc-staff #ccs-main .ap-island.is-open{border-color:' + NAVY + '!important;background:' + SOFT + '!important;box-shadow:0 0 0 1px ' + NAVY + '!important}',
+    '#cc-staff .cc-nav5 > button[aria-pressed="true"]{background:' + SOFT + '!important;color:' + NAVY + '!important;border-color:' + NAVY + '!important;box-shadow:none!important}',
+    '#cc-staff .cc-nav5 > button[aria-pressed="true"] *{color:inherit!important}',
+    // ---- items 4-8 (28 Oct 2026) ----
+    // no uppercase labels in the content (sidebar group names stay)
+    'html:not(#ccd0) body:not(#ccd1) #cc-staff :is(#ccs-main,#ccs-sheet) *{text-transform:none!important;letter-spacing:normal}',
+    // Calendar: plain weekday row (colour only where it means something), number cards without coloured edges
+    'html:not(#ccd0) body:not(#ccd1) #cc-staff #ccs-main .ccs-mhead span{background:#F9FAFB!important;border-bottom:1px solid ' + BORDER + '!important;color:#475467!important}',
+    'html:not(#ccd0) body:not(#ccd1) #cc-staff #ccs-main .ccv-stat{border-left:1px solid ' + BORDER + '!important;box-shadow:' + SHADOW + '!important;background-image:none!important}',
+    'html:not(#ccd0) body:not(#ccd1) #cc-staff #ccs-main .ccv-stat::before,html:not(#ccd0) body:not(#ccd1) #cc-staff #ccs-main .ccv-stat::after{display:none!important}',
+    'html:not(#ccd0) body:not(#ccd1) #cc-staff #ccs-main .kw-day em{font-size:13px!important}',
+    // Settings: group names readable, sentence case
+    'html:not(#ccd0) body:not(#ccd1) #cc-staff .cca-menu .cca-mh{font-size:15px!important;font-weight:600!important;color:#475467!important}',
+    // actions written as words look tappable: navy, underlined (red ones stay red)
+    'html:not(#ccd0) body:not(#ccd1) #cc-staff :is(#ccs-main,#ccs-sheet) .ccs-link:not(.ccs-red){color:' + NAVY + '!important}',
+    'html:not(#ccd0) body:not(#ccd1) #cc-staff :is(#ccs-main,#ccs-sheet) .ccs-link{text-decoration:underline!important;text-decoration-thickness:1px!important;text-underline-offset:3px!important;text-decoration-color:currentColor!important}',
+    'html:not(#ccd0) body:not(#ccd1) #cc-staff :is(#ccs-main,#ccs-sheet) .ccs-link:hover{text-decoration-thickness:2px!important}',
+    // Today (item 9): no boxes inside boxes. Rows and day cells sit on a soft fill inside their card; coloured left
+    // edges (status) and the selected day keep their colour.
+    'html:not(#ccd0):not(#ccd1):not(#ccd2):not(#ccd3) body:not(#ccd4) #cc-staff #ccs-main[data-screen="today"] .tq-warn .cc-act-row{border-color:transparent!important;box-shadow:none!important;background:#F9FAFB!important}',
+    'html:not(#ccd0):not(#ccd1):not(#ccd2):not(#ccd3) body:not(#ccd4) #cc-staff #ccs-main[data-screen="today"] .tq-warn .cc-act-row:hover{background:#F2F4F7!important;border-color:transparent!important}',
+    'html:not(#ccd0) body:not(#ccd1) #cc-staff #ccs-main[data-screen="today"] .ccs-panel-card .ccs-mini{border-top-color:transparent!important;border-right-color:transparent!important;border-bottom-color:transparent!important;box-shadow:none!important;background:#F9FAFB!important}',
+    'html:not(#ccd0) body:not(#ccd1) #cc-staff #ccs-main[data-screen="today"] .ccs-panel-card .ccs-mini:hover{background:#F2F4F7!important}',
+    'html:not(#ccd0) body:not(#ccd1) #cc-staff #ccs-main[data-screen="today"] .tq-week .ccs-daycell:not(.is-today){border-color:transparent!important;background:#F9FAFB!important;box-shadow:none!important}',
+    'html:not(#ccd0) body:not(#ccd1) #cc-staff #ccs-main[data-screen="today"] .tq-week .ccs-daycell:not(.is-today):hover{background:#F2F4F7!important}',
+    // Orders filter tabs: tabs on wide screens, one Show dropdown when narrow
+    '#cc-staff .ccp-narrow{display:none!important}',
+    '@media (max-width:899px){#cc-staff #ccs-main .ccp-narrow{display:inline-flex!important;margin:0}#cc-staff #ccs-main .ccp-narrowsrc{display:none!important}}'
+  ].join('');
+  function styles() { if (doc.getElementById('ccd-style')) return; var s = doc.createElement('style'); s.id = 'ccd-style'; s.textContent = CSS; doc.head.appendChild(s); }
+  function titleIcon() {
+    var main = doc.getElementById('ccs-main'); if (!main) return;
+    var h1 = main.querySelector(':scope > .ccs-head h1.ccs-title, :scope > .ccs-head .ccs-title'); if (!h1 || h1.querySelector('.ccp-tic')) return;
+    var scr = main.getAttribute('data-screen'), src = scr && doc.querySelector('#cc-staff .ccs-nav [data-tab="' + scr + '"] svg');
+    if (!src) return;
+    var c = src.cloneNode(true); c.setAttribute('class', 'ccp-tic'); c.setAttribute('aria-hidden', 'true'); h1.insertBefore(c, h1.firstChild); h1.classList.add('ccp-hast');
+  }
+  var q = false;
+  function tick() { if (q) return; q = true; setTimeout(function () { q = false; try { styles(); pass(); titleIcon(); } catch (e) { if (win.console) console.warn('[Design]', e); } }, 30); }
+  function start() { new MutationObserver(tick).observe(doc.documentElement, { childList: true, subtree: true, characterData: true }); tick(); }
+  if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', start); else start();
+  win.CCDesign = { pass: pass };
+})();
+
+/* Corner Café: phase 1 of the Kazumi standard (28 Oct 2026). Marker __ccPhase1_20261028.
+ * Roneel: "whatever we have done for kazumi looks immaculate; apply the same to corner cafe crm while maintaining its
+ * functionality" and, for main buttons, "Deep Green". Presentation only: no data, saving, workflow or permission change.
+ *  1. The hub's name in the side menu: Marketing & Business Intelligence Hub.
+ *  2. Orders filter tabs turn into the Show dropdown whenever they do not fit (iPad landscape included), not only under 900px.
+ *  3. Analytics: no New order button in its header (New order stays on Today, Orders and the side menu).
+ *  4. Main actions (New order, Save, Confirm and the other filled buttons) in Corner Café deep green; selections keep
+ *     the soft navy. Ghost buttons and red (danger) buttons are unchanged. */
+(function () {
+  'use strict';
+  var win = window, doc = document;
+  if (win.__ccPhase1_20261028) return;
+  win.__ccPhase1_20261028 = true;
+  var NAME = 'Marketing & Business Intelligence Hub';
+  var G = '#3D5230', GH = '#32441F', P = 'html:not(#ccq0) body:not(#ccq1) #cc-staff';
+  var CSS = [
+    'html:not(#ccq0) body:not(#ccq1) #cc-staff#cc-staff .ccs-brand > small.ccq-src{display:none!important}',
+    'html:not(#ccq0) body:not(#ccq1) #cc-staff#cc-staff .ccs-brand > .ccq-hub{display:block;margin-top:6px;font:600 9.5px/1.6 Arial,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#C9B9A8;white-space:nowrap;text-align:inherit}',
+    'html:not(#ccq0) body:not(#ccq1) #cc-staff#cc-staff .ccs-app.is-mini .ccs-brand > .ccq-hub{display:none}',
+    '@media (max-width:700px){html:not(#ccq0) body:not(#ccq1) #cc-staff#cc-staff .ccs-brand > .ccq-hub{display:none}}',
+    'html:not(#ccq0) body:not(#ccq1) #cc-staff#cc-staff .ccs-topbrand small.ccq-name{white-space:nowrap!important}',
+    '@media (max-width:700px){html:not(#ccq0) body:not(#ccq1) #cc-staff#cc-staff .ccs-topbrand small.ccq-name{display:none!important}}',
+    P + ' .ccs-nav .cc-t-new{background:' + G + '!important;border-color:' + G + '!important;color:#fff!important}',
+    P + ' :is(#ccs-main,#ccs-sheet) .ccs-btn.ccs-good:not([disabled]):not(.ccs-ghost),' + P + ' #ccs-main [data-act="cust-new"],' + P + ' .ccs-btn.tq-new,' + P + ' .ccs-btn.ccs-newtop,' + P + ' .ccs-btn.ccs-topnew{background:' + G + '!important;border-color:' + G + '!important;color:#fff!important}',
+    P + ' :is(#ccs-main,#ccs-sheet) .ccs-btn.ccs-good:not([disabled]):not(.ccs-ghost):hover,' + P + ' #ccs-main [data-act="cust-new"]:hover,' + P + ' .ccs-btn.tq-new:hover,' + P + ' .ccs-btn.ccs-newtop:hover{background:' + GH + '!important;border-color:' + GH + '!important}',
+    P + ' :is(#ccs-main,#ccs-sheet) .ccs-btn.ccs-good:focus-visible,' + P + ' .ccs-btn.tq-new:focus-visible,' + P + ' .ccs-btn.ccs-newtop:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(61,82,48,.25)!important}',
+    P + ' #ccs-main[data-screen="dash"] .ccs-btn.ccs-newtop{display:none!important}',
+    P + ' #ccs-main.ccq-tight .ccp-narrow{display:inline-flex!important;margin:0}' + P + ' #ccs-main.ccq-tight .ccp-narrowsrc{display:none!important}'
+  ].join('\n');
+  function styles() { if (doc.getElementById('ccq-style')) return; var s = doc.createElement('style'); s.id = 'ccq-style'; s.textContent = CSS; doc.head.appendChild(s); }
+  function name() {
+    [].forEach.call(doc.querySelectorAll('#cc-staff .ccs-topbrand small'), function (s) { if (s.textContent !== NAME) { s.textContent = NAME; s.classList.add('ccq-name'); } });
+    // side menu: the app's own SERVICE HUB line is hidden and our two-line name sits in its place
+    [].forEach.call(doc.querySelectorAll('#cc-staff .ccs-brand'), function (br) {
+      var sm = br.querySelector(':scope > small'); if (sm && sm.style.getPropertyValue('display') !== 'none') { sm.classList.add('ccq-src'); sm.style.setProperty('display', 'none', 'important'); }
+      if (!br.querySelector(':scope > .ccq-hub')) { var n = doc.createElement('span'); n.className = 'ccq-hub'; n.innerHTML = 'Marketing &amp; Business<br>Intelligence Hub'; br.appendChild(n); }
+    });
+  }
+  var need = 0;
+  function tabs() {
+    var main = doc.getElementById('ccs-main'); if (!main) return;
+    var ft = main.querySelector(':scope > .ccs-tabs');
+    if (!ft || !ft.querySelector('.ccs-tab[data-act="filter"]') || !main.querySelector('.ccp-narrow')) { if (main.classList.contains('ccq-tight')) main.classList.remove('ccq-tight'); return; }
+    if (innerWidth < 900) { main.classList.remove('ccq-tight'); return; }   // the 899px rule already applies
+    if (!main.classList.contains('ccq-tight')) {
+      if (ft.scrollWidth > ft.clientWidth + 2) { need = ft.scrollWidth; main.classList.add('ccq-tight'); }
+    } else if (need && ft.clientWidth >= need + 8) { main.classList.remove('ccq-tight'); }
+  }
+  var t = null;
+  function tick() { if (t) return; t = setTimeout(function () { t = null; try { styles(); name(); tabs(); } catch (e) { if (win.console) console.warn('[Phase 1]', e); } }, 40); }
+  function start() { new MutationObserver(tick).observe(doc.documentElement, { childList: true, subtree: true }); addEventListener('resize', tick); tick(); }
+  if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', start); else start();
+})();
+
+/* Corner Café: phase 2 of the Kazumi standard (28 Oct 2026). Marker __ccPhase2_20261028.
+ * Roneel: statuses like Kazumi's: icons and a few words instead of sentences, warnings by icon and colour (an amber
+ * clock up to 15 minutes late, red after), hints small and in italics. Presentation only: the app's own lines are read
+ * and shown as chips; the full sentence stays as the tooltip and for screen readers; every tap still opens the order. */
+(function () {
+  'use strict';
+  var win = window, doc = document;
+  if (win.__ccPhase2_20261028) return;
+  win.__ccPhase2_20261028 = true;
+  var I = {
+    clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v4.8l3.2 2"/>',
+    cal: '<rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/>',
+    chef: '<path d="M6 13.5a4 4 0 0 1 1.2-7.8 5 5 0 0 1 9.6 0A4 4 0 0 1 18 13.5"/><path d="M6.5 13.5h11v6.5h-11z"/><path d="M6.5 17h11"/>',
+    cash: '<rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="2.6"/><path d="M6 9.5v.01M18 14.5v.01"/>',
+    check: '<circle cx="12" cy="12" r="8.5"/><path d="M8.5 12.2l2.4 2.4 4.6-4.8"/>',
+    tick: '<path d="M5 12.5l4.2 4.2L19 7"/>',
+    pen: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',
+    wait: '<path d="M7 3.5h10M7 20.5h10"/><path d="M8 3.5c0 4.5 8 4.5 8 8.5s-8 4-8 8.5M16 3.5c0 4.5-8 4.5-8 8.5s8 4 8 8.5"/>',
+    mail: '<rect x="3.5" y="5.5" width="17" height="13" rx="2"/><path d="M4 7l8 6 8-6"/><path d="M3 21L21 3"/>',
+    alert: '<path d="M12 4l9 16H3z"/><path d="M12 10v4.5M12 17.5h.01"/>',
+    hand: '<path d="M7 11V5.5a1.5 1.5 0 0 1 3 0V10m0-1.5V4a1.5 1.5 0 0 1 3 0v6m0-4.5a1.5 1.5 0 0 1 3 0V11m0-2.5a1.5 1.5 0 0 1 3 0v6.5a6 6 0 0 1-6 6h-1a6 6 0 0 1-5-2.7L4.6 15a1.6 1.6 0 0 1 2.4-2l1 1"/>',
+    van: '<path d="M2.5 6.5h11v9h-11z"/><path d="M13.5 9.5h4l3 3v3h-7"/><circle cx="6.5" cy="17" r="1.8"/><circle cx="17" cy="17" r="1.8"/>',
+    hash: '<path d="M5 9h14M5 15h14M10 4l-2 16M16 4l-2 16"/>'
+  };
+  function ic(n) { return '<svg class="ccq2-i" viewBox="0 0 24 24" aria-hidden="true">' + I[n] + '</svg>'; }
+  function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function chip(tone, icon, text) { return '<span class="ccq2-c ccq2-' + tone + '">' + ic(icon) + '<span>' + esc(text) + '</span></span>'; }
+  function hint(text) { return '<em class="ccq2-h">' + esc(text) + '</em>'; }
+  function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
+  function lateBy(t) {   // minutes late against today's time "5:00 PM", in Fiji time
+    var m = /^(\d{1,2}):(\d{2}) ([AP]M)$/.exec(t); if (!m) return null;
+    var due = (+m[1] % 12 + (m[3] === 'PM' ? 12 : 0)) * 60 + +m[2];
+    var p = new Intl.DateTimeFormat('en-GB', { timeZone: 'Pacific/Fiji', hour: 'numeric', minute: 'numeric', hour12: false }).format(new Date()).split(':');
+    return +p[0] * 60 + +p[1] - due;
+  }
+  function dur(n) { var h = Math.floor(n / 60), m = n % 60; return h ? h + ' hr' + (m ? ' ' + m + ' min' : '') : m + ' min'; }
+  function one(s) {
+    var m;
+    if ((m = /^Overdue since (.+?), (\d{1,2}:\d{2} [AP]M)$/.exec(s))) return chip('red', 'clock', 'Overdue · ' + m[1] + ', ' + m[2]);
+    if (/^Hand over, cancel or change the date$/.test(s)) return '';
+    if ((m = /^Late: was due (\d{1,2}:\d{2} [AP]M)$/.exec(s))) { var l = lateBy(m[1]); return l != null && l > 0 ? chip(l > 15 ? 'red' : 'amber', 'clock', dur(l) + ' late') : chip('red', 'clock', 'Late · ' + m[1]); }
+    if ((m = /^Due (.+?)(, and not confirmed yet)?$/.exec(s))) return chip('navy', 'cal', m[1].replace(/, (?=\d)/, ' · ')) + (m[2] ? chip('amber', 'check', 'Not confirmed') : '');
+    if (/^Kitchen hasn't started$/.test(s) || /^Kitchen: start the cake$/.test(s)) return chip('amber', 'chef', 'Not started');
+    if ((m = /^Kitchen: finish the cake \(now: (.+)\)$/.exec(s))) return chip('grey', 'chef', cap(m[1]));
+    if ((m = /^Kitchen: (.+)$/.exec(s))) return chip('grey', 'chef', cap(m[1]));
+    if (/take the balance/i.test(s)) return chip('amber', 'cash', 'Balance due') + (/hand it over/i.test(s) && /then/i.test(s) ? chip('green', 'hand', 'Hand over') : '');
+    if (/^Cake is ready$/.test(s)) return chip('green', 'tick', 'Ready');
+    if (/^Add the price$/.test(s)) return chip('amber', 'pen', 'Add price');
+    if (/^Check it, then confirm$/.test(s)) return chip('amber', 'check', 'Check & confirm');
+    if (/^Record the deposit$/.test(s)) return chip('amber', 'cash', 'Deposit');
+    if (/^Waiting for the customer to say yes to the price$/.test(s)) return chip('grey', 'wait', 'Waiting on customer');
+    if (/^No email address, so the customer gets no updates$/.test(s)) return chip('grey', 'mail', 'No email');
+    if (/^The customer has not confirmed the allergies yet$/.test(s)) return chip('red', 'alert', 'Allergies to confirm');
+    if (/^Counter: deliver it/.test(s)) return chip('green', 'van', 'Deliver');
+    if (/^Counter: hand it over/.test(s)) return chip('green', 'hand', 'Hand over');
+    if (/^No valid order number$/.test(s)) return chip('grey', 'hash', 'No order number');
+    return s ? hint(s) : '';
+  }
+  function chips(text) {
+    var parts = String(text).replace(/\.\s*$/, '').split(/\.\s+(?=[A-Z])/), out = '';
+    parts.forEach(function (s) { out += one(s.trim().replace(/\.$/, '')); });
+    return out;
+  }
+  function actRows() {
+    [].forEach.call(doc.querySelectorAll('#cc-staff .cc-act-row .cc-act-tx > span'), function (sp) {
+      var src = sp.getAttribute('data-ccq2-src'), cur = sp.textContent;
+      if (src != null && sp.querySelector('.ccq2-c, .ccq2-h')) return;   // already shown as chips (the row is rebuilt when the order changes)
+      src = cur; if (!src) return;
+      sp.setAttribute('data-ccq2-src', src); sp.setAttribute('title', src); sp.classList.add('ccq2-line');
+      sp.innerHTML = chips(src) + '<span class="ccq2-sr">' + esc(src) + '</span>';
+    });
+  }
+  function dueLabels() {   // Due today cards: "Due now / soon / next" carry a clock
+    [].forEach.call(doc.querySelectorAll('#cc-staff #ccs-main .tq-left'), function (e) {
+      if (e.querySelector('.ccq2-i')) return; e.insertAdjacentHTML('afterbegin', ic('clock')); e.classList.add('ccq2-left');
+    });
+  }
+  var CSS = [
+    '#cc-staff .cc-act-row .ccq2-line{display:flex!important;flex-wrap:wrap;align-items:center;gap:6px;white-space:normal!important;overflow:visible!important;text-overflow:clip!important;-webkit-line-clamp:unset!important;color:inherit!important}',
+    '#cc-staff .ccq2-c{display:inline-flex;align-items:center;gap:5px;min-height:28px;padding:2px 10px 2px 8px;border:1px solid transparent;border-radius:999px;font-size:14px;font-weight:500;line-height:1.2;white-space:nowrap}',
+    '#cc-staff .ccq2-i{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}',
+    '#cc-staff .ccq2-red{background:#FEF3F2;border-color:#FECDCA;color:#B42318}',
+    '#cc-staff .ccq2-amber{background:#FFFAEB;border-color:#FEDF89;color:#B54708}',
+    '#cc-staff .ccq2-navy{background:#EEF3F9;border-color:#C7D7EA;color:#1A4570}',
+    '#cc-staff .ccq2-green{background:#ECFDF3;border-color:#ABEFC6;color:#067647}',
+    '#cc-staff .ccq2-grey{background:#F2F4F7;border-color:#E4E7EC;color:#344054}',
+    '#cc-staff .ccq2-h{font-size:13px;font-style:italic;color:#667085}',
+    '#cc-staff .ccq2-sr{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}',
+    '#cc-staff .cc-act-row .cc-act-tx{gap:6px}',
+    '#cc-staff #ccs-main .tq-left.ccq2-left{display:inline-flex!important;align-items:center;gap:4px}#cc-staff #ccs-main .tq-left .ccq2-i{width:14px;height:14px;margin-right:4px}',
+    '@media (max-width:700px){#cc-staff .ccq2-c{font-size:13px;min-height:26px;padding:1px 8px 1px 6px}#cc-staff .ccq2-i{width:15px;height:15px}}'
+  ].join('\n');
+  function styles() { if (doc.getElementById('ccq2-style')) return; var s = doc.createElement('style'); s.id = 'ccq2-style'; s.textContent = CSS; doc.head.appendChild(s); }
+  var t = null;
+  function tick() { if (t) return; t = setTimeout(function () { t = null; try { styles(); actRows(); dueLabels(); } catch (e) { if (win.console) console.warn('[Phase 2]', e); } }, 30); }
+  function start() { new MutationObserver(tick).observe(doc.documentElement, { childList: true, subtree: true }); tick(); setInterval(function () { [].forEach.call(doc.querySelectorAll('#cc-staff .ccq2-line'), function (sp) { if (/late/i.test(sp.getAttribute('data-ccq2-src') || '')) { sp.innerHTML = chips(sp.getAttribute('data-ccq2-src')) + '<span class="ccq2-sr">' + esc(sp.getAttribute('data-ccq2-src')) + '</span>'; } }); }, 60000); }
+  if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', start); else start();
+})();
+
+/* Corner Café: phase 2b, order cards (28 Oct 2026). Marker __ccPhase2b_20261028.
+ * Same status language as Today: a clock for lateness (amber up to 15 minutes, red after), a red triangle for allergies,
+ * "Received …" as a small italic hint. Presentation only; reads what the cards already say. */
+(function () {
+  'use strict';
+  var win = window, doc = document;
+  if (win.__ccPhase2b_20261028) return;
+  win.__ccPhase2b_20261028 = true;
+  var P = {
+    clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v4.8l3.2 2"/>',
+    alert: '<path d="M12 4l9 16H3z"/><path d="M12 10v4.5M12 17.5h.01"/>',
+    hash: '<path d="M5 9h14M5 15h14M10 4l-2 16M16 4l-2 16"/>'
+  };
+  function ic(n) { return '<svg class="ccq2-i" viewBox="0 0 24 24" aria-hidden="true">' + P[n] + '</svg>'; }
+  function fiji(o) { return new Intl.DateTimeFormat('en-GB', Object.assign({ timeZone: 'Pacific/Fiji' }, o)).format(new Date()); }
+  function nowMin() { var p = fiji({ hour: 'numeric', minute: 'numeric', hour12: false }).split(':'); return +p[0] * 60 + +p[1]; }
+  function mins(t) { var m = /(\d{1,2}):(\d{2}) ([AP]M)/.exec(t || ''); return m ? (+m[1] % 12 + (m[3] === 'PM' ? 12 : 0)) * 60 + +m[2] : null; }
+  function dur(n) { var h = Math.floor(n / 60), m = n % 60; return h ? h + ' hr' + (m ? ' ' + m + ' min' : '') : m + ' min'; }
+  function pills(card) {
+    [].forEach.call(card.querySelectorAll('.ccs-pill.s-alert:not([data-ccq2])'), function (p) {
+      var t = p.textContent.trim(), n = null, w = t;
+      if (t === 'Dietary or allergy') { n = 'alert'; w = 'Allergy'; }
+      else if (t === 'Allergies to check') { n = 'alert'; w = 'Check allergies'; }
+      else if (t === 'Overdue') n = 'clock';
+      else if (t === 'No order number') n = 'hash';
+      p.setAttribute('data-ccq2', t);
+      if (n) { p.innerHTML = ic(n) + '<span>' + w + '</span>'; p.classList.add('ccq2-pill'); p.title = t; }
+    });
+    var meta = card.querySelector('.vr-order-meta:not([data-ccq2])') || card.querySelector('.ccs-meta:not([data-ccq2])');
+    if (meta && !meta.querySelector('.vr-order-meta') && /\sReceived /.test(meta.textContent)) {
+      var tx = meta.textContent, i = tx.lastIndexOf(' · Received ');
+      if (i > -1) { meta.setAttribute('data-ccq2', '1'); meta.innerHTML = ''; meta.appendChild(doc.createTextNode(tx.slice(0, i) + ' ')); var em = doc.createElement('em'); em.className = 'ccq2-h'; em.textContent = tx.slice(i + 3); meta.appendChild(em); }
+    }
+  }
+  function late(card, todayTxt, now) {
+    var open = !/\bk-(done|off)\b/.test(card.className), when = card.querySelector('.ccs-when'), pt = card.querySelector('.ccs-prow-t');
+    var txt = (when ? when.textContent : '') + ' ' + (pt ? pt.textContent : ''), due = mins(txt);
+    var isToday = txt.indexOf(todayTxt) > -1;
+    var by = open && isToday && due != null ? now - due : 0, tone = by > 15 ? 'red' : 'amber', label = by > 0 ? dur(by) + ' late' : '';
+    var tags = card.querySelector('.ccs-tags'), chip = card.querySelector('.ccq2-late');
+    if (!label) { if (chip) chip.remove(); if (pt) { pt.classList.remove('ccq2-t-amber', 'ccq2-t-red'); var pi = pt.querySelector('.ccq2-i'); if (pi) pi.remove(); } var pf0 = card.querySelector('.ccq2-pflag'); if (pf0) pf0.remove(); card.classList.remove('ccq2-islate'); var w0 = when && when.querySelector('.ccq2-t-amber, .ccq2-t-red'); if (w0) { w0.classList.remove('ccq2-t-amber', 'ccq2-t-red'); var i0 = w0.querySelector('.ccq2-i'); if (i0) i0.remove(); } return; }
+    if (tags && (!chip || chip.getAttribute('data-l') !== label + tone)) {
+      if (chip) chip.remove();
+      tags.insertAdjacentHTML('beforebegin', '<span class="ccq2-c ccq2-' + tone + ' ccq2-late" data-l="' + label + tone + '">' + ic('clock') + '<span>' + label + '</span></span>');
+    }
+    var wt = when && when.querySelector('span:not(.ccq2-c)');
+    if (wt && !wt.classList.contains('ccq2-t-' + tone)) { wt.classList.remove('ccq2-t-amber', 'ccq2-t-red'); wt.classList.add('ccq2-t-' + tone); }
+    if (pt && !pt.classList.contains('ccq2-t-' + tone)) {
+      pt.classList.remove('ccq2-t-amber', 'ccq2-t-red'); pt.classList.add('ccq2-t-' + tone); pt.title = label;
+    }
+    var row = card.querySelector('.ccs-prow'), pf = row && row.querySelector('.ccq2-pflag');   // phone: lateness takes the one flag slot
+    if (row && (!pf || pf.getAttribute('data-l') !== label + tone)) {
+      if (pf) pf.remove();
+      row.insertAdjacentHTML('beforeend', '<span class="ccq2-c ccq2-' + tone + ' ccq2-pflag" data-l="' + label + tone + '">' + ic('clock') + '<span>' + label + '</span></span>');
+      card.classList.add('ccq2-islate');
+    }
+  }
+  var CSS = [
+    '#cc-staff .ccs-card .ccs-pill.ccq2-pill{display:inline-flex;align-items:center;gap:5px}',
+    '#cc-staff .ccs-card .ccs-pill.ccq2-pill .ccq2-i{width:15px;height:15px}',
+    '#cc-staff .ccs-card .ccq2-late{display:flex;width:max-content;margin:2px 0 6px;min-height:26px;font-size:14px}',
+    '#cc-staff .ccs-when .ccq2-t-amber{color:#B54708!important}#cc-staff .ccs-when .ccq2-t-red{color:#B42318!important}#cc-staff .ccs-when .ccq2-t-amber,#cc-staff .ccs-when .ccq2-t-red{display:inline-flex;align-items:center;gap:4px}#cc-staff .ccs-when .ccq2-i{width:15px;height:15px}',
+    '#cc-staff .ccs-card .ccs-pill.vr-allergy.ccq2-pill::before{content:none!important;display:none!important}',
+    '#cc-staff .ccs-card .ccq2-h{font-size:.92em;font-style:italic;color:#667085;font-weight:400}',
+    '#cc-staff .ccs-prow-t.ccq2-t-amber > span,#cc-staff .ccs-prow-t.ccq2-t-red > span{white-space:nowrap!important}#cc-staff .ccs-prow-t .ccq2-i{width:15px;height:15px;flex:none}',
+    '#cc-staff .ccs-prow-t.ccq2-t-amber > span{color:#B54708!important}#cc-staff .ccs-prow-t.ccq2-t-red > span{color:#B42318!important}',
+    '#cc-staff .ccs-card.ccq2-islate .ccs-prow{flex-wrap:nowrap!important}#cc-staff .ccs-card.ccq2-islate .ccs-prow-m{min-width:0;flex:1 1 auto}',
+    ':root:not(#cc-t0):not(#cc-t1) #cc-staff .ccs-card.ccq2-islate .ccs-prow > .ccs-prow-f{display:none!important}',
+    '#cc-staff .ccs-prow > .ccq2-pflag{display:none;flex:none;margin-left:auto;align-self:center;font-size:14px}',
+    '@media (max-width:700px){#cc-staff .ccs-card.ccq2-islate .ccs-prow > .ccq2-pflag{display:inline-flex}}'
+  ].join('\n');
+  function run() {
+    if (!doc.getElementById('ccq2b-style')) { var s = doc.createElement('style'); s.id = 'ccq2b-style'; s.textContent = CSS; doc.head.appendChild(s); }
+    var todayTxt = fiji({ weekday: 'short', day: 'numeric', month: 'short' }), now = nowMin();
+    [].forEach.call(doc.querySelectorAll('#cc-staff .ccs-card[data-act="open-order"]'), function (c) { pills(c); late(c, todayTxt, now); });
+  }
+  var t = null;
+  function tick() { if (t) return; t = setTimeout(function () { t = null; try { run(); } catch (e) { if (win.console) console.warn('[Phase 2b]', e); } }, 40); }
+  function start() { new MutationObserver(tick).observe(doc.documentElement, { childList: true, subtree: true }); tick(); setInterval(tick, 60000); }
+  if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', start); else start();
+})();

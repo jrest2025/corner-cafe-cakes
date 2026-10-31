@@ -170,3 +170,257 @@ Screens:
 - Checks: test_welcome 17/17 (desktop, iPad, phone: wrong password, sign in, show password, returning staff, Practice mode).
 - Rollback: remove ccOrderToolsLoader35, add ccOrderToolsLoader34 (footer, 1.0.34), publish.
 - 8:03 PM: rolled back to ccOrderToolsLoader34 at Roneel's request ("looks horrible"). Welcome screen off; Admin console stays.
+
+## Sign-in splash, Marketing Central format (loader 36, 27 Oct 2026, 9:24 PM)
+
+- Approved by Roneel ("deploy", 9:20 PM) after the preview with the meal line and bottom strip removed.
+- `ccOrderToolsLoader36` (footer, 1.0.36) replaces loader 34: the same 12 files (fingerprints unchanged) plus
+  `staff.signin.js` (fingerprint b55775a4…) at commit e360f8b7. Built by `build/staff_signin.py`; test
+  `test/order-tools/test_signin.cjs` 16/16 (desktop, iPad, phone: wrong password, show password, sign-in, Practice mode).
+- Espresso room lit from below, motes and steam, the logo brushed in, SERVICE HUB, white card rising; the light follows
+  the service by Fiji time without naming it. The app's own sign-in form, sign-in and Practice mode are unchanged.
+- Site published to cornercafefiji.com and www.cornercafefiji.com.
+- Rollback: remove ccOrderToolsLoader36, add ccOrderToolsLoader34 (footer, 1.0.34), publish.
+
+## Analytics that answer (loader 37, 27 Oct 2026, 9:44 PM)
+
+- Approved by Roneel ("deploy", 9:43 PM) after the preview.
+- `ccOrderToolsLoader37` (footer, 1.0.37) replaces loader 36: the same 13 files (fingerprints unchanged) plus
+  `staff.answers.js` (fingerprint 765802af…) at commit f57a24c6. Test `test/order-tools/test_answers.cjs` 86/86.
+- Each tab's question becomes a plain answer; What to do above the numbers, no "No change needed" cards (Overview
+  insights too); number cards compare with the same number of days before, from sheet records until the app has the
+  history, and show no comparison when those records are incomplete (walk-in sheet ends 14 Sep 2026) or more than 20%
+  unpriced; Business intelligence data checks in Details; Marketing's empty boxes become one line. Daily cake demand
+  checked identical.
+- Rollback: remove ccOrderToolsLoader37, add ccOrderToolsLoader36 (footer, 1.0.36), publish.
+
+## Cake pickups by day (loader 38, 27 Oct 2026, 10:11 PM)
+
+- Approved by Roneel ("deploy", 10:10 PM) after the preview. Brief: Interactive Daily Pickup Timeline & Booking
+  Lead-Time Analytics; decisions: new timeline on Analytics > Cake sales replacing Busiest pickup days (Daily cake
+  demand untouched), lead times from verified order dates only.
+- `ccOrderToolsLoader38` (footer, 1.0.38) replaces loader 37: the same 14 files (fingerprints unchanged) plus
+  `staff.pickups.js` (fingerprint 84a62ce4…) at commit be065ebf. Test `test/order-tools/test_pickups.cjs` 35/35;
+  `test_answers.cjs` 86/86 re-run.
+- Rollback: remove ccOrderToolsLoader38, add ccOrderToolsLoader37 (footer, 1.0.37), publish.
+
+## Booking-time bars and Performance snapshot hidden (loader 39, 27 Oct 2026, 10:29 PM)
+
+- Approved by Roneel ("deploy", 10:25 PM; "remove ... only this section", 10:27 PM).
+- `ccOrderToolsLoader39` (footer, 1.0.39) replaces loader 38: same files, `staff.pickups.js` updated (fingerprint
+  62a07f21…) at commit d90e0ef7. Pickups bars split by booking time (same groups and colours as By booking time), usual
+  weekday tick, booking-time summary with 30/90/year/all chips, bars scaled to a normal busy day. Overview Performance
+  snapshot (heading, 7/30/90 buttons, six number cards) hidden; Popular cake types, Booking channels, Customer mix and
+  the By booking time view stay. Test test_pickups 37/37. Checked live in Chrome after publishing.
+- Rollback: remove ccOrderToolsLoader39, add ccOrderToolsLoader38 (footer, 1.0.38), publish.
+
+## Overview cards moved to Cake sales (loader 40, 27 Oct 2026, 10:39 PM)
+
+- Approved by Roneel ("deploy", 10:38 PM). `ccOrderToolsLoader40` (footer, 1.0.40) replaces loader 39: same files,
+  `staff.pickups.js` updated (fingerprint aa16dae5…) at commit 6f0b3625. Popular cake types, Booking channels and
+  Customer mix leave the Overview and sit under the pickups timeline on Cake sales, following that page's period
+  buttons, same counting rules, bars open their orders. Test test_pickups 40/40. Checked live in Chrome.
+- Rollback: remove ccOrderToolsLoader40, add ccOrderToolsLoader39 (footer, 1.0.39), publish.
+
+## Cake sales simplified (loader 41, 27 Oct 2026, 10:44 PM)
+
+- Approved by Roneel ("deploy", 10:44 PM). `ccOrderToolsLoader41` (footer, 1.0.41) replaces loader 40: same files,
+  `staff.pickups.js` updated (fingerprint f64925b0…) at commit e687ad25. On Cake sales, What to do, the four number
+  cards and the Gross profit note are hidden; the answer line, Sales by day, pickups timeline, moved cards, Sales by
+  channel, Money and Details stay. Test test_pickups 43/43. Checked live in Chrome.
+- Rollback: remove ccOrderToolsLoader41, add ccOrderToolsLoader40 (footer, 1.0.40), publish.
+
+## Daily cake demand moved to Cake sales (loader 42, 27 Oct 2026, 10:56 PM)
+
+- Approved by Roneel ("deploy", 10:55 PM). `ccOrderToolsLoader42` (footer, 1.0.42) replaces loader 41: same files,
+  `staff.pickups.js` updated (fingerprint a232785e…) at commit d46621b6. The protected Daily cake demand is mounted on
+  Cake sales above Sales by day with the same mount calls, orders and date (numbers checked day for day against the
+  Overview); on the Overview it is hidden and By booking time shows on its own (switch hidden). Test test_pickups 46/46.
+  Checked live in Chrome.
+- Rollback: remove ccOrderToolsLoader42, add ccOrderToolsLoader41 (footer, 1.0.41), publish.
+
+## Loader 43 (commit a497acdb) — live 27 Oct 2026, 11:15 PM
+- Overview tab removed; Analytics opens on Sales & Products.
+- Seasonal booking buildup moved to Planning & Forecasting (same module, same numbers).
+- Pickups timeline: two-letter day above a bold date.
+- Rollback: remove ccordertoolsloader43, add ccordertoolsloader42 (1.0.42, footer), publish.
+
+## Loader 44 (commit 97a9336f) — live 27 Oct 2026, 11:29 PM
+- "Old orders" in the sidebar (under Orders) and first in More on phones; opens the existing Old order (paper slip) form directly. Same form, checks and server function; nothing new saved.
+- Loader messages shortened to stay under Webflow's 2,000-character limit.
+- Rollback: remove ccordertoolsloader44, add ccordertoolsloader43 (1.0.43, footer), publish.
+
+## Loader 45 (commit 427b3ce9) — live 27 Oct 2026, 11:56 PM
+- Settings home: Alerts & printing → Communications (Email templates) opens the email templates window (was hidden by the new Settings home).
+- email-templates Edge Function v3 → commit 427b3ce9 (preview matches send-emails v30). Rollback: 7e1aa73b2cd7aa3e894a019d5f38dfc11eccf5b5.
+- Rollback (page): remove ccordertoolsloader45, add ccordertoolsloader44 (1.0.44, footer), publish.
+- Found, not fixed: the editor preview shows 'Café phone">' before the phone number in the "Questions? … call" line.
+
+## Loader 46 (commit 5a4cdc4e) and email editor 1.0.1 — live 28 Oct 2026, 12:11 AM
+- Settings in the Kazumi Service Hub format: menu beside the page on computers and iPads, overview cards with key facts,
+  full-word groups (Ordering and availability, Menu and pricing, Calendar, Alerts and communications, People and access,
+  Data and safety), one icon per setting. Layout only.
+- Email editor: registered script ccemailtemplates2 (dist/app/email-templates.82a1c537ec.js @17dbfb9d, SRI sha384-R0FyBq…)
+  replaces ccemailtemplates; fields inside a link address stay as fields (fixed the broken phone link in previews/published templates).
+- Rollback: page scripts back to ccemailtemplates 1.0.0 and ccordertoolsloader45 1.0.45, publish.
+
+## Release A (Settings audit) — live 28 Oct 2026, 12:44 AM
+- Database migration release_a_20261028 (supabase/sql/release_a_20261028.sql): staff_profiles direct writes removed
+  (read kept for staff.users holders), locations max_days_ahead >= notice, active sizes priced above $0, app_config
+  rights removed from staff logins, Remove Settings entries no longer runnable by staff.
+- Loader 47 (commit af60a5b0): Settings no longer lists Remove Settings entries.
+- Rollback: supabase/sql/release_a_20261028_rollback.sql; page scripts back to ccordertoolsloader46 1.0.46, publish.
+
+## Release B (Settings audit) — live 28 Oct 2026, 1:01 AM
+- Database migration release_b_20261028: get_order_setup returns `occasions` (Settings, shown on forms); first collection 8:00 AM;
+  Baby shower and Graduation shown on forms; Birthday first.
+- Staff footer: app bundle staff-app.5d6e1635b4.js @947432f3 (SRI sha384-ULdXgI…); website order page footer: guest-app.cdf126b4b7.js
+  @947432f3 (SRI sha384-zIEbGV…). Both read back identical before publishing. Built by build/release_b_occasions.py.
+- Loader 48 (commit cc339bf7): 12-hour time fields in Settings collection hours and Change order.
+- Checked live: staff list and website list come from Settings; Settings shows 8:00 AM to 9:00 PM.
+- Rollback: supabase/sql/release_b_20261028_rollback.sql; footers from docs/rollback/*-before-release-b-2026-10-28.html;
+  page scripts back to ccordertoolsloader47 1.0.47; publish.
+
+## Release C (Settings audit) — live 28 Oct 2026, 1:31 AM
+- Database migration release_c_20261028: settings_history, settings_restore (put back only when unchanged since; everyday
+  settings only), audit on promo_cards, calendar_events, catalogue_items, catalogue_item_options; write_audit keys by code/key too.
+  Tested first on a private PostgreSQL copy (caught two bugs, fixed).
+- Loader 49 (commit 7e6c822d): Settings > Data and safety > Settings history.
+- Checked live: history loads (40 latest, "Show earlier changes"), before/after in plain words, Put back offered on 14 of 40.
+- Rollback: supabase/sql/release_c_20261028_rollback.sql; page scripts back to ccordertoolsloader48 1.0.48; publish.
+
+## Release D — payment methods and lead-time groups from Settings (live 28 Oct 2026, 1:57 AM)
+- Approved by Roneel ("deploy and then fix", 1:51 AM).
+- Database: supabase/sql/release_d_20261028.sql applied (app_config rows payment_methods and lead_bands; get_order_setup returns both; settings_payment_methods_save and settings_lead_bands_save with history rows). Checked live: setup returns 5 methods (Other off) and 5 groups.
+- Staff footer: bundle staff-app.d1c119f6f0.js @bd90f95e (SRI sha384-V8nwa4…); written and read back identical (md5 2b3cecff97971c069c6a9dc778374bae).
+- `ccordertoolsloader50` (footer, 1.0.50) replaces loader 49: commit bd90f95e, new fingerprints for staff.admin.js and staff.pickups.js.
+- Live check: new bundle and loader loaded; payment list and groups come from Settings; Today screen normal.
+- Rollback: supabase/sql/release_d_20261028_rollback.sql; staff footer from docs/rollback/staff-footer-before-release-d-2026-10-28.html; remove ccordertoolsloader50, add ccordertoolsloader49 (1.0.49, footer); publish.
+
+## Orders header fix (live 28 Oct 2026, 2:10 AM)
+- Approved by Roneel ("deploy", 2:09 AM). Long lists squeezed the heading row to nothing, so the title slid under the search. staff.flow.js: Orders, Customers (follow-ups), Kitchen and Register grids size rows to their content.
+- `ccordertoolsloader51` (footer, 1.0.51) replaces loader 50: commit 852b6ca7, new fingerprint for staff.flow.js only.
+- Live check: Upcoming list — heading 92px tall, search and tabs below it.
+- Rollback: remove ccordertoolsloader51, add ccordertoolsloader50 (1.0.50, footer), publish.
+
+## Release E — two-step sign-in for Admins: PARKED (28 Oct 2026, 2:19 AM)
+- Roneel: "lets not do this now". Built and tested as a preview only (commit 931c1573): supabase/sql/release_e_20261028.sql (+ rollback), build/twostep.js appended to src/staff.signin.js, Settings row in src/staff.admin.js, test/order-tools/test_release_e.cjs (14 pass). Nothing applied to the database or the live page. Loader 51 still serves the previous staff.signin.js and staff.admin.js.
+
+## Cake Enquiries, phase 1 — LIVE (28 Oct 2026, 6:17 AM)
+- Brief: Corner Cafe Cake CRM enquiry, sales conversion and revenue intelligence (attachment, 2:29 AM). Decisions (Roneel): Enquiries as a tab inside Orders; all staff can record and update; build phase by phase.
+- Audit: website orders already pass New / awaiting quote / approval before confirmation (counted from orders later, not duplicated); walk-in, phone and WhatsApp enquiries that never order leave no record; heard_from/campaign on 3 of ~560 orders; decline/cancel reasons free text (1 filled); customer_tasks, duplicate checks and lead-time charts exist.
+- Database (not applied): supabase/sql/release_f1_enquiries_20261028.sql (+ rollback). New tables enquiries and enquiry_events only; read for staff, every write through enquiry_* functions with an event row; converting links an order made on the normal New order screen (row lock, one order per enquiry, one enquiry per order). Private Postgres test: walk-in partial, empty refused, customer match, duplicate warning + save anyway, double tap, past date refused, quote, stale edit refused, stage, contact, close with/without reason, reopen, convert, second convert refused, order reuse refused, edit/close after convert refused, returning customer later, list/search, events, non-staff refused, rollback clean.
+- Screens: src/staff.enquiries.js (marker __ccEnquiries20261028). Tab and list in Orders, New enquiry beside New order (Orders, Today), detail with stage, quote, log contact, change, not ordered (reason + customer said / our guess), reopen, convert (fills the New order screen through CCOrderFlow.who, links through CCOrderFlow.afterOrder), "Already ordered? Link". Hidden in Practice mode.
+- Test: test/order-tools/test_enquiries.cjs 26 pass (desktop, iPad, phone).
+- To go live: apply the SQL; loader needs room for one more file (shorten the fetch code), add ['enquiries','__ccEnquiries20261028',<fingerprint>].
+- Approved by Roneel ("deploy", 6:12 AM). SQL applied as migration release_f1_enquiries_20261028 (checked: 8 functions, anon has no access, staff cannot write the tables directly, RLS on, 0 rows).
+- `ccordertoolsloader52` (footer, 1.0.52) replaces loader 51: commit 0702f06e; fetch code shortened (helper g(), same jsDelivr then GitHub fallback, same marker check and manifest) to fit the 2,000-character limit (1,984); new file staff.enquiries.js; staff.admin.js fingerprint changed (inert Two-step row code, shows nothing without the parked add-on). Tested before going live: all 17 files load.
+- Live check: all add-ons loaded, New order hook in place, Enquiries tab reads the real database (0 enquiries), New enquiry opens and closes (nothing saved), order tabs return.
+- Rollback: remove ccordertoolsloader52, add ccordertoolsloader51 (1.0.51, footer), publish; database: supabase/sql/release_f1_enquiries_20261028_rollback.sql (copy any real enquiries first).
+
+## Cake Enquiries hidden (28 Oct 2026, 6:35 AM)
+- Roneel: worried it would confuse staff; chose "Hide it for now". Staff page back on `ccordertoolsloader51` (1.0.51), published; checked live: no Enquiries tab or button, all other add-ons load.
+- Kept for later: the enquiry tables and functions in the database (empty, unused), loader 52 (registered, not applied), src/staff.enquiries.js and its test. To bring it back: apply ccordertoolsloader52 and publish (consider the safeguards discussed: hint to use New order, "is this a confirmed order?" check, one button on Orders only).
+
+## Order card refinements — LIVE (28 Oct 2026, 10:41 AM)
+- Approved by Roneel ("deploy", 10:40 AM). staff.flow.js (__ccOrderCard20261028): only the order number under the name; cake detail labels semi-bold #1D2939; Collection box under the cake on the Cake tab (read from the order, the app's own Change button); Collection tab hidden.
+- `ccordertoolsloader53` (1.0.53) replaces loader 51 (Enquiries stay hidden): commit 68c30f75, new fingerprints for staff.flow.js and staff.admin.js (inert Two-step row code).
+- Test: test/order-tools/test_order_card.cjs 19 pass (computer, iPad, phone); test_flow 20 pass. Live check on CC-1140: CC-1140 only, labels 600, tabs Cake / Payment / More, Collection Sunday 1 November at 4:00 PM.
+- Rollback: remove ccordertoolsloader53, add ccordertoolsloader51 (1.0.51, footer), publish.
+
+## Design foundation (enterprise design brief, items 1-3) — LIVE (28 Oct 2026, 11:13 AM)
+- Brief: Jack's Enterprise Design System master prompt (10:47 AM). Decisions: Corner Café Service Hub first; Roneel's own text and button sizes stay (brief's 14-16px text and 44px buttons not applied).
+- Audit (12 screens x computer / iPad landscape / iPad upright, test data): 11 font weights (up to 800), 15+ near-identical grey borders, ~15 corner sizes, up to 6 shadow styles per screen; headings differ (Kitchen uppercase eyebrow, Register no icon); harsh selections (Handover thick black, Analytics solid teal); Calendar rainbow weekdays and system dropdowns; Analytics 10-12px text and uppercase headings; Settings 12px uppercase group names; actions that look like plain text; iPad upright Orders tabs cut off; boxes inside boxes on Today. No sideways scrolling anywhere.
+- Preview (src/staff.polish.js, block __ccDesign20261028): one pass over the app's own style sheets: weights 650-900 -> 600; light neutral greys and line tokens -> #E4E7EC; corners 7->8, 9/11->10, 13-18/22->12; resting shadows -> one quiet shadow (menus, sheets, pop-ups, focus rings kept); headings h1-h6/b/th 600; no eyebrow above page titles; every page title carries its sidebar icon; Handover cards and Analytics categories select in soft navy.
+- Measured after: weights 400/500/600 only on every screen; one neutral border colour; shadows one style plus meaningful rings; no sideways scrolling; Calendar, Analytics and Settings items 4-6 not touched.
+- Tests: test_polish 148 pass (corner expectation 14px -> 12px), test_flow 20, test_order_card 19, test_ipad 91.
+- Approved by Roneel ("deploy", 11:12 AM). `ccordertoolsloader54` (1.0.54) replaces loader 53: commit d91a992e, new fingerprint for staff.polish.js only.
+- Live check (real data): Today, Calendar, Register, Kitchen show weights 400/500/600 only, one neutral border grey (#E4E7EC), page title icons (Today keeps its greeting), no sideways scrolling.
+- Rollback: remove ccordertoolsloader54, add ccordertoolsloader53 (1.0.53, footer), publish.
+
+## Design brief items 4-8 — LIVE (28 Oct 2026, 11:34 AM)
+- src/staff.polish.js: Orders filter tabs become one "Show" dropdown under 900px wide (iPad upright, phones); Calendar Show and Type use the app dropdown; no uppercase in the content (sidebar group names stay); Calendar weekday row neutral, number cards without coloured edges; Settings group names 15px sentence case; ".ccs-link" actions navy and underlined (red ones stay red); text floor 13px in the content (sidebar untouched); Kitchen week strip 13px.
+- Not touched: chart axis numbers inside the Heartbeat/Daily cake demand chart (11px, chart standard), the Heartbeat month dropdown.
+- Tests: test_polish 148, test_ipad 91, test_flow 20, test_order_card 19.
+- Approved by Roneel ("deploy", 11:33 AM). `ccordertoolsloader55` (1.0.55) replaces loader 54: commit 9303fdda, new fingerprint for staff.polish.js only.
+- Live check (real data): Calendar Show and Type are app dropdowns, weekday row neutral; Register links navy and underlined; no uppercase in the content; no sideways scrolling.
+- Rollback: remove ccordertoolsloader55, add ccordertoolsloader54 (1.0.54, footer), publish.
+
+## Design brief item 9: Today without boxes inside boxes — LIVE (28 Oct 2026, 12:03 PM)
+- src/staff.polish.js: on Today, Act now rows, Due today orders and This week day cells lose their own borders and shadows and sit on a soft fill (#F9FAFB, hover #F2F4F7) inside their card; status edges and the selected day keep their colour. No layout or content change.
+- Checked computer, iPad landscape, iPad upright, phone: 0 nested bordered boxes, no sideways scrolling, no page errors. Tests: test_polish 148, test_ipad 91; test_act_now 37/42 with the same 5 failures as before this change (the test data's "urgent first" dates have aged; not caused by this change).
+- Approved by Roneel ("deploy", 12:02 PM). `ccordertoolsloader56` (1.0.56) replaces loader 55: commit 11deddc3, new fingerprint for staff.polish.js only.
+- Live check (real data): 13 rows and day cells on Today, none boxed, no sideways scrolling.
+- Rollback: remove ccordertoolsloader56, add ccordertoolsloader55 (1.0.55, footer), publish.
+
+## 28 Oct 2026 — Delete fix and motion stability (preview, not live)
+- One Cancel and one Delete in More options. The page footer's "cc-order-actions-hotfix-20261028" added copies; they are removed by polish (its row stays empty and hidden so it is not rebuilt). Delete opens the delete box in place (no jump to History). The Delete or Cancel box scrolls into view when it opens.
+- Motion: a guard skips class, aria-*, data-*, title, role, tabindex and hidden writes that change nothing. Before: about 60 same-value writes a second kept every add-on re-running (idle changes in 5s on Today: 1,957; with an order open, 4,500 in 3s). After: 0 and 0.
+- Screens settle before they show: after a sidebar tap the content stays invisible until the page is quiet for two frames (at most 260ms), then fades in over 140ms (none with reduced motion). Layout shift when opening Today 0.357 to 0.001; Customers 0.151 to 0.001; Orders 0.076 to 0.001.
+- More options list is only re-ordered when its order is wrong.
+- Rollback: the previous loader (live 57) or revert these polish blocks.
+- Remaining: the sidebar subtitle reads "Marketing Central" for one frame before another script renames it, so the sidebar moves about 14px for one frame (shift 0.001).
+
+## Premium welcome screen — live 28 Oct 2026, 12:41 PM (approved: "deploy")
+- `ccordertoolsloader57` (footer, 1.0.57) replaces loader 56: the same 15 files (fingerprints unchanged) at commit d2ffe679, with `staff.welcome.js` (fingerprint 2ea794b6…) in place of `staff.signin.js` (Roneel: "the brown and those illustrations cheapens it").
+- Deep forest green panel with the logo, a gold rule and the hub name; warm ivory sign-in; no greeting, no illustrations. Motion: gold frame draws in once, faint light sweep every 11 seconds, logo drifts a few pixels; none with reduced motion.
+- Staff page browser title renamed to "Corner Café Marketing & Business Intelligence Hub".
+- Checks: test_welcome 17/17 (desktop, iPad, phone: wrong password, sign in, show password, returning staff, Practice mode); every loader file checked against its fingerprint at the commit.
+- Rollback: remove ccordertoolsloader57, add ccordertoolsloader56 (footer, 1.0.56), publish.
+
+## Phase 1 of the Kazumi standard — live 28 Oct 2026, 5:28 PM (approved: "deploy")
+- `ccordertoolsloader58` (footer, 1.0.58) replaces loader 57: the same 16 files at commit 0efff717; only staff.polish.js changed (fingerprint 7eb7dd28…, block __ccPhase1_20261028).
+- Side menu name "Marketing & Business Intelligence Hub" (phone top bar shows the logo only); Orders filter tabs become the Show dropdown whenever they do not fit (iPad landscape included); no New order button on Analytics; main actions (New order, Save and the other filled buttons, the phone bar's New order) in Corner Café deep green #3D5230; selections keep the soft navy.
+- Tests: test_flow 20 (main button expectation updated to deep green), test_order_card 19; computer, iPad landscape and upright, phone: no sideways scrolling, no page errors. test_polish crashes before and after this change (test issue, not this change).
+- Rollback: remove ccordertoolsloader58, add ccordertoolsloader57 (1.0.57, footer), publish.
+
+## Loader 59 — phase 2 of the Kazumi standard (28 Oct 2026, 5:39 PM Fiji)
+- Commit 17e1f9b1a58195fdf73078724d5ea5394750e83c; only `staff.polish.js` changed (fingerprint 42719f9432ec19ab69c200c577a7766d).
+- Today "Act now" lines shown as icon chips (amber clock up to 15 min late, red after; navy due date; amber to-dos; grey waiting; red allergies). Full sentence kept as tooltip and for screen readers. Clock on Due today tags.
+- Presentation only. Rollback: loader 58 (commit 0efff71).
+
+## Loader 60 — phase 2b, order cards (28 Oct 2026, 5:53 PM Fiji)
+- Commit 24af83414ad42dd12b6515b53898b90c4838dae9; only `staff.polish.js` changed (fingerprint f94216e819e306dda7f7139fa1e3f85b).
+- Order cards: lateness clock chip and coloured time (amber up to 15 min, red after; phone flag slot), allergy red triangle, "Received …" as italic hint.
+- Presentation only. Rollback: loader 59 (commit 17e1f9b).
+
+## Loader 61 — phase 3, Integrations page (28 Oct 2026, 6:27 PM Fiji)
+- Commit ee244c222af6b2f214f55465628164010bdc73bb; only `staff.admin.js` changed (fingerprint 489680a4f34de4c9179dec29e366d2c5).
+- Settings → Data and safety → Integrations: read-only cards (order database, website orders, customer emails, kitchen printing, Google Sheet backup, WhatsApp) from the existing ops_health, mirror_health and admin_print_settings checks. Managers and admins only; no database change.
+- Rollback: loader 60 (commit 24af834).
+- Live 28 Oct 2026 7:40 PM Fiji as loader 63 (commit f3924ed), built on loader 62 (phase 4 from another session, which stays). Rollback: re-apply ccordertoolsloader62. The footer hotfix "cc-order-actions-hotfix-20261028" is left in place; polish removes its copies.
+
+## 28 Oct 2026 8 PM — Customer emails need two taps; "Mark cake ready" (preview)
+- Confirm, Decline, Cancel, Send quote, Send updated confirmation and Resend email: the first tap arms the button (amber, "Tap again to send", hint "This emails the customer."); a second tap within 5 seconds goes through. Kitchen printer buttons unchanged (owner's choice). polish.js block __ccMailTwice.
+- The green "Cake is ready" button (service-tools) was an action that read like a status on every confirmed order. Now "Mark cake ready", white with a tick icon; green stays for cakes that really are ready.
+- Note: older tests that press Confirm/Cancel once will need a second press.
+- Live 28 Oct 2026 8:06 PM Fiji as loader 64 (commit d287767). Rollback: re-apply ccordertoolsloader63.
+
+## 28 Oct 2026 8:30 PM — Typo pencils, still side menu, tests (preview)
+- Pencil beside the customer's name (sheet title) and the cake Message and Design rows; it opens the app's own Change order screen. Shown only where Change order is offered (polish.js pencils()).
+- Side menu no longer moves on screen switches: the two-line hub name is put in from a page-change callback (before paint), and the "Old orders" menu button is placed the same way once the menu is grouped (oldentry.js). Layout shift on switching: 0.002 to 0.000.
+- Leftover footer hotfix (cc-order-actions-hotfix-20261028) not removed: removing means rewriting the page's 49 KB footer block by hand, which also loads the app itself. It is inert (its row stays empty and hidden).
+- Tests: test_polish expects the deep green buttons (148 pass); new test_tonight.cjs (8 pass). test_order_tools date-step failures are unrelated (that test loads only order-tools.js, unchanged).
+- Live 28 Oct 2026 8:37 PM Fiji as loader 65 (commit 15399e9). Rollback: re-apply ccordertoolsloader64.
+
+## 28 Oct 2026 8:45 PM — Pencil goes straight to the field
+- Pencil opens Change order at the right section with the cursor in Name, Message or Design; fills Who asked = Our team and Reason = Spelling fix (editable). Review then Save as usual. Order contact name only (profile via Customers, Edit details).
+- Live as loader 66 (commit 45a39be). Rollback: re-apply ccordertoolsloader65.
+
+## 28 Oct 2026 9 PM — Festive page structure (preview)
+- Order page (guest.seasonal.js, commit b646683): /order-cake?treat=<name>#cc-treat-order adds that treat once and opens the Festive treats section (test_festive_link.cjs, 10 pass).
+- /festive (draft): wording from enquiry to online order; contact Call 892 2760, Email cornercafe@jacksfiji.com; enquiry form hidden; wine box says ask when you collect; card buttons say Order and link to the order page with the treat added. Footer code replaced (old enquiry-form scripts removed: they only served the hidden form).
+- CMS: Christmas Cookies renamed Festive Cookies (slug unchanged).
+- At deploy: Festive treats group On and can be ordered alone; order page footer to guest.seasonal.js @b646683; publish the 7 goodies; /festive out of draft; publish.
+- Specials stay separate (Roneel, 28 Oct 9 PM): website cake form no longer offers treats (WITH_CAKE=false); treats only in the Festive treats section as their own order. Staff app unchanged (counter can still add treats or wine to a cake order). test_guest_seasonal's add-on checks are superseded by test_festive_link (14 pass).
+- Seasonal stands out (28 Oct 9:30 PM, preview): side menu item Seasonal (berry red, count of new + today) while the Festive treats heading is On or treat orders are open; board renamed Seasonal orders with a Season so far strip; Analytics > Sales & Products shows a Seasonal card (booked value, orders, items, paid so far, items bar chart) from 1 Oct, treat orders plus treats on cake orders. treat-orders.js; test_treat_orders 73 pass.
+- /festive follows the same switch: On = Order buttons with the treat, Off = Coming soon (src/festive/festive-page-footer.html is the page footer).
+- Deploy plan now: publish /festive with the switch Off (Coming soon) and alone_allowed true; Roneel switches On when Chef Nilesh confirms dates.
+- Live 28 Oct 2026 9:22 PM Fiji: Festive treats can be ordered alone (switch still Off); order page uses guest.seasonal.js @2c17e87; staff loader 67 (commit 08c375a); 7 goodies published; /festive published (Coming soon, café contacts, enquiry form hidden). Checked live: 7 cards with prices, Coming soon, order links hidden. Rollback: loader 66; order page footer back to guest.seasonal.js @7dc355ab; /festive back to draft.
+
+## 28 Oct 2026 9:55 PM — Festive ordering on /festive, cards are the picker (live)
+- /festive: goodie cards (Webflow CMS) have Add, then − 1 +; the order box after the goodies shows only the chosen goodies, total and the steps (collection day and time, details). No second photo grid. Order box wears the page's Webflow classes (ccfest-btn, ccfest-h2, ccfest-kicker, ccfest-input, ccfest-label). "2 goodies · $x  View order" bar while the box is off screen. Wine enquiry button hidden (counter only). Hero order button goes to the goodies.
+- Module guest.seasonal.js @b1ae12c (SRI sha384-8HfslIlFRxwiTujOssMeaZn0rb3/3NU+HRZjec2EszQjzjNrXgwFIV8sZYtuY6i+) on /festive and Order a Cake (cakes only there).
+- Switch still Off: live check shows 7 cards, Coming soon, no order box; Order a Cake form loads, no treats.
+- test_festive_page 16 pass, test_festive_link 8 pass.
+- Rollback: /festive footer = git show 08c375a:src/festive/festive-page-footer.html; Order a Cake footer back to guest.seasonal.js @2c17e87 (sha384-5hQ+UBLV7gfkW97eglcrYXi9YfOYZl/WOBSRAFiJXDTJ/7ksyY3l0ZYqBkciowZ6); publish.

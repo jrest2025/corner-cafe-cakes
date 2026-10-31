@@ -34,7 +34,7 @@ const shot = async (p, name) => { if (SHOTS) await p.screenshot({ path: SHOTS + 
     check(t + ' Customers: no repeated heading, spend note behind i', !c0.head2 && !c0.sub, c0);
     if (process.env.DEBUG) console.log(await p.evaluate(() => [...document.querySelectorAll('nav.cdir-segments')].map(x => x.className + ' ' + getComputedStyle(x).display)));
     check(t + ' Customers: reminders as one button', !c0.rem && /1 reminder/.test(c0.remBtn || ''), c0);
-    check(t + ' Customers: Add customer navy, tab icons', c0.addBg === 'rgb(36, 95, 153)' && c0.tabIcons === 3, c0);
+    check(t + ' Customers: Add customer deep green (phase 4), tab icons', c0.addBg === 'rgb(61, 82, 48)' && c0.tabIcons === 3, c0);
     const bh = await p.evaluate(() => Math.min(...[...document.querySelectorAll('#ccs-main .ccdd-btn')].filter(x => x.getClientRects().length).map(x => x.getBoundingClientRect().height)));
     check(t + ' dropdown buttons touch size (' + bh + ')', bh >= (t === 'tablet' ? 56 : t === 'phone' ? 52 : 48), bh);
     await shot(p, t + '-customers');
@@ -69,7 +69,7 @@ const shot = async (p, name) => { if (SHOTS) await p.screenshot({ path: SHOTS + 
       return { modes, icons: m.querySelectorAll('[data-act="k-mode"] .ccp-ic').length, lines, bg: getComputedStyle(m.querySelector('.ccs-btn.ccs-good')).backgroundColor }; });
     check(t + ' Kitchen: Today and Board only, with icons', kt.modes.join('|') === 'Today|Board' && kt.icons === 2, kt);
     check(t + ' Kitchen: attention rows not cut, reason on few lines', kt.lines.length && kt.lines.every(l => !l.cut && l.lines <= 3), kt.lines);
-    check(t + ' Kitchen: main button navy', kt.bg === 'rgb(36, 95, 153)', kt.bg);
+    check(t + ' Kitchen: main button deep green (phase 4)', kt.bg === 'rgb(61, 82, 48)', kt.bg);
     const kc = await p.evaluate(() => [...document.querySelectorAll('#ccs-main .kw-counts > .kw-count')].map(c => { const ic = c.querySelector('.cl-tile').getBoundingClientRect(), em = c.querySelector('em').getBoundingClientRect(), lb = c.querySelector('b').getBoundingClientRect(); return { iconLeft: ic.right <= em.left + 1, numAbove: em.bottom <= lb.top + 2, zero: c.classList.contains('ccp-zero') }; }));
     check(t + ' Kitchen counts: icon left, number above label', kc.length === 3 && kc.every(k => k.iconLeft && k.numAbove), kc);
 
@@ -120,7 +120,7 @@ const shot = async (p, name) => { if (SHOTS) await p.screenshot({ path: SHOTS + 
     await go(p, 'orders');
     const rf = await p.evaluate(() => { const c = document.querySelector('#ccs-main .ccs-card'), cs = getComputedStyle(c), bf = getComputedStyle(c, '::before');
       return { border: cs.borderTopWidth + ' ' + cs.borderTopColor, radius: cs.borderTopLeftRadius, edge: bf.width, dateIc: !!c.querySelector('.ccs-when .ccp-when-ic'), tagIc: [...document.querySelectorAll('#ccs-main .ccs-pill, #ccs-main .ccs-tag')].filter(x => x.getClientRects().length).every(x => !!x.querySelector('svg') || !/Custom|Delivery|price|Confirmed|Ready|Late/i.test(x.textContent)), title: !!document.querySelector('#ccs-main .ccs-title .ccp-tic'), dots: /·\s*$/.test(document.querySelector('#ccs-main .ccs-head .ccs-fresh').firstChild.nodeValue || ''), num: getComputedStyle(document.querySelector('.ccs-price')).fontVariantNumeric }; });
-    check(t + ' refined: hairline border, 14px corners, 3px status edge', rf.border === '1px rgb(228, 231, 236)' && rf.radius === '14px' && rf.edge === '3px', rf);
+    check(t + ' refined: hairline border, 12px corners (design foundation, 28 Oct), 3px status edge', rf.border === '1px rgb(228, 231, 236)' && rf.radius === '12px' && rf.edge === '3px', rf);
     check(t + ' refined: icons on date, tags and page title', rf.dateIc && rf.tagIc && rf.title, rf);
     check(t + ' refined: no stray dot, even figures', !rf.dots && /tabular-nums/.test(rf.num), rf);
     const ch = await p.evaluate(() => [...document.querySelectorAll('#ccs-main .ccs-card .cc-ch')].filter(x => x.getClientRects().length).map(x => ({ label: x.getAttribute('aria-label'), w: Math.round(x.getBoundingClientRect().width), textShown: x.querySelector(':scope > span').getBoundingClientRect().width > 2 })));

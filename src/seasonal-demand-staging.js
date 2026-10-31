@@ -4,13 +4,12 @@
 */
 (function (global) {
   'use strict';
-  var VERSION='2026-10-27-metrics-v6', DAY=86400000, selections={month:null,event:null};
+  var VERSION='2026-10-20-management-v5', DAY=86400000, selections={month:null,event:null};
   if(global.CCCakeSeasonalStage&&global.CCCakeSeasonalStage.version===VERSION)return;
   function iso(d){if(typeof d!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(d))return '';var t=Date.parse(d+'T12:00:00Z');return isNaN(t)||new Date(t).toISOString().slice(0,10)!==d?'':d;}
   function utc(d){return new Date(d+'T12:00:00Z').getTime();}
   function add(d,n){return new Date(utc(d)+n*DAY).toISOString().slice(0,10);}
   function diff(a,b){return Math.round((utc(b)-utc(a))/DAY);}
-  function fijiToday(){try{return new Intl.DateTimeFormat('en-CA',{timeZone:'Pacific/Fiji',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());}catch(e){return new Date(Date.now()+12*3600000).toISOString().slice(0,10);}}
   function sum(a){return a.reduce(function(t,n){return t+n;},0);}
   function cakes(o){
     var it=Array.isArray(o.it)?o.it:[];
@@ -128,36 +127,16 @@
     summary.lines.forEach(function(row){
       h+='<tr><th scope="row">'+row.year+(row.partial?' <small title="Earlier verified booking history is incomplete">†</small>':'')+'</th>';
       row.counts.forEach(function(v){h+='<td>'+(v===null?'—':v)+'</td>';});
-      h+='<td>'+row.pickupCakes+(row.unverified?' <small title="Orders in this window with no verified booking date: they count in Cakes due but not in the checkpoint columns">('+row.unverified+' undated)</small>':'')+'</td><td>'+(row.medianLeadDays==null?'—':row.medianLeadDays+'d')+'</td></tr>';
+      h+='<td>'+row.pickupCakes+'</td><td>'+(row.medianLeadDays==null?'—':row.medianLeadDays+'d')+'</td></tr>';
     });
     return h+'</tbody></table>';
   }
-  /* Shared metric definitions (27 Oct 2026 analytics audit). One meaning for each business term, used by the
-     Overview cards and Today's insights so they agree with the Sales, Customers and Occasions tabs:
-     - Scope: number cards count pickups from the app launch (13 Oct 2026), like the tabs. Charts that compare
-       years (Daily cake demand, Seasonal booking buildup, Cake Pulse) keep every year and say so.
-     - Completed sale: completion recorded in the app, or assumed for an old sheet order whose date has passed.
-     - Order value: final total, else the estimate, minus refunds; $0 means not priced and is left out of averages.
-     - Returning customer: had a completed sale with a pickup before the period started ("has ordered before").
-     - Ordered ahead: median days from a verified booking date to pickup, 0–180 days (one early booking cannot skew it).
-     - Money: dollars, no cents. */
-  var METRICS={
-    launch:'2026-10-13',
-    isSale:function(o){return !!o&&o.st!=='cancelled'&&o.st!=='declined'&&(o.cp==='recorded'||o.cp==='assumed');},
-    value:function(o){var v=o&&o.cv!=null?Number(o.cv):o&&o.lv!=null?Number(o.lv):null;if(v==null||!isFinite(v)||v<=0)return null;var r=Number(o.ref)||0;return Math.max(0,v-r);},
-    leadDays:function(o,today){var d=mgrDate(o,today);if(!d)return null;var n=diff(d,o.pd);return isFinite(n)&&n>=0&&n<=180?n:null;},
-    median:function(list){var a=list.filter(function(n){return n!=null&&isFinite(n);}).sort(function(x,y){return x-y;});if(!a.length)return null;var m=Math.floor(a.length/2);return a.length%2?a[m]:Math.round((a[m-1]+a[m])/2);},
-    firstSale:function(orders){var f={};(orders||[]).forEach(function(o){var id=mgrIdentity(o);if(id&&METRICS.isSale(o)&&iso(o.pd)&&(!f[id]||o.pd<f[id]))f[id]=o.pd;});return f;},
-    money:function(v){return '$'+Math.round(Number(v)||0).toLocaleString('en-US');},
-    identity:function(o){return mgrIdentity(o);}
-  };
-  global.CCCakeMetrics=METRICS;
   /* Management snapshot: generated from the same authorized register payload.
      It never guesses whether staff have called a customer or collected payment. */
   function mgrAlive(o){return !!(o&&!o.off&&iso(o.pd)&&['cancelled','declined','not_confirmed'].indexOf(o.st)<0);}
   function mgrDate(o,today){return o.odok===true&&iso(o.od)&&o.od<=today&&o.od<=o.pd?o.od:'';}
   function mgrCount(items){return items.reduce(function(total,o){return total+cakes(o);},0);}
-  function mgrCurrency(value){return METRICS.money(value);}
+  function mgrCurrency(value){return 'FJD '+Number(value).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0});}
   function mgrValue(o){
     var val=o.cv!=null?Number(o.cv):o.lv!=null?Number(o.lv):null;
     return val!=null&&isFinite(val)&&val>=0?val:null;
@@ -184,26 +163,26 @@
     return Object.keys(totals).map(function(k){return {n:k,v:totals[k]};}).sort(function(a,b){return b.v-a.v||a.n.localeCompare(b.n);});
   }
   function mgrSnapshot(orders,now,period){
-    var everything=(orders||[]).filter(mgrAlive);
-    // number cards: pickups from the launch, like the tabs (customer history below still looks at every year)
-    var active=everything.filter(function(o){return o.pd>=METRICS.launch;}),begin=add(now,1-period);
+    var active=(orders||[]).filter(mgrAlive),begin=add(now,1-period);
     var recent=active.filter(function(o){var d=mgrDate(o,now);return !!d&&d>=begin&&d<=now;});
     var confirmed=active.filter(function(o){return o.st==='confirmed'&&o.pd>=now&&o.pd<add(now,30);});
-    var completed=active.filter(function(o){return METRICS.isSale(o)&&o.pd>=begin&&o.pd<=now;});
-    var first=METRICS.firstSale(everything);
+    var completed=active.filter(function(o){return o.st==='completed'&&o.cp==='recorded'&&o.pd>=begin&&o.pd<=now;});
+    var allVerified=active.filter(function(o){return !!mgrDate(o,now);});
+    var byCustomer={};
+    allVerified.forEach(function(o){var id=mgrIdentity(o);if(id)byCustomer[id]=(byCustomer[id]||0)+1;});
     var recentIds={};recent.forEach(function(o){var id=mgrIdentity(o);if(id)recentIds[id]=true;});
-    var unique=Object.keys(recentIds),returning=unique.filter(function(id){return !!first[id]&&first[id]<begin;}).length;
-    var prices=confirmed.map(METRICS.value),priced=prices.filter(function(v){return v!=null;});
+    var unique=Object.keys(recentIds),returning=unique.filter(function(id){return byCustomer[id]>=2;}).length;
+    var prices=confirmed.map(mgrValue),priced=prices.filter(function(v){return v!=null;});
     var knownValue=priced.reduce(function(n,v){return n+v;},0);
     var unknownBookingDates=active.filter(function(o){return !mgrDate(o,now);}).length;
-    var leads=recent.map(function(o){return METRICS.leadDays(o,now);}).filter(function(n){return n!=null;});
-    var medLead=METRICS.median(leads);
+    var leads=recent.map(function(o){return diff(mgrDate(o,now),o.pd);}).filter(function(n){return isFinite(n)&&n>=0;});
+    var avgLead=leads.length?Math.round(sum(leads)/leads.length):null;
     var topCakes=mgrTotals(recent,function(o){return Array.isArray(o.it)&&o.it[0]?(o.it[0][1]||o.it[0][0]||'Cake'):'Cake';},cakes);
     var channels=mgrTotals(recent,function(o){return o.src||o.sys||'Not recorded';});
     var customerMix=[{n:'Returning',v:returning},{n:'First time',v:Math.max(0,unique.length-returning)}];
     return {recent:recent,confirmed:confirmed,completed:completed,returning:returning,unique:unique.length,
-      identified:unique.length,unverified:unknownBookingDates,priced:priced.length,knownValue:knownValue,medLead:medLead,leadCount:leads.length,
-      topCakes:topCakes,channels:channels,customerMix:customerMix,sinceLaunch:begin<METRICS.launch};
+      identified:unique.length,unverified:unknownBookingDates,priced:priced.length,knownValue:knownValue,avgLead:avgLead,leadCount:leads.length,
+      topCakes:topCakes,channels:channels,customerMix:customerMix};
   }
   function mgrBuild(host,orders,now){
     var main=host.querySelector('.hb-v2');
@@ -214,28 +193,27 @@
     var period=periodButton?Number(periodButton.getAttribute('data-v')):30;
     if([7,30,90].indexOf(period)<0)period=30;
     var data=mgrSnapshot(orders,now,period);
-    var span='last '+period+' days'+(data.sinceLaunch?' (since launch)':'');
     var cards=host.ownerDocument.createElement('div');
     cards.className='hb-k-kpis ccsd-manager-kpis';
     cards.setAttribute('aria-label','Management key performance indicators');
     cards.innerHTML=
-      mgrKpi('Orders received',String(data.recent.length),'Booked · '+span,'purple')+
+      mgrKpi('Orders received',String(data.recent.length),'Verified booking dates · last '+period+' days','purple')+
       mgrKpi('Confirmed cakes due',String(mgrCount(data.confirmed)),data.confirmed.length+' confirmed orders · next 30 days','green')+
       mgrKpi('Confirmed order value',data.priced?mgrCurrency(data.knownValue):'—',
-        data.confirmed.length?(data.priced<data.confirmed.length?(data.confirmed.length-data.priced)+' not priced yet · ':'')+'next 30 days, after refunds':'No confirmed orders in the next 30 days','pink')+
-      mgrKpi('Completed orders',String(data.completed.length),'Collected · '+span,'blue')+
+        data.confirmed.length?data.priced+' of '+data.confirmed.length+' orders priced · next 30 days':'No confirmed orders in the next 30 days','pink')+
+      mgrKpi('Completed orders',String(data.completed.length),'Recorded completion · last '+period+' days','blue')+
       mgrKpi('Returning customers',data.unique?String(data.returning):'—',
-        data.unique?'of '+data.unique+' customers had ordered before · '+span:'No identifiable recent customers','teal')+
-      mgrKpi('Ordered ahead',data.medLead==null?'—':data.medLead+(data.medLead===1?' day':' days'),
-        data.medLead==null?'No verified bookings in this period':'Typical (median) booking to pickup · '+span,'amber');
+        data.unique?data.unique+' identifiable customers · last '+period+' days':'No identifiable recent customers','teal')+
+      mgrKpi('Ordered ahead',data.avgLead==null?'—':data.avgLead+(data.avgLead===1?' day':' days'),
+        data.avgLead==null?'No verified bookings in this period':'Average from booking to pickup · last '+period+' days','amber');
     var panels=host.ownerDocument.createElement('div');
     panels.className='hb-k-panels ccsd-manager-panels';
     panels.setAttribute('aria-label','Customer and product insights');
     panels.innerHTML=
-      mgrRank(data.topCakes,'Popular cake types','Cakes booked · '+span)+
-      mgrRank(data.channels,'Booking channels','Orders booked · '+span)+
+      mgrRank(data.topCakes,'Popular cake types','Cakes booked · last '+period+' days')+
+      mgrRank(data.channels,'Booking channels','Orders booked · last '+period+' days')+
       mgrRank(data.unique?data.customerMix:[],'Customer mix',
-        data.unique?'Customers · '+span:'Customer identity unavailable');
+        data.unique?'Identifiable customers · last '+period+' days':'Customer identity unavailable');
     originalKpis.parentNode.insertBefore(cards,originalKpis);
     try{
       originalPanels.parentNode.insertBefore(panels,originalPanels);
@@ -247,20 +225,20 @@
   function mount(host,orders,options){
     if(!host||typeof host.querySelector!=='function')return false;
     if(host.querySelector('#cc-seasonal-demand-staging'))return false;
-    var now=iso(options&&options.today)||fijiToday();
+    var now=iso(options&&options.today)||new Date().toISOString().slice(0,10);
     var currentMonth=selections.month||now.slice(0,7),eventDate=selections.event||now.slice(0,4)+'-12-25';
     var container=host.ownerDocument.createElement('section');
     container.id='cc-seasonal-demand-staging';
     container.className='ccsd';
     container.innerHTML=
       '<section class="ccsd-daily" aria-label="Daily cakes booked and due"><div class="ccsd-head"><div><h3>Daily cake demand</h3>'+
-      '<p>Compare the date customers booked with the date cakes are needed. All years.</p></div>'+
+      '<p>Compare the date customers booked with the date cakes are needed.</p></div>'+
       '<label class="ccsd-control">Month <input class="ccsd-month" type="month" min="2024-01" max="2027-12" value="'+currentMonth+'"></label></div>'+
       '<div class="ccsd-legend"><span><i class="ccsd-due"></i> Cakes due for collection</span>'+
       '<span><i class="ccsd-booked"></i> Cakes booked on this date</span></div>'+
       '<div class="ccsd-figure" tabindex="0"></div><p class="ccsd-daily-note" aria-live="polite"></p></section>'+
       '<section class="ccsd-season" aria-label="Seasonal booking buildup"><div class="ccsd-head"><div><h3>Seasonal booking buildup</h3>'+
-      '<p>Cakes booked by each checkpoint for pickups near an occasion. All years.</p></div>'+
+      '<p>Cakes booked by each checkpoint for pickups near an occasion.</p></div>'+
       '<label class="ccsd-control">Occasion date <input class="ccsd-event" type="date" min="2024-01-01" max="2027-12-31" value="'+eventDate+'"></label></div>'+
       '<div class="ccsd-pace"></div><p class="ccsd-season-note">Cumulative cakes booked by each checkpoint. A dash means the checkpoint has not occurred or reliable history is unavailable; it does not mean zero. Pickup window: 3 days before to 2 days after the selected date. This does not establish the customer’s occasion. † Partial historical coverage. Historical bookings are not proof of completed sales.</p></section>';
     var main=host.querySelector('.hb-v2'),oldChart=main&&main.querySelector('.hb-v2-tools');
