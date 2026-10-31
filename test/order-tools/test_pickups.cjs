@@ -79,7 +79,7 @@ const sales = async p => { await tap(p, '#cc-staff [data-tab="dash"]', 3000); aw
   check('collected = recorded only (3 of 4); occasion 3, regular 1', /^Collected 3 1 not marked collected/.test(k.st[1]) && /^Occasion 3/.test(k.st[2]) && /^Regular 1/.test(k.st[3]), k.st);
   check('lead times from verified order dates only: 8 and 2 days', /5 days average 2 days shortest 8 days longest/.test(k.lead) && k.note.some(x => /known for 3 of 4 cakes/.test(x)), k);
   check("a cake collected on Valentine's Day is not called a Valentine's cake unless recorded", /1 of 4 cakes was ordered for Valentine's Day/.test(k.ins) && /Valentine's Day 1/.test(k.leg) && /Birthday 2/.test(k.leg) && /Regular or not recorded 1/.test(k.leg), k);
-  check('bars split by booking time: 1 cake 8+ days, 2 cakes 1 to 2 days, 1 not known (cancelled left out)', k.bk.weeks === 1 && k.bk.days === 2 && k.bk.unknown === 1 && !k.bk.week && !k.bk.same && k.seg === 3, k.bk);
+  check('bars split by booking time (Settings groups): 1 cake 8–14 days, 2 cakes 0–3 days, 1 not known (cancelled left out)', k.bk.b2 === 1 && k.bk.b0 === 2 && k.bk.unknown === 1 && !k.bk.b1 && k.seg === 3, k.bk);
   check('future day: scheduled, not counted as collected', /^Collected — upcoming/.test(k.fut[1]), k.fut);
   await b.close(); console.log(n + ' passed, ' + fails + ' failed'); process.exit(fails ? 1 : 0);
 })();

@@ -41,17 +41,20 @@
   // (31 Oct 2026, Roneel: "it has to be distinctive") one clear colour per group, warm for short notice, cool for booked ahead:
   // orange (rush) · golden yellow · teal · blue · deep teal (furthest ahead). Grey = booking date not known.
   var SHADES = ['#F28C28', '#F2C14E', '#2A9D8F', '#3F6FD8', '#1F5F57'];
-  var BUCKETS = [], BANDS = [];
+  var BUCKETS = [], BANDS = [], ORD = [];
   function setBands() {
     var src = win.__ccsBands && win.__ccsBands.length ? win.__ccsBands : [['0–3 days', 0, 3], ['4–7 days', 4, 7], ['8–14 days', 8, 14], ['15–30 days', 15, 30], ['31+ days', 31, 9999]];
     BANDS = src.map(function (b) { return [b[1], b[2]]; });
     var n = src.length, out = [];
     for (var k = n - 1; k >= 0; k--) {
       var lo = src[k][1], hi = src[k][2], lab = hi >= 9999 ? lo + ' or more days ahead' : lo === hi ? (lo ? lo + (lo === 1 ? ' day ahead' : ' days ahead') : 'Same day') : lo + ' to ' + hi + ' days ahead';
-      out.push(['b' + k, lab, SHADES[Math.round(k * (SHADES.length - 1) / Math.max(1, n - 1))]]);
+      var sh = hi >= 9999 ? lo + '+ days' : lo === hi ? (lo ? lo + (lo === 1 ? ' day' : ' days') : 'Same day') : lo + '–' + hi + ' days';
+      out.push(['b' + k, lab, SHADES[Math.round(k * (SHADES.length - 1) / Math.max(1, n - 1))], sh]);
     }
-    out.push(['unknown', 'Booking date not known', '#98A2B3']);
+    out.push(['unknown', 'Booking date not known', '#98A2B3', 'Not known']);
     BUCKETS.length = 0; Array.prototype.push.apply(BUCKETS, out);
+    // (31 Oct 2026) reading order: shortest notice first (the headline group), booking date not known last
+    ORD.length = 0; Array.prototype.push.apply(ORD, out.slice(0, -1).reverse().concat([out[out.length - 1]]));
   }
   setBands();
   function bucket(v) { if (v == null) return 'unknown'; for (var k = 0; k < BANDS.length; k++) if (v >= BANDS[k][0] && v <= BANDS[k][1]) return 'b' + k; return 'b' + (BANDS.length - 1); }
@@ -92,8 +95,8 @@
     return n >= 4 ? sum / n : null;
   }
   // The booking-time summary for a period of past pickups
-  function mix(D) {
-    var to = D.today, from = range === '30' ? add(to, -29) : range === '90' ? add(to, -89) : range === 'year' ? to.slice(0, 4) + '-01-01' : '0000';
+  function mix(D, from0, to0) {
+    var to = to0 || D.today, from = from0 || (range === '30' ? add(to, -29) : range === '90' ? add(to, -89) : range === 'year' ? to.slice(0, 4) + '-01-01' : '0000');
     var t = {}, all = 0, known = 0, top = null;
     Object.keys(D.bk).forEach(function (d) { if (d < from || d > to) return; BUCKETS.forEach(function (b) { var v = D.bk[d][b[0]] || 0; t[b[0]] = (t[b[0]] || 0) + v; all += v; if (b[0] !== 'unknown') known += v; }); });
     BUCKETS.forEach(function (b) { if (b[0] !== 'unknown' && (t[b[0]] || 0) > (top ? t[top[0]] : 0)) top = b; });
@@ -143,17 +146,32 @@
   function stack(D, d, c) {
     if (!c) return '';
     var b = D.bk[d] || {}, scale = Math.min(c, D.top) / c, out = '';
-    for (var i = BUCKETS.length - 1; i >= 0; i--) { var v = b[BUCKETS[i][0]]; if (v) out += '<i style="height:' + (v * scale / D.top * 100).toFixed(2) + '%;background:' + BUCKETS[i][2] + '"></i>'; }
+    // top to bottom: not known, longest ahead … shortest notice at the base (orange sits on the baseline)
+    var seq = [BUCKETS[BUCKETS.length - 1]].concat(BUCKETS.slice(0, -1));
+    seq.forEach(function (bb) { var v = b[bb[0]]; if (v) out += '<i style="height:' + (v * scale / D.top * 100).toFixed(2) + '%;background:' + bb[2] + '"></i>'; });
     return '<span class="pk-stack">' + out + '</span>';
   }
   function tick(D, d) { var u = usual(D, d); return u == null ? '' : '<b class="pk-tick" style="bottom:' + Math.min(100, u / D.top * 100).toFixed(2) + '%" title="Usual for a ' + WDF[wd(d)] + ': ' + (Math.round(u * 10) / 10) + ' cakes"></b>'; }
+  function headline(D, m, pct) {
+    var first = ORD[0], v = first ? (m.t[first[0]] || 0) : 0, p = pct(v), lab = first ? (first[3] || first[1]) : '';
+    var h = '<b>' + p + '%</b> of cakes were last-minute <span class="pk-hl-sub">(' + esc(lab) + ' ahead)</span>.';
+    if (range === '30' || range === '90') {
+      var n = range === '30' ? 30 : 90, pe = add(D.today, -n), ps = add(pe, -(n - 1)), pm = mix(D, ps, pe);
+      if (pm.all >= 10 && m.all >= 10) {
+        var pp = Math.round((pm.t[first[0]] || 0) / pm.all * 100), dlt = p - pp;
+        h += ' <em class="pk-hint">' + (Math.abs(dlt) < 3 ? 'About the same as the ' + n + ' days before.' : (dlt > 0 ? 'Up' : 'Down') + ' from ' + pp + '% the ' + n + ' days before.') + '</em>';
+      }
+    }
+    return h;
+  }
   function summaryStrip(D) {
     var m = mix(D), pct = function (v) { return m.all ? Math.round(v / m.all * 100) : 0; };
     var same = 0, lab = RANGES.filter(function (r) { return r[0] === range; })[0][1].toLowerCase();
     return '<div class="pk-sum"><div class="pk-chips" role="group" aria-label="Period for the booking summary">' + RANGES.map(function (r) { return '<button type="button" class="pk-chip" data-pkr="' + r[0] + '" aria-pressed="' + (r[0] === range) + '">' + r[1] + '</button>'; }).join('') + '</div>' +
-      (m.all ? '<p class="pk-lead-line">' + (m.top ? 'Most cakes are booked <b>' + esc(m.top[1].replace(/ ahead$/, '') + (/^Same day/.test(m.top[1]) ? '' : ' ahead')) + '</b>.' : 'No booking dates known yet.') + '' + '</p>' +
-      '<div class="pk-mix" role="img" aria-label="' + esc(BUCKETS.map(function (b) { return b[1] + ' ' + pct(m.t[b[0]] || 0) + '%'; }).join(', ')) + '">' + BUCKETS.map(function (b) { var v = m.t[b[0]] || 0; return v ? '<i style="flex:' + v + ';background:' + b[2] + '"></i>' : ''; }).join('') + '</div>' +
-      '<div class="pk-mixleg" style="grid-template-columns:repeat(' + BUCKETS.length + ',minmax(0,1fr))">' + BUCKETS.map(function (b) { var v = m.t[b[0]] || 0; return '<span><em><i style="background:' + b[2] + '"></i>' + esc(b[1]) + '</em><b>' + pct(v) + '%</b><small>' + v + pl(v, ' cake', ' cakes') + '</small></span>'; }).join('') + '</div>' +
+      (m.all ? '<p class="pk-lead-line">' + headline(D, m, pct) + '</p>' +
+      '<div class="pk-mix" role="img" aria-label="' + esc(ORD.map(function (b) { return b[1] + ' ' + pct(m.t[b[0]] || 0) + '%'; }).join(', ')) + '">' + ORD.map(function (b) { var v = m.t[b[0]] || 0; return v ? '<i style="flex:' + v + ';background:' + b[2] + '"></i>' : ''; }).join('') + '</div>' +
+      (function () { var shown = ORD.filter(function (b) { return (m.t[b[0]] || 0) > 0; });
+        return '<div class="pk-mixleg" style="grid-template-columns:repeat(' + Math.max(1, shown.length) + ',minmax(0,1fr))">' + shown.map(function (b) { var v = m.t[b[0]] || 0; return '<span><em><i style="background:' + b[2] + '"></i><span class="pk-lf">' + esc(b[1]) + '</span><span class="pk-ls">' + esc(b[3] || b[1]) + '</span></em><b>' + pct(v) + '%</b><small>' + v + pl(v, ' cake', ' cakes') + '</small></span>'; }).join('') + '</div>'; })() +
       '<p class="pk-note">' + m.all + pl(m.all, ' cake', ' cakes') + ' picked up, ' + esc(lab) + '.</p>' : '<p class="pk-lead-line">No cakes picked up, ' + esc(lab) + '.</p>') + '</div>';
   }
   // an event name may run under the next days, up to the next event
@@ -199,8 +217,8 @@
       parts.map(function (p) { return '<i style="flex:' + p.v + ';background:' + p.c + '"></i>'; }).join('') + '</div><div class="pk-leg">' +
       parts.map(function (p) { return '<span><i style="background:' + p.c + '"></i>' + esc(p.l) + ' <b>' + p.v + '</b></span>'; }).join('') + '</div></div>';
     var bk = D.bk[d] || {};
-    h += '<div class="pk-sec"><h4>Booked ahead</h4><div class="pk-seg">' + BUCKETS.map(function (b) { return bk[b[0]] ? '<i style="flex:' + bk[b[0]] + ';background:' + b[2] + '"></i>' : ''; }).join('') + '</div><div class="pk-leg">' +
-      BUCKETS.map(function (b) { return bk[b[0]] ? '<span><i style="background:' + b[2] + '"></i>' + esc(b[1]) + ' <b>' + bk[b[0]] + '</b></span>' : ''; }).join('') + '</div>' + (sa.n ? '<div class="pk-lead" style="margin-top:10px"><span><b>' + days(sa.avg) + '</b><em>average</em></span><span><b>' + days(sa.min) + '</b><em>shortest</em></span><span><b>' + days(sa.max) + '</b><em>longest</em></span></div>' +
+    h += '<div class="pk-sec"><h4>Booked ahead</h4><div class="pk-seg">' + ORD.map(function (b) { return bk[b[0]] ? '<i style="flex:' + bk[b[0]] + ';background:' + b[2] + '"></i>' : ''; }).join('') + '</div><div class="pk-leg">' +
+      ORD.map(function (b) { return bk[b[0]] ? '<span><i style="background:' + b[2] + '"></i>' + esc(b[3] || b[1]) + ' <b>' + bk[b[0]] + '</b></span>' : ''; }).join('') + '</div>' + (sa.n ? '<div class="pk-lead" style="margin-top:10px"><span><b>' + days(sa.avg) + '</b><em>average</em></span><span><b>' + days(sa.min) + '</b><em>shortest</em></span><span><b>' + days(sa.max) + '</b><em>longest</em></span></div>' +
       (so.n >= 2 && sr.n >= 2 ? '<p class="pk-cmp">Occasion <b>' + days(so.avg) + '</b> · Regular <b>' + days(sr.avg) + '</b></p>' : '') : '') +
       '<p class="pk-note">' + (known === cakes ? 'Booking date known for every cake.' : 'Booking date known for ' + known + ' of ' + cakes + pl(cakes, ' cake', ' cakes') + '.') + '</p></div>';
     h += '<p class="pk-ins">' + esc(insight(D, d, os, ev)) + '</p>' + (off ? '<p class="pk-note">' + off + pl(off, ' cancelled order is', ' cancelled orders are') + ' not counted.</p>' : '');
@@ -403,7 +421,10 @@
       P + ' .pk-lead-line{margin:0 0 8px;font-size:17px;color:#1D2939}' + P + ' .pk-lead-line b{font-weight:600}',
       P + ' .pk-mix{display:flex;height:14px;border-radius:999px;overflow:hidden;gap:2px}' + P + ' .pk-mix i{display:block;min-width:4px}',
       P + ' .pk-mixleg{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:8px 0 0}' + P + ' .pk-mixleg span{display:flex;flex-direction:column}' + P + ' .pk-mixleg em{font-style:normal;font-size:13px;color:#475467;display:flex;align-items:center;gap:6px}' + P + ' .pk-mixleg em i{width:12px;height:12px;border-radius:3px;display:inline-block;flex:none}' + P + ' .pk-mixleg b{font-size:20px;font-weight:600}' + P + ' .pk-mixleg small{font-size:12.5px;color:#667085}',
-      '@media (max-width:760px){' + P + ' .pk-mixleg{grid-template-columns:repeat(2,minmax(0,1fr))!important}}',
+      '@media (max-width:760px){' + P + ' .pk-mixleg{grid-template-columns:repeat(2,minmax(0,1fr))!important}' + P + ' .pk-mixleg em .pk-lf{display:none!important}' + P + ' .pk-mixleg em .pk-ls{display:inline!important}}',
+      P + ' .pk-mixleg .pk-ls{display:none!important}' + P + ' .pk-hint{display:block;margin-top:2px;font-size:14px;font-style:italic;font-weight:400;color:#667085}' + P + ' .pk-hl-sub{color:#475467;font-weight:400}',
+      // (31 Oct 2026) one chart for booking patterns: the older "By booking time" view of Daily cake demand is retired
+      '#cc-staff #cc-demand-views,#cc-staff #cc-cake-lead-time{display:none!important}',
       P + ' .pk-col.is-over .pk-stack{border-top:4px solid #101828}' + P + ' .pk-col.is-over .pk-n{color:#101828}',
       P + ' .pk-col.is-today .pk-track{box-shadow:0 0 0 2px #1D2939}' + P + ' .pk-col.is-today .pk-d{background:#1D2939;color:#fff;border-radius:999px;padding:0 6px}',
       P + ' .pk-d{font-size:16px;font-weight:600;line-height:22px;color:#1D2939}' + P + ' .pk-w{font-size:13px;line-height:18px;color:#475467}' + P + ' .pk-col:nth-child(7n) {}',
@@ -454,7 +475,7 @@
       ':root:not(#cc-p1):not(#cc-p2) #cc-staff #ccs-main .pk-demand #cc-demand-scroll-rail.ccdr{display:block!important}:root:not(#cc-p1) #cc-staff #ccs-main .pk-demand{margin:0 0 16px}';
     doc.head.appendChild(s);
   }
-  function start() { hideSnapshot(); new MutationObserver(schedule).observe(doc.body, { childList: true, subtree: true }); schedule(); }
+  function start() { try { win.localStorage.setItem('cc_demand_view', 'due'); } catch (e) {} new MutationObserver(function () { var r = doc.querySelector('#cc-demand-scroll-rail.ccdv-off'); if (r) r.classList.remove('ccdv-off'); }).observe(doc.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] }); hideSnapshot(); new MutationObserver(schedule).observe(doc.body, { childList: true, subtree: true }); schedule(); }
   if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', start, { once: true }); else start();
   win.CCCakePickups = { build: build, summary: summary, lead: lead, insight: insight, eventsOn: eventsOn, _hol: HOL };
 })(window, document);
