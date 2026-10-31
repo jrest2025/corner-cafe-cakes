@@ -257,15 +257,18 @@
       '<div class="ccdr-actions"><label>Jump to month <select class="ccdr-month" aria-label="Jump to any month through December 2028">'+monthOptions(initial.slice(0,7))+'</select></label>'+
       '<button type="button" class="ccdr-today">Today</button><button type="button" class="ccdr-end">Dec 2028</button><button type="button" class="ccdr-edit">Holidays and events</button></div></div>'+
       '<div class="ccdr-edit-panel" hidden></div>'+
-      '<div class="ccdr-legend"><span class="ccdr-green"><i></i>Solid green — cakes due for pickup</span>'+
-      '<span class="ccdr-purple"><i></i>Dashed purple — cakes booked that day</span>'+
-      '<span class="ccdr-legend-note">Future bookings unknown; future pickups confirmed only</span></div>'+
-      '<div class="ccdr-legend ccdr-hkey">'+keyHtml()+'</div>'+
+      '<div class="ccdr-body"><div class="ccdr-main">'+
       '<div class="ccdr-nav"><button type="button" class="ccdr-back" aria-label="Scroll to earlier days">← Earlier</button>'+
       '<span class="ccdr-range" aria-live="polite"></span><button type="button" class="ccdr-forward" aria-label="Scroll to later days">Later →</button></div>'+
       '<div class="ccdr-wrap"><div class="ccdr-scroll" tabindex="0" aria-label="Horizontal day-by-day cake demand timeline; scroll to navigate from 2024 through December 2028">'+
       '<div class="ccdr-spacer" style="width:'+(range*STEP)+'px">'+
       '<div class="ccdr-window"><div class="ccdr-days"></div><div class="ccdr-plot"></div></div></div></div><div class="ccdr-rowlabels" aria-hidden="true"></div></div>'+
+      /* 31 Oct 2026 (Roneel, approved for all charts): the legend stands stacked on the right of the chart (above it on phones) */
+      '</div><aside class="ccdr-side" aria-label="Legend">'+
+      '<div class="ccdr-legend"><span class="ccdr-green"><i></i>Solid green — cakes due for pickup</span>'+
+      '<span class="ccdr-purple"><i></i>Dashed purple — cakes booked that day</span>'+
+      '<span class="ccdr-legend-note">Future bookings unknown; future pickups confirmed only</span></div>'+
+      '<div class="ccdr-legend ccdr-hkey">'+keyHtml()+'</div></aside></div>'+
       '<p class="ccdr-detail" aria-live="polite"></p>'+
       '<p class="ccdr-footnote">The purple line stops on today because future bookings have not happened. Booking dates without verification are excluded from that line. The green line shows confirmed future collection commitments, not projected sales.</p>';
     first.parentNode.insertBefore(rail,first);
