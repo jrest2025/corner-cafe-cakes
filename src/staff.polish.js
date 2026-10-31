@@ -1635,3 +1635,71 @@
   function start() { new MutationObserver(tick).observe(doc.documentElement, { childList: true, subtree: true }); tick(); setInterval(tick, 60000); }
   if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', start); else start();
 })();
+
+// ---------- 31 Oct 2026 (Roneel: "enterprise level visuals") — app shell tidy ----------
+// 1. Side menu stays still: Old orders sits right under Orders; Marketing sits at the end of Planning, on every screen.
+// 2. Marketing uses the same thin outline icon and colour as the rest of the menu, with a short label.
+// 3. Narrow side rail (iPad): only the logo shows, so the hub name is never cut off; slim, quiet scrollbar.
+// 4. Phone bottom bar: Today, Orders, New order, More. Old orders and Marketing live in More as proper tiles.
+// 5. Old duplicate menu icons (the filled "blob") never show next to the new outline icons.
+(function () {
+  'use strict';
+  var win = window, doc = document;
+  if (win.__ccShellTidy20261031) return;
+  win.__ccShellTidy20261031 = true;
+  var MK = '<svg class="csc-ic ccx-mk-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m3 11 13-5v12L3 14z"/><path d="M7 14.5V19h3.5l-1-3.7"/><path d="M19.5 9.5a3 3 0 0 1 0 5"/></svg>';
+  var OLD = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/></svg>';
+  var CSS = [
+    // duplicate legacy icon next to the new one
+    '#cc-staff .ccs-nav-item .csc-ic ~ .csc-orig,#cc-staff .ccs-nav-item .csc-orig:not(:only-of-type){display:none!important}',
+    // Marketing icon follows the menu colour (light on the dark rail, like its neighbours)
+    '#cc-staff .ccs-side [data-cm="open"] .ccx-mk-ic{width:20px;height:20px;flex:none}',
+    '#cc-staff .ccs-side [data-cm="open"] .ccx-mk-ic,#cc-staff .ccs-side [data-cm="open"] .ccx-mk-ic *{fill:none!important;stroke:currentColor!important}',
+    // narrow rail: logo only, quiet scrollbar
+    '#cc-staff .ccs-side.ccx-rail .ccq-hub{display:none!important}',
+    '#cc-staff .ccs-side .ccs-nav{scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.18) transparent}',
+    '#cc-staff .ccs-side .ccs-nav::-webkit-scrollbar{width:4px}#cc-staff .ccs-side .ccs-nav::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:4px}#cc-staff .ccs-side .ccs-nav::-webkit-scrollbar-track{background:transparent}',
+    // phone: four places in the bottom bar
+    '@media (max-width:767px){#cc-staff .ccs-side .ccs-nav [data-cm="open"],#cc-staff .ccs-side .ccs-nav [data-ccoe="side"]{display:none!important}}',
+    // phone More: Marketing joins the tiles; the plain extra row the add-on adds is not shown
+    '#ccs-sheet .ccs-more-links > .cc-marketing-more-item{display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:flex-start!important;gap:6px!important;width:auto!important;padding:10px 4px!important;font:inherit!important;color:inherit!important;text-align:center!important}',
+    '#ccs-sheet > .cc-marketing-more-item,#ccs-sheet .ccs-sheet-body > .cc-marketing-more-item{display:none!important}'
+  ].join('\n');
+  function css() { if (doc.getElementById('ccx-shell-style')) return; var s = doc.createElement('style'); s.id = 'ccx-shell-style'; s.textContent = CSS; doc.head.appendChild(s); }
+  var busy = false;
+  function placeMenu() {
+    var nav = doc.querySelector('#cc-staff .ccs-side .ccs-nav'); if (!nav) return;
+    var orders = nav.querySelector('[data-tab="orders"]'), old = nav.querySelector('[data-ccoe="side"]'), mk = nav.querySelector('[data-cm="open"]');
+    var cal = nav.querySelector('[data-tab="calendar"]'), plan = cal && cal.closest('.csc-group');
+    if (orders && old && orders.closest('.csc-group') && orders.nextElementSibling !== old) orders.after(old);
+    if (mk && plan) {
+      var last = plan.lastElementChild;
+      if (last !== mk) plan.appendChild(mk);
+    }
+    if (mk && !mk.querySelector('.ccx-mk-ic')) {
+      var svg = mk.querySelector('svg'); if (svg) svg.outerHTML = MK; else mk.insertAdjacentHTML('afterbegin', MK);
+      var sp = mk.querySelector('span'); if (sp && sp.textContent !== 'Marketing') sp.textContent = 'Marketing';
+      mk.title = 'Marketing campaigns'; mk.setAttribute('aria-label', 'Marketing campaigns');
+    }
+    var side = doc.querySelector('#cc-staff .ccs-side');
+    if (side) { var rail = side.getBoundingClientRect().width < 150; if (side.classList.contains('ccx-rail') !== rail) side.classList.toggle('ccx-rail', rail); }
+  }
+  function moreTiles() {
+    var sh = doc.querySelector('#ccs-sheet.ccs-open'), links = sh && sh.querySelector('.ccs-more-links'); if (!links) return;
+    var old = links.querySelector(':scope > [data-ccoe="more"]');
+    if (old && !old.querySelector('.ccp-mt-ic')) { var t = (old.textContent || '').trim() || 'Old orders'; old.innerHTML = '<span class="ccp-mt-ic" aria-hidden="true">' + OLD + '</span><span class="ccp-mt-tx"></span>'; old.querySelector('.ccp-mt-tx').textContent = t; }
+    var mk = sh.querySelector('.cc-marketing-more-item');
+    if (mk && mk.parentNode !== links) { var pt = links.querySelector(':scope > .ccp-mt-practice'); links.insertBefore(mk, pt || null); }
+    if (mk && !mk.querySelector('.ccp-mt-ic')) { mk.className = 'ccs-btn ccs-ghost ccs-wide cc-marketing-more-item'; mk.innerHTML = '<span class="ccp-mt-ic" aria-hidden="true">' + MK.replace('csc-ic ccx-mk-ic', 'ccx-mk-ic') + '</span><span class="ccp-mt-tx">Marketing</span>'; }
+    // the add-on's own More entry had no action; this opens Marketing the same way the side menu does
+    if (mk && !mk.__ccx) { mk.__ccx = true; mk.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); var o = doc.querySelector('#cc-staff .ccs-side [data-cm="open"]'); var x = doc.querySelector('#ccs-sheet.ccs-open [data-act="close"],#ccs-sheet.ccs-open .ccs-sheet-x'); if (x) x.click(); if (o) setTimeout(function () { o.click(); }, x ? 120 : 0); }); }
+  }
+  function run() { if (busy) return; busy = true; try { css(); placeMenu(); moreTiles(); } catch (e) { if (win.console) console.warn('[Shell tidy]', e); } busy = false; }
+  function start() {
+    // synchronous (before paint), so the menu never visibly jumps
+    new MutationObserver(run).observe(doc.documentElement, { childList: true, subtree: true });
+    win.addEventListener('resize', run);
+    run();
+  }
+  if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', start); else start();
+})();
