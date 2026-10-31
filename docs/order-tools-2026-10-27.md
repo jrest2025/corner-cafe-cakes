@@ -475,3 +475,9 @@ Screens:
 - No blank on screen change (settle hide replaced by a soft 180 ms ease from 70%; measured: no layout shift without the hide). Loading text appears only after 350 ms. Buttons and cards no longer fade colours on open. Green main buttons by CSS (semantic-colour selector), no style reads while drawing. Shell tidy skips changes inside the page content. Sheet and shade on their own layer.
 - Measured live (desktop): Kitchen 0 dropped frames, Handover 0, Orders/Today/Calendar 2; Customers worst frame 383 -> 233 ms; popup worst frame 167 -> 92 ms. Analytics still has long tasks (up to 460 ms): older add-ons, needs a separate cleanup.
 - Rollback: loader 78.
+
+## 31 Oct 2026, 3:07 PM: cleanup stage 1 (loader 80, manifest v4)
+- Old Today add-on (site footer cc-today-ops-v4-runtime) retired by setting its guard early in the header manifest (ccAssetManifestAll4); its CSS stays. Dead hide-then-fade code removed from polish.
+- Not done (would need rewriting a whole 50 KB code block by hand): second copy of seasonal heartbeat in the page footer (already a no-op, guard), old lead-time copy in the page head. Optional manual edits for Roneel in Webflow.
+- Checked live: 4 tiles on first load and after returning, Show more/fewer works, no console errors.
+- Rollback: manifest ccassetmanifestall2 + loader 79.
