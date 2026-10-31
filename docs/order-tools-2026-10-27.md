@@ -440,8 +440,11 @@ Screens:
 - "By booking time" chart (staff.cake-lead-time.js) unchanged: it is loaded twice (page head @595c7f9 and the loader), so it needs its own fix.
 - Rollback: re-apply ccordertoolsloader72, publish.
 
-## 31 Oct 2026 12:55 PM — By booking time chart: same groups and colours, loaded once (preview)
+## 31 Oct 2026 12:57 PM — By booking time chart: same groups and colours (live, loader 74)
 - staff.cake-lead-time.js 0.4.0 (commit a593b9a): groups from Settings > Lead-time groups (default 0–3, 4–7, 8–14, 15–30, 31+), same colours as Cake pickups by day; busiest outline near-black, holidays light purple, short-notice dot red; same-day share still in the headline.
 - Loaded once: the page head's cc-lead-view-loader moves from sha 595c7f9 to a593b9a (it loads the chart, its CSS and analytics-calm.js, which is unchanged); loader 74 drops its second copy of the chart.
 - At deploy: page head text replace 595c7f986f3739054a5b8cf227eb0f8e28d8118a → a593b9a06da83efdb78d40eabd86db863f8aef66 inside cc-lead-view-loader only; ccordertoolsloader74; manifest entries for a593b9a lead-time files (head loader is not checked by the asset check: it fetches from /src/ directly — check before deploy).
 - Rollback: head sha back to 595c7f9, loader 73, publish.
+- Deployed differently from the plan: the page head is 50 KB and is rewritten whole by the API, so it was not touched. The chart 0.4.0 ships in loader 74 (commit 3bbf958), which loads after the head's older copy and replaces it before Analytics draws (checked live: CCCakeLeadTime 0.4.0, no new errors). 0.4.0 carries its own two colour overrides for the older stylesheet.
+- Still to do (one line, Webflow Designer > staff page settings > custom code, head): in the script with id cc-lead-view-loader, change 595c7f986f3739054a5b8cf227eb0f8e28d8118a to 3bbf958a06bf25cce95b969db733b378f10db465. Then the chart loads its new stylesheet too; the loader copy can then be dropped. Head copy saved as docs/staff-head-rollback-20261031.html.
+- Rollback: re-apply ccordertoolsloader73, publish.

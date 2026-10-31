@@ -5,8 +5,8 @@ so main now matches what customers and staff see. Every older branch is kept in 
 
 ## Staff app (cornercafefiji.com/cake-orders-staff)
 - Main app bundle: https://corner-cafe-staff-assets.vercel.app/staff-app-complimentary-20261030.js, built from `src/staff.js` (complimentary delivery release, 30 Oct).
-- Add-ons loader: `ccordertoolsloader73` (31 Oct 2026, 12:42 PM). Add-ons from commit 18372cb (same as 087b0a8 except `staff.polish.js` (shell tidy) and `staff.pickups.js` (distinctive colours)); treat orders from 3233aa4. Asset list: `ccAssetManifestAll2` (adds the two analytics workspace files).
-- Rollback: put back `ccordertoolsloader72` (or 71 with `ccAssetManifestAll`) on the staff page, publish.
+- Add-ons loader: `ccordertoolsloader74` (31 Oct 2026, 12:57 PM). Add-ons from commit 3bbf958 (same as 087b0a8 except `staff.polish.js` (shell tidy), `staff.pickups.js` and `staff.cake-lead-time.js` 0.4.0 (distinctive colours)); treat orders from 3233aa4. Asset list: `ccAssetManifestAll2` (adds the two analytics workspace files).
+- Rollback: put back `ccordertoolsloader73` (or 71 with `ccAssetManifestAll`) on the staff page, publish.
 
 | File | Live commit |
 |---|---|
@@ -29,7 +29,7 @@ so main now matches what customers and staff see. Every older branch is kept in 
 | `src/staff.analytics-workspace.js` | 8ee47424 |
 | `src/staff.answers.js` | 087b0a88 |
 | `src/staff.cake-lead-time.css` | 595c7f98 |
-| `src/staff.cake-lead-time.js` | 087b0a88 |
+| `src/staff.cake-lead-time.js` | 3bbf958a (head also loads 595c7f98) |
 | `src/staff.calendar-dashboard.css` | fe3704f7 |
 | `src/staff.calendar-dashboard.js` | fe3704f7 |
 | `src/staff.customer-directory-v3.css` | 17e9a139 |
@@ -47,8 +47,8 @@ so main now matches what customers and staff see. Every older branch is kept in 
 | `src/staff.new-order-clarity.css` | 0af0f630 |
 | `src/staff.oldentry.js` | 087b0a88 |
 | `src/staff.order-tools.js` | 087b0a88 |
-| `src/staff.pickups.js` | 18372cb3 |
-| `src/staff.polish.js` | 18372cb3 |
+| `src/staff.pickups.js` | 3bbf958a |
+| `src/staff.polish.js` | 3bbf958a |
 | `src/staff.relationship-profile.css` | 40e1cf19 |
 | `src/staff.relationship-profile.js` | 40e1cf19 |
 | `src/staff.seasonal-heartbeat.js` | e04dc4fc |
