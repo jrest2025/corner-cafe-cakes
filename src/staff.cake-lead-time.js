@@ -79,8 +79,11 @@
     return n>=4?Math.round(10*sum/n)/10:null;
   }
 
+  /* the page may also load an older copy of this chart's stylesheet; these two colours follow the new marks */
+  function style(){var d=global.document;if(!d||d.getElementById('cclt-04-style'))return;var st=d.createElement('style');st.id='cclt-04-style';
+    st.textContent='#cc-staff #cc-cake-lead-time .cclt-hol{color:#6E3F80!important}#cc-staff #cc-cake-lead-time .cclt-busy-n{fill:#101828!important}';(d.head||d.documentElement).appendChild(st);}
   function mount(host,raw,opts){
-    setBands();opts=opts||{};var today=iso(opts.today)||new Date().toISOString().slice(0,10);
+    setBands();style();opts=opts||{};var today=iso(opts.today)||new Date().toISOString().slice(0,10);
     var ix=index(raw,today),state={range:RANGES[0],selected:today};
     var root=opts.root||document.createElement('section');root.className='cclt';root.id='cc-cake-lead-time';
     root.setAttribute('aria-label','Cakes by pickup day and how far ahead they were booked');
