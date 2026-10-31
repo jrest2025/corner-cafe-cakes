@@ -492,3 +492,8 @@ Screens:
 - Live: busy time opening Analytics 1.2 to 1.4 s (was 2.0 to 3.3 s); no errors.
 - Found, not changed (Roneel: do not touch the charts for now): busy-days rail draws 1,757 day columns (Oct 2024 to Aug 2029), about 13,000 elements; a rolling window (one year back, four months ahead) was previewed and reverted.
 - Rollback: loader 81.
+
+## 31 Oct 2026, 4:04 PM: popups (loader 84, commit 0908540)
+- Order window on computers (>=1280 px) opens at full size (min(830px, screen - 32px)); it used to grow from a 178 px Loading box and re-centre (jump about 290 px) and wobble on redraws. Live check: one size (830) the whole time.
+- __ccFrame.quiet: dropdown open/close (polish ddOpen/ddClose, not a pick) no longer wakes the add-on passes. Live check: Customers Show filter Repeat 469 -> 86 and back.
+- Rollback: loader 82.
