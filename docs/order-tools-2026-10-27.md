@@ -452,3 +452,10 @@ Screens:
 ## 31 Oct 2026 1:21 PM — Cake pickups by day polish (live, loader 75)
 - Headline: last-minute share (first Settings group) with change against the period before (30 and 90 days). Orange at the base of each bar. Key shortest-notice first, empty groups hidden, short labels on phones. "By booking time" view of Daily cake demand retired (switch and chart hidden; rail forced to its normal view). test_pickups 47 pass.
 - Rollback: re-apply ccordertoolsloader74, publish.
+
+## 31 Oct 2026 2:02 PM — Motion and speed (live, loader 76)
+- staff.polish.js (commit eaf7dc8): date formatters built once and reused (identical text, 204 cases checked; longest freeze at iPad speed 3.0 s → 1.7 s); Analytics waits for its two menu rows before fading in (max 0.9 s); phone header one compact size (no grow/shrink); Act now panel animation off; touch screens: buttons no colour fade.
+- Measured with the live add-on set at 4x slower CPU: phone page movement 0.057 → 0.016; repeated animations removed.
+- Not fixed: one shift on first load on computers (behind the sign-in/welcome screen); the "reading 'length'" error was seen once and could not be reproduced.
+- Checked live: loader 76, no new console errors, dates format as before.
+- Rollback: re-apply ccordertoolsloader75, publish.
