@@ -36,8 +36,8 @@ so main now matches what customers and staff see. Every older branch is kept in 
 | `src/staff.customer-directory-v3.js` | 17e9a139 |
 | `src/staff.date-picker.css` | e414d14d |
 | `src/staff.date-picker.js` | e414d14d |
-| `src/staff.demand-rail.locked.css` | fd6e6fa6 |
-| `src/staff.demand-rail.locked.js` | fd6e6fa6 |
+| `src/staff.demand-rail.locked.css` | 73abc04a |
+| `src/staff.demand-rail.locked.js` | 73abc04a |
 | `src/staff.finish-flow.css` | 7103cd83 |
 | `src/staff.finish-flow.js` | 7103cd83 |
 | `src/staff.flow.js` | 087b0a88 |
