@@ -77,12 +77,10 @@
   (function () {
     if (win.__ccSettle) return; win.__ccSettle = 1;
     var st = doc.createElement('style');
-    st.textContent = '@keyframes ccxSoft{from{opacity:.7}to{opacity:1}}html[data-ccm="soft"] #cc-staff #ccs-main{animation:ccxSoft 180ms cubic-bezier(.2,0,0,1) both}@media (prefers-reduced-motion:reduce){html[data-ccm="soft"] #cc-staff #ccs-main{animation:none}}html[data-ccm="settle"] #cc-staff #ccs-main{opacity:0!important}html[data-ccm="in"] #cc-staff #ccs-main{transition:opacity 140ms cubic-bezier(.2,0,0,1)}@media (prefers-reduced-motion:reduce){html[data-ccm="in"] #cc-staff #ccs-main{transition:none}}#cc-staff .ccs-side .ccs-brand small{white-space:nowrap;overflow:hidden;text-overflow:clip}';
+    st.textContent = '@keyframes ccxSoft{from{opacity:.7}to{opacity:1}}html[data-ccm="soft"] #cc-staff #ccs-main{animation:ccxSoft 180ms cubic-bezier(.2,0,0,1) both}@media (prefers-reduced-motion:reduce){html[data-ccm="soft"] #cc-staff #ccs-main{animation:none}}html[data-ccm="in"] #cc-staff #ccs-main{transition:opacity 140ms cubic-bezier(.2,0,0,1)}@media (prefers-reduced-motion:reduce){html[data-ccm="in"] #cc-staff #ccs-main{transition:none}}#cc-staff .ccs-side .ccs-brand small{white-space:nowrap;overflow:hidden;text-overflow:clip}';
     doc.head.appendChild(st);
-    var timer = null, quiet = 0, mo = null, t0 = 0;
     // the app rewrites #ccs-main's own class on every render, so the switch lives on <html>
     var H = doc.documentElement;
-    function reveal() { if (mo) { mo.disconnect(); mo = null; } clearTimeout(timer); H.setAttribute('data-ccm', 'in'); setTimeout(function () { if (H.getAttribute('data-ccm') === 'in') H.removeAttribute('data-ccm'); }, 200); }
     // 31 Oct 2026 (Roneel: "really really smooth"): measured on his screen, nothing moves any more after a screen change,
     // so the content no longer hides (that was a blank flash on every tap). It now eases in from 70%, never blank.
     var softT = null;
@@ -90,20 +88,7 @@
       if (doc.documentElement.hasAttribute('data-ccx-hold')) return;   // Analytics keeps its own short hold
       H.setAttribute('data-ccm', 'soft'); clearTimeout(softT); softT = setTimeout(function () { if (H.getAttribute('data-ccm') === 'soft') H.removeAttribute('data-ccm'); }, 400);
     }
-    function settle() {
-      return soft();
-      var m = doc.getElementById('cc-staff'); if (!m) return;
-      if (mo) mo.disconnect();
-      H.setAttribute('data-ccm', 'settle'); quiet = 0; t0 = Date.now();
-      mo = new MutationObserver(function () { quiet = 0; });
-      mo.observe(m, { subtree: true, childList: true, attributes: true });
-      (function tick() {
-        if (!mo) return;
-        if (++quiet >= 3 || Date.now() - t0 > 260) return reveal();
-        win.requestAnimationFrame(tick);
-      })();
-      clearTimeout(timer); timer = setTimeout(reveal, 300);   // never stays hidden
-    }
+    function settle() { soft(); }   // (31 Oct) the old hide-then-fade is gone
     doc.addEventListener('click', function (e) {
       var b = e.target && e.target.closest && e.target.closest('#cc-staff .ccs-side [data-tab], #cc-staff .ccs-bnav [data-tab]');
       if (b && !b.classList.contains('on') && b.getAttribute('aria-current') !== 'page') settle();
