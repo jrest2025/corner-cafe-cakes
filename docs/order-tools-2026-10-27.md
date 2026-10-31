@@ -459,3 +459,10 @@ Screens:
 - Not fixed: one shift on first load on computers (behind the sign-in/welcome screen); the "reading 'length'" error was seen once and could not be reproduced.
 - Checked live: loader 76, no new console errors, dates format as before.
 - Rollback: re-apply ccordertoolsloader75, publish.
+
+## 31 Oct 2026, 2:25 PM: steady screens live (loader 77, commit 4adccc9)
+- Seen on Roneel's own screen: Today changed after leaving and coming back (4 tiles became 2; cakes 5 hours late said "Due now"). Cause: the site-wide `cc-today-ops-v4-runtime` only watched the first copy of the page. `__ccSteady20261031` in staff.polish.js now does that work on every visit; late cakes show "X hr Y min late" (amber up to 15 min, red after).
+- Kitchen: next cake and counts on the left, lists full width on the right. Campaign Manager restyled (white, readable, neat dropdown). Remaining old-blue filled buttons now deep green. Popup: "Short-notice order" once; red banner says how late.
+- Analytics opens after about 0.6 s instead of 0.8 to 1.8 s.
+- Checked live: 4 tiles after coming back, late chips correct, Save handover note green.
+- Rollback: put loader 76 back on page 6aca162870735ac2247de4dd and publish.
