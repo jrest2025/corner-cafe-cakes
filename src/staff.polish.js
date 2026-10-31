@@ -388,6 +388,7 @@
     // 3. say it once: "Top cake" repeats the first bar of Cakes ranked
     [].forEach.call(main.querySelectorAll('.cat-page .cat-kpis'), function (g) {
       [].forEach.call(g.querySelectorAll(':scope > .cat-k'), function (k) { if (/^Top cake$/.test(txt(k.querySelector('.cat-k-top > span')))) k.classList.add('ccp-gone'); });
+      var sg = g.children.length + ':' + g.querySelectorAll(':scope > .ccp-gone').length; if (g.__ccpSig === sg) return; g.__ccpSig = sg;   // (31 Oct) measure only when the cards change
       var n = [].filter.call(g.children, function (k) { return !k.classList.contains('ccp-gone') && getComputedStyle(k).display !== 'none'; }).length;
       if (g.getAttribute('data-ccp-n') !== String(n)) g.setAttribute('data-ccp-n', n);
     });
@@ -723,7 +724,7 @@
   }
   function analytics(main) {
     // period pills -> one dropdown (on every tab that has them)
-    [].forEach.call(main.querySelectorAll('.cat-page .cat-chips'), function (g) { if (g.getClientRects().length || g.__dd) dd(g, { label: 'Period', icons: { '*': 'cal' }, item: '.cat-chip' }); });
+    [].forEach.call(main.querySelectorAll('.cat-page .cat-chips'), function (g) { if (g.__dd || g.getClientRects().length) dd(g, { label: 'Period', icons: { '*': 'cal' }, item: '.cat-chip' }); });
     // filter boxes -> the same dropdown
     [].forEach.call(main.querySelectorAll('.dx-filters select, .oi-filters select'), function (s) {
       var lab = s.closest('label'), name = lab ? txt(lab.querySelector('.ccs-label')) : (s.getAttribute('aria-label') || 'Filter');

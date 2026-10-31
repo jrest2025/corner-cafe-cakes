@@ -231,7 +231,7 @@
     queued = false;
     try {
       css(); tabs();
-      [].forEach.call(doc.querySelectorAll('#ccs-main .cat-page[data-cat]'), function (p) { if (p.getClientRects().length) tidyPage(p); });
+      [].forEach.call(doc.querySelectorAll('#ccs-main .cat-page[data-cat]'), function (p) { if (!p.hidden && !p.closest('[hidden]')) tidyPage(p); });   // (31 Oct) no layout read: only one Analytics page is in the page at a time
       var mainEl = doc.getElementById('ccs-main'); if (mainEl && /^dash/.test(mainEl.getAttribute('data-screen') || '')) truth(mainEl);
       var ins = doc.getElementById('cc-insights'); if (ins) insights(ins);
     } catch (e) { warn('update', e); }
