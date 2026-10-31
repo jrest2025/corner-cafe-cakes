@@ -439,3 +439,9 @@ Screens:
 - One clear colour per booking-time group, warm for short notice and cool for booked ahead: 0–3 days orange #F28C28, 4–7 golden yellow #F2C14E, 8–14 teal #2A9D8F, 15–30 blue #3F6FD8, 31+ deep teal #1F5F57; not known grey #98A2B3. Busier-than-usual marker near-black.
 - "By booking time" chart (staff.cake-lead-time.js) unchanged: it is loaded twice (page head @595c7f9 and the loader), so it needs its own fix.
 - Rollback: re-apply ccordertoolsloader72, publish.
+
+## 31 Oct 2026 12:55 PM — By booking time chart: same groups and colours, loaded once (preview)
+- staff.cake-lead-time.js 0.4.0 (commit a593b9a): groups from Settings > Lead-time groups (default 0–3, 4–7, 8–14, 15–30, 31+), same colours as Cake pickups by day; busiest outline near-black, holidays light purple, short-notice dot red; same-day share still in the headline.
+- Loaded once: the page head's cc-lead-view-loader moves from sha 595c7f9 to a593b9a (it loads the chart, its CSS and analytics-calm.js, which is unchanged); loader 74 drops its second copy of the chart.
+- At deploy: page head text replace 595c7f986f3739054a5b8cf227eb0f8e28d8118a → a593b9a06da83efdb78d40eabd86db863f8aef66 inside cc-lead-view-loader only; ccordertoolsloader74; manifest entries for a593b9a lead-time files (head loader is not checked by the asset check: it fetches from /src/ directly — check before deploy).
+- Rollback: head sha back to 595c7f9, loader 73, publish.
