@@ -1,3 +1,22 @@
+/* Corner Café: shared frame (31 Oct 2026, cleanup stage 3). One queue for the add-ons' screen passes: they all run in the
+ * same frame, before the screen is drawn, and a pass that changes the page lets the others react in that same frame
+ * (at most 8 rounds), instead of each waiting its own frame or 30 to 60 ms (a visible flash of the unfinished screen). */
+(function (w) {
+  if (w.__ccFrame) return;
+  var q = [], pending = false, inFrame = false, rounds = 0, raf = w.requestAnimationFrame ? w.requestAnimationFrame.bind(w) : function (f) { return setTimeout(f, 16); };
+  function drain() {
+    if (!q.length) return;
+    if (++rounds > 8) { var later = q; q = []; later.forEach(function (f) { f.__ccq = 0; }); raf(function () { later.forEach(function (f) { w.__ccFrame(f); }); }); return; }
+    var list = q; q = [];
+    for (var i = 0; i < list.length; i++) { list[i].__ccq = 0; try { list[i](); } catch (e) { if (w.console) console.warn('[Corner Café frame]', e); } }
+  }
+  w.__ccFrame = function (f) {
+    if (f.__ccq) return; f.__ccq = 1; q.push(f);
+    if (inFrame) { Promise.resolve().then(drain); return; }
+    if (pending) return; pending = true;
+    raf(function () { pending = false; inFrame = true; rounds = 0; setTimeout(function () { inFrame = false; }, 0); drain(); });
+  };
+})(window);
 /* Corner Café: "Old orders" as its own way in (Roneel, 27 Oct 2026 11:26 PM).
  * A sidebar item (and a button in More on phones) that opens the existing Old order form straight away, without the
  * New order / Old order choice first. Same form, same checks, same server function (staff_enter_old_order); nothing
@@ -46,7 +65,8 @@
     try { openOld(); } catch (err) { warn('not opened', err); }
   });
   var q = false;
-  function schedule() { if (q) return; q = true; setTimeout(function () { q = false; try { place(); } catch (e) { warn('not placed', e); } }, 40); }
+  function schedule() { win.__ccFrame(schedRun); }
+  function schedRun() { try { place(); } catch (e) { warn('not placed', e); } }
   // (28 Oct 2026) the side-menu button goes in straight from the page-change callback, before the browser paints:
   // added 40ms later it pushed the lower menu down by one row on every screen switch
   function now() { try { var o = doc.querySelector('#cc-staff .ccs-side [data-tab="orders"]'); if (o && o.closest('.csc-group') && !doc.querySelector('#cc-staff .ccs-side [data-ccoe]'))  place(); /* only once the menu is grouped, so it lands under Orders */ } catch (e) { warn('not placed', e); } schedule(); }

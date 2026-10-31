@@ -1,3 +1,22 @@
+/* Corner Café: shared frame (31 Oct 2026, cleanup stage 3). One queue for the add-ons' screen passes: they all run in the
+ * same frame, before the screen is drawn, and a pass that changes the page lets the others react in that same frame
+ * (at most 8 rounds), instead of each waiting its own frame or 30 to 60 ms (a visible flash of the unfinished screen). */
+(function (w) {
+  if (w.__ccFrame) return;
+  var q = [], pending = false, inFrame = false, rounds = 0, raf = w.requestAnimationFrame ? w.requestAnimationFrame.bind(w) : function (f) { return setTimeout(f, 16); };
+  function drain() {
+    if (!q.length) return;
+    if (++rounds > 8) { var later = q; q = []; later.forEach(function (f) { f.__ccq = 0; }); raf(function () { later.forEach(function (f) { w.__ccFrame(f); }); }); return; }
+    var list = q; q = [];
+    for (var i = 0; i < list.length; i++) { list[i].__ccq = 0; try { list[i](); } catch (e) { if (w.console) console.warn('[Corner Café frame]', e); } }
+  }
+  w.__ccFrame = function (f) {
+    if (f.__ccq) return; f.__ccq = 1; q.push(f);
+    if (inFrame) { Promise.resolve().then(drain); return; }
+    if (pending) return; pending = true;
+    raf(function () { pending = false; inFrame = true; rounds = 0; setTimeout(function () { inFrame = false; }, 0); drain(); });
+  };
+})(window);
 /* Corner Café Service Hub: Analytics that answer (27 October 2026). Marker __ccAnswers20261027.
  * Roneel: "let's work on the meaningful analytics" - answers and next actions first (approved plan, 27 Oct, 9:31 PM).
  *  1. Each tab opens with one plain answer in place of its question ("$720 in completed sales, up 18% on the 15 days before").
@@ -238,7 +257,8 @@
   }
 
   var queued = false;
-  function schedule() { if (queued) return; queued = true; setTimeout(function () { queued = false; try { hook(); apply(); } catch (e) { warn('skipped', e); } }, 0); }
+  function schedule() { win.__ccFrame(schedRun); }
+  function schedRun() { try { hook(); apply(); } catch (e) { warn('skipped', e); } }
   function start() {
     var tries = 0, t = setInterval(function () { if (hook() || ++tries > 80) clearInterval(t); }, 250);
     new MutationObserver(schedule).observe(doc.body, { childList: true, subtree: true });

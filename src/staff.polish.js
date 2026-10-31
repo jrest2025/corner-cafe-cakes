@@ -1,3 +1,22 @@
+/* Corner Café: shared frame (31 Oct 2026, cleanup stage 3). One queue for the add-ons' screen passes: they all run in the
+ * same frame, before the screen is drawn, and a pass that changes the page lets the others react in that same frame
+ * (at most 8 rounds), instead of each waiting its own frame or 30 to 60 ms (a visible flash of the unfinished screen). */
+(function (w) {
+  if (w.__ccFrame) return;
+  var q = [], pending = false, inFrame = false, rounds = 0, raf = w.requestAnimationFrame ? w.requestAnimationFrame.bind(w) : function (f) { return setTimeout(f, 16); };
+  function drain() {
+    if (!q.length) return;
+    if (++rounds > 8) { var later = q; q = []; later.forEach(function (f) { f.__ccq = 0; }); raf(function () { later.forEach(function (f) { w.__ccFrame(f); }); }); return; }
+    var list = q; q = [];
+    for (var i = 0; i < list.length; i++) { list[i].__ccq = 0; try { list[i](); } catch (e) { if (w.console) console.warn('[Corner Café frame]', e); } }
+  }
+  w.__ccFrame = function (f) {
+    if (f.__ccq) return; f.__ccq = 1; q.push(f);
+    if (inFrame) { Promise.resolve().then(drain); return; }
+    if (pending) return; pending = true;
+    raf(function () { pending = false; inFrame = true; rounds = 0; setTimeout(function () { inFrame = false; }, 0); drain(); });
+  };
+})(window);
 /* Corner Café Service Hub: polish (26 October 2026).
  * Roneel: "refine corner cake crm even further, use icons where appropriate" and "options should be in drop downs, not
  * separate pills; the drop down should look expert level and neat, not generic system dropdowns."
@@ -1234,7 +1253,7 @@
       seasonal(); treatBoard();
     } catch (e) { warn('update', e); }
   }
-  function schedule() { if (queued) return; queued = true; (win.requestAnimationFrame || setTimeout)(run); }
+  function schedule() { win.__ccFrame(run); }
   function onClick(e) {
     var t = e.target; if (!t || !t.closest) return;
     var b = t.closest('.ccdd-btn');
@@ -1388,7 +1407,8 @@
     var c = src.cloneNode(true); c.setAttribute('class', 'ccp-tic'); c.setAttribute('aria-hidden', 'true'); h1.insertBefore(c, h1.firstChild); h1.classList.add('ccp-hast');
   }
   var q = false;
-  function tick() { if (q) return; q = true; setTimeout(function () { q = false; try { styles(); pass(); titleIcon(); } catch (e) { if (win.console) console.warn('[Design]', e); } }, 30); }
+  function tick() { win.__ccFrame(tickRun); }
+  function tickRun() { try { styles(); pass(); titleIcon(); } catch (e) { if (win.console) console.warn('[Design]', e); } }
   function start() { new MutationObserver(tick).observe(doc.documentElement, { childList: true, subtree: true, characterData: true }); tick(); }
   if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', start); else start();
   win.CCDesign = { pass: pass };
@@ -1443,7 +1463,8 @@
     } else if (need && ft.clientWidth >= need + 8) { main.classList.remove('ccq-tight'); }
   }
   var t = null;
-  function tick() { if (t) return; t = setTimeout(function () { t = null; try { styles(); name(); tabs(); } catch (e) { if (win.console) console.warn('[Phase 1]', e); } }, 40); }
+  function tick() { win.__ccFrame(tickRun); }
+  function tickRun() { try { styles(); name(); tabs(); } catch (e) { if (win.console) console.warn('[Phase 1]', e); } }
   function start() { new MutationObserver(tick).observe(doc.documentElement, { childList: true, subtree: true }); addEventListener('resize', tick); tick(); }
   if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', start); else start();
 })();
@@ -1542,7 +1563,8 @@
   ].join('\n');
   function styles() { if (doc.getElementById('ccq2-style')) return; var s = doc.createElement('style'); s.id = 'ccq2-style'; s.textContent = CSS; doc.head.appendChild(s); }
   var t = null;
-  function tick() { if (t) return; t = setTimeout(function () { t = null; try { styles(); actRows(); dueLabels(); } catch (e) { if (win.console) console.warn('[Phase 2]', e); } }, 30); }
+  function tick() { win.__ccFrame(tickRun); }
+  function tickRun() { try { styles(); actRows(); dueLabels(); } catch (e) { if (win.console) console.warn('[Phase 2]', e); } }
   function start() { new MutationObserver(tick).observe(doc.documentElement, { childList: true, subtree: true }); tick(); setInterval(function () { [].forEach.call(doc.querySelectorAll('#cc-staff .ccq2-line'), function (sp) { if (/late/i.test(sp.getAttribute('data-ccq2-src') || '')) { sp.innerHTML = chips(sp.getAttribute('data-ccq2-src')) + '<span class="ccq2-sr">' + esc(sp.getAttribute('data-ccq2-src')) + '</span>'; } }); }, 60000); }
   if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', start); else start();
 })();
@@ -1624,7 +1646,8 @@
     [].forEach.call(doc.querySelectorAll('#cc-staff .ccs-card[data-act="open-order"]'), function (c) { pills(c); late(c, todayTxt, now); });
   }
   var t = null;
-  function tick() { if (t) return; t = setTimeout(function () { t = null; try { run(); } catch (e) { if (win.console) console.warn('[Phase 2b]', e); } }, 40); }
+  function tick() { win.__ccFrame(tickRun); }
+  function tickRun() { try { run(); } catch (e) { if (win.console) console.warn('[Phase 2b]', e); } }
   function start() { new MutationObserver(tick).observe(doc.documentElement, { childList: true, subtree: true }); tick(); setInterval(tick, 60000); }
   if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', start); else start();
 })();
@@ -1928,7 +1951,7 @@
   }
   var q = false;
   function run() { q = false; try { styles(); if (doc.querySelector('#cc-staff .cw-metric[data-ccdr="customers"]')) custTile(); var main = doc.querySelector('#cc-staff #ccs-main[data-screen="today"]'); if (main) today(main); notes(); } catch (e) { if (win.console) console.warn('[Steady]', e); } }
-  function schedule() { if (q) return; q = true; (win.requestAnimationFrame || setTimeout)(run); }
+  function schedule() { win.__ccFrame(run); }
   // the old Today add-on keeps its own buttons state; these two buttons are handled here instead (it no longer hears the page)
   win.addEventListener('click', function (e) {
     var t = e.target && e.target.closest && e.target.closest('#cc-staff .cc-ops-toggle, #cc-staff [data-cc-ops-jump]'); if (!t) return;

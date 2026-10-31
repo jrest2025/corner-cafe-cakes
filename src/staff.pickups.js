@@ -1,3 +1,22 @@
+/* Corner Café: shared frame (31 Oct 2026, cleanup stage 3). One queue for the add-ons' screen passes: they all run in the
+ * same frame, before the screen is drawn, and a pass that changes the page lets the others react in that same frame
+ * (at most 8 rounds), instead of each waiting its own frame or 30 to 60 ms (a visible flash of the unfinished screen). */
+(function (w) {
+  if (w.__ccFrame) return;
+  var q = [], pending = false, inFrame = false, rounds = 0, raf = w.requestAnimationFrame ? w.requestAnimationFrame.bind(w) : function (f) { return setTimeout(f, 16); };
+  function drain() {
+    if (!q.length) return;
+    if (++rounds > 8) { var later = q; q = []; later.forEach(function (f) { f.__ccq = 0; }); raf(function () { later.forEach(function (f) { w.__ccFrame(f); }); }); return; }
+    var list = q; q = [];
+    for (var i = 0; i < list.length; i++) { list[i].__ccq = 0; try { list[i](); } catch (e) { if (w.console) console.warn('[Corner Café frame]', e); } }
+  }
+  w.__ccFrame = function (f) {
+    if (f.__ccq) return; f.__ccq = 1; q.push(f);
+    if (inFrame) { Promise.resolve().then(drain); return; }
+    if (pending) return; pending = true;
+    raf(function () { pending = false; inFrame = true; rounds = 0; setTimeout(function () { inFrame = false; }, 0); drain(); });
+  };
+})(window);
 /* Corner Café Service Hub: Cake pickups by day (27 October 2026). Marker __ccPickups20261027.
  * Roneel's brief "Interactive Daily Pickup Timeline & Booking Lead-Time Analytics"; decisions 27 Oct, 9:52 PM:
  * the new timeline replaces "Busiest pickup days" on Analytics > Cake sales (the protected Daily cake demand on the
@@ -458,7 +477,8 @@
   }
 
   var queued = false;
-  function schedule() { if (queued) return; queued = true; setTimeout(function () { queued = false; try { noOverview(); overviewLead(); mount(); } catch (e) { warn('not shown', e); } }, 30); }
+  function schedule() { win.__ccFrame(schedRun); }
+  function schedRun() { try { noOverview(); overviewLead(); mount(); } catch (e) { warn('not shown', e); } }
   // Roneel, 27 Oct 2026 10:27 PM ("remove this, only this section"): the Overview's Performance snapshot (its heading,
   // 7/30/90 day buttons and the six number cards) is hidden. Popular cake types, Booking channels, Customer mix, the
   // Heartbeat and every other part of the Overview stay as they are.
