@@ -424,3 +424,13 @@ Screens:
 - Switch still Off: live check shows 7 cards, Coming soon, no order box; Order a Cake form loads, no treats.
 - test_festive_page 16 pass, test_festive_link 8 pass.
 - Rollback: /festive footer = git show 08c375a:src/festive/festive-page-footer.html; Order a Cake footer back to guest.seasonal.js @2c17e87 (sha384-5hQ+UBLV7gfkW97eglcrYXi9YfOYZl/WOBSRAFiJXDTJ/7ksyY3l0ZYqBkciowZ6); publish.
+
+## 31 Oct 2026 12:31 PM — App shell tidy (live, loader 72)
+- Side menu stays still on every screen: Old orders under Orders; Marketing at the end of Planning with the shared outline icon and the short label "Marketing".
+- Narrow rail (iPad): logo only (hub name no longer cut off); slim scrollbar.
+- Phone bottom bar: Today, Orders, New order, More. Old orders and Marketing are tiles in More; the Marketing tile now opens Marketing (the add-on's own More entry had no action).
+- Duplicate legacy menu icons hidden (the filled Orders "blob" on phones).
+- Asset check: `ccAssetManifestAll2` lists the analytics workspace files, so the repeated "Unlisted add-on file" error is gone.
+- Checked live: loader 72 and manifest 2 load, no new console errors on a fresh load, menu identical on six screens, phone bar 4 places with no overflow.
+- Rollback: re-apply `ccordertoolsloader71` and `ccAssetManifestAll`, remove 72 and manifest 2, publish.
+- Branch tidy: main now matches live; every branch kept in `archive/all-branches-20261031` (see docs/BRANCHES.md). Deleting branches and pushing tags is blocked for this session; branches can be deleted on GitHub.
