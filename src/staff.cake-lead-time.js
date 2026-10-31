@@ -47,7 +47,7 @@
       var pd=iso(o.pd),od=iso(o.od);if(!pd||pd<'2024-01-01'||pd>'2028-12-31')return;
       var ok=o.odok===true&&od&&od<=pd&&od<=today,q=qtyOf(o),b=bucket(ok?gap(od,pd):null);
       var d=days[pd]||(days[pd]={total:0,orders:0,b:{},cakes:{},rush:0});
-      d.total+=q;d.orders++;d.b[b]=(d.b[b]||0)+q;if(o.rush===true)d.rush++;
+      d.total+=q;d.orders++;d.b[b]=(d.b[b]||0)+q;if(ok&&gap(od,pd)===0)d.same=(d.same||0)+q;if(o.rush===true)d.rush++;
       var n=cakeName(o);d.cakes[n]=(d.cakes[n]||0)+q;
       if(ok&&od===today)takenToday+=q;
       if(!first||pd<first)first=pd;
@@ -64,11 +64,11 @@
   }
 
   function summary(ix,start,today){
-    var tot={},all=0,known=0;
-    for(var d=start;d<=today;d=add(d,1)){var x=ix.days[d];if(!x)continue;
+    var tot={},all=0,known=0,same=0;
+    for(var d=start;d<=today;d=add(d,1)){var x=ix.days[d];if(!x)continue;same+=x.same||0;
       BUCKETS.forEach(function(b){var v=x.b[b.k]||0;tot[b.k]=(tot[b.k]||0)+v;all+=v;if(b.k!=='unknown')known+=v;});}
     var top=null;BUCKETS.forEach(function(b){if(b.k!=='unknown'&&(tot[b.k]||0)>(top?tot[top.k]:0))top=b;});
-    return {tot:tot,all:all,known:known,top:top};
+    return {tot:tot,all:all,known:known,top:top,same:same};
   }
 
   /* Usual cakes for that weekday: the average of the same weekday over the 8 weeks before (before today for
@@ -91,7 +91,7 @@
       var pct=function(v){return s.all?Math.round(100*v/s.all):0;};
       var headline=!s.all?'No cakes picked up in this period yet.':
         'Most cakes are booked <b>'+esc(s.top.label.toLowerCase())+'</b>. '+
-        (pct(s.tot.same||0)?pct(s.tot.same||0)+'% are same-day orders.':'No same-day orders.');
+        (pct(s.same)?pct(s.same)+'% are same-day orders.':'No same-day orders.');
       var strip=BUCKETS.map(function(b){var v=s.tot[b.k]||0;if(!v)return '';
         return '<span style="flex:'+v+';background:'+b.color+'" title="'+esc(b.label+': '+v+' cakes')+'"></span>';}).join('');
       var key=BUCKETS.map(function(b){var v=s.tot[b.k]||0;
@@ -164,7 +164,7 @@
       var x=ix.days[d],el=root.querySelector('.cclt-detail');
       if(!x){var h0=hols(d).map(function(e){return e.name;});el.innerHTML='<h4>'+esc(pretty(d,{year:'numeric'}))+(h0.length?' <small class="cclt-hol">'+esc(h0.join(', '))+'</small>':'')+'</h4><p>No cakes for pickup.</p>';return;}
       var parts=BUCKETS.filter(function(b){return x.b[b.k];}).map(function(b){
-        return '<li><i style="background:'+b.color+'"></i>'+x.b[b.k]+' booked '+esc(b.label.toLowerCase())+'</li>';}).join('');
+        return '<li><i style="background:'+b.color+'"></i>'+x.b[b.k]+(b.k==='unknown'?' with booking date not known':' booked '+esc(b.label.toLowerCase()))+'</li>';}).join('');
       var cakes=Object.keys(x.cakes).sort(function(a,b){return x.cakes[b]-x.cakes[a]||a.localeCompare(b);}).map(function(n){
         return '<li><span>'+esc(n)+'</span><b>'+x.cakes[n]+'</b></li>';}).join('');
       var hn=hols(d).map(function(e){return e.name;});
