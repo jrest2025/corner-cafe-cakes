@@ -470,3 +470,8 @@ Screens:
 ## 31 Oct 2026, 2:45 PM: Customers tile (loader 78, commit 5d20c7b)
 - Tile reads "Customers who ordered" (440 = active customers with a real order, from crm_home) with "469 on file" (all active, unmerged records). Not a data error: the 29 between have no real order.
 - Rollback: loader 77.
+
+## 31 Oct 2026, 2:55 PM: smooth screens (loader 79, commit a0d2c56)
+- No blank on screen change (settle hide replaced by a soft 180 ms ease from 70%; measured: no layout shift without the hide). Loading text appears only after 350 ms. Buttons and cards no longer fade colours on open. Green main buttons by CSS (semantic-colour selector), no style reads while drawing. Shell tidy skips changes inside the page content. Sheet and shade on their own layer.
+- Measured live (desktop): Kitchen 0 dropped frames, Handover 0, Orders/Today/Calendar 2; Customers worst frame 383 -> 233 ms; popup worst frame 167 -> 92 ms. Analytics still has long tasks (up to 460 ms): older add-ons, needs a separate cleanup.
+- Rollback: loader 78.
