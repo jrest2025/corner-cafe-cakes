@@ -10,14 +10,23 @@
  */
 (function(global){
   'use strict';
-  var NAME='CCCakeLeadTime',VERSION='0.3.0',DAY=86400000;
-  var BUCKETS=[
-    {k:'weeks',label:'8 or more days ahead',short:'8+ days',color:'#1f5f3f'},
-    {k:'week',label:'3 to 7 days ahead',short:'3–7 days',color:'#3f8a5f'},
-    {k:'days',label:'1 to 2 days ahead',short:'1–2 days',color:'#7dbb92'},
-    {k:'same',label:'Same day',short:'Same day',color:'#c4e3cd'},
-    {k:'unknown',label:'Booking date not known',short:'Not known',color:'#cbd2d9'}
-  ];
+  var NAME='CCCakeLeadTime',VERSION='0.4.0',DAY=86400000;
+  /* 31 Oct 2026 (Roneel): the same booking-time groups and colours as "Cake pickups by day" — the groups from
+     Settings > Lead-time groups (default 0-3, 4-7, 8-14, 15-30, 31+ days), one clear colour each, warm for short
+     notice and cool for booked ahead; grey for booking date not known. Longest ahead first, as before. */
+  var SHADES=['#F28C28','#F2C14E','#2A9D8F','#3F6FD8','#1F5F57'];
+  var BUCKETS=[],BANDS=[];
+  function setBands(){
+    var src=global.__ccsBands&&global.__ccsBands.length?global.__ccsBands:[['0–3 days',0,3],['4–7 days',4,7],['8–14 days',8,14],['15–30 days',15,30],['31+ days',31,9999]];
+    BANDS=src.map(function(b){return [b[1],b[2]];});var n=src.length,out=[];
+    for(var k=n-1;k>=0;k--){var lo=src[k][1],hi=src[k][2];
+      var lab=hi>=9999?lo+' or more days ahead':lo===hi?(lo?lo+(lo===1?' day ahead':' days ahead'):'Same day'):lo+' to '+hi+' days ahead';
+      var sh=hi>=9999?lo+'+ days':lo===hi?(lo?lo+(lo===1?' day':' days'):'Same day'):lo+'–'+hi+' days';
+      out.push({k:'b'+k,label:lab,short:sh,color:SHADES[Math.round(k*(SHADES.length-1)/Math.max(1,n-1))]});}
+    out.push({k:'unknown',label:'Booking date not known',short:'Not known',color:'#98A2B3'});
+    BUCKETS.length=0;Array.prototype.push.apply(BUCKETS,out);
+  }
+  setBands();
   var RANGES=[{k:'30',label:'Last 30 days',days:30},{k:'90',label:'Last 90 days',days:90},
     {k:'year',label:'This year',days:null},{k:'all',label:'All time',days:0}];
   function iso(d){return typeof d==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(d)?d:'';}
@@ -26,7 +35,7 @@
   function gap(a,b){return Math.round((t(b)-t(a))/DAY);}
   function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(x){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[x];});}
   function pretty(d,opt){return new Date(d+'T12:00:00Z').toLocaleDateString('en-GB',Object.assign({weekday:'short',day:'numeric',month:'short',timeZone:'UTC'},opt||{}));}
-  function bucket(lead){return lead===null?'unknown':lead===0?'same':lead<=2?'days':lead<=7?'week':'weeks';}
+  function bucket(lead){if(lead===null)return 'unknown';for(var k=0;k<BANDS.length;k++)if(lead>=BANDS[k][0]&&lead<=BANDS[k][1])return 'b'+k;return 'b'+(BANDS.length-1);}
   function qtyOf(o){var it=Array.isArray(o.it)?o.it:[];var q=it.reduce(function(s,x){return s+(Number(x&&x[3])||0);},0);return q>0?q:1;}
   function cakeName(o){var x=Array.isArray(o.it)&&o.it[0]||[];var g=x[0]||'Cake',n=x[1]||'';
     return n&&n.toLowerCase()!==String(g).toLowerCase()?n:g;}
@@ -71,7 +80,7 @@
   }
 
   function mount(host,raw,opts){
-    opts=opts||{};var today=iso(opts.today)||new Date().toISOString().slice(0,10);
+    setBands();opts=opts||{};var today=iso(opts.today)||new Date().toISOString().slice(0,10);
     var ix=index(raw,today),state={range:RANGES[0],selected:today};
     var root=opts.root||document.createElement('section');root.className='cclt';root.id='cc-cake-lead-time';
     root.setAttribute('aria-label','Cakes by pickup day and how far ahead they were booked');
@@ -94,7 +103,7 @@
           return '<button type="button" data-r="'+r.k+'" aria-pressed="'+(r===state.range)+'">'+esc(r.label)+'</button>';}).join('')+'</div>'+
         '<div class="cclt-habit"><p>'+headline+'</p><div class="cclt-strip" aria-hidden="true">'+strip+'</div>'+
         '<ul class="cclt-key">'+key+'</ul><p class="cclt-note">'+s.all+' cakes picked up '+esc(state.range.label.toLowerCase())+'.</p>'+
-        '<details class="cc-why"><summary>About this chart</summary><p class="cclt-note">Grey, booking date not known: paper slips and older records with no order date. Amber outline: busiest day. Light orange days: Fiji public holidays. Dark tick: the usual number of cakes for that weekday (average of the 8 weeks before). Amber dot: a short-notice order a manager said yes to.</p></details></div>'+
+        '<details class="cc-why"><summary>About this chart</summary><p class="cclt-note">Grey, booking date not known: paper slips and older records with no order date. Dark outline: busiest day. Light purple days: Fiji public holidays. Dark tick: the usual number of cakes for that weekday (average of the 8 weeks before). Red dot: a short-notice order a manager said yes to.</p></details></div>'+
         '<div class="cclt-chart"><div class="cclt-scroll" tabindex="0" aria-label="Scroll to see more days"></div></div>'+
         '<div class="cclt-detail" aria-live="polite"></div>';
       root.querySelectorAll('[data-r]').forEach(function(btn){btn.onclick=function(){
@@ -125,18 +134,18 @@
         var x0=40+i*bw,dd=ix.days[d],future=d>today,y=top+plot,mid=x0+bw/2;
         var fj=hols(d).filter(function(e){return e.g==='fj'&&e.k==='h';});
         if(future)svg+='<rect x="'+x0+'" y="'+(top-4)+'" width="'+bw+'" height="'+(plot+4)+'" fill="#f5f7fb"/>';
-        if(fj.length)svg+='<rect x="'+x0+'" y="'+(top-4)+'" width="'+bw+'" height="'+(plot+4)+'" fill="#fdf1dc"><title>'+esc(fj.map(function(e){return e.name;}).join(', '))+'</title></rect>';
+        if(fj.length)svg+='<rect x="'+x0+'" y="'+(top-4)+'" width="'+bw+'" height="'+(plot+4)+'" fill="#F4EBF6"><title>'+esc(fj.map(function(e){return e.name;}).join(', '))+'</title></rect>';
         if(d===today)svg+='<rect x="'+x0+'" y="'+(top-22)+'" width="'+bw+'" height="'+(plot+22)+'" rx="5" fill="#eef3fb"/>';
         if(dd){
           var gapPx=bw>=20?4:bw>=14?2:1;
           BUCKETS.slice().reverse().forEach(function(b){var v=dd.b[b.k]||0;if(!v)return;var h=plot*v/max;y-=h;
             svg+='<rect x="'+(x0+gapPx)+'" y="'+y+'" width="'+(bw-gapPx*2)+'" height="'+h+'" fill="'+b.color+'"/>';});
           if(showN||d===busy)svg+='<text x="'+mid+'" y="'+(y-6)+'" text-anchor="middle" class="cclt-n'+(d===busy?' cclt-busy-n':'')+'">'+dd.total+'</text>';
-          if(d===busy)svg+='<rect x="'+(x0+1)+'" y="'+(y-1)+'" width="'+(bw-2)+'" height="'+(top+plot-y+2)+'" fill="none" stroke="#d98b19" stroke-width="2.5" rx="3"/>';
+          if(d===busy)svg+='<rect x="'+(x0+1)+'" y="'+(y-1)+'" width="'+(bw-2)+'" height="'+(top+plot-y+2)+'" fill="none" stroke="#101828" stroke-width="2.5" rx="3"/>';
         }
         var uv=usual(ix,d,today);
         if(uv&&uv>=0.5&&(dd||future)){var uy=top+plot-plot*uv/max;svg+='<line x1="'+(x0+2)+'" x2="'+(x0+bw-2)+'" y1="'+uy+'" y2="'+uy+'" stroke="#344054" stroke-width="2" stroke-linecap="round" class="cclt-usual"><title>'+esc('Usual for a '+pretty(d,{weekday:'long',day:undefined,month:undefined})+': '+uv+' cakes')+'</title></line>';}
-        if(dd&&dd.rush){var ry=Math.max(top-8,(top+plot-plot*dd.total/max)-(showN||d===busy?24:10));svg+='<circle cx="'+mid+'" cy="'+ry+'" r="'+(bw>=20?5:4)+'" fill="#F79009" stroke="#fff" stroke-width="1.5" class="cclt-rush"><title>'+esc(dd.rush+' short-notice order'+(dd.rush===1?'':'s')+' a manager said yes to')+'</title></circle>';}
+        if(dd&&dd.rush){var ry=Math.max(top-8,(top+plot-plot*dd.total/max)-(showN||d===busy?24:10));svg+='<circle cx="'+mid+'" cy="'+ry+'" r="'+(bw>=20?5:4)+'" fill="#B42318" stroke="#fff" stroke-width="1.5" class="cclt-rush"><title>'+esc(dd.rush+' short-notice order'+(dd.rush===1?'':'s')+' a manager said yes to')+'</title></circle>';}
         var dt=new Date(t(d)),day=dt.getUTCDate(),wd='SMTWTFS'[dt.getUTCDay()],mon=d.slice(0,7);
         var tick=showD||d===today||(gap(d,today)%7===0&&Math.abs(gap(d,today))>=4);if(tick)svg+='<text x="'+mid+'" y="'+(top+plot+19)+'" text-anchor="middle" class="cclt-d'+(d===today?' cclt-on':'')+'">'+day+'</text>';
         if(showD)svg+='<text x="'+mid+'" y="'+(top+plot+36)+'" text-anchor="middle" class="cclt-w">'+wd+'</text>';

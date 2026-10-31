@@ -7,7 +7,7 @@
 #cc-staff #cc-demand-views button[aria-pressed="true"]{background:#eaf0fa;border-color:#2f4a7a;color:#2f4a7a}
 #cc-staff #cc-demand-views button:focus-visible{outline:3px solid #618ec7;outline-offset:2px}
 #cc-staff .cclt{margin:0 0 17px}
-#cc-staff #cc-cake-lead-time .cclt-hol{color:#9a5b00!important}
+#cc-staff #cc-cake-lead-time .cclt-hol{color:#6E3F80!important}
 #cc-staff #cc-cake-lead-time{--ink:#1d2939;--muted:#475467;--line:#e1e8e3;--navy:#2f4a7a;--navy-tint:#eaf0fa;background:#fff;border:1px solid var(--line);border-radius:13px;padding:18px 20px;color:var(--ink);font-size:15px;line-height:1.4;min-width:0}
 #cc-staff #cc-cake-lead-time h3{font-size:20px!important;line-height:1.3!important;font-weight:700!important;margin:0 0 4px;color:var(--ink)}
 #cc-staff #cc-cake-lead-time .cclt-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap}
@@ -33,7 +33,7 @@
 #cc-staff #cc-cake-lead-time .cclt-hit{cursor:pointer}
 #cc-staff #cc-cake-lead-time .cclt-ax{font-size:11px;fill:#667085}
 #cc-staff #cc-cake-lead-time .cclt-n{font-size:12px;font-weight:700;fill:#1d2939}
-#cc-staff #cc-cake-lead-time .cclt-busy-n{fill:#b26b00}
+#cc-staff #cc-cake-lead-time .cclt-busy-n{fill:#101828}
 #cc-staff #cc-cake-lead-time .cclt-d{font-size:12px;font-weight:650;fill:#344054}
 #cc-staff #cc-cake-lead-time .cclt-on{fill:var(--navy);font-weight:800}
 #cc-staff #cc-cake-lead-time .cclt-w{font-size:10px;fill:#667085}
