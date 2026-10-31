@@ -1821,7 +1821,9 @@
     'html:not(#ccq0) body:not(#ccq1) #cc-staff .ccs-btn.ccx-main:not([disabled]){background:' + G + '!important;border-color:' + G + '!important;color:#fff!important}',
     '@media (hover:hover){html:not(#ccq0) body:not(#ccq1) #cc-staff .ccs-btn.ccx-main:not([disabled]):hover{background:' + GH + '!important;border-color:' + GH + '!important}}',
     // Campaign Manager in the app's look
-    '#cc-campaigns-modal .cm-shell{font-family:inherit;color:#1D2939;border-radius:16px!important}',
+    '#cc-campaigns-modal .cm-shell{font-family:inherit;color:#1D2939;border-radius:16px!important;background:#fff!important}',
+    '#cc-campaigns-modal .cm-shell section,#cc-campaigns-modal .cm-shell header{background:#fff!important}',
+    '#cc-campaigns-modal button:focus{outline:none}#cc-campaigns-modal button:focus-visible{outline:2px solid #B2CCE8!important;outline-offset:2px}',
     '#cc-campaigns-modal header small{font-size:12px!important;letter-spacing:.06em;color:#667085!important}',
     '#cc-campaigns-modal #cm-title{font-size:24px!important;font-weight:600!important;color:#101828!important}',
     '#cc-campaigns-modal header p{font-size:13px!important;font-style:italic;color:#667085!important}',
@@ -1899,6 +1901,12 @@
     }
   }
   function notes() {
+    // order popup banner said "Due today 9:00 AM, now." hours after the time: say how late instead
+    [].forEach.call(doc.querySelectorAll('#cc-staff .os-w'), function (w) {
+      var src = w.getAttribute('data-ccx-src') || w.textContent, m = /^Due today (\d{1,2}:\d{2} [AP]M), now\.(.*)$/.exec(src.trim());
+      if (!m) return; var by = nowMin() - mins(m[1]); if (!(by > 0)) return;
+      var v = dur(by) + ' late.' + m[2]; if (w.textContent !== v) { w.setAttribute('data-ccx-src', src); w.textContent = v; }
+    });
     [].forEach.call(doc.querySelectorAll('#cc-staff .ccs-note:not([data-ccx])'), function (p) {
       var m = /^Short-notice order:\s*(.*)$/i.exec(p.textContent.trim()); p.setAttribute('data-ccx', '1');
       if (m && (!m[1] || /^short[\s-]*notice[.!]*$/i.test(m[1].trim()))) p.textContent = 'Short-notice order';
