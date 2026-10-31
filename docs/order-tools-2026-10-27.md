@@ -466,3 +466,7 @@ Screens:
 - Analytics opens after about 0.6 s instead of 0.8 to 1.8 s.
 - Checked live: 4 tiles after coming back, late chips correct, Save handover note green.
 - Rollback: put loader 76 back on page 6aca162870735ac2247de4dd and publish.
+
+## 31 Oct 2026, 2:45 PM: Customers tile (loader 78, commit 5d20c7b)
+- Tile reads "Customers who ordered" (440 = active customers with a real order, from crm_home) with "469 on file" (all active, unmerged records). Not a data error: the 29 between have no real order.
+- Rollback: loader 77.
