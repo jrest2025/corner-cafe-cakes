@@ -329,8 +329,24 @@
   // ---------- Daily cake demand on Cake sales (moved from the Overview, Roneel 27 Oct 10:45 PM) ----------
   // The protected module is mounted exactly as the Overview mounts it (CCCakeSeasonalStage.mount, then
   // CCCakeDemandRail.mount, the same orders and date); nothing inside it is changed. Only its place on screen moves.
+  // (31 Oct 2026, cleanup stage 4) The app draws Analytics up to three times while its data arrives, each time with a
+  // fresh copy of the same orders. Charts already built for identical data are put back instead of rebuilt from ~650 orders.
+  var memo = typeof WeakMap === 'function' ? new WeakMap() : null, dCache = null, pCache = null;
+  function keyOf(x) {
+    if (!x) return '';
+    if (memo && memo.has(x)) return memo.get(x);
+    var o = x.data && (x.data.allOrders || x.data.orders), k;
+    try { k = (typeof x.today === 'function' ? x.today() : '') + '|' + JSON.stringify(o); } catch (e) { k = 'x' + Math.random(); }
+    if (memo) memo.set(x, k);
+    return k;
+  }
   function demand(pg, x) {
-    if (pg.querySelector('.pk-demand')) return;
+    var have = pg.querySelector('.pk-demand');
+    if (have) { dCache = { key: keyOf(x), node: have }; return; }
+    if (dCache && dCache.node && !dCache.node.isConnected && dCache.key === keyOf(x)) {
+      var a0 = pg.querySelector(':scope > .cat-main'); if (a0) a0.before(dCache.node); else pg.appendChild(dCache.node);
+      return;
+    }
     var S = win.CCCakeSeasonalStage, R = win.CCCakeDemandRail, orders = x.data && (x.data.allOrders || x.data.orders);
     if (!S || !R || typeof S.mount !== 'function' || typeof R.mount !== 'function' || !orders) return;
     var w = doc.createElement('div'); w.className = 'pk-demand';
@@ -376,7 +392,16 @@
     var pl = doc.querySelector('#cc-staff #ccs-main .cat-page[data-cat="pl"]');
     if (pl && L && L.mod === 'pl') { try { season(pl, L.x); } catch (e) { warn('Seasonal booking buildup not moved', e); } }
     if (pg && L && L.mod === 'sl') { try { demand(pg, L.x); } catch (e) { warn('Daily cake demand not moved', e); } var dw = pg.querySelector('.pk-demand'); if (dw && dw.querySelector('#cc-demand-views, #cc-cake-lead-time')) tidyDemand(dw); }
-    if (!pg || !L || L.mod !== 'sl' || pg.querySelector('.pk')) return;
+    if (!pg || !L || L.mod !== 'sl') return;
+    var havePk = pg.querySelector('.pk');
+    if (havePk) { pCache = { key: keyOf(L.x), node: havePk }; return; }
+    if (pCache && pCache.node && !pCache.node.isConnected && pCache.key === keyOf(L.x)) {
+      var mc = pg.querySelector(':scope > .cat-main'); if (mc) mc.after(pCache.node); else pg.appendChild(pCache.node);
+      try { var t4 = doc.createElement('div'); t4.innerHTML = trio(L.x); if (t4.firstChild) pCache.node.after(t4.firstChild); } catch (e) { warn('moved cards not shown', e); }
+      [].forEach.call(doc.querySelectorAll('#ccs-main section.cat-card[aria-label="Busiest pickup days"], #ccs-main [data-ccf-title="Busiest pickup days"]'), function (c) { c.hidden = true; c.setAttribute('data-pk-replaced', '1'); });
+      var rr = pCache.node.querySelector('.pk-rail'); if (rr && scrollAt != null) rr.scrollLeft = scrollAt;
+      return;
+    }
     styles();
     setBands(); data = build(L.x);
     var host = doc.createElement('div'); host.innerHTML = card(data);
