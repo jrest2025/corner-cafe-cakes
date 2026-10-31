@@ -1703,3 +1703,93 @@
   }
   if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', start); else start();
 })();
+
+// ---------- 31 Oct 2026 (Roneel: "interfaces and popups should be smooth") — motion and speed ----------
+// 1. Dates: the app formats dates thousands of times when it draws Analytics, building a new formatter each time.
+//    The same formatter is now built once and reused: identical words, about 4 times less work (Analytics no longer freezes on iPads).
+(function(){
+  'use strict';
+  if (window.__ccDateFmtCache) return; window.__ccDateFmtCache = true;
+  var I = window.Intl; if (!I || !I.DateTimeFormat) return;
+  var Orig = I.DateTimeFormat, cache = Object.create(null), n = 0;
+  function key(l, o) { if (o === null || (o !== undefined && typeof o !== 'object')) return null; try { return JSON.stringify([l === undefined ? '~u' : l, o === undefined ? '~u' : o]); } catch (e) { return null; } }
+  function get(l, o) {
+    var k = key(l, o); if (k === null) return new Orig(l, o);
+    var f = cache[k]; if (f) return f;
+    if (n > 400) { cache = Object.create(null); n = 0; }
+    n++; return (cache[k] = new Orig(l, o));
+  }
+  // same formatter for the same language and options: built once, reused (formatters never change once built)
+  var DTF = function DateTimeFormat(l, o) { return get(l, o); };
+  DTF.prototype = Orig.prototype;
+  DTF.supportedLocalesOf = Orig.supportedLocalesOf.bind(Orig);
+  try { Object.defineProperty(DTF, 'name', { value: 'DateTimeFormat' }); } catch (e) {}
+  I.DateTimeFormat = DTF;
+  var DATE = ['weekday', 'year', 'month', 'day'], TIME = ['dayPeriod', 'hour', 'minute', 'second', 'fractionalSecondDigits'];
+  function opts(o, req, def) {   // the language standard's ToDateTimeOptions, so the words come out exactly as before
+    var x = {}, k; if (o != null) { if (typeof o !== 'object') return undefined; for (k in o) x[k] = o[k]; }
+    if ((req === 'date' && x.timeStyle !== undefined) || (req === 'time' && x.dateStyle !== undefined)) return undefined;   // the original raises the error
+    var need = !(x.dateStyle !== undefined || x.timeStyle !== undefined);
+    if (need && req !== 'time') DATE.forEach(function (p) { if (x[p] !== undefined) need = false; });
+    if (need && req !== 'date') TIME.forEach(function (p) { if (x[p] !== undefined) need = false; });
+    if (need && (def === 'date' || def === 'all')) { x.year = 'numeric'; x.month = 'numeric'; x.day = 'numeric'; }
+    if (need && (def === 'time' || def === 'all')) { x.hour = 'numeric'; x.minute = 'numeric'; x.second = 'numeric'; }
+    return x;
+  }
+  var P = Date.prototype;
+  function wrap(name, req, def) {
+    var o = P[name];
+    P[name] = function (l, op) {
+      var t = this.getTime(); if (t !== t) return o.call(this, l, op);
+      if (op === null || (op !== undefined && typeof op !== 'object')) return o.call(this, l, op);
+      try { var x = opts(op, req, def); return x ? get(l, x).format(this) : o.call(this, l, op); } catch (e) { return o.call(this, l, op); }
+    };
+  }
+  wrap('toLocaleDateString', 'date', 'date'); wrap('toLocaleString', 'any', 'all'); wrap('toLocaleTimeString', 'time', 'time');
+})();
+// 2. Analytics opens without jumping: its two menu rows arrive a moment after the page, so the page waits (at most 0.9 s)
+//    until they are in place, then fades in once. 3. Phone header keeps one compact size (it used to grow and shrink with
+//    every scroll and screen change, moving the whole page). 4. The Act now panel no longer re-animates on every refresh.
+(function () {
+  'use strict';
+  var win = window, doc = document;
+  if (win.__ccMotion20261031) return; win.__ccMotion20261031 = true;
+  var H = doc.documentElement;
+  var st = doc.createElement('style'); st.id = 'ccx-motion-style';
+  st.textContent = [
+    'html[data-ccx-hold] #cc-staff #ccs-main{opacity:0!important}',
+    'html[data-ccx-in] #cc-staff #ccs-main{transition:opacity 160ms cubic-bezier(.2,0,0,1)}',
+    '#cc-staff .ap-pane{animation:none!important}',
+    // touch screens: buttons drawn fresh on each screen no longer fade their colours in (a flash on every change)
+    '@media (hover:none){#cc-staff .ccs-btn{transition:none!important}}',
+    '@media (max-width:759px){#cc-staff .ccs-app .ccs-side,#cc-staff .ccs-app .ccs-side .ccs-brand{transition:none!important}',
+    '#cc-staff .ccs-app .ccs-side{padding-top:6px!important;padding-bottom:6px!important}',
+    '#cc-staff .ccs-app .ccs-side .ccs-brand{width:78px!important;padding-top:28px!important;background-size:78px auto!important}',
+    '#cc-staff .ccs-app .ccs-side .ccs-brand small{display:none!important}',
+    '#cc-staff .ccs-app .ccs-topnew{min-height:40px!important;padding:0 12px!important}',
+    '#cc-staff .ccs-app .ccs-side .ccs-avatar{width:36px!important;height:36px!important;min-width:36px!important}}',
+    '@media (prefers-reduced-motion:reduce){html[data-ccx-in] #cc-staff #ccs-main{transition:none}}'
+  ].join('\n');
+  (doc.head || H).appendChild(st);
+  var t = null, mo = null;
+  function ready() { var m = doc.getElementById('ccs-main'); return !!(m && m.querySelector('.an-mods') && m.querySelector('.cc-nav5') && m.querySelector('.cat-page')); }
+  function show() {
+    if (mo) { mo.disconnect(); mo = null; } clearTimeout(t);
+    if (!H.hasAttribute('data-ccx-hold')) return;
+    H.removeAttribute('data-ccx-hold'); H.setAttribute('data-ccx-in', '');
+    setTimeout(function () { H.removeAttribute('data-ccx-in'); }, 220);
+  }
+  function hold() {
+    if (ready()) return;
+    H.setAttribute('data-ccx-hold', '');
+    var quiet = 0, root = doc.getElementById('cc-staff');
+    mo = new MutationObserver(function () { quiet = 0; });
+    if (root) mo.observe(root, { childList: true, subtree: true });
+    (function tick() { if (!mo) return; if (ready() && ++quiet >= 2) return show(); win.requestAnimationFrame(tick); })();
+    t = setTimeout(show, 900);   // never stays hidden
+  }
+  doc.addEventListener('click', function (e) {
+    var b = e.target && e.target.closest && e.target.closest('#cc-staff [data-tab="dash"]');
+    if (b && !b.classList.contains('on') && b.getAttribute('aria-current') !== 'page') hold();
+  }, true);
+})();
