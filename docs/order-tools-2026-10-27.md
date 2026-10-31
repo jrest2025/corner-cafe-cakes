@@ -448,3 +448,7 @@ Screens:
 - Deployed differently from the plan: the page head is 50 KB and is rewritten whole by the API, so it was not touched. The chart 0.4.0 ships in loader 74 (commit 3bbf958), which loads after the head's older copy and replaces it before Analytics draws (checked live: CCCakeLeadTime 0.4.0, no new errors). 0.4.0 carries its own two colour overrides for the older stylesheet.
 - Still to do (one line, Webflow Designer > staff page settings > custom code, head): in the script with id cc-lead-view-loader, change 595c7f986f3739054a5b8cf227eb0f8e28d8118a to 3bbf958a06bf25cce95b969db733b378f10db465. Then the chart loads its new stylesheet too; the loader copy can then be dropped. Head copy saved as docs/staff-head-rollback-20261031.html.
 - Rollback: re-apply ccordertoolsloader73, publish.
+
+## 31 Oct 2026 1:21 PM — Cake pickups by day polish (live, loader 75)
+- Headline: last-minute share (first Settings group) with change against the period before (30 and 90 days). Orange at the base of each bar. Key shortest-notice first, empty groups hidden, short labels on phones. "By booking time" view of Daily cake demand retired (switch and chart hidden; rail forced to its normal view). test_pickups 47 pass.
+- Rollback: re-apply ccordertoolsloader74, publish.
