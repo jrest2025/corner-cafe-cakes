@@ -1804,7 +1804,7 @@
   'use strict';
   var win = window, doc = document;
   if (win.__ccSteady20261031) return; win.__ccSteady20261031 = true;
-  var NAVY = '#245F99', NAVY_D = '#1C4C7C';
+  var NAVY = '#245F99', G = '#3D5230', GH = '#32441F';
   var DESK = win.matchMedia ? win.matchMedia('(min-width:1100px) and (pointer:fine)') : { matches: true };
   var css = [
     // Today: late chip
@@ -1817,9 +1817,9 @@
     'html body #cc-staff #ccs-main .kw-main .kw-counts{align-self:start!important;grid-template-columns:repeat(3,minmax(0,1fr))!important}',
     'html body #cc-staff #ccs-main .kw-main .kw-secs{align-self:start!important}',
     'html body #cc-staff #ccs-main .kw-main .kw-secs>.kw-sec{width:auto!important;max-width:none!important;align-self:stretch!important;flex:0 0 auto!important}}',
-    // one main button colour: navy (green stays only for "good/ready" actions)
-    'html body #cc-staff .ccs-btn.ccs-new,html body #cc-staff .ccs-btn.ccs-newtop,html body #cc-staff .ccs-topnew,html body #cc-staff .ccs-toolbar .ccs-btn[data-act="cust-new"]{background:' + NAVY + '!important;border-color:' + NAVY + '!important;color:#fff!important}',
-    '@media (hover:hover){html body #cc-staff .ccs-btn.ccs-new:hover,html body #cc-staff .ccs-btn.ccs-newtop:hover,html body #cc-staff .ccs-topnew:hover,html body #cc-staff .ccs-toolbar .ccs-btn[data-act="cust-new"]:hover{background:' + NAVY_D + '!important;border-color:' + NAVY_D + '!important}}',
+    // one main button colour: Corner Café deep green (Roneel, 28 Oct). Some filled buttons were still the old blue.
+    'html:not(#ccq0) body:not(#ccq1) #cc-staff .ccs-btn.ccx-main:not([disabled]){background:' + G + '!important;border-color:' + G + '!important;color:#fff!important}',
+    '@media (hover:hover){html:not(#ccq0) body:not(#ccq1) #cc-staff .ccs-btn.ccx-main:not([disabled]):hover{background:' + GH + '!important;border-color:' + GH + '!important}}',
     // Campaign Manager in the app's look
     '#cc-campaigns-modal .cm-shell{font-family:inherit;color:#1D2939;border-radius:16px!important}',
     '#cc-campaigns-modal header small{font-size:12px!important;letter-spacing:.06em;color:#667085!important}',
@@ -1835,8 +1835,8 @@
     '#cc-campaigns-modal .cm-metrics>div strong{font-size:20px!important;font-weight:600!important;color:#101828!important;font-variant-numeric:tabular-nums}',
     '#cc-campaigns-modal button{min-height:40px!important;padding:0 14px!important;border-radius:10px!important;font-size:14px!important;font-weight:500!important;border:1px solid #D0D5DD!important;background:#fff!important;color:#1D2939!important;cursor:pointer}',
     '#cc-campaigns-modal button:hover{background:#F9FAFB!important}',
-    '#cc-campaigns-modal button.cm-primary{background:' + NAVY + '!important;border-color:' + NAVY + '!important;color:#fff!important}',
-    '#cc-campaigns-modal button.cm-primary:hover{background:' + NAVY_D + '!important}',
+    '#cc-campaigns-modal button.cm-primary{background:' + G + '!important;border-color:' + G + '!important;color:#fff!important}',
+    '#cc-campaigns-modal button.cm-primary:hover{background:' + GH + '!important}',
     '#cc-campaigns-modal button.cm-close{width:40px!important;padding:0!important;border-radius:999px!important;font-size:20px!important}',
     '#cc-campaigns-modal label{font-size:14px!important;color:#344054!important}',
     '#cc-campaigns-modal input,#cc-campaigns-modal textarea,#cc-campaigns-modal select{min-height:42px;font-size:15px!important;color:#1D2939!important;border:1px solid #D0D5DD!important;border-radius:10px!important;background-color:#fff!important;padding:0 12px!important}',
@@ -1904,8 +1904,16 @@
       if (m && (!m[1] || /^short[\s-]*notice[.!]*$/i.test(m[1].trim()))) p.textContent = 'Short-notice order';
     });
   }
+  // filled buttons still in the old blue: mark them once so they take the deep green
+  function mains() {
+    [].forEach.call(doc.querySelectorAll('#cc-staff .ccs-btn:not(.ccx-main):not(.ccx-nm)'), function (b) {
+      if (!b.offsetParent || b.disabled || b.matches(':hover')) return;
+      var bg = win.getComputedStyle(b).backgroundColor;
+      if (bg === 'rgb(36, 95, 153)') b.classList.add('ccx-main'); else b.classList.add('ccx-nm');
+    });
+  }
   var q = false;
-  function run() { q = false; try { styles(); var main = doc.querySelector('#cc-staff #ccs-main[data-screen="today"]'); if (main) today(main); notes(); } catch (e) { if (win.console) console.warn('[Steady]', e); } }
+  function run() { q = false; try { styles(); mains(); var main = doc.querySelector('#cc-staff #ccs-main[data-screen="today"]'); if (main) today(main); notes(); } catch (e) { if (win.console) console.warn('[Steady]', e); } }
   function schedule() { if (q) return; q = true; (win.requestAnimationFrame || setTimeout)(run); }
   // the old Today add-on keeps its own buttons state; these two buttons are handled here instead (it no longer hears the page)
   win.addEventListener('click', function (e) {
