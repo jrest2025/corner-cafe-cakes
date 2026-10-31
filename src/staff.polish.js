@@ -10,12 +10,15 @@
     var list = q; q = [];
     for (var i = 0; i < list.length; i++) { list[i].__ccq = 0; try { list[i](); } catch (e) { if (w.console) console.warn('[Corner Café frame]', e); } }
   }
+  var quiet = false;
   w.__ccFrame = function (f) {
-    if (f.__ccq) return; f.__ccq = 1; q.push(f);
+    if (quiet || f.__ccq) return; f.__ccq = 1; q.push(f);
     if (inFrame) { Promise.resolve().then(drain); return; }
     if (pending) return; pending = true;
     raf(function () { pending = false; inFrame = true; rounds = 0; setTimeout(function () { inFrame = false; }, 0); drain(); });
   };
+  // (31 Oct) a dropdown or small popup opening or closing changes nothing the add-ons care about: their passes skip it
+  w.__ccFrame.quiet = function (fn) { quiet = true; try { return fn(); } finally { setTimeout(function () { quiet = false; }, 0); } };
 })(window);
 /* Corner Café Service Hub: polish (26 October 2026).
  * Roneel: "refine corner cake crm even further, use icons where appropriate" and "options should be in drop downs, not
@@ -231,7 +234,8 @@
     var h = '<span class="ccdd-l">' + esc(d.label) + '</span><span class="ccdd-v">' + (ic ? svg(ic) : '') + '<span>' + esc(cur.t) + '</span>' + (cur.n ? '<em class="ccdd-n">' + esc(cur.n) + '</em>' : '') + '</span>' + svg('chev', 'ccdd-chev');
     if (d.btn.getAttribute('data-h') !== h) { d.btn.innerHTML = h; d.btn.setAttribute('data-h', h); d.btn.setAttribute('aria-label', d.label + ': ' + cur.t); }
   }
-  function ddOpen(d) {
+  function ddOpen(d) { return (win.__ccFrame && win.__ccFrame.quiet) ? win.__ccFrame.quiet(function () { ddOpen0(d); }) : ddOpen0(d); }
+  function ddOpen0(d) {
     ddClose();
     var opts = ddOptions(d), root = doc.getElementById('cc-staff') || doc.body, sheet = phone();
     var list = '<ul class="ccdd-list" role="listbox" aria-label="' + esc(d.label) + '">' + opts.map(function (x, i) {
@@ -252,7 +256,9 @@
     d.btn.setAttribute('aria-expanded', 'true'); d.btn.classList.add('is-open');
     var f = pop.querySelector('.ccdd-opt.is-on') || pop.querySelector('.ccdd-opt:not(.is-off)'); if (f) { f.focus({ preventScroll: true }); try { f.scrollIntoView({ block: 'nearest' }); } catch (_) {} }
   }
-  function ddClose(focusBtn) {
+  var ddPicking = false;
+  function ddClose(focusBtn) { if (!openDD) return; return (!ddPicking && win.__ccFrame && win.__ccFrame.quiet) ? win.__ccFrame.quiet(function () { ddClose0(focusBtn); }) : ddClose0(focusBtn); }
+  function ddClose0(focusBtn) {
     if (!openDD) return;
     var d = openDD.d; openDD.pop.remove(); openDD = null;
     if (d.btn.isConnected) { d.btn.setAttribute('aria-expanded', 'false'); d.btn.classList.remove('is-open'); if (focusBtn) d.btn.focus({ preventScroll: true }); }
@@ -260,7 +266,7 @@
   function ddPick(i) {
     if (!openDD) return;
     var d = openDD.d, x = openDD.opts[i]; if (!x || x.off) return;
-    ddClose(true);
+    ddPicking = true; try { ddClose(true); } finally { ddPicking = false; }   // a real choice: the add-ons must follow the app's redraw
     if (x.on) return;
     if (d.sel) { d.sel.value = x.v; d.sel.dispatchEvent(new Event('input', { bubbles: true })); d.sel.dispatchEvent(new Event('change', { bubbles: true })); }
     else if (x.el) x.el.click();
@@ -1831,6 +1837,9 @@
     'html body #cc-staff .ccs-btn{transition-property:box-shadow,transform!important;transition-duration:.12s!important}',
     'html body #cc-staff .ccs-mini,html body #cc-staff .cc-act-row,html body #cc-staff .ccs-card{transition-property:box-shadow!important;transition-duration:.12s!important}',
     '#cc-staff #ccs-sheet{will-change:transform}#cc-staff #ccs-shade{will-change:opacity}',
+    // order window (computers): opens at its full size, so it no longer grows from a small "Loading" box and re-centres
+    // each time the app redraws it (it jumped about 290 px, then wobbled while the details arrived)
+    '@media (min-width:1280px){html body #ccs-sheet.ccs-sheet.is-review{height:min(830px,calc(var(--cc-edge-height,100dvh) - 32px))!important}}',
     // Today: late chip
     '#cc-staff #ccs-main .tq-left.ccx-late{display:inline-flex!important;align-items:center;gap:5px;white-space:nowrap!important;text-align:left!important}',
     '#cc-staff #ccs-main .tq-left.ccx-late .ccq2-i{width:14px;height:14px;flex:none;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}',

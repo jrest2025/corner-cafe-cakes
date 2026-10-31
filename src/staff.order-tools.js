@@ -10,12 +10,15 @@
     var list = q; q = [];
     for (var i = 0; i < list.length; i++) { list[i].__ccq = 0; try { list[i](); } catch (e) { if (w.console) console.warn('[Corner Café frame]', e); } }
   }
+  var quiet = false;
   w.__ccFrame = function (f) {
-    if (f.__ccq) return; f.__ccq = 1; q.push(f);
+    if (quiet || f.__ccq) return; f.__ccq = 1; q.push(f);
     if (inFrame) { Promise.resolve().then(drain); return; }
     if (pending) return; pending = true;
     raf(function () { pending = false; inFrame = true; rounds = 0; setTimeout(function () { inFrame = false; }, 0); drain(); });
   };
+  // (31 Oct) a dropdown or small popup opening or closing changes nothing the add-ons care about: their passes skip it
+  w.__ccFrame.quiet = function (fn) { quiet = true; try { return fn(); } finally { setTimeout(function () { quiet = false; }, 0); } };
 })(window);
 /* Corner Café Service Hub: order tools (26 October 2026).
  * Roneel: "staff is not able to enter future dates of pickup on the order form. also there should be an order
