@@ -303,6 +303,15 @@ async function guestTemplate(kind: string): Promise<{ template: any | null; enab
   } catch (_e) { return { template: null, enabled: true }; }
 }
 
+async function bankDetails(orderId: string) {
+  try {
+    const [o] = await db(`orders?id=eq.${orderId}&select=location_id`);
+    if (!o) return null;
+    const [b] = await db(`payment_settings?location_id=eq.${o.location_id}&select=bank_name,account_name,account_number,bsb,swift,show_in_emails`);
+    return b && b.show_in_emails !== false ? b : null;
+  } catch (_e) { return null; }
+}
+
 async function config() { const rows: any[] = await db(`app_config?key=in.(test_mode,test_email,from_email,reply_to)&select=key,value`); return Object.fromEntries(rows.map((r) => [r.key, r.value])); }
 
 // A sample slip with invented details, sent from Settings so the printer PC can be checked without a real order
@@ -425,6 +434,8 @@ async function processOutbox() {
           held++; continue;
         }
         d.template = tp.template;
+        // Bank transfer details for the confirmation and deposit emails (Settings, admins only). Missing: the old wording is used.
+        if (m.kind === "guest_confirmed" || m.kind === "guest_updated" || m.kind === "guest_deposit_needed") d.bank = await bankDetails(m.order_id);
       }
       const cfg = d.config ?? {};
       let att: { filename: string; content: string }[] | undefined;

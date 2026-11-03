@@ -23,7 +23,28 @@ const first = (n: string) => (n || "").trim().split(/\s+/)[0] || "there";
 type Row = [string, string, boolean?];
 type Mail = { kind: string; subject: string; preheader: string; chip?: [string, "wait" | "good" | "stop" | "quiet"]; heading: string;
   lines: string[]; rows?: Row[]; money?: Row[]; buttons?: [string, string, boolean?][]; after?: string[]; promo?: boolean; hero?: boolean; tagline?: string;
-  introHtml?: string; closingHtml?: string; version?: string | null };
+  introHtml?: string; closingHtml?: string; version?: string | null; bank?: { html: string; text: string } | null };
+
+// ---------- bank transfer details (3 Nov 2026, Roneel) ----------
+// The details come from Settings (payment_settings, admins only), loaded by index.ts as d.bank. They are never typed into an email.
+// When they are missing or switched off, the email keeps the old wording ("reply and we'll send the details").
+function bankBlock(d: any, amount: number, label: string): { html: string; text: string } | null {
+  const b = d.bank, ref = d.order?.reference;
+  if (!b || !b.account_number || !(amount > 0)) return null;
+  const rows: Row[] = [[label, money(amount)], ["Bank", b.bank_name], ["Account name", b.account_name], ["Account number", b.account_number],
+    ...(b.bsb ? [["BSB", b.bsb] as Row] : []), ...(b.swift ? [["Swift code", b.swift] as Row] : []), ["Reference", ref]];
+  const note1 = `Please use <strong>${esc(ref)}</strong> as the payment reference so we can match it to your order. Once you've paid, reply to this email with your receipt.`;
+  const note2 = `We'll mark it paid once it reaches our account. Paying by card instead? A 2% surcharge applies to card payments.`;
+  const html = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1.5px solid ${GREEN};border-radius:14px;border-collapse:separate;margin:0 0 20px">
+    <tr><td style="padding:14px 16px 4px;font:bold 12px ${FONT};letter-spacing:.12em;text-transform:uppercase;color:${GREEN}">Pay by bank transfer</td></tr>
+    <tr><td style="padding:0 16px 4px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0">${table(rows)}</table></td></tr>
+    <tr><td style="padding:4px 16px 14px;border-top:1px solid ${LINE}">${para(note1, `font-size:14px;margin:10px 0 8px;color:${INK}`)}${para(note2, `font-size:14px;margin:0;color:${MUTED}`)}</td></tr>
+  </table>`;
+  const text = ["Pay by bank transfer", ...rows.map(([k, v]) => `${k}: ${v}`),
+    `Please use ${ref} as the payment reference. Once you've paid, reply to this email with your receipt.`,
+    `We'll mark it paid once it reaches our account. Paying by card instead? A 2% surcharge applies to card payments.`].join("\n");
+  return { html, text };
+}
 
 // Days until the cake is due, in Fiji time: "Today", "Tomorrow", "9 days to go"
 function countdown(d: string) {
@@ -96,7 +117,7 @@ function moneyRows(d: any, confirmed: boolean): Row[] {
   rows.push(["Total", money(total)]);
   if (paid > 0) rows.push(["Paid", money(paid)]);
   const due = Math.max(total - paid, 0);
-  rows.push(["To pay", due > 0 ? `${money(due)} on ${isDelivery(o) ? "delivery" : "collection"}` : "Nothing, all paid"]);
+  rows.push(["To pay", due > 0 ? `${money(due)} ${d.bank?.account_number ? "by bank transfer or " : ""}on ${isDelivery(o) ? "delivery" : "collection"}` : "Nothing, all paid"]);
   return rows;
 }
 
@@ -176,6 +197,7 @@ function render(d: any, m: Mail): { subject: string; html: string; text: string 
     `<h1 style="margin:${m.chip ? "14px" : "0"} 0 10px;font:bold 26px/1.25 ${FONT};color:${INK}">${esc(m.heading)}</h1>`) +
     (m.introHtml ?? m.lines.map((l) => para(l)).join("")) +
     (m.rows ? orderCard(d, m.rows, m.money ?? []) : "") +
+    (m.bank ? m.bank.html : "") +
     (m.buttons?.length ? `<div style="margin:0 0 18px;font-size:0;line-height:0">${m.buttons.map(([l, u, o]) => `<div style="display:inline-block;margin:0 10px 10px 0">${button(u, l, o)}</div>`).join("")}</div>` : "") +
     (m.closingHtml ?? (m.after ?? []).map((l) => para(l, `font-size:15px;color:${MUTED}`)).join(""));
   const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light only"><title>${esc(loc.name)}</title></head>
@@ -207,6 +229,7 @@ function render(d: any, m: Mail): { subject: string; html: string; text: string 
     m.chip ? `[${m.chip[0]}]` : "", m.heading, "", ...(m.introHtml != null ? [blockText(m.introHtml)] : m.lines.map(strip)), "",
     ...(m.rows ? [`${longDate(o.required_date)}, ${t12(o.required_time)} (${isDelivery(o) ? "delivery" : "pickup"}), order ${o.reference}`,
       ...m.rows.map(([k, v]) => `${k}: ${v}`), ...(m.money ?? []).map(([k, v]) => `${k}: ${v}`), ""] : []),
+    ...(m.bank ? [m.bank.text, ""] : []),
     ...(m.buttons ?? []).map(([l, u]) => `${l}: ${u}`), ...(m.closingHtml != null ? [blockText(m.closingHtml)] : (m.after ?? []).map(strip)),
   ].filter((x, k, a) => !(x === "" && a[k - 1] === "")).join("\n").trim() + promoText(cards, m.kind) +
     `\n\n${loc.name}\n${loc.address || ""}\n${loc.phone || ""}${loc.email ? " · " + loc.email : ""}` +
@@ -246,9 +269,10 @@ export function buildGuest(kind: string, d: any): { subject: string; html: strin
       return R({ kind, subject: `Corner Café | One step left: your deposit (${ref})`,
         preheader: `A deposit of ${money(o.deposit_required)} locks in your cake.`,
         chip: ["Deposit needed", "wait"], heading: `Good news, ${name}. We can make your cake.`,
-        lines: [`To lock it in, we need a deposit of <strong>${money(o.deposit_required)}</strong>. You can pay at the café counter by cash, EFTPOS or M-PAiSA. For a bank transfer, reply to this email and we'll send the details.`,
+        lines: [`To lock it in, we need a deposit of <strong>${money(o.deposit_required)}</strong>. You can pay at the café counter by cash, EFTPOS or M-PAiSA, ${bankBlock(d, Number(o.deposit_required), "Deposit") ? "or by bank transfer (details below)." : "or by bank transfer: reply to this email and we'll send the details."}`,
           `Your order is confirmed once the deposit is received.`],
-        rows: orderRows(d), money: [...splitRows(d, Number(o.final_total ?? o.estimate_total ?? 0)), ["Total", money(o.final_total ?? o.estimate_total)], ["Deposit", money(o.deposit_required)]], after: [reply] });
+        rows: orderRows(d), money: [...splitRows(d, Number(o.final_total ?? o.estimate_total ?? 0)), ["Total", money(o.final_total ?? o.estimate_total)], ["Deposit", money(o.deposit_required)]],
+        bank: bankBlock(d, Number(o.deposit_required), "Deposit"), after: [reply] });
     case "guest_confirmed":
     case "guest_updated": {
       const upd = kind === "guest_updated";
@@ -258,6 +282,7 @@ export function buildGuest(kind: string, d: any): { subject: string; html: strin
         lines: [upd ? `Here are your new details. Please check them, and tell us if anything looks wrong.`
           : isDelivery(o) ? `It's all booked in. We'll deliver it on ${esc(when)}.` : `It's all booked in. We'll have it ready for you on ${esc(when)}.`],
         rows: orderRows(d), money: moneyRows(d, true),
+        bank: bankBlock(d, Math.max(Number(o.final_total ?? o.estimate_total ?? 0) - Number(d.paid_total ?? 0), 0), "Amount to pay"),
         buttons: [["Add to calendar", calendarLink(d)], ...(isDelivery(o) ? [] : [["Get directions", mapLink(loc), true] as [string, string, boolean]])],
         after: [reply], promo: !upd });
     }
@@ -351,7 +376,7 @@ export const DEFAULTS: Record<string, Record<string, string>> = {
     closing: `<p><strong>Your cake isn't booked yet.</strong> To go ahead, reply to this email or call <a href="tel:{{store_phone}}">{{store_phone}}</a>. We'll confirm it once we hear back.</p><p>Want to change something? Just tell us and we'll update the details and the price.</p>` },
   guest_deposit_needed: { subject: "Corner Café | One step left: your deposit ({{order_reference}})", preheader: "A deposit of {{deposit_amount}} locks in your cake.",
     label: "Deposit needed", heading: "Good news, {{customer_name}}. We can make your cake.", tagline: "",
-    intro: "<p>To lock it in, we need a deposit of <strong>{{deposit_amount}}</strong>. You can pay at the café counter by cash, EFTPOS or M-PAiSA. For a bank transfer, reply to this email and we'll send the details.</p><p>Your order is confirmed once the deposit is received.</p>", closing: PH },
+    intro: "<p>To lock it in, we need a deposit of <strong>{{deposit_amount}}</strong>. You can pay at the café counter by cash, EFTPOS or M-PAiSA, or by bank transfer (the details are shown below the order).</p><p>Your order is confirmed once the deposit is received.</p>", closing: PH },
   guest_confirmed: { subject: "Corner Café | Your cake order is confirmed! ({{order_reference}})", preheader: "{{cake_type}}, {{pickup_or_delivery}} {{collection_date}} at {{collection_time}}.",
     label: "Confirmed · {{countdown}}", heading: "Bula {{customer_name}}, your cake is confirmed!", tagline: "Make every moment sweeter.",
     intro: "<p>It's all booked in. We'll have it ready for you on {{collection_date}} at {{collection_time}}.</p>", closing: PH },
