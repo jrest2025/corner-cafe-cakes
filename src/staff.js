@@ -36,6 +36,7 @@
     declined: ['Declined', 'off'], cancelled: ['Cancelled', 'off']
   };
   // How customers pay at the counter. M-PAiSA is the Vodafone Fiji mobile wallet.
+  var OTHER_ZONE = '__other_area';
   var PAY_METHODS = [['cash', 'Cash'], ['eftpos', 'EFTPOS'], ['mpaisa', 'M-PAiSA'], ['bank_transfer', 'Bank transfer']];
   function payMethodLabel(m) { var x = PAY_METHODS.filter(function (y) { return y[0] === m; })[0]; return x ? x[1] : String(m || '').replace('_', ' '); }
   var PAY = { unpaid: 'Unpaid', deposit_paid: 'Part paid', paid: 'Paid', refunded: 'Refunded' };
@@ -1164,6 +1165,7 @@
       brief_printed: 'Kitchen slip v' + d.version + (d.new_version ? ' printed' : ' reprinted') + (d.changes && d.changes.length ? ' (changed: ' + d.changes.join(', ') + ')' : ''),
       fulfilment: d.method === 'delivery' ? 'Set to delivery, ' + (d.zone || '') + ', fee ' + money(d.fee) : 'Set to collection',
        delivery_waived: 'Complimentary delivery to ' + (d.zone || 'the guest') + ' (usual fee ' + money(d.standard_fee || 0) + ')' + (d.reason ? ': ' + d.reason : ''),
+       delivery_fee_changed: d.custom ? 'Delivery to ' + (d.zone || 'another area') + ' (not on the list), charge ' + money(d.fee || 0) : 'Delivery charge to ' + (d.zone || 'the area') + ' set to ' + money(d.fee || 0) + ' (usual fee ' + money(d.standard_fee || 0) + ')' + (d.reason ? ': ' + d.reason : ''),
       assigned: d.to ? 'Assigned to ' + d.to : 'Assignment cleared', amended: 'Amended, revision ' + d.revision + (d.reason ? ' (' + d.reason + ')' : ''), kitchen_ack: 'Kitchen acknowledged the changes', candles_changed: 'Candles ' + (d.to ? (d.from ? 'changed to “' + d.to + '”' : 'added: “' + d.to + '”') : 'removed'), deleted: 'Deleted', restored: 'Restored after being deleted', imported: 'Brought in from the Google Sheet', sheet_linked: 'Linked to its Google Sheet row' };
     map.quoted = 'Price set to ' + money(d.price) + (d.total != null && Number(d.total) !== Number(d.price) ? ' (total ' + money(d.total) + ' with delivery)' : '') + (d.size ? ', size: ' + d.size : '') + (d.flavour ? ', flavour: ' + d.flavour : '');
     map.photo_removed = 'Photo removed from the order' + (d.file ? ' (' + d.file + ')' : '');
@@ -1233,12 +1235,23 @@
         '<div class="ccs-actions-row"><button type="button" class="ccs-btn ccs-danger" data-act="do-delete">Delete order</button><button type="button" class="ccs-btn ccs-ghost" data-act="panel" data-v="">Back</button></div></div>';
     }
     if (p === 'fulfil') {
-      var F = S.ful, zones = (S.setup && S.setup.delivery_zones) || [], zf = zones.filter(function (z) { return z.name === F.zone; })[0];
+      var F = S.ful, zones = ((S.setup && S.setup.delivery_zones) || []).filter(function (z) { return !/^other area$/i.test(z.name); }), zf = zones.filter(function (z) { return z.name === F.zone; })[0], fOther = F.zone === OTHER_ZONE;
+      var fMode = F.waived ? 'complimentary' : F.feeDiff ? 'different' : 'standard';
       return '<div class="ccs-panel"><b>Collection or delivery</b><div class="ccs-chips"><button type="button" class="ccs-chip" data-act="f-method" data-v="collection" aria-pressed="' + (F.method === 'collection') + '">Collect from café</button><button type="button" class="ccs-chip" data-act="f-method" data-v="delivery" aria-pressed="' + (F.method === 'delivery') + '">Delivery</button></div>' +
-        (F.method === 'delivery' ? '<div class="ccs-field"><span class="ccs-label">Area</span><div class="ccs-chips">' + zones.map(function (z) { return '<button type="button" class="ccs-chip" data-act="f-zone" data-v="' + esc(z.name) + '" aria-pressed="' + (F.zone === z.name) + '">' + esc(z.name) + (z.fee != null ? ' · ' + money(z.fee) : '') + '</button>'; }).join('') + '</div></div>' +
+        (F.method === 'delivery' ? '<div class="ccs-field"><span class="ccs-label">Area</span><div class="ccs-chips">' + zones.map(function (z) { return '<button type="button" class="ccs-chip" data-act="f-zone" data-v="' + esc(z.name) + '" aria-pressed="' + (F.zone === z.name) + '">' + esc(z.name) + (z.fee != null ? ' · ' + money(z.fee) : '') + '</button>'; }).join('') +
+          '<button type="button" class="ccs-chip" data-act="f-zone" data-v="' + OTHER_ZONE + '" aria-pressed="' + fOther + '">Other area</button></div></div>' +
+          (fOther ? '<div class="ccs-row"><div class="ccs-field"><label class="ccs-label" for="f-other-zone">Area</label><input class="ccs-input" id="f-other-zone" data-f="otherZone" value="' + esc(F.otherZone || '') + '" placeholder="For example: Sabeto" maxlength="60"></div>' +
+            '<div class="ccs-field"><label class="ccs-label" for="f-fee">Delivery charge (FJD)</label><input class="ccs-input" id="f-fee" data-f="fee" inputmode="decimal" value="' + esc(F.fee) + '"></div></div>' +
+            '<p class="ccs-hint"><em>For this order only. It is not added to the delivery areas list.</em></p>' : '') +
           '<div class="ccs-field"><label class="ccs-label" for="f-address">Delivery address</label><input class="ccs-input" id="f-address" data-f="address" value="' + esc(F.address) + '"></div>' +
-          (zf ? '<div class="ccs-field"><span class="ccs-label">Delivery charge</span><div class="ccs-chips" role="group" aria-label="Delivery charge"><button type="button" class="ccs-chip" data-act="f-fee-mode" data-v="standard" aria-pressed="' + !F.waived + '">Standard fee' + (zf.fee != null ? ' · ' + money(zf.fee) : '') + '</button><button type="button" class="ccs-chip" data-act="f-fee-mode" data-v="complimentary" aria-pressed="' + !!F.waived + '">Complimentary · FJ$0</button></div></div>' : '') +
-          (F.waived ? (F.wasWaived && F.zone === F.originalZone ? '<p class="ccs-hint">Delivery was already complimentary for this order.</p>' : '<div class="ccs-field"><label class="ccs-label" for="f-waiver-reason">Why is the delivery complimentary? (required)</label><input class="ccs-input" id="f-waiver-reason" data-f="waiverReason" value="' + esc(F.waiverReason || '') + '" placeholder="For example: customer goodwill" maxlength="200"></div>') : (zf && zf.fee == null ? '<div class="ccs-field"><label class="ccs-label" for="f-fee">Delivery fee (FJD)</label><input class="ccs-input" id="f-fee" data-f="fee" inputmode="decimal" value="' + esc(F.fee) + '"></div>' : '')) +
+          (zf ? '<div class="ccs-field"><span class="ccs-label">Delivery charge</span><div class="ccs-chips" role="group" aria-label="Delivery charge"><button type="button" class="ccs-chip" data-act="f-fee-mode" data-v="standard" aria-pressed="' + (fMode === 'standard') + '">Standard fee' + (zf.fee != null ? ' · ' + money(zf.fee) : '') + '</button>' +
+            (zf.fee != null ? '<button type="button" class="ccs-chip" data-act="f-fee-mode" data-v="different" aria-pressed="' + (fMode === 'different') + '">Different amount</button>' : '') +
+            '<button type="button" class="ccs-chip" data-act="f-fee-mode" data-v="complimentary" aria-pressed="' + (fMode === 'complimentary') + '">Complimentary · FJ$0</button></div></div>' : '') +
+          (zf && F.waived ? (F.wasWaived && F.zone === F.originalZone ? '<p class="ccs-hint">Delivery was already complimentary for this order.</p>' : '<div class="ccs-field"><label class="ccs-label" for="f-waiver-reason">Why is the delivery complimentary? (required)</label><input class="ccs-input" id="f-waiver-reason" data-f="waiverReason" value="' + esc(F.waiverReason || '') + '" placeholder="For example: customer goodwill" maxlength="200"></div>') : '') +
+          (zf && zf.fee != null && F.feeDiff ? '<div class="ccs-row"><div class="ccs-field"><label class="ccs-label" for="f-fee">Delivery charge (FJD)</label><input class="ccs-input" id="f-fee" data-f="fee" inputmode="decimal" value="' + esc(F.fee) + '"></div>' +
+            '<div class="ccs-field"><label class="ccs-label" for="f-fee-reason">Reason (required)</label><input class="ccs-input" id="f-fee-reason" data-f="feeReason" value="' + esc(F.feeReason || '') + '" placeholder="For example: far end of Denarau" maxlength="200"></div></div>' +
+            '<p class="ccs-hint"><em>The usual ' + money(zf.fee) + ' and the new charge both go in the order history.</em></p>' : '') +
+          (zf && zf.fee == null && !F.waived ? '<div class="ccs-field"><label class="ccs-label" for="f-fee">Delivery fee (FJD)</label><input class="ccs-input" id="f-fee" data-f="fee" inputmode="decimal" value="' + esc(F.fee) + '"></div>' : '') +
           '<div class="ccs-field"><label class="ccs-label" for="f-contact">Who receives it (optional)</label><input class="ccs-input" id="f-contact" data-f="contact" value="' + esc(F.contact) + '" placeholder="Name, room or reception"></div>' : '') +
         '<p class="ccs-hint">The delivery fee is added to the order price.</p>' + err +
         '<div class="ccs-actions-row"><button type="button" class="ccs-btn ccs-good" data-act="do-fulfil">Save</button><button type="button" class="ccs-btn ccs-ghost" data-act="panel" data-v="">Back</button></div></div>';
@@ -1430,13 +1443,19 @@
   function panelNeed(msg) { clearBusy(); S.panelErr = msg; renderSheet(); var f = document.getElementById('ccs-note'); if (f) f.focus(); }
   function saveFulfil() {
     var o = S.sheet.data, F = S.ful; if (S.busy) return;
+    var fOther = F.zone === OTHER_ZONE, zoneName = fOther ? (F.otherZone || '').trim() : F.zone;
     if (F.method === 'delivery' && !F.zone) { S.panelErr = 'Choose a delivery area.'; return renderSheet(); }
-    var newWaiver = F.method === 'delivery' && F.waived && (!F.wasWaived || F.zone !== F.originalZone);
+    if (F.method === 'delivery' && fOther && zoneName.length < 2) { S.panelErr = 'Type the delivery area.'; return renderSheet(); }
+    if (F.method === 'delivery' && (fOther || F.feeDiff) && (num(F.fee) == null || num(F.fee) < 0)) { S.panelErr = 'Enter the delivery charge.'; return renderSheet(); }
+    var newWaiver = F.method === 'delivery' && !fOther && F.waived && (!F.wasWaived || F.zone !== F.originalZone);
     if (newWaiver && (F.waiverReason || '').trim().length < 3) { S.panelErr = 'Add a reason for complimentary delivery.'; return renderSheet(); }
+    var newDiff = F.method === 'delivery' && !fOther && F.feeDiff && (F.zone !== F.originalZone || num(F.fee) !== F.originalFee);
+    if (newDiff && (F.feeReason || '').trim().length < 3) { S.panelErr = 'Add a reason for the different charge.'; return renderSheet(); }
     S.busy = true; S.panelErr = null;
-    var args = { p_order: o.id, p_version: o.version, p_method: F.method, p_zone: F.method === 'delivery' ? F.zone : null, p_address: F.method === 'delivery' ? F.address : null, p_fee: F.method === 'delivery' ? (F.waived ? 0 : num(F.fee)) : null, p_contact: F.method === 'delivery' ? F.contact : null };
-    if (newWaiver) args.p_reason = F.waiverReason.trim();
-    sb.rpc(newWaiver ? 'staff_set_fulfilment_with_waiver' : 'staff_set_fulfilment', args)
+    var args = { p_order: o.id, p_version: o.version, p_method: F.method, p_zone: F.method === 'delivery' ? zoneName : null, p_address: F.method === 'delivery' ? F.address : null,
+      p_fee: F.method === 'delivery' ? (fOther || F.feeDiff ? num(F.fee) : F.waived ? 0 : num(F.fee)) : null, p_contact: F.method === 'delivery' ? F.contact : null,
+      p_reason: newWaiver ? F.waiverReason.trim() : newDiff ? F.feeReason.trim() : null };
+    sb.rpc('staff_set_fulfilment_v2', args)
       .then(function (r) {
         S.busy = false; if (r.error) throw r.error;
         if (!r.data.ok) { if (r.data.error === 'changed') { S.panelErr = CONFLICT; reloadOrderKeep(o.id); } else { S.panelErr = r.data.message; renderSheet(); } return; }
@@ -2029,11 +2048,13 @@
     h += sec('when', 'Date and time', nice(a.date) + ', ' + t12(a.time),
       '<div class="ccs-row"><div class="ccs-field"><label class="ccs-label" for="am-date">Date</label><input class="ccs-input" type="date" id="am-date" data-am="date" value="' + esc(a.date) + '"></div>' +
       '<div class="ccs-field"><label class="ccs-label" for="am-time">Time</label><select class="ccs-input" id="am-time" data-am="time">' + slots.map(function (x) { return '<option value="' + x + '"' + (x === a.time ? ' selected' : '') + '>' + t12(x) + '</option>'; }).join('') + '</select></div></div>');
-    var zones = (S.setup && S.setup.delivery_zones) || [], zNow = zones.filter(function (x) { return x.name === a.zone; })[0];
+    var zones = ((S.setup && S.setup.delivery_zones) || []).filter(function (z) { return !/^other area$/i.test(z.name); }), zNow = zones.filter(function (x) { return x.name === a.zone; })[0], amOther = !!a.zoneOther || (!!a.zone && !zNow);
     h += sec('deliv', 'Collection or delivery', a.method === 'delivery' ? 'Delivery' + (a.zone ? ' to ' + a.zone : '') + ' · ' + money(num(a.fee) || 0) : 'Collect from the café',
       '<div class="ccs-chips">' + chip('method', 'collection', 'Collect from the café', a.method === 'collection') + chip('method', 'delivery', 'Delivery', a.method === 'delivery') + '</div>' +
       (a.method === 'delivery' ? '<div class="ccs-row"><div class="ccs-field"><label class="ccs-label" for="am-zone">Delivery area</label><select class="ccs-input" id="am-zone" data-am="zone"><option value="">Choose an area</option>' +
-        zones.map(function (x) { return '<option value="' + esc(x.name) + '"' + (x.name === a.zone ? ' selected' : '') + '>' + esc(x.name) + (x.fee != null ? ' (' + money(Number(x.fee)) + ')' : '') + '</option>'; }).join('') + '</select></div>' +
+        zones.map(function (x) { return '<option value="' + esc(x.name) + '"' + (!amOther && x.name === a.zone ? ' selected' : '') + '>' + esc(x.name) + (x.fee != null ? ' (' + money(Number(x.fee)) + ')' : '') + '</option>'; }).join('') +
+        '<option value="' + OTHER_ZONE + '"' + (amOther ? ' selected' : '') + '>Other area (type it)</option></select></div>' +
+        (amOther ? fld('am-zone-other', 'zone', 'Area', a.zone, ' maxlength="60" placeholder="For example: Sabeto"') : '') +
         fld('am-fee', 'fee', 'Delivery fee (FJD)', a.fee, ' inputmode="decimal" style="max-width:180px"') + '</div>' +
         (zNow && zNow.fee != null ? '<div class="ccs-chips" role="group" aria-label="Delivery charge"><button type="button" class="ccs-chip" data-act="am-fee-mode" data-v="standard" aria-pressed="' + (num(a.fee) !== 0) + '">Standard fee · ' + money(zNow.fee) + '</button><button type="button" class="ccs-chip" data-act="am-fee-mode" data-v="complimentary" aria-pressed="' + (num(a.fee) === 0) + '">Complimentary · FJ$0</button></div>' : '') +
         (zNow && zNow.fee != null && num(a.fee) !== Number(zNow.fee) ? '<p class="ccs-hint">The usual fee for ' + esc(zNow.name) + ' is ' + money(Number(zNow.fee)) + '. The change history records both.</p>' : '') +
@@ -2372,7 +2393,7 @@
   function phPicker(id, label, link) { return '<label class="' + (link ? 'ccs-link ccs-phlink' : 'ccs-btn ccs-ghost ccs-phadd') + '"><input type="file" id="' + id + '" accept="image/jpeg,image/png,image/webp" multiple class="ccs-sr">' + label + '</label>'; }
   function freshDraft() { return { key: uuid(), source: null, taken: null, takenDate: '', step: 0, reached: 0, phone: '', noMob: null, matches: null, customer: null, isNew: false, name: '', email: '', whatsapp: true, optIn: null,
     product: null, req: false, sizeNote: '', reqPrice: '', variant: null, size: null, finish: 'standard', design: '', photos: [], phErr: null, message: '', candles: '', occasion: null, occOther: '', diet: null, diets: [], dietNote: '', notes: '', qty: 1,
-    date: '', time: '', rush: '', rushBy: '', fromCal: false, method: 'collection', zone: null, address: '', fee: '', deliveryWaived: false, deliveryWaiverReason: '', contact: '', confirmNow: false, askDeposit: false, deposit: '', payNow: false, payAmount: '', payMethod: 'cash', result: null, err: null, errField: null }; }
+    date: '', time: '', rush: '', rushBy: '', fromCal: false, method: 'collection', zone: null, address: '', fee: '', deliveryWaived: false, deliveryWaiverReason: '', feeDiff: false, feeReason: '', otherZone: '', contact: '', confirmNow: false, askDeposit: false, deposit: '', payNow: false, payAmount: '', payMethod: 'cash', result: null, err: null, errField: null }; }
   var D = freshDraft();
   // Unfinished walk-in orders are kept on this device for 12 hours, per staff login, and cleared at sign out (U6)
   function draftKey() { return S.me ? 'ccs-draft-' + S.me.user_id : null; }
@@ -2525,9 +2546,32 @@
   function sizeObj() { var p = prod(); return p && D.size ? p.sizes.filter(function (s) { return s.inch === D.size; })[0] : null; }
   function dPrice() { if (D.req) { var rp = num(D.reqPrice); return rp != null && rp > 0 ? rp : null; } var s = sizeObj(); return s ? Number(s.price) * (D.qty || 1) : null; }
   function zoneObj() { return ((S.setup && S.setup.delivery_zones) || []).filter(function (z) { return z.name === D.zone; })[0] || null; }
-  function dFee() { if (D.method !== 'delivery') return 0; var z = zoneObj(); if (!z) return 0; if (D.deliveryWaived) return 0; return z.fee != null ? Number(z.fee) : (num(D.fee) || 0); }
+  // Delivery (3 Nov 2026): staff can type an area that is not on the list (a one-off, never added to the list),
+  // or give a listed area a different charge with a short reason. Both are recorded in the order history.
+  function isOtherZone() { return D.zone === OTHER_ZONE; }
+  function zName() { return isOtherZone() ? (D.otherZone || '').trim() : (D.zone || ''); }
+  function dFee() { if (D.method !== 'delivery') return 0; if (isOtherZone()) return num(D.fee) || 0; var z = zoneObj(); if (!z) return 0; if (D.deliveryWaived) return 0; if (D.feeDiff) return num(D.fee) || 0; return z.fee != null ? Number(z.fee) : (num(D.fee) || 0); }
   function dTotal() { var p = dPrice(); return p == null ? null : p + dFee(); }
-  function delivOk() { if (D.method !== 'delivery') return true; var z = zoneObj(), f = num(D.fee); return !!z && D.address.trim().length >= 5 && (D.deliveryWaived ? (D.deliveryWaiverReason || '').trim().length >= 3 : (z.fee != null || (f != null && f >= 0))); }
+  // What is still missing in the delivery details, in plain words (the stepper shows it under the step)
+  function delivNeed() {
+    var f = num(D.fee);
+    if (!zoneObj() && !isOtherZone()) return 'Choose the delivery area';
+    if (isOtherZone() && zName().length < 2) return 'Type the delivery area';
+    if (D.address.trim().length < 5) return 'Enter the delivery address';
+    if (D.deliveryWaived && !isOtherZone()) return 'Add a reason for complimentary delivery';
+    if ((isOtherZone() || D.feeDiff || (zoneObj() && zoneObj().fee == null)) && (f == null || f < 0)) return 'Enter the delivery charge';
+    if (D.feeDiff) return 'Add a reason for the different charge';
+    return 'Finish the delivery details';
+  }
+  function delivOk() {
+    if (D.method !== 'delivery') return true; var z = zoneObj(), f = num(D.fee);
+    if (D.address.trim().length < 5) return false;
+    if (isOtherZone()) return zName().length >= 2 && f != null && f >= 0;
+    if (!z) return false;
+    if (D.deliveryWaived) return (D.deliveryWaiverReason || '').trim().length >= 3;
+    if (D.feeDiff) return f != null && f >= 0 && (D.feeReason || '').trim().length >= 3;
+    return z.fee != null || (f != null && f >= 0);
+  }
   function leadDays() { var L = S.setup.location, p = prod(); return D.finish === 'custom' ? L.lead_days_custom : (p ? p.lead_days : L.lead_days_standard); }
   function minDate() { return addDays(today(), leadDays()); }
   // Quick picks for who approved a short-notice order: the signed-in manager, then names used recently on this device
@@ -2542,7 +2586,7 @@
     { k: 'Customer', sum: function () { return D.customer ? D.customer.full_name + ' · ' + D.customer.phone + (D.customer.orders_count ? ' · ' + D.customer.orders_count + ' earlier orders' : '') : (D.isNew && D.name ? D.name + ' · ' + D.phone + ' (new)' : ''); } },
     { k: 'Cake', sum: function () { var p = prod(); return p && D.size && (!p.variants.length || D.variant) ? (D.variant || p.name) + ', ' + D.size + ' inch' + (D.qty > 1 ? ' × ' + D.qty : '') + ' · ' + money(dPrice()) : ''; } },
     { k: 'Finish', sum: function () { if (!D.finish || !D.diet || (D.finish === 'custom' && D.design.trim().length < 3)) return ''; return [D.finish === 'custom' ? 'Custom design' : 'Standard finish', D.message ? '“' + D.message + '”' : '', D.candles ? 'Candles: ' + D.candles : '', D.occasion, D.diet === 'yes' ? (D.diets.join(', ') || 'Dietary noted') : 'No dietary needs'].filter(Boolean).join(' · '); } },
-    { k: 'When', sum: function () { return D.date && D.time && rushOk() && delivOk() ? nice(D.date) + ' at ' + t12(D.time) + (tooSoon() ? ' (short notice)' : '') + (D.method === 'delivery' ? ' · Delivery to ' + D.zone + ' (' + money(dFee()) + ')' : ' · Collect from café') : ''; } },
+    { k: 'When', sum: function () { return D.date && D.time && rushOk() && delivOk() ? nice(D.date) + ' at ' + t12(D.time) + (tooSoon() ? ' (short notice)' : '') + (D.method === 'delivery' ? ' · Delivery to ' + zName() + ' (' + money(dFee()) + ')' : ' · Collect from café') : ''; } },
     { k: 'Payment', sum: function () { return ''; } }
   ];
   function nextOpen(from) { for (var i = from; i < NSTEPS.length; i++) if (!NSTEPS[i].sum() || i === NSTEPS.length - 1) return i; return NSTEPS.length - 1; }
@@ -2629,13 +2673,22 @@
     var L = S.setup.location, slots = [], o = L.collection_open.split(':').map(Number), c = L.collection_close.split(':').map(Number);
     for (var m = o[0] * 60 + o[1]; m <= c[0] * 60 + c[1]; m += L.slot_minutes) slots.push(String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'));
     var closed = D.date >= today() && (S.setup.closed_dates || []).indexOf(D.date) > -1;
-    var dl = D.method === 'delivery', zones = S.setup.delivery_zones || [], zo = zoneObj();
+    var dl = D.method === 'delivery', zones = (S.setup.delivery_zones || []).filter(function (z) { return !/^other area$/i.test(z.name); }), zo = zoneObj();
     var h = (noHead ? '' : '<h2 class="ccs-step-q">Collection or delivery, and when?</h2>') + '<div class="ccs-chips"><button type="button" class="ccs-chip" data-act="n-method" data-v="collection" aria-pressed="' + !dl + '">Collect from café</button><button type="button" class="ccs-chip" data-act="n-method" data-v="delivery" aria-pressed="' + dl + '">Delivery</button></div>';
     if (dl) {
-      h += '<div class="ccs-panel"><div class="ccs-field"><span class="ccs-label">Delivery area</span><div class="ccs-chips">' + zones.map(function (z) { return '<button type="button" class="ccs-chip" data-act="n-zone" data-v="' + esc(z.name) + '" aria-pressed="' + (D.zone === z.name) + '">' + esc(z.name) + (z.fee != null ? ' · ' + money(z.fee) : ' · set fee') + '</button>'; }).join('') + '</div>' + ferr('zone') + '</div>' +
+      h += '<div class="ccs-panel"><div class="ccs-field"><span class="ccs-label">Delivery area</span><div class="ccs-chips">' + zones.map(function (z) { return '<button type="button" class="ccs-chip" data-act="n-zone" data-v="' + esc(z.name) + '" aria-pressed="' + (D.zone === z.name) + '">' + esc(z.name) + (z.fee != null ? ' · ' + money(z.fee) : ' · set fee') + '</button>'; }).join('') +
+        '<button type="button" class="ccs-chip" data-act="n-zone" data-v="' + OTHER_ZONE + '" aria-pressed="' + isOtherZone() + '">Other area</button></div>' + ferr('zone') + '</div>' +
+        (isOtherZone() ? '<div class="ccs-row"><div class="ccs-field"><label class="ccs-label" for="n-other-zone">Area</label><input class="ccs-input" id="n-other-zone" data-n="otherZone" value="' + esc(D.otherZone || '') + '" placeholder="For example: Sabeto" maxlength="60" autocomplete="off"></div>' +
+          '<div class="ccs-field"><label class="ccs-label" for="n-fee">Delivery charge (FJD)</label><input class="ccs-input" id="n-fee" data-n="fee" inputmode="decimal" value="' + esc(D.fee) + '"></div></div>' +
+          '<p class="ccs-hint"><em>For this order only. It is not added to the delivery areas list.</em></p>' + ferr('fee') : '') +
         '<div class="ccs-field"><label class="ccs-label" for="n-address">Delivery address</label><input class="ccs-input" id="n-address" data-n="address" value="' + esc(D.address) + '" placeholder="Street, resort or business name" autocomplete="off"></div>' + ferr('address') +
-        (zo ? '<div class="ccs-field"><span class="ccs-label">Delivery charge</span><div class="ccs-chips" role="group" aria-label="Delivery charge"><button type="button" class="ccs-chip" data-act="n-delivery-charge" data-v="standard" aria-pressed="' + !D.deliveryWaived + '">Standard fee' + (zo.fee != null ? ' · ' + money(zo.fee) : '') + '</button><button type="button" class="ccs-chip" data-act="n-delivery-charge" data-v="complimentary" aria-pressed="' + !!D.deliveryWaived + '">Complimentary · FJ$0</button></div></div>' : '') +
-        (D.deliveryWaived ? '<div class="ccs-field"><label class="ccs-label" for="n-delivery-waiver-reason">Reason for complimentary delivery (required)</label><input class="ccs-input" id="n-delivery-waiver-reason" data-n="deliveryWaiverReason" value="' + esc(D.deliveryWaiverReason || '') + '" placeholder="For example: customer goodwill" maxlength="200"></div>' + ferr('fee') : (zo && zo.fee == null ? '<div class="ccs-field"><label class="ccs-label" for="n-fee">Delivery fee (FJD)</label><input class="ccs-input" id="n-fee" data-n="fee" inputmode="decimal" value="' + esc(D.fee) + '"></div>' + ferr('fee') : '')) +
+        (zo ? '<div class="ccs-field"><span class="ccs-label">Delivery charge</span><div class="ccs-chips" role="group" aria-label="Delivery charge"><button type="button" class="ccs-chip" data-act="n-delivery-charge" data-v="standard" aria-pressed="' + (!D.deliveryWaived && !D.feeDiff) + '">Standard fee' + (zo.fee != null ? ' · ' + money(zo.fee) : '') + '</button>' +
+          (zo.fee != null ? '<button type="button" class="ccs-chip" data-act="n-delivery-charge" data-v="different" aria-pressed="' + !!D.feeDiff + '">Different amount</button>' : '') +
+          '<button type="button" class="ccs-chip" data-act="n-delivery-charge" data-v="complimentary" aria-pressed="' + !!D.deliveryWaived + '">Complimentary · FJ$0</button></div></div>' : '') +
+        (zo && zo.fee != null && D.feeDiff ? '<div class="ccs-row"><div class="ccs-field"><label class="ccs-label" for="n-fee">Delivery charge (FJD)</label><input class="ccs-input" id="n-fee" data-n="fee" inputmode="decimal" value="' + esc(D.fee) + '"></div>' +
+          '<div class="ccs-field"><label class="ccs-label" for="n-fee-reason">Reason (required)</label><input class="ccs-input" id="n-fee-reason" data-n="feeReason" value="' + esc(D.feeReason || '') + '" placeholder="For example: far end of Denarau" maxlength="200"></div></div>' +
+          '<p class="ccs-hint"><em>The usual ' + money(zo.fee) + ' and your new charge both go in the order history.</em></p>' + ferr('fee') : '') +
+        (D.deliveryWaived && zo ? '<div class="ccs-field"><label class="ccs-label" for="n-delivery-waiver-reason">Reason for complimentary delivery (required)</label><input class="ccs-input" id="n-delivery-waiver-reason" data-n="deliveryWaiverReason" value="' + esc(D.deliveryWaiverReason || '') + '" placeholder="For example: customer goodwill" maxlength="200"></div>' + ferr('fee') : (zo && zo.fee == null ? '<div class="ccs-field"><label class="ccs-label" for="n-fee">Delivery fee (FJD)</label><input class="ccs-input" id="n-fee" data-n="fee" inputmode="decimal" value="' + esc(D.fee) + '"></div>' + ferr('fee') : '')) +
         '<div class="ccs-field"><label class="ccs-label" for="n-contact">Who receives it (optional)</label><input class="ccs-input" id="n-contact" data-n="contact" value="' + esc(D.contact) + '" placeholder="Name, room or reception"></div></div>';
     }
     // Quick date choices from the earliest allowed day; the calendar stays for anything else (U21)
@@ -2661,11 +2714,11 @@
       h += '<div class="ccs-field"><span class="ccs-label">' + (dl ? 'Delivery time' : 'Collection time') + '</span><div class="ccs-chips ccs-timegrid">' + slots.map(function (s) { var past = D.date === today() && s <= nowT, n = at[s] || 0; return '<button type="button" class="ccs-chip' + (n ? ' has-booked' : '') + '" data-act="n-time" data-v="' + s + '" aria-pressed="' + (D.time === s) + '"' + (past ? ' disabled' : '') + (n ? ' aria-label="' + t12(s) + ', ' + n + ' already booked"' : '') + '>' + t12(s) + (n ? '<span class="ccs-n">' + n + '</span>' : '') + '</button>'; }).join('') + '</div>' + (wl ? '<span class="ccs-hint">Numbers show pickups already booked at that time.</span>' : '') + ferr('time') + '</div>';
       h += workloadBox(wl);
     }
-    return part === 'date' ? h.slice(0, mid) : part === 'time' ? (D.date ? '<p class="sl-whenis">' + esc(nice(D.date, true)) + (D.method === 'delivery' ? ', delivery to ' + esc(D.zone || '') : ', collect from café') + ' <button type="button" class="ccs-link" data-act="sl-whenpart" data-v="date">Change</button></p>' : '') + h.slice(mid) : h;
+    return part === 'date' ? h.slice(0, mid) : part === 'time' ? (D.date ? '<p class="sl-whenis">' + esc(nice(D.date, true)) + (D.method === 'delivery' ? ', delivery to ' + esc(zName()) : ', collect from café') + ' <button type="button" class="ccs-link" data-act="sl-whenpart" data-v="date">Change</button></p>' : '') + h.slice(mid) : h;
   }
   function stepPay(inSlip) {
     var price = dTotal(), custom = D.finish === 'custom';
-    var h = (inSlip ? '' : '<h2 class="ccs-step-q">Price and payment</h2>') + (D.method === 'delivery' && !(D.req && price == null) ? '<dl class="ccs-kv"><dt>Cake</dt><dd>' + money(dPrice()) + '</dd><dt>Delivery</dt><dd>' + (D.deliveryWaived ? 'Complimentary' : money(dFee())) + ', ' + esc(D.zone || '') + '</dd></dl>' : '') +
+    var h = (inSlip ? '' : '<h2 class="ccs-step-q">Price and payment</h2>') + (D.method === 'delivery' && !(D.req && price == null) ? '<dl class="ccs-kv"><dt>Cake</dt><dd>' + money(dPrice()) + '</dd><dt>Delivery</dt><dd>' + (D.deliveryWaived && !isOtherZone() ? 'Complimentary' : money(dFee())) + ', ' + esc(zName()) + '</dd></dl>' : '') +
       (D.req ? '<div class="ccs-total"><span>' + (price == null ? 'Price' : 'Agreed price') + '</span><b>' + (price == null ? 'To be priced' : money(price)) + '</b></div>' : '<div class="ccs-total"><span>' + (custom ? 'Starting price before custom design' : 'Price') + '</span><b>' + money(price) + '</b></div>');
     if (D.req) h += '<p class="ccs-note">' + (price == null ? 'Saved as Needs a price. Add the price from the order when it is ready.' : 'Saved as Waiting for customer. Press Confirm order on the order once the customer agrees.') + ' The kitchen gets it only after Confirm order.</p>';
     else if (custom) h += '<p class="ccs-note">Custom cakes are saved as Needs a quote. Confirm the final price from the order once the design is priced.</p>';
@@ -2748,7 +2801,7 @@
     if (s === 0) return !p || !D.size ? ['Tap a price to choose the cake and size'] : p.variants.length && !D.variant ? ['Choose the flavour'] : D.finish === 'custom' && D.design.trim().length < 3 ? ['Describe the custom design'] : [];
     if (s === 1) { var n1 = slNeeds(2); if (!D.customer && D.name.trim().length < 2) n1.splice(D.noMob !== 'none' && digits(D.phone).length < 7 ? 1 : 0, 0, 'Write the guest name'); if (!D.source) n1.push('Choose how the customer ordered'); if (!takenDateOk()) n1.push(D.taken ? 'Choose a valid earlier order date' : 'Choose when the customer placed the order'); if (D.date && (D.taken === 'yesterday' ? addDays(today(), -1) : D.taken === 'other' ? D.takenDate : today()) > D.date) n1.push('The date the customer placed the order must not be after collection'); return n1; }
     if (s === 2) { if (D.customer) { if (D.custConsent === undefined) return ['Checking their permission']; return D.custConsent && D.custConsent.ok ? [] : (D.optIn === true || D.optIn === false) ? [] : ['Ask if they want cake offers and reminders']; } if (D.noMob === 'none') return []; var n = []; if (digits(D.phone).length < 7) n.push(D.noMob === 'other' ? 'Write the full phone number' : 'Write the full mobile number'); if (D.optIn !== true && D.optIn !== false) n.push('Ask if they want cake offers and reminders'); return n; }
-    if (s === 3) { if (!D.date) return ['Choose the date']; if (D.date >= today() && closedL.indexOf(D.date) > -1) return ['Choose a day the café is open']; if (!D.time) return ['Choose the time']; var w = []; if (tooSoon() && !rushOk()) w.push('Give the short-notice reason and who approved it'); if (D.method === 'delivery' && !delivOk()) w.push('Finish the delivery details'); return w; }
+    if (s === 3) { if (!D.date) return ['Choose the date']; if (D.date >= today() && closedL.indexOf(D.date) > -1) return ['Choose a day the café is open']; if (!D.time) return ['Choose the time']; var w = []; if (tooSoon() && !rushOk()) w.push('Give the short-notice reason and who approved it'); if (D.method === 'delivery' && !delivOk()) w.push(delivNeed()); return w; }
     if (s === 4) { var n4 = slNeeds(5); if (!D.occasion) n4.push('Choose the occasion, or Customer didn\'t say'); return n4; }
     if (s === 6 && !D.occasion) return ['Choose the occasion, or Customer didn\'t say'];
     if (s === 5) { if (!D.diet) return ['Ask about dietary needs and allergies']; var dm = dietMissing(D.diet, D.diets, D.dietNote); return dm ? [dm] : []; }
@@ -2767,7 +2820,7 @@
   function slGo(s) { s = slMap(s); D.sl = s; D.err = null; D.errField = null; D.restored = false; D.showSlip = false; refreshStep(); if (STEPPER) { setTimeout(function () { var bd = document.querySelector('#ccs-sheet .ccs-sheet-body') || document.scrollingElement; if (bd) bd.scrollTop = 0; var m = document.querySelector('.sl-stepbody'); var f = m && m.querySelector('input:not([type=checkbox]):not([type=number]),textarea'); if (f && s > 0) { try { f.focus({ preventScroll: true }); } catch (e) { f.focus(); } } }, 40); return; } setTimeout(function () { var el = document.getElementById('sl-st-' + s); if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); var f = el && el.querySelector('input:not([type=checkbox]):not([type=number]),textarea'); if (f && s > 0) { try { f.focus({ preventScroll: true }); } catch (e) { f.focus(); } } }, 60); }
   function slPhone() { return !!(window.matchMedia && window.matchMedia('(max-width: 759px)').matches) || !!(D && D.date && (tooSoon() || D.method === 'delivery')); }
   // Phones: pickup is two screens, the date and then the time
-  function slWhenDateNeeds() { var closedL = (S.setup && S.setup.closed_dates) || [], w = []; if (!D.date) return ['Choose the date']; if (D.date >= today() && closedL.indexOf(D.date) > -1) return ['Choose a day the café is open']; if (tooSoon() && !rushOk()) w.push('Give the short-notice reason and who approved it'); if (D.method === 'delivery' && !delivOk()) w.push('Finish the delivery details'); return w; }
+  function slWhenDateNeeds() { var closedL = (S.setup && S.setup.closed_dates) || [], w = []; if (!D.date) return ['Choose the date']; if (D.date >= today() && closedL.indexOf(D.date) > -1) return ['Choose a day the café is open']; if (tooSoon() && !rushOk()) w.push('Give the short-notice reason and who approved it'); if (D.method === 'delivery' && !delivOk()) w.push(delivNeed()); return w; }
   // Join step messages into sentences with exactly one full stop each
   function sentences(list) { return list.map(function (x) { return String(x).replace(/[.\s]+$/, ''); }).join('. ') + '.'; }
   function slNext(skip) {
@@ -2856,7 +2909,7 @@
       '<div class="sl-sub"><span class="sl-k">How did they hear about us? <em class="sl-req">Optional</em></span><div class="ccs-chips">' + HEARD.map(function (x) { return '<button type="button" class="ccs-chip" data-act="sl-heard" data-v="' + x[0] + '" aria-pressed="' + (D.heard === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div></div>' + slActions(2);
     h += slLine('Contact', 2, ct, ctEd, { req: true, id: 'sl-st-2' });
     // Stage 4: pickup
-    var wv = D.date && D.time ? esc(nice(D.date, true)) + ', ' + esc(t12(D.time)) + '<small>' + (dl ? 'Delivery to ' + esc(D.zone || '') + (D.address ? ', ' + esc(D.address) : '') : 'Collect from café') + (tooSoon() ? ' · Short notice, approved by ' + esc(D.rushBy) : '') + '</small>' : '';
+    var wv = D.date && D.time ? esc(nice(D.date, true)) + ', ' + esc(t12(D.time)) + '<small>' + (dl ? 'Delivery to ' + esc(zName()) + (D.address ? ', ' + esc(D.address) : '') : 'Collect from café') + (tooSoon() ? ' · Short notice, approved by ' + esc(D.rushBy) : '') + '</small>' : '';
     h += slLine(dl ? 'Delivery Date' : 'Pickup Date', 3, wv, stepWhen(true) + slActions(3), { req: true, id: 'sl-st-3', filled: !!(D.fromCal && D.date && D.time) });
     // Cake lines, filled from stage 1
     h += slLine('Type of cake', 0, p ? esc(D.variant || p.name) + (D.finish === 'custom' ? '<small>Custom design</small>' : '') : '', null, { filled: true });
@@ -2959,7 +3012,7 @@
     var nm = D.customer ? esc(D.customer.full_name) : esc(D.name.trim());
     var ct = D.customer ? esc(D.customer.phone || '') + (D.optIn === true || D.optIn === false ? '<small>' + (D.optIn ? 'Agreed to offers and reminders' : 'No offers or reminders') + '</small>' : D.custConsent && D.custConsent.ok ? '<small>Agreed to cake offers and reminders</small>' : '') : D.noMob === 'none' ? 'No phone<small>' + (D.email.trim() ? 'Email ' + esc(D.email.trim()) : 'They quote the order number at collection') + '</small>' : esc(D.phone.trim()) + (D.noMob === 'other' && D.phone.trim() ? '<small>Not a mobile</small>' : '');
     if (ct && !D.customer && D.noMob !== 'none' && (D.optIn === true || D.optIn === false)) ct += '<small>' + (D.optIn ? 'Agreed to offers and reminders' : 'No offers or reminders') + '</small>';
-    var wv = D.date && D.time ? esc(nice(D.date, true)) + ', ' + esc(t12(D.time)) + '<small>' + (dl ? 'Delivery to ' + esc(D.zone || '') + (D.address ? ', ' + esc(D.address) : '') : 'Collect from café') + (tooSoon() ? ' · Short notice, approved by ' + esc(D.rushBy) : '') + '</small>' : '';
+    var wv = D.date && D.time ? esc(nice(D.date, true)) + ', ' + esc(t12(D.time)) + '<small>' + (dl ? 'Delivery to ' + esc(zName()) + (D.address ? ', ' + esc(D.address) : '') : 'Collect from café') + (tooSoon() ? ' · Short notice, approved by ' + esc(D.rushBy) : '') + '</small>' : '';
     var dv = D.diet === 'no' ? 'No dietary needs' : D.diet === 'unsure' ? 'Not sure yet: check with the customer' : D.diet === 'yes' ? esc([].concat(D.diets, D.dietNote ? [D.dietNote] : []).join(', ') || 'Yes') : '';
     var rv = [D.occasion ? esc(occSend()) + (D.occFor ? ' for ' + esc(D.occFor) : '') : '', esc(D.notes)].filter(Boolean).join(' · ');
     var live = '<aside class="sl-live" aria-label="The order slip so far"><div class="sl-band"><div class="sl-logo">' + SLIP_LOGO + '</div></div>' +
@@ -3072,7 +3125,9 @@
       finish: D.finish, design: D.design, attachments: custom ? D.photos.filter(function (x) { return x.status === 'done'; }).map(function (x) { return x.path; }) : [], message: D.message, candles: D.candles, occasion: occSend(), has_dietary: D.diet, dietary: D.diet === 'yes' ? D.diets : [], dietary_note: D.dietNote, notes: D.notes,
       date: D.date, time: D.time, rush: tooSoon() ? { reason: D.rush, approved_by: D.rushBy } : null, confirm_now: D.confirmNow && !custom, deposit_required: dep,
       payment: payAmt ? { amount: payAmt, method: D.payMethod, kind: dep ? 'deposit' : (payAmt >= price ? 'full' : 'deposit') } : null,
-      delivery: D.method === 'delivery' ? { method: 'delivery', zone: D.zone, address: D.address, fee: D.deliveryWaived ? 0 : (zoneObj() && zoneObj().fee == null ? num(D.fee) : null), waiver_reason: D.deliveryWaived ? D.deliveryWaiverReason.trim() : null, contact: D.contact } : { method: 'collection' } };
+      delivery: D.method === 'delivery' ? { method: 'delivery', zone: zName(), address: D.address,
+        fee: isOtherZone() ? num(D.fee) : D.deliveryWaived ? 0 : D.feeDiff ? num(D.fee) : (zoneObj() && zoneObj().fee == null ? num(D.fee) : null),
+        waiver_reason: D.deliveryWaived && !isOtherZone() ? D.deliveryWaiverReason.trim() : null, fee_reason: D.feeDiff && !isOtherZone() ? (D.feeReason || '').trim() : null, contact: D.contact } : { method: 'collection' } };
     if (D.req) { p.size_note = (D.sizeNote || '').trim(); p.price = num(D.reqPrice) > 0 ? num(D.reqPrice) : null; }
     if (D.customer) { p.customer_id = D.customer.id; if (D.optIn === true || D.optIn === false) p.consent = D.optIn ? 'yes' : 'no'; } else if (D.noMob === 'none') p.customer = { name: D.name, phone: '', email: D.email, whatsapp: false, opt_in: false, no_contact: true };
     else p.customer = { name: D.name, phone: D.phone, email: D.email, whatsapp: D.whatsapp, opt_in: D.optIn === true };
@@ -3832,7 +3887,7 @@
     S.settings = null; S.setErr = null; view();
     var reqs = [sb.from('locations').select('*').eq('code', 'corner-cafe').single(), sb.from('closed_dates').select('*').gte('closed_on', today()).order('closed_on'), sb.from('products').select('*, product_sizes(*), product_variants(*)').order('sort'), sb.from('delivery_zones').select('*').order('sort')];
     var nil = Promise.resolve(null); reqs.push(canP('staff.users') ? sb.rpc('admin_list_team') : nil); reqs.push(canP('ord.restore') ? sb.rpc('admin_deleted_orders') : nil); reqs.push(canP('staff.permissions') ? sb.rpc('admin_levels') : nil);
-    Promise.all(reqs).then(function (rs) { rs.forEach(function (r) { if (r && r.error) throw r.error; }); S.settings = { loc: rs[0].data, closed: rs[1].data || [], products: rs[2].data || [], zones: rs[3].data || [], team: rs[4] ? (rs[4].data && rs[4].data.team) || [] : null, deleted: rs[5] && rs[5].data && rs[5].data.ok ? rs[5].data.orders : null, levels: rs[6] && rs[6].data && rs[6].data.ok ? rs[6].data.levels : null }; if (S.tab === 'settings') view(); s5SettingsLoad(); prLoad(); mirLoad(); alLoad(); occLoad(); }).catch(function (e) {
+    Promise.all(reqs).then(function (rs) { rs.forEach(function (r) { if (r && r.error) throw r.error; }); S.settings = { loc: rs[0].data, closed: rs[1].data || [], products: rs[2].data || [], zones: rs[3].data || [], team: rs[4] ? (rs[4].data && rs[4].data.team) || [] : null, deleted: rs[5] && rs[5].data && rs[5].data.ok ? rs[5].data.orders : null, levels: rs[6] && rs[6].data && rs[6].data.ok ? rs[6].data.levels : null }; if (S.tab === 'settings') view(); s5SettingsLoad(); prLoad(); mirLoad(); alLoad(); occLoad(); bankLoad(); }).catch(function (e) {
       console.error(e); if (errKind(e) === 'expired') return sessionExpired();
       S.setErr = errKind(e) === 'offline' ? 'No internet connection, so we couldn\'t load the settings.' : errKind(e) === 'denied' ? 'Your login cannot see these settings. Ask a manager.' : 'We couldn\'t load the settings. Try again.';
       if (S.tab === 'settings') view();
@@ -4012,7 +4067,7 @@
     });
   }
   // Settings: typing in a section is kept until that section is saved, and open sections stay open
-  var SET_SAVES = { 'save-loc': 1, 'confirm-loc': 1, 'save-zones': 1, 'add-zone': 1, 'add-closed': 1, 'save-staff': 1, 'tm-add': 1, 'tm-reset-save': 1, 'bk-link': 1, 'pr-save': 1 };
+  var SET_SAVES = { 'save-loc': 1, 'confirm-loc': 1, 'save-zones': 1, 'add-zone': 1, 'pay-save': 1, 'add-closed': 1, 'save-staff': 1, 'tm-add': 1, 'tm-reset-save': 1, 'bk-link': 1, 'pr-save': 1 };
   S.setTyped = {}; S.setOpen = {}; S.setSaved = null;
   function setSec(el) { var d = el.closest('details'), sm = d && d.querySelector('summary'); return sm ? (sm.firstChild && sm.firstChild.nodeType === 3 ? sm.firstChild.nodeValue : sm.textContent).trim() : ''; }
   function setKeep(m) {
@@ -4074,9 +4129,10 @@
       (st.closed.length ? '<div class="ccs-history">' + st.closed.map(function (c) { return '<div><span>' + esc(nice(c.closed_on)) + '</span><span>' + esc(c.reason || 'Closed') + ' <button type="button" class="ccs-link ccs-red" data-act="del-closed" data-id="' + c.id + '">Remove</button></span></div>'; }).join('') + '</div>' : '<p class="ccs-hint">No closed days set.</p>') +
       '<div class="ccs-row">' + sf('st-cdate', 'Date', '', 'date') + sf('st-creason', 'Reason (optional)', '') + '</div><button type="button" class="ccs-btn ccs-ghost" data-act="add-closed">Add closed day</button></div></details>';
     h += '<details' + (S.menuOpen ? ' open' : '') + '><summary>Cakes and prices <span>' + st.products.filter(function (p) { return p.status === 'active'; }).length + ' cakes on sale</span></summary><div class="ccs-set-body">' + menuList(st) + '</div></details>';
-    h += '<details><summary>Delivery areas <span>' + st.zones.filter(function (z) { return z.active; }).length + ' areas</span></summary><div class="ccs-set-body"><p class="ccs-hint">Leave the fee blank where staff set the fee for each order. Website guests cannot choose delivery yet.</p>' +
+    h += '<details><summary>Delivery areas <span>' + st.zones.filter(function (z) { return z.active; }).length + ' areas</span></summary><div class="ccs-set-body"><p class="ccs-hint"><em>Areas with a fee show on the website order form. Leave the fee blank where staff set it for each order. Staff can also type an area that is not listed, for one order only.</em></p>' +
       st.zones.map(function (z) { return '<div class="ccs-row" style="align-items:end">' + sf('dz-n-' + z.id, 'Area', z.name, 'text') + sf('dz-f-' + z.id, 'Fee (FJD)', z.fee == null ? '' : Number(z.fee)) + '<label class="ccs-check" style="padding-bottom:14px"><input type="checkbox" id="dz-a-' + z.id + '"' + (z.active ? ' checked' : '') + '> Offered</label></div>'; }).join('') +
       '<button type="button" class="ccs-btn ccs-ghost" data-act="save-zones">Save delivery areas</button><div class="ccs-row" style="align-items:end">' + sf('dz-new-n', 'New area', '', 'text') + sf('dz-new-f', 'Fee (FJD)', '') + '<button type="button" class="ccs-btn ccs-ghost" data-act="add-zone">Add area</button></div></div></details>';
+    h += bankView();
     h += occView(st);
     h += (st.team ? '' : s5PermView(st)) + s5BackupCheckView(st) + alertsView(st) + printView(st);
     if (st.team) {
@@ -4597,6 +4653,36 @@
     var prev = S.settings;
     Promise.all([sb.rpc('admin_list_team'), sb.rpc('admin_levels')]).then(function (rr) { rr.forEach(function (r) { if (r.error) throw r.error; }); if (S.settings === prev) { prev.team = (rr[0].data && rr[0].data.team) || []; if (rr[1].data && rr[1].data.ok) prev.levels = rr[1].data.levels; prev.tmDone = done; prev.tmOpen = true; if (S.tab === 'settings') view(); } }).catch(fail);
   }
+  // ---------- Bank details for customer emails (3 Nov 2026): admins only, every change in the audit log ----------
+  function bankLoad() {
+    if (!canP('mgmt.system')) { S.paySet = null; return; }
+    sb.from('payment_settings').select('*').maybeSingle().then(function (r) {
+      S.paySet = r.error ? { err: true } : { row: r.data || null };
+      if (S.tab === 'settings') view();
+    });
+  }
+  function bankView() {
+    if (!canP('mgmt.system') || !S.paySet) return '';
+    if (S.paySet.err) return '<details><summary>Bank details for customer emails <span>Not available yet</span></summary><div class="ccs-set-body"><p class="ccs-hint">This needs the database update that comes with this release.</p></div></details>';
+    var b = S.paySet.row || {}, set = !!b.account_number;
+    return '<details><summary>Bank details for customer emails <span>' + (set ? esc(b.bank_name.split(' ')[0]) + ' · ending ' + esc(String(b.account_number).slice(-4)) + (b.show_in_emails === false ? ' · hidden' : '') : 'Not set') + '</span></summary><div class="ccs-set-body">' +
+      '<p class="ccs-hint"><em>Shown in the Order confirmed and Deposit needed emails, with the order number as the payment reference. Only admins can change these. Every change is recorded.</em></p>' +
+      '<div class="ccs-row">' + sf('pay-bank', 'Bank', b.bank_name || '', 'text') + sf('pay-name', 'Account name', b.account_name || '', 'text') + '</div>' +
+      '<div class="ccs-row">' + sf('pay-acct', 'Account number', b.account_number || '') + sf('pay-bsb', 'BSB', b.bsb || '', 'text') + sf('pay-swift', 'Swift code', b.swift || '', 'text') + '</div>' +
+      '<label class="ccs-check"><input type="checkbox" id="pay-show"' + (b.show_in_emails === false ? '' : ' checked') + '> Show in customer emails</label>' +
+      (b.updated_at ? '<p class="ccs-hint"><em>Last changed ' + esc(stamp(b.updated_at)) + (b.updated_by_name ? ' by ' + esc(b.updated_by_name) : '') + '</em></p>' : '') +
+      '<div class="ccs-actions-row"><button type="button" class="ccs-btn" data-act="pay-save">Save bank details</button></div></div></details>';
+  }
+  function bankSave() {
+    var g = function (id) { var e = document.getElementById(id); return e ? e.value.trim() : ''; };
+    var p = { bank_name: g('pay-bank'), account_name: g('pay-name'), account_number: g('pay-acct'), bsb: g('pay-bsb'), swift: g('pay-swift'), show_in_emails: !!(document.getElementById('pay-show') || {}).checked };
+    if (S.busy) return; S.busy = true;
+    sb.rpc('admin_set_payment_settings', { p: p }).then(function (r) {
+      S.busy = false; if (r.error) throw r.error;
+      if (!r.data.ok) { toast(r.data.message || 'Not saved.'); return; }
+      toast('Bank details saved'); bankLoad();
+    }).catch(function (e) { S.busy = false; fail(e); });
+  }
   function sf(id, label, v, type) { return '<div class="ccs-field"><label class="ccs-label" for="' + id + '">' + label + '</label><input class="ccs-input" id="' + id + '" type="' + (type || 'text') + '" value="' + esc(v) + '"' + (type ? '' : ' inputmode="numeric"') + '></div>'; }
   function refreshSetup() { return sb.rpc('get_order_setup', { p_location: 'corner-cafe' }).then(function (s) { if (!s.error) S.setup = s.data; }); }
   function saveLoc(confirmIt) {
@@ -4754,7 +4840,7 @@
         case 'history': S.sheet.showHistory = true; renderSheet(); break;
         case 'panel': if (S.panel && S.panel !== v && hasTyping() && !confirmDiscard(b)) break; if (S.panel === 'amend' && S.panel !== v && S.sheet && S.sheet.id) wipPut('am:' + S.sheet.id, null); S.panel = v || null; S.panelErr = null; S.dirty = {}; S.cfmHow = null; if (v === 'pay') { S.payKey = uuid(); S.payMethod = 'cash'; }
           if (v === 'amend') S.am = amendInit(S.sheet.data);
-          if (v === 'fulfil') { var od = S.sheet.data, zOld = ((S.setup && S.setup.delivery_zones) || []).filter(function (z) { return z.name === od.delivery_zone; })[0], alreadyFree = od.fulfilment_method === 'delivery' && Number(od.delivery_fee) === 0 && zOld && Number(zOld.fee) > 0; S.ful = { method: od.fulfilment_method || 'collection', zone: od.delivery_zone, originalZone: od.delivery_zone || '', address: od.delivery_address || '', fee: od.delivery_fee != null ? String(Number(od.delivery_fee)) : '', contact: od.delivery_contact || '', waived: !!alreadyFree, wasWaived: !!alreadyFree, waiverReason: '' }; }
+          if (v === 'fulfil') { var od = S.sheet.data, zOld = ((S.setup && S.setup.delivery_zones) || []).filter(function (z) { return z.name === od.delivery_zone; })[0], alreadyFree = od.fulfilment_method === 'delivery' && Number(od.delivery_fee) === 0 && zOld && Number(zOld.fee) > 0; var odOther = od.fulfilment_method === 'delivery' && od.delivery_zone && !zOld, odDiff = !!zOld && zOld.fee != null && Number(od.delivery_fee) > 0 && Number(od.delivery_fee) !== Number(zOld.fee); S.ful = { method: od.fulfilment_method || 'collection', zone: odOther ? OTHER_ZONE : od.delivery_zone, otherZone: odOther ? od.delivery_zone : '', originalZone: odOther ? OTHER_ZONE : (od.delivery_zone || ''), originalFee: od.delivery_fee != null ? Number(od.delivery_fee) : null, address: od.delivery_address || '', fee: od.delivery_fee != null ? String(Number(od.delivery_fee)) : '', contact: od.delivery_contact || '', waived: !!alreadyFree, wasWaived: !!alreadyFree, waiverReason: '', feeDiff: odDiff, feeReason: '' }; }
           renderSheet(); var sb_ = document.querySelector('#ccs-sheet .ccs-sheet-body'); if (sb_ && v) sb_.scrollTop = 0; break;
         case 'method': S.payMethod = v; root.querySelectorAll('#ccs-method .ccs-chip').forEach(function (c) { c.setAttribute('aria-pressed', c.dataset.v === v); }); break;
         case 'do-confirm': {
@@ -4795,8 +4881,8 @@
         case 'do-collected': if (val('ccs-note').trim().length < 2) { panelNeed(S.sheet.data.fulfilment_method === 'delivery' ? 'Enter who received the cake.' : 'Enter who collected the cake.'); break; } act('collected', { p_note: val('ccs-note').trim() }); break;
         case 'do-fulfil': saveFulfil(); break;
         case 'f-method': S.ful.method = v; renderSheet(); break;
-        case 'f-zone': S.ful.zone = v; if (!S.ful.waived) { var zF = ((S.setup && S.setup.delivery_zones) || []).filter(function (x) { return x.name === v; })[0]; S.ful.fee = zF && zF.fee != null ? String(Number(zF.fee)) : ''; } renderSheet(); break;
-        case 'f-fee-mode': { var zF2 = ((S.setup && S.setup.delivery_zones) || []).filter(function (x) { return x.name === S.ful.zone; })[0]; S.ful.waived = v === 'complimentary'; if (!S.ful.waived) { S.ful.fee = zF2 && zF2.fee != null ? String(Number(zF2.fee)) : ''; S.ful.waiverReason = ''; } renderSheet(); break; }
+        case 'f-zone': if (S.ful.zone !== v) { S.ful.feeDiff = false; S.ful.feeReason = ''; if (v === OTHER_ZONE) { S.ful.waived = false; S.ful.fee = ''; } } S.ful.zone = v; if (v !== OTHER_ZONE && !S.ful.waived) { var zF = ((S.setup && S.setup.delivery_zones) || []).filter(function (x) { return x.name === v; })[0]; S.ful.fee = zF && zF.fee != null ? String(Number(zF.fee)) : ''; } renderSheet(); if (v === OTHER_ZONE) { var fz = document.getElementById('f-other-zone'); if (fz) fz.focus(); } break;
+        case 'f-fee-mode': { var zF2 = ((S.setup && S.setup.delivery_zones) || []).filter(function (x) { return x.name === S.ful.zone; })[0]; S.ful.waived = v === 'complimentary'; S.ful.feeDiff = v === 'different'; if (!S.ful.waived) S.ful.waiverReason = ''; if (!S.ful.feeDiff) S.ful.feeReason = ''; if (v === 'standard') S.ful.fee = zF2 && zF2.fee != null ? String(Number(zF2.fee)) : ''; renderSheet(); if (S.ful.feeDiff) { var ff = document.getElementById('f-fee'); if (ff) ff.focus(); } break; }
         case 'do-brief': { var pk0 = slipPick(); if (!(pk0.email || pk0.dl || pk0.print)) break; printBrief(v, { email: pk0.email, dl: pk0.dl, print: pk0.print }); break; }
         case 'brief-email': printBrief(S.slip.paper, { email: true }); break;
         case 'brief-pdf': markBusy(b, 'Preparing…'); briefPdf(); break;
@@ -4838,6 +4924,7 @@
         case 'k-ack': kitAck(); break;
         case 'save-zones': try { saveZones(); } catch (e_) { fail(e_); } break;
         case 'add-zone': addZone(); break;
+        case 'pay-save': bankSave(); break;
         case 'do-pay': pay(); break;
         case 'open-customer': openCustomer(b.dataset.id); break;
         case 'cust-neworder': (function () {
@@ -4946,16 +5033,17 @@
           goStep(nextOpen(3)); break;
         case 'n-rushby': D.rushBy = v; if (D.errField === 'rushBy') D.errField = null; refreshStep(); break;
         case 'n-time': D.time = v;
-          if (D.method === 'delivery' && !zoneObj()) { D.err = 'Choose a delivery area.'; D.errField = 'zone'; refreshStep(); break; }
+          if (D.method === 'delivery' && !zoneObj() && !isOtherZone()) { D.err = 'Choose a delivery area.'; D.errField = 'zone'; refreshStep(); break; }
+          if (D.method === 'delivery' && isOtherZone() && zName().length < 2) { D.err = 'Type the delivery area.'; D.errField = 'zone'; refreshStep(); break; }
           if (D.method === 'delivery' && D.address.trim().length < 5) { D.err = 'Enter the delivery address.'; D.errField = 'address'; refreshStep(); break; }
-          if (!delivOk()) { D.err = D.deliveryWaived ? 'Add a reason for complimentary delivery.' : 'Enter the delivery fee for this area.'; D.errField = 'fee'; refreshStep(); break; }
+          if (!delivOk()) { D.err = D.deliveryWaived && !isOtherZone() ? 'Add a reason for complimentary delivery.' : D.feeDiff && !isOtherZone() && num(D.fee) != null ? 'Add a reason for the different charge.' : 'Enter the delivery charge.'; D.errField = 'fee'; refreshStep(); break; }
           if (tooSoon() && D.rush.trim().length < 3) { D.err = 'Add a reason for the short notice first.'; D.errField = 'rush'; refreshStep(); break; }
           if (tooSoon() && D.rushBy.trim().length < 2) { D.err = 'Enter who approved the short notice.'; D.errField = 'rushBy'; refreshStep(); break; } goStep(nextOpen(4)); break;
         case 'n-date': D.date = v; D.dateOther = false; D.errField = null; refreshStep(); var tc = document.querySelector('#ccs-nstep-3 [data-act="n-time"]'); if (tc && tc.scrollIntoView) tc.scrollIntoView({ behavior: 'smooth', block: 'center' }); break;
         case 'n-date-other': D.dateOther = true; refreshStep(); var di = document.getElementById('n-date'); if (di) di.focus(); break;
         case 'n-method': D.method = v; if (v === 'collection') { D.zone = null; } D.errField = null; refreshStep(); break;
-        case 'n-zone': D.zone = v; D.errField = null; refreshStep(); break;
-        case 'n-delivery-charge': D.deliveryWaived = v === 'complimentary'; if (!D.deliveryWaived) D.deliveryWaiverReason = ''; D.errField = null; refreshStep(); break;
+        case 'n-zone': if (D.zone !== v) { D.fee = ''; D.feeDiff = false; D.feeReason = ''; if (v === OTHER_ZONE) { D.deliveryWaived = false; D.deliveryWaiverReason = ''; } } D.zone = v; D.errField = null; refreshStep(); if (v === OTHER_ZONE) { var oz = document.getElementById('n-other-zone'); if (oz) oz.focus(); } break;
+        case 'n-delivery-charge': D.deliveryWaived = v === 'complimentary'; D.feeDiff = v === 'different'; if (!D.deliveryWaived) D.deliveryWaiverReason = ''; if (!D.feeDiff) { D.feeReason = ''; D.fee = ''; } D.errField = null; refreshStep(); if (D.feeDiff) { var nf = document.getElementById('n-fee'); if (nf) nf.focus(); } break;
         case 'n-askdep': D.askDeposit = true; refreshStep(); break;
         case 'n-dep': D.deposit = String(v === 'full' ? dTotal() : Math.round(dTotal() / 2)); refreshStep(); break;
         case 'n-paynow': D.payNow = true; D.payAmount = D.askDeposit && D.deposit ? D.deposit : String(dTotal()); refreshStep(); break;
@@ -5092,7 +5180,7 @@
     if (e.target.id === 'ccs-seg') { clSegChange(e.target.value); return; }
     if (e.target.id === 'cal-status' || e.target.id === 'cal-type') { S.cal[e.target.id === 'cal-status' ? 'status' : 'type'] = e.target.value; S.cal.pre = null; calRefresh(); return; }
     if (e.target.id === 'am-prod' && S.am) { amendSet('product', e.target.value); return; }
-    if (e.target.id === 'am-zone' && S.am) { amendSet('zone', e.target.value); return; }
+    if (e.target.id === 'am-zone' && S.am) { S.am.zoneOther = e.target.value === OTHER_ZONE; amendSet('zone', S.am.zoneOther ? '' : e.target.value); if (S.am.zoneOther) { var az = document.getElementById('am-zone-other'); if (az) az.focus(); } return; }
   });
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape' && menuOpen()) { menuSet(false); return; }

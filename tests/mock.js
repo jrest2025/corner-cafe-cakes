@@ -139,6 +139,7 @@
     if (table === 'locations') return { data: { id: 'l1', accepts_online: true, lead_days_standard: 2, lead_days_custom: 5, max_days_ahead: 90, collection_open: '09:00:00', collection_close: '20:00:00', slot_minutes: 60, daily_capacity: null, defaults_confirmed: false } };
     if (table === 'closed_dates') return { data: [] };
     if (table === 'delivery_zones') return { data: [{ id: 'z1', name: 'Nadi town', fee: 10, active: true, sort: 1 }, { id: 'z2', name: 'Denarau', fee: 15, active: true, sort: 2 }, { id: 'z3', name: 'Other area', fee: null, active: true, sort: 9 }] };
+    if (table === 'payment_settings') return { data: { location_id: 'l1', bank_name: 'Test Bank', account_name: 'Test Account', account_number: '1234567', bsb: '00-0000', swift: 'TESTXXXX', show_in_emails: true, updated_at: '2026-11-03T04:00:00Z', updated_by_name: 'Test Manager' } };
     if (table === 'products') return { data: [{ id: 'p1', name: 'Cheesecake', status: 'active', product_sizes: [{ id: 's1', size_inch: 6, price: 54, active: true }, { id: 's2', size_inch: 8, price: 95, active: true }, { id: 's3', size_inch: 10, price: 130, active: true }, { id: 's4', size_inch: 12, price: 155, active: true }], product_variants: [], sort: 1, supports_custom: true, supports_message: true, lead_days: 2 }, { id: 'p2', name: 'Black Forest or White Forest', status: 'active', choice_label: 'Which forest?', sort: 2, supports_custom: true, supports_message: true, product_variants: [{ id: 'v1', name: 'Black Forest', active: true, sort: 1 }, { id: 'v2', name: 'White Forest', active: true, sort: 2 }], product_sizes: [{ id: 's21', size_inch: 6, price: 42, active: true }, { id: 's22', size_inch: 8, price: 68, active: true }] }] };
     if (table === 'product_changes') return { data: [{ changed_at: '2026-10-12T22:00:00Z', changed_by_label: 'Test Manager', summary: ['8 inch price: $90 to $95'] }] };
     return { data: [] };
@@ -387,6 +388,9 @@
       if (fn === 'staff_set_candles') { window.__candlesSet = args; return Promise.resolve({ data: args.p_candles && args.p_candles.length > 60 ? { ok: false, error: 'candles', message: 'Keep the candles to 60 characters.' } : { ok: true, changed: true, brief_needs_reprint: true } }); }
       if (fn === 'kitchen_set_stage' && args.p_stage === 'ready' && !args.p_name) return Promise.resolve({ data: { ok: false, error: 'qc', message: 'Enter the name of the person who checked the cake.' } });
       if (fn === 'staff_set_fulfilment') return Promise.resolve({ data: { ok: true, total: 62 } });
+      if (fn === 'staff_set_fulfilment_v2') return Promise.resolve({ data: { ok: true, total: 62 } });
+      if (fn === 'occasion_admin' && !window.__occAdmin) return Promise.resolve({ data: { ok: true, occasions: [], dates: [] } });
+      if (fn === 'admin_set_payment_settings') { window.__bankSaved = args.p; return Promise.resolve({ data: { ok: true } }); }
       if (fn === 'staff_amend_order') {
         var ch = args.p_changes || {}, list = [];
         if (ch.time) list.push({ field: 'time', label: 'Collection time', from: '2:00pm', to: ch.time === '16:00' ? '4:00pm' : ch.time, kitchen: true });
