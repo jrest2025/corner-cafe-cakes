@@ -1,3 +1,10 @@
+# Release 3 Nov 2026, 10:00 PM Fiji (approved by Roneel, "deploy")
+- Delivery: staff can type an Other area with its own charge, or give a listed area a Different amount with a reason; both go in the order history. Website guests unchanged (listed areas, set charge).
+- Bank details: Settings, Bank details for customer emails (admins only, audited). Order confirmed, Order updated and Deposit needed emails show a Pay by bank transfer box with the order number as the reference and the 2% card surcharge note.
+- Database: supabase/sql/delivery_flex_bank_20261103.sql, run by Roneel in the SQL Editor (checked afterwards).
+- Email sender: send-emails v31 pins commit f82bfc0 (built on the live v30, commit 166b08c). Rollback: point the import back at 166b08cccea3a690df1b2186d9ed46bb444e71b7.
+- Staff app: Vercel project corner-cafe-staff-assets, production deployment dpl_7oEUqsVGPykiX4XkFZR1UiapTTDp from branch release/delivery-bank-asset-20261103 (same URL staff-app-complimentary-20261030.js, loaded by the site script cake_delivery_waiver_release). Rollback: Vercel rollback to dpl_9XrnQHjHJnQ7GcumbjkQpqPAGGbb.
+
 # What is live (checked 31 Oct 2026, 12:30 PM Fiji)
 
 The live website loads each file from a fixed saved version (commit). This copy of main holds exactly those versions,
