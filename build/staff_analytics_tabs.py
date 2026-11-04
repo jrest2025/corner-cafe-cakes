@@ -87,9 +87,10 @@ hook = ('t.__oiF=' + OI[:-2] + ';t.__upF=' + UP[:-2] + ';t.__orF=' + OR[:-2] + '
 s = s.replace(anchor, anchor + hook)
 
 # 5. The pages themselves
+expansion = (ROOT / 'src/staff.analytics-expansion.js').read_text(); assert '</script' not in expansion.lower()
 js = (ROOT / 'src/staff.analytics-tabs.js').read_text(); assert '</script' not in js.lower()
 css = (ROOT / 'src/staff.analytics-tabs.css').read_text(); assert '</script' not in css.lower()
-s += '\n' + js + '\n(function(){var s=document.createElement("style");s.id="ccs-analytics-tabs";s.textContent=' + json.dumps(css) + ';document.head.appendChild(s)})();\n'
+s += '\n' + expansion + '\n' + js + '\n(function(){var s=document.createElement("style");s.id="ccs-analytics-tabs";s.textContent=' + json.dumps(css) + ';document.head.appendChild(s)})();\n'
 
 with tempfile.NamedTemporaryFile('w', suffix='.js', delete=False) as tmp:
     tmp.write(s)
