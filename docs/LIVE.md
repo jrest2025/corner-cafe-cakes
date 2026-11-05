@@ -1,3 +1,8 @@
+# Release 5 Nov 2026, 5:25 PM Fiji (approved by Roneel, "deploy")
+- Custom cake quote and approval wording: Set price, Save quoted price, Email the quoted price (emailing is not approval), Record approval and confirm, "How did the customer approve the design and price?"; kitchen line now says staff make the kitchen slip after confirming. Wording only: statuses, emails, deposit and kitchen logic unchanged. PR #50.
+- Staff app: Vercel project corner-cafe-staff-assets, production deployment dpl_HYDecZ24fMPvUxosnYd23T6C3U7Q from branch release/custom-cake-quote-asset-20261105 (commit 7a2e035; same URL staff-app-complimentary-20261030.js). Built from src at 7b79aed (staff-app.5973d6c9cf.js); the build of main before this change matched the live file byte for byte. Rollback: Vercel rollback to dpl_7oEUqsVGPykiX4XkFZR1UiapTTDp.
+- Add-ons loader, Webflow page and database unchanged.
+
 # Release 3 Nov 2026, 10:00 PM Fiji (approved by Roneel, "deploy")
 - Delivery: staff can type an Other area with its own charge, or give a listed area a Different amount with a reason; both go in the order history. Website guests unchanged (listed areas, set charge).
 - Bank details: Settings, Bank details for customer emails (admins only, audited). Order confirmed, Order updated and Deposit needed emails show a Pay by bank transfer box with the order number as the reference and the 2% card surcharge note.
