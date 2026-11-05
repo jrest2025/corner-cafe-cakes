@@ -1185,7 +1185,7 @@
     if (p === 'amend') return amendPanel(o, total, paid);
     if (p === 'quote') {
       var qi = (o.order_items || [])[0] || {}, qreq = isReq(qi), cakeOnly = o.final_total != null ? Number(o.final_total) - Number(o.delivery_fee || 0) : null;
-      return '<div class="ccs-panel ccs-quote"><b>' + (o.final_total != null ? 'Change the price' : 'Add the price') + '</b>' +
+      return '<div class="ccs-panel ccs-quote"><b>' + (o.final_total != null ? 'Change the price' : 'Set price') + '</b>' +
         (qreq ? '<div class="ccs-row"><div class="ccs-field"><label class="ccs-label" for="q-flav">Flavour</label><input class="ccs-input" id="q-flav" maxlength="80" value="' + esc(qi.variant || '') + '"></div>' +
           '<div class="ccs-field"><label class="ccs-label" for="q-size">Size or servings</label><input class="ccs-input" id="q-size" maxlength="80" value="' + esc(qi.serves_label || '') + '"></div></div>' : '') +
         '<div class="ccs-field"><label class="ccs-label" for="q-price">Cake price agreed with the kitchen (FJD)</label><input class="ccs-input" id="q-price" inputmode="decimal" data-autofocus style="max-width:240px" value="' + (cakeOnly != null ? cakeOnly : '') + '"></div>' +
@@ -1200,7 +1200,7 @@
           [['email', 'Accepted by email'], ['verbal', 'Confirmed verbally']].map(function (x) { return '<button type="button" class="ccs-chip" data-act="cfm-how" data-v="' + x[0] + '" aria-pressed="' + (how === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div>' +
           '<span class="ccs-hint">The customer must agree to both the cake design and quoted price. Emailing the price is not approval.</span></div>' +
         '<div class="ccs-field"><label class="ccs-label" for="ccs-dep">Deposit needed (FJD)</label><input class="ccs-input" id="ccs-dep" inputmode="decimal" placeholder="0 for none" style="max-width:240px"></div>' +
-        '<p class="ccs-hint">Before you confirm: with no deposit, the order is sent to the kitchen straight away and the slip is emailed to admin and counter. With a deposit, the kitchen gets it after payment.</p>' + err +
+        '<p class="ccs-hint">No deposit: confirming sends it to the kitchen straight away, then make the kitchen slip. With a deposit: it goes to the kitchen once the deposit is paid.</p>' + err +
         '<div class="ccs-actions-row"><button type="button" class="ccs-btn ccs-good" data-act="do-confirm">Confirm order</button><button type="button" class="ccs-btn ccs-ghost" data-act="panel" data-v="quote">Change the price</button><button type="button" class="ccs-btn ccs-ghost" data-act="panel" data-v="">Back</button></div></div>';
     }
     if (p === 'confirm') {
@@ -1302,7 +1302,7 @@
       main = '<button type="button" class="ccs-btn ccs-good" data-act="panel" data-v="confirm">Record approval and confirm</button>' +
         '<button type="button" class="ccs-btn ccs-ghost" data-act="send-quote"' + (canMail ? '' : ' disabled aria-disabled="true"') + '>Email the quoted price</button>';
       if (isCustom) more.push(['quote', 'Change the price']);
-      hint = canMail ? 'Price is set. Share it with the customer, then record their agreement to the design and price before confirming.' : (!o.contact_email ? 'No email address on this order. Tell the customer the price by phone or WhatsApp, then record their agreement before confirming.' : 'Customer emails are off. Tell the customer the price directly, then record their agreement before confirming.');
+      hint = canMail ? 'Price is set. Share it with the customer, then record their agreement to the design and price before confirming. Emailing it is not approval.' : (!o.contact_email ? 'No email address on this order. Tell the customer the price by phone or WhatsApp, then record their agreement before confirming.' : 'Customer emails are off. Tell the customer the price directly, then record their agreement before confirming.');
       danger.push(['decline', 'Decline order']);
     } else if ((st === 'awaiting_review' || st === 'awaiting_quote') && orderer) {
       main = '<button type="button" class="ccs-btn ccs-good" data-act="panel" data-v="confirm">' + (st === 'awaiting_quote' ? 'Quote and confirm' : 'Confirm order') + '</button>';
@@ -1396,7 +1396,7 @@
     sb.rpc('staff_set_quote', { p_order: o.id, p_version: o.version, p_price: price, p_flavour: req ? val('q-flav') : null, p_size_note: req ? val('q-size') : null }).then(function (r) {
       S.busy = false; if (r.error) throw r.error;
       if (!r.data.ok) { if (r.data.error === 'changed') { S.panelErr = CONFLICT; reloadOrderKeep(o.id); } else { S.panelErr = r.data.message; renderSheet(); } return; }
-      toast('Price saved: ' + money(r.data.total) + '. Now ' + (r.data.can_email ? 'email it to the customer' : 'tell the customer') + '.');
+      toast('Quoted price saved: ' + money(r.data.total) + '. Next, share it with the customer.');
       S.panel = null; S.dirty = {}; openOrder(o.id); loadOrders(true);
     }).catch(function (e) { S.busy = false; fail(e); });
   }
@@ -1405,7 +1405,7 @@
     sb.rpc('staff_send_quote', { p_order: o.id }).then(function (r) {
       S.busy = false; clearBusy(); if (r.error) throw r.error;
       if (!r.data.ok) { S.panelErr = r.data.message; return renderSheet(); }
-      toast('Price emailed to ' + r.data.to + '. Press Confirm order once they agree.'); mailLoad(o.id);
+      toast('Price emailed to ' + r.data.to + '. This is not approval. Record their agreement before confirming.'); mailLoad(o.id);
     }).catch(function (e) { S.busy = false; clearBusy(); fail(e); });
   }
   function deleteOrder() {
@@ -2720,7 +2720,7 @@
     var price = dTotal(), custom = D.finish === 'custom';
     var h = (inSlip ? '' : '<h2 class="ccs-step-q">Price and payment</h2>') + (D.method === 'delivery' && !(D.req && price == null) ? '<dl class="ccs-kv"><dt>Cake</dt><dd>' + money(dPrice()) + '</dd><dt>Delivery</dt><dd>' + (D.deliveryWaived && !isOtherZone() ? 'Complimentary' : money(dFee())) + ', ' + esc(zName()) + '</dd></dl>' : '') +
       (D.req ? '<div class="ccs-total"><span>' + (price == null ? 'Price' : 'Agreed price') + '</span><b>' + (price == null ? 'To be priced' : money(price)) + '</b></div>' : '<div class="ccs-total"><span>' + (custom ? 'Starting price before custom design' : 'Price') + '</span><b>' + money(price) + '</b></div>');
-    if (D.req) h += '<p class="ccs-note">' + (price == null ? 'Saved as Needs a price. Add the price from the order when it is ready.' : 'Saved as Waiting for customer. Press Confirm order on the order once the customer agrees.') + ' The kitchen gets it only after Confirm order.</p>';
+    if (D.req) h += '<p class="ccs-note">' + (price == null ? 'Saved as Needs a price. Set the price from the order once the kitchen has priced the design.' : 'Saved as Waiting for customer. Share the price, then record their approval on the order before confirming.') + ' The kitchen gets it only after the order is confirmed.</p>';
     else if (custom) h += '<p class="ccs-note">Custom cakes are saved as Needs a quote. Confirm the final price from the order once the design is priced.</p>';
     else if (inSlip) {
       // Menu cake at the counter: one clear choice about money, so payments are never forgotten
@@ -4846,7 +4846,7 @@
         case 'do-confirm': {
           var od0 = S.sheet.data;
           if (od0.order_type === 'custom' && od0.final_total != null) {
-            if (!S.cfmHow) { S.panelErr = 'Choose how the customer agreed.'; renderSheet(); break; }
+            if (!S.cfmHow) { S.panelErr = 'Choose how the customer approved the design and price.'; renderSheet(); break; }
             var dep0 = num(val('ccs-dep'));
             if (dep0 != null && (dep0 < 0 || dep0 > Number(od0.final_total))) { S.panelErr = 'The deposit must be between zero and the price.'; renderSheet(); break; }
             act('confirm', { p_final_total: Number(od0.final_total), p_deposit: dep0, p_note: S.cfmHow === 'email' ? 'Customer accepted by email' : 'Customer confirmed verbally' }); break;
