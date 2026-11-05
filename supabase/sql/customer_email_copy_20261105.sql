@@ -1,5 +1,5 @@
 -- Corner Café cakes: team copy of every customer email (5 November 2026, scope approved by Roneel).
--- Settings, Copy of customer emails: up to three addresses, admins only, every change recorded in the audit log.
+-- Settings, Copy of customer emails: up to 10 addresses (raised from three the same day), admins only, every change recorded in the audit log.
 -- The email sender sends each customer email exactly as before, then a separate copy to these addresses, so the customer
 -- never sees them. Empty means no copies (the starting state). Nothing else changes.
 -- Runs as one block: if any step fails, nothing is changed.
@@ -26,7 +26,7 @@ begin
   if auth.uid() is null or not public.has_perm('mgmt.system') then return public._err('forbidden', 'Only an admin can change this setting.'); end if;
   select coalesce(array_agg(distinct x), '{}') into v_list
     from unnest(regexp_split_to_array(lower(trim(coalesce(p_emails, ''))), '[\s,;]+')) x where x <> '';
-  if array_length(v_list, 1) > 3 then return public._err('emails', 'Use up to three email addresses.', 'emails'); end if;
+  if array_length(v_list, 1) > 10 then return public._err('emails', 'Use up to 10 email addresses.', 'emails'); end if;
   foreach e in array v_list loop
     if e !~ re then return public._err('emails', e || ' does not look like an email address.', 'emails'); end if;
   end loop;

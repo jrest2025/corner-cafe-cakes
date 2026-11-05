@@ -4698,8 +4698,8 @@
     if (S.mailCopy.err) return '<details><summary>Copy of customer emails <span>Not available yet</span></summary><div class="ccs-set-body"><p class="ccs-hint"><em>This needs the database update that comes with this release.</em></p></div></details>';
     var mc = S.mailCopy, n = mc.emails ? mc.emails.split(',').length : 0, last = mc.last || null;
     return '<details><summary>Copy of customer emails <span>' + (n ? esc(n === 1 ? mc.emails : n + ' addresses') : 'Off') + '</span></summary><div class="ccs-set-body">' +
-      '<p class="ccs-hint"><em>Gets a copy of every customer email. Customers do not see it. Up to three, with commas. Empty turns it off.</em></p>' +
-      '<div class="ccs-field"><label class="ccs-label" for="mc-emails">Send a copy to</label><input class="ccs-input" id="mc-emails" type="email" multiple autocomplete="off" value="' + esc(mc.emails || '') + '"></div>' +
+      '<p class="ccs-hint"><em>Gets a copy of every customer email. Customers do not see it. One per line, up to 10. Empty turns it off.</em></p>' +
+      '<div class="ccs-field"><label class="ccs-label" for="mc-emails">Send a copy to</label><textarea class="ccs-input" id="mc-emails" rows="' + Math.min(Math.max(n + 1, 3), 11) + '" autocomplete="off" autocapitalize="off" spellcheck="false" inputmode="email">' + esc((mc.emails || '').split(/\s*,\s*/).filter(Boolean).join('\n')) + '</textarea></div>' +
       (last && last.at ? '<p class="ccs-hint"><em>Last changed ' + esc(stamp(last.at)) + (last.by ? ' by ' + esc(last.by) : '') + '</em></p>' : '') +
       '<div class="ccs-actions-row"><button type="button" class="ccs-btn" data-act="mc-save">Save</button></div></div></details>';
   }
