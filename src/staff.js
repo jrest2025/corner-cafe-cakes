@@ -1190,17 +1190,17 @@
           '<div class="ccs-field"><label class="ccs-label" for="q-size">Size or servings</label><input class="ccs-input" id="q-size" maxlength="80" value="' + esc(qi.serves_label || '') + '"></div></div>' : '') +
         '<div class="ccs-field"><label class="ccs-label" for="q-price">Cake price agreed with the kitchen (FJD)</label><input class="ccs-input" id="q-price" inputmode="decimal" data-autofocus style="max-width:240px" value="' + (cakeOnly != null ? cakeOnly : '') + '"></div>' +
         (Number(o.delivery_fee) > 0 ? '<p class="ccs-hint">The delivery fee of ' + money(o.delivery_fee) + ' is added on top.</p>' : '') +
-        '<p class="ccs-hint">Saving moves the order to Waiting for customer. Then email the price or tell the customer, and press Confirm order once they agree.</p>' + err +
-        '<div class="ccs-actions-row"><button type="button" class="ccs-btn ccs-good" data-act="do-quote">Save price</button><button type="button" class="ccs-btn ccs-ghost" data-act="panel" data-v="">Back</button></div></div>';
+        '<p class="ccs-hint">Saving records the quoted price; it does not email the customer or send the cake to the kitchen. Next, share the price. Confirm only after they agree to the design and price.</p>' + err +
+        '<div class="ccs-actions-row"><button type="button" class="ccs-btn ccs-good" data-act="do-quote">Save quoted price</button><button type="button" class="ccs-btn ccs-ghost" data-act="panel" data-v="">Back</button></div></div>';
     }
     if (p === 'confirm' && o.order_type === 'custom' && o.final_total != null) {
       var how = S.cfmHow;
-      return '<div class="ccs-panel"><b>Confirm this custom cake</b><dl class="ccs-kv">' + kv('Cake', cakeLine((o.order_items || [])[0])) + kv('Price', money(o.final_total)) + '</dl>' +
-        '<div class="ccs-field"><span class="ccs-label">How did the customer agree? <em class="sl-req">Required</em></span><div class="ccs-chips">' +
+      return '<div class="ccs-panel"><b>Record customer approval and confirm this custom cake</b><dl class="ccs-kv">' + kv('Cake', cakeLine((o.order_items || [])[0])) + kv('Price', money(o.final_total)) + '</dl>' +
+        '<div class="ccs-field"><span class="ccs-label">How did the customer approve the design and price? <em class="sl-req">Required</em></span><div class="ccs-chips">' +
           [['email', 'Accepted by email'], ['verbal', 'Confirmed verbally']].map(function (x) { return '<button type="button" class="ccs-chip" data-act="cfm-how" data-v="' + x[0] + '" aria-pressed="' + (how === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div>' +
-          '<span class="ccs-hint">Emailing the price is not agreement. Only confirm once the customer has said yes to these details and this price.</span></div>' +
+          '<span class="ccs-hint">The customer must agree to both the cake design and quoted price. Emailing the price is not approval.</span></div>' +
         '<div class="ccs-field"><label class="ccs-label" for="ccs-dep">Deposit needed (FJD)</label><input class="ccs-input" id="ccs-dep" inputmode="decimal" placeholder="0 for none" style="max-width:240px"></div>' +
-        '<p class="ccs-hint">Without a deposit, Confirm sends the cake to the kitchen straight away: the kitchen slip is emailed to the admin and counter inboxes. With a deposit, it goes once the deposit is paid.</p>' + err +
+        '<p class="ccs-hint">Before you confirm: without a deposit, the kitchen slip goes to the admin and counter inboxes straight away. With a deposit, it is sent after the deposit is paid.</p>' + err +
         '<div class="ccs-actions-row"><button type="button" class="ccs-btn ccs-good" data-act="do-confirm">Confirm order</button><button type="button" class="ccs-btn ccs-ghost" data-act="panel" data-v="quote">Change the price</button><button type="button" class="ccs-btn ccs-ghost" data-act="panel" data-v="">Back</button></div></div>';
     }
     if (p === 'confirm') {
@@ -1294,15 +1294,15 @@
     var main = '', more = [], hint = '', danger = [];
     var isCustom = o.order_type === 'custom';
     if (isCustom && (st === 'awaiting_review' || st === 'awaiting_quote') && orderer) {
-      main = '<button type="button" class="ccs-btn ccs-good" data-act="panel" data-v="quote">Add the price</button>';
-      hint = 'Add the price once the kitchen has priced the design. Nothing goes to the kitchen until you press Confirm order.';
+      main = '<button type="button" class="ccs-btn ccs-good" data-act="panel" data-v="quote">Set price</button>';
+      hint = 'When the kitchen has priced the design, set the cake price. It stays out of the kitchen queue until you confirm it.';
       danger.push(['decline', 'Decline order']);
     } else if (st === 'awaiting_approval' && orderer) {
       var canMail = !!(S.setup && S.setup.guest_emails) && !!o.contact_email;
-      main = '<button type="button" class="ccs-btn ccs-good" data-act="panel" data-v="confirm">Confirm order</button>' +
-        '<button type="button" class="ccs-btn ccs-ghost" data-act="send-quote"' + (canMail ? '' : ' disabled aria-disabled="true"') + '>Email the price to the customer</button>';
+      main = '<button type="button" class="ccs-btn ccs-good" data-act="panel" data-v="confirm">Record approval and confirm</button>' +
+        '<button type="button" class="ccs-btn ccs-ghost" data-act="send-quote"' + (canMail ? '' : ' disabled aria-disabled="true"') + '>Email the quoted price</button>';
       if (isCustom) more.push(['quote', 'Change the price']);
-      hint = canMail ? 'Waiting for the customer to agree the price. Press Confirm order once they say yes.' : (!o.contact_email ? 'No email address on this order: tell the customer the price by phone or WhatsApp, then press Confirm order once they agree.' : 'Customer emails are off: tell the customer the price yourself, then press Confirm order once they agree.');
+      hint = canMail ? 'Price is set. Share it with the customer, then record their agreement to the design and price before confirming.' : (!o.contact_email ? 'No email address on this order. Tell the customer the price by phone or WhatsApp, then record their agreement before confirming.' : 'Customer emails are off. Tell the customer the price directly, then record their agreement before confirming.');
       danger.push(['decline', 'Decline order']);
     } else if ((st === 'awaiting_review' || st === 'awaiting_quote') && orderer) {
       main = '<button type="button" class="ccs-btn ccs-good" data-act="panel" data-v="confirm">' + (st === 'awaiting_quote' ? 'Quote and confirm' : 'Confirm order') + '</button>';
