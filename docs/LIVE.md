@@ -1,3 +1,9 @@
+# Release 5 Nov 2026, 5:50 PM Fiji (approved by Roneel, "deploy")
+- Copy of customer emails: up to 10 addresses (was three), entered one per line in Settings. PR #52.
+- Database: migration customer_email_copy_limit10_20261105 (admin_email_copy_save only).
+- Email sender: send-emails v33 pins commit 407b620, loaded from raw.githubusercontent.com because jsDelivr returned 403 for this commit at release time (same pinned commit). Checked after release: a queue check returned ok with nothing claimed. Rollback: import the v32 jsDelivr URL at 71cb1af190592ad7ed08d13dd8a1de23fc8393fb.
+- Staff app: Vercel production deployment dpl_BQUc7PCdS68emsSEjFXk2Chpnw3L from branch release/customer-email-copy-10-asset-20261105 (commit c3bc7e3; staff-app.ac5f5d616c.js, only that Settings section changed). Rollback: Vercel rollback to dpl_DU3EKCLWWr92goFjDjUuYE3kTcqa.
+
 # Release 5 Nov 2026, 5:40 PM Fiji (approved by Roneel, "deploy")
 - Settings, Copy of customer emails (admins only, every change in the audit log): up to three addresses get a separate "Copy:" email of every customer email, with no unsubscribe link or header; customers never see these addresses. Empty = off (starting state). Skipped in test mode. PR #51.
 - Database: supabase/sql/customer_email_copy_20261105.sql, applied as migration customer_email_copy_20261105 (app_config guest_email_copy, admin_email_copy, admin_email_copy_save).
