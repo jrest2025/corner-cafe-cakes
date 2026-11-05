@@ -1200,7 +1200,7 @@
           [['email', 'Accepted by email'], ['verbal', 'Confirmed verbally']].map(function (x) { return '<button type="button" class="ccs-chip" data-act="cfm-how" data-v="' + x[0] + '" aria-pressed="' + (how === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div>' +
           '<span class="ccs-hint">The customer must agree to both the cake design and quoted price. Emailing the price is not approval.</span></div>' +
         '<div class="ccs-field"><label class="ccs-label" for="ccs-dep">Deposit needed (FJD)</label><input class="ccs-input" id="ccs-dep" inputmode="decimal" placeholder="0 for none" style="max-width:240px"></div>' +
-        '<p class="ccs-hint">Before you confirm: without a deposit, the kitchen slip goes to the admin and counter inboxes straight away. With a deposit, it is sent after the deposit is paid.</p>' + err +
+        '<p class="ccs-hint">Before you confirm: with no deposit, the order is sent to the kitchen straight away and the slip is emailed to admin and counter. With a deposit, the kitchen gets it after payment.</p>' + err +
         '<div class="ccs-actions-row"><button type="button" class="ccs-btn ccs-good" data-act="do-confirm">Confirm order</button><button type="button" class="ccs-btn ccs-ghost" data-act="panel" data-v="quote">Change the price</button><button type="button" class="ccs-btn ccs-ghost" data-act="panel" data-v="">Back</button></div></div>';
     }
     if (p === 'confirm') {
