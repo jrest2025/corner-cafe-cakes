@@ -43,6 +43,8 @@
   I.print2 = '<path d="M7 9V3h10v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M7 14h10v7H7z"/>';
   I.envl = '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3.5 6.5 8.5 6.5 8.5-6.5"/>';
   I.web = '<circle cx="12" cy="12" r="9"/><path d="M12 3a13 13 0 0 0 0 18 13 13 0 0 0 0-18M3 12h18"/>';
+  // 5 Nov 2026: bank icon for Payments (Bank details for customer emails)
+  I.bank = '<path d="M3 9.5 12 4l9 5.5"/><path d="M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18"/>';
   I.history = '<path d="M3 12a9 9 0 1 0 2.6-6.4L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/>';
   function svg(k, c) { return I[k] ? '<svg class="cca-ic' + (c ? ' ' + c : '') + '" viewBox="0 0 24 24" aria-hidden="true" focusable="false">' + I[k] + '</svg>' : ''; }
   function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -54,7 +56,9 @@
     { k: 'ordering', t: 'Ordering and availability', ic: 'globe', s: ['Online orders', 'Notice and collection hours', 'Closed days'] },
     { k: 'menu', t: 'Menu and pricing', ic: 'cake', s: ['Cakes and prices', 'Seasonal items', 'Delivery areas', 'Payment methods'] },
     { k: 'calendar', t: 'Calendar', ic: 'cal', s: ['Occasions and special dates', 'Events and public holidays'] },
-    { k: 'alerts', t: 'Alerts and communications', ic: 'bell', s: ['Order alerts', 'Kitchen printing', 'Communications'] },
+    { k: 'alerts', t: 'Alerts and communications', ic: 'bell', s: ['Order alerts', 'Kitchen printing', 'Communications', 'Copy of customer emails'] },
+    // 5 Nov 2026: bank details for customer emails get their own group instead of falling into Other
+    { k: 'payments', t: 'Payments', ic: 'bank', s: ['Bank details for customer emails'] },
     { k: 'reports', t: 'Reports', ic: 'bars', s: ['Lead-time groups'] },
     { k: 'team', t: 'People and access', ic: 'users', s: ['Team and access', 'What each level can do', 'Two-step sign-in'] },
     { k: 'data', t: 'Data and safety', ic: 'shield', s: ['Integrations', 'Settings history', 'Backup and business continuity', 'Deleted orders', 'Remove Settings entries'] }
@@ -65,14 +69,17 @@
     'Delivery areas': 'delivery fee area zone', 'Occasions and special dates': 'occasion birthday christmas mothers day special', 'Events and public holidays': 'event public holiday calendar',
     'Order alerts': 'email alert notify new order kitchen', 'Kitchen printing': 'printer print slip kitchen paper', 'Communications': 'customer email message template',
     'Team and access': 'staff user people level role permission access login', 'Two-step sign-in': 'two step code authenticator phone security mfa 2fa', 'Backup and business continuity': 'backup google sheet restore continuity',
-    'Deleted orders': 'deleted restore order', 'Integrations': 'connections connected email website printer sheet backup whatsapp database status working', 'Remove Settings entries': 'remove delete entry'
+    'Deleted orders': 'deleted restore order', 'Integrations': 'connections connected email website printer sheet backup whatsapp database status working', 'Remove Settings entries': 'remove delete entry',
+    'Copy of customer emails': 'copy cc bcc managers team email quote confirmation send', 'Bank details for customer emails': 'bank account transfer swift bsb payment deposit'
   };
   var SEC_IC = { 'Online orders': 'globe', 'Notice and collection hours': 'clock', 'Closed days': 'calx', 'Cakes and prices': 'cake', 'Seasonal items': 'gift',
     'Delivery areas': 'truck', 'Occasions and special dates': 'star', 'Events and public holidays': 'flag', 'Order alerts': 'bell', 'Kitchen printing': 'printer',
-    'Communications': 'mail', 'Team and access': 'users', 'What each level can do': 'shield', 'Two-step sign-in': 'shield', 'Backup and business continuity': 'db', 'Deleted orders': 'trash', 'Remove Settings entries': 'trash' };
+    'Communications': 'mail', 'Team and access': 'users', 'What each level can do': 'shield', 'Two-step sign-in': 'shield', 'Backup and business continuity': 'db', 'Deleted orders': 'trash', 'Remove Settings entries': 'trash',
+    'Copy of customer emails': 'envl', 'Bank details for customer emails': 'bank' };
   // the short name used for a setting's key fact on the overview cards
   var FACT = { 'Online orders': 'Website orders', 'Notice and collection hours': 'Notice', 'Cakes and prices': 'On sale', 'Seasonal items': 'Seasonal', 'Delivery areas': 'Delivery',
-    'Order alerts': 'Alerts go to', 'Team and access': 'Staff', 'Backup and business continuity': 'Backup', 'Deleted orders': 'Deleted orders' };
+    'Order alerts': 'Alerts go to', 'Team and access': 'Staff', 'Backup and business continuity': 'Backup', 'Deleted orders': 'Deleted orders',
+    'Copy of customer emails': 'Copies go to', 'Bank details for customer emails': 'Bank account' };
   var DEF_IC = { 'Order alerts': 'mail', 'Team and access': 'users', 'Deleted orders': 'trash', 'Remove Settings entries': 'trash', 'Communications': 'mail', 'Kitchen printing': 'printer' };
   // status colour by meaning
   function tone(s) {
