@@ -1,3 +1,9 @@
+# Release 5 Nov 2026, 5:40 PM Fiji (approved by Roneel, "deploy")
+- Settings, Copy of customer emails (admins only, every change in the audit log): up to three addresses get a separate "Copy:" email of every customer email, with no unsubscribe link or header; customers never see these addresses. Empty = off (starting state). Skipped in test mode. PR #51.
+- Database: supabase/sql/customer_email_copy_20261105.sql, applied as migration customer_email_copy_20261105 (app_config guest_email_copy, admin_email_copy, admin_email_copy_save).
+- Email sender: send-emails v32 pins commit 71cb1af (built on v31, commit f82bfc0). Checked after release: a queue check returned ok with nothing claimed. Rollback: point the import back at f82bfc0de7bd327ae8a4fc0b087592041edc339d.
+- Staff app: Vercel production deployment dpl_DU3EKCLWWr92goFjDjUuYE3kTcqa from branch release/customer-email-copy-asset-20261105 (commit 5c56489; same URL staff-app-complimentary-20261030.js; staff-app.b332279a07.js, only the new Settings section added). Rollback: Vercel rollback to dpl_HYDecZ24fMPvUxosnYd23T6C3U7Q.
+
 # Release 5 Nov 2026, 5:25 PM Fiji (approved by Roneel, "deploy")
 - Custom cake quote and approval wording: Set price, Save quoted price, Email the quoted price (emailing is not approval), Record approval and confirm, "How did the customer approve the design and price?"; kitchen line now says staff make the kitchen slip after confirming. Wording only: statuses, emails, deposit and kitchen logic unchanged. PR #50.
 - Staff app: Vercel project corner-cafe-staff-assets, production deployment dpl_HYDecZ24fMPvUxosnYd23T6C3U7Q from branch release/custom-cake-quote-asset-20261105 (commit 7a2e035; same URL staff-app-complimentary-20261030.js). Built from src at 7b79aed (staff-app.5973d6c9cf.js); the build of main before this change matched the live file byte for byte. Rollback: Vercel rollback to dpl_7oEUqsVGPykiX4XkFZR1UiapTTDp.
