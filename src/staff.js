@@ -3887,7 +3887,7 @@
     S.settings = null; S.setErr = null; view();
     var reqs = [sb.from('locations').select('*').eq('code', 'corner-cafe').single(), sb.from('closed_dates').select('*').gte('closed_on', today()).order('closed_on'), sb.from('products').select('*, product_sizes(*), product_variants(*)').order('sort'), sb.from('delivery_zones').select('*').order('sort')];
     var nil = Promise.resolve(null); reqs.push(canP('staff.users') ? sb.rpc('admin_list_team') : nil); reqs.push(canP('ord.restore') ? sb.rpc('admin_deleted_orders') : nil); reqs.push(canP('staff.permissions') ? sb.rpc('admin_levels') : nil);
-    Promise.all(reqs).then(function (rs) { rs.forEach(function (r) { if (r && r.error) throw r.error; }); S.settings = { loc: rs[0].data, closed: rs[1].data || [], products: rs[2].data || [], zones: rs[3].data || [], team: rs[4] ? (rs[4].data && rs[4].data.team) || [] : null, deleted: rs[5] && rs[5].data && rs[5].data.ok ? rs[5].data.orders : null, levels: rs[6] && rs[6].data && rs[6].data.ok ? rs[6].data.levels : null }; if (S.tab === 'settings') view(); s5SettingsLoad(); prLoad(); mirLoad(); alLoad(); occLoad(); bankLoad(); }).catch(function (e) {
+    Promise.all(reqs).then(function (rs) { rs.forEach(function (r) { if (r && r.error) throw r.error; }); S.settings = { loc: rs[0].data, closed: rs[1].data || [], products: rs[2].data || [], zones: rs[3].data || [], team: rs[4] ? (rs[4].data && rs[4].data.team) || [] : null, deleted: rs[5] && rs[5].data && rs[5].data.ok ? rs[5].data.orders : null, levels: rs[6] && rs[6].data && rs[6].data.ok ? rs[6].data.levels : null }; if (S.tab === 'settings') view(); s5SettingsLoad(); prLoad(); mirLoad(); alLoad(); occLoad(); bankLoad(); mcLoad(); }).catch(function (e) {
       console.error(e); if (errKind(e) === 'expired') return sessionExpired();
       S.setErr = errKind(e) === 'offline' ? 'No internet connection, so we couldn\'t load the settings.' : errKind(e) === 'denied' ? 'Your login cannot see these settings. Ask a manager.' : 'We couldn\'t load the settings. Try again.';
       if (S.tab === 'settings') view();
@@ -4067,7 +4067,7 @@
     });
   }
   // Settings: typing in a section is kept until that section is saved, and open sections stay open
-  var SET_SAVES = { 'save-loc': 1, 'confirm-loc': 1, 'save-zones': 1, 'add-zone': 1, 'pay-save': 1, 'add-closed': 1, 'save-staff': 1, 'tm-add': 1, 'tm-reset-save': 1, 'bk-link': 1, 'pr-save': 1 };
+  var SET_SAVES = { 'save-loc': 1, 'confirm-loc': 1, 'save-zones': 1, 'add-zone': 1, 'pay-save': 1, 'mc-save': 1, 'add-closed': 1, 'save-staff': 1, 'tm-add': 1, 'tm-reset-save': 1, 'bk-link': 1, 'pr-save': 1 };
   S.setTyped = {}; S.setOpen = {}; S.setSaved = null;
   function setSec(el) { var d = el.closest('details'), sm = d && d.querySelector('summary'); return sm ? (sm.firstChild && sm.firstChild.nodeType === 3 ? sm.firstChild.nodeValue : sm.textContent).trim() : ''; }
   function setKeep(m) {
@@ -4133,6 +4133,7 @@
       st.zones.map(function (z) { return '<div class="ccs-row" style="align-items:end">' + sf('dz-n-' + z.id, 'Area', z.name, 'text') + sf('dz-f-' + z.id, 'Fee (FJD)', z.fee == null ? '' : Number(z.fee)) + '<label class="ccs-check" style="padding-bottom:14px"><input type="checkbox" id="dz-a-' + z.id + '"' + (z.active ? ' checked' : '') + '> Offered</label></div>'; }).join('') +
       '<button type="button" class="ccs-btn ccs-ghost" data-act="save-zones">Save delivery areas</button><div class="ccs-row" style="align-items:end">' + sf('dz-new-n', 'New area', '', 'text') + sf('dz-new-f', 'Fee (FJD)', '') + '<button type="button" class="ccs-btn ccs-ghost" data-act="add-zone">Add area</button></div></div></details>';
     h += bankView();
+    h += mcView();
     h += occView(st);
     h += (st.team ? '' : s5PermView(st)) + s5BackupCheckView(st) + alertsView(st) + printView(st);
     if (st.team) {
@@ -4683,6 +4684,34 @@
       toast('Bank details saved'); bankLoad();
     }).catch(function (e) { S.busy = false; fail(e); });
   }
+  // ---------- Copy of customer emails (5 Nov 2026): admins only, every change in the audit log ----------
+  // The team gets a separate copy of every customer email; customers never see these addresses.
+  function mcLoad() {
+    if (!canP('mgmt.system')) { S.mailCopy = null; return; }
+    sb.rpc('admin_email_copy').then(function (r) {
+      S.mailCopy = r.error || !r.data || !r.data.ok ? { err: true } : r.data;
+      if (S.tab === 'settings') view();
+    });
+  }
+  function mcView() {
+    if (!canP('mgmt.system') || !S.mailCopy) return '';
+    if (S.mailCopy.err) return '<details><summary>Copy of customer emails <span>Not available yet</span></summary><div class="ccs-set-body"><p class="ccs-hint"><em>This needs the database update that comes with this release.</em></p></div></details>';
+    var mc = S.mailCopy, n = mc.emails ? mc.emails.split(',').length : 0, last = mc.last || null;
+    return '<details><summary>Copy of customer emails <span>' + (n ? esc(n === 1 ? mc.emails : n + ' addresses') : 'Off') + '</span></summary><div class="ccs-set-body">' +
+      '<p class="ccs-hint"><em>Gets a copy of every customer email. Customers do not see it. Up to three, with commas. Empty turns it off.</em></p>' +
+      '<div class="ccs-field"><label class="ccs-label" for="mc-emails">Send a copy to</label><input class="ccs-input" id="mc-emails" type="email" multiple autocomplete="off" value="' + esc(mc.emails || '') + '"></div>' +
+      (last && last.at ? '<p class="ccs-hint"><em>Last changed ' + esc(stamp(last.at)) + (last.by ? ' by ' + esc(last.by) : '') + '</em></p>' : '') +
+      '<div class="ccs-actions-row"><button type="button" class="ccs-btn" data-act="mc-save">Save</button></div></div></details>';
+  }
+  function mcSave() {
+    var e = document.getElementById('mc-emails'), v = e ? e.value.trim() : '';
+    if (S.busy) return; S.busy = true;
+    sb.rpc('admin_email_copy_save', { p_emails: v }).then(function (r) {
+      S.busy = false; if (r.error) throw r.error;
+      if (!r.data.ok) { toast(r.data.message || 'Not saved.'); return; }
+      S.mailCopy = r.data; toast(r.data.emails ? 'Customer email copies go to ' + r.data.emails : 'Customer email copies turned off'); if (S.tab === 'settings') view();
+    }).catch(function (e) { S.busy = false; fail(e); });
+  }
   function sf(id, label, v, type) { return '<div class="ccs-field"><label class="ccs-label" for="' + id + '">' + label + '</label><input class="ccs-input" id="' + id + '" type="' + (type || 'text') + '" value="' + esc(v) + '"' + (type ? '' : ' inputmode="numeric"') + '></div>'; }
   function refreshSetup() { return sb.rpc('get_order_setup', { p_location: 'corner-cafe' }).then(function (s) { if (!s.error) S.setup = s.data; }); }
   function saveLoc(confirmIt) {
@@ -4925,6 +4954,7 @@
         case 'save-zones': try { saveZones(); } catch (e_) { fail(e_); } break;
         case 'add-zone': addZone(); break;
         case 'pay-save': bankSave(); break;
+        case 'mc-save': mcSave(); break;
         case 'do-pay': pay(); break;
         case 'open-customer': openCustomer(b.dataset.id); break;
         case 'cust-neworder': (function () {

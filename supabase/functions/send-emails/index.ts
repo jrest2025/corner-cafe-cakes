@@ -288,6 +288,18 @@ async function send(to: string, subject: string, html: string, from: string, rep
   return JSON.parse(t).id as string;
 }
 
+// ---------- team copy of customer emails (5 Nov 2026, Roneel) ----------
+// Settings, Copy of customer emails (admins only): up to three addresses. Each customer email is sent to the customer
+// exactly as before; the team then gets a separate copy, so the customer never sees the team address. The copy has no
+// unsubscribe link or header, so nobody on the team can unsubscribe the customer by accident. A failed copy never
+// resends the customer's email.
+async function emailCopy(): Promise<string[]> {
+  try {
+    const [r] = await db(`app_config?key=eq.guest_email_copy&select=value`);
+    return [...new Set(String(r?.value || "").split(/[,;\s]+/).map((s) => s.trim().toLowerCase()).filter((s) => /^[^@,<> ]+@[^@,<> ]+[.][^@,<> ]+$/.test(s)))].slice(0, 3);
+  } catch (_e) { return []; }
+}
+
 // ---------- kitchen slip PDF for the printer PC ----------
 function b64(bytes: Uint8Array) { let s = ""; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000)); return btoa(s); }
 class NoRetry extends Error {}
@@ -447,6 +459,16 @@ async function processOutbox() {
       const unsubHeaders = guestKind && d.unsub ? { "List-Unsubscribe": `<${d.unsub.post}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" } : undefined;
       const id = await send(to, subject, html, cfg.from_email, guestKind ? cfg.reply_to : (m.kind === "kitchen_slip" ? undefined : (d.customer?.email || undefined)), att, cc, text, unsubHeaders);
       await db(`email_outbox?id=eq.${m.id}`, { method: "PATCH", body: JSON.stringify({ status: "sent", sent_at: new Date().toISOString(), provider_message_id: id, last_error: null }) });
+      // Team copy (not in test mode, where everything already goes to the test inbox)
+      if (guestKind && cfg.test_mode !== "true") {
+        const copyTo = (await emailCopy()).filter((a) => a !== String(to || "").toLowerCase());
+        if (copyTo.length) {
+          try {
+            const k = build(m.kind, { ...d, unsub: undefined });
+            await send(copyTo[0], `Copy: ${k.subject}`, k.html, cfg.from_email, cfg.reply_to, undefined, copyTo.slice(1), k.text);
+          } catch (_e) { /* the customer's email has gone; a missing team copy is not retried */ }
+        }
+      }
       // Which wording it went out with (only when a template was used; a failure here never resends the email)
       if (d.template?.id) await db(`email_outbox?id=eq.${m.id}`, { method: "PATCH", body: JSON.stringify({ template_version_id: d.template.id }) }).catch(() => {});
       sent++;
