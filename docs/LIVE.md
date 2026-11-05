@@ -1,3 +1,9 @@
+# Release 5 Nov 2026, 6:06 PM Fiji (approved by Roneel, "deploy")
+- Settings home: Copy of customer emails sits under Alerts and communications; Bank details for customer emails has a new Payments group (no more "Other"). PR #53.
+- Add-ons loader: `ccordertoolsloader88` (docs/loader88.js) on the staff page (6aca162870735ac2247de4dd), add-ons from commit 42ae8fe. Only staff.admin.js changed; every other add-on is byte-identical to loader 87's a748f68 and keeps its checksum. Corner Café site published to cornercafefiji.com and www (no other page had changed since 31 Oct).
+- Note: the staff page holds at most 15 scripts. To swap loaders, remove the old one first, then add the new one, then publish.
+- Rollback: remove ccordertoolsloader88, add ccordertoolsloader87 (version 1.0.87, footer), publish.
+
 # Release 5 Nov 2026, 5:50 PM Fiji (approved by Roneel, "deploy")
 - Copy of customer emails: up to 10 addresses (was three), entered one per line in Settings. PR #52.
 - Database: migration customer_email_copy_limit10_20261105 (admin_email_copy_save only).
@@ -29,7 +35,7 @@ so main now matches what customers and staff see. Every older branch is kept in 
 
 ## Staff app (cornercafefiji.com/cake-orders-staff)
 - Main app bundle: https://corner-cafe-staff-assets.vercel.app/staff-app-complimentary-20261030.js, built from `src/staff.js` (complimentary delivery release, 30 Oct).
-- Add-ons loader: `ccordertoolsloader87` (31 Oct 2026, 2:02 PM). Add-ons from commit eaf7dc8 (same as 087b0a8 except `staff.polish.js` (shell tidy), `staff.pickups.js` and `staff.cake-lead-time.js` 0.4.0 (distinctive colours)); treat orders from 3233aa4. Asset list: `ccAssetManifestAll4` (adds the two analytics workspace files).
+- Add-ons loader: `ccordertoolsloader88` since 5 Nov 2026 (see the release above); before that `ccordertoolsloader87` (31 Oct 2026, 2:02 PM). Add-ons from commit eaf7dc8 (same as 087b0a8 except `staff.polish.js` (shell tidy), `staff.pickups.js` and `staff.cake-lead-time.js` 0.4.0 (distinctive colours)); treat orders from 3233aa4. Asset list: `ccAssetManifestAll4` (adds the two analytics workspace files).
 - Rollback: put back `ccordertoolsloader73` (or 71 with `ccAssetManifestAll`) on the staff page, publish.
 
 | File | Live commit |
