@@ -1183,3 +1183,16 @@ html.ccs-tablet-mode #ccs-sheet .sl-nomob-link { font-size: calc(19 * var(--u, 1
 #cc-staff #ccs-main.cc-settle > *{visibility:hidden !important}
 #cc-staff #ccs-main.cc-settle::after{content:"";position:fixed;left:50%;top:50%;width:28px;height:28px;margin:-14px 0 0 -14px;border:3px solid #d0d5dd;border-top-color:#344054;border-radius:50%;animation:ccs-spin .8s linear infinite;z-index:5;pointer-events:none}
 @media (prefers-reduced-motion: reduce){#cc-staff #ccs-main.cc-settle::after{animation-duration:2.4s}}
+/* Wide screens (7 Nov 2026): the New order panel was held at 1040px on 1600px+ screens, so the slip preview shrank to
+   about 290px and its values broke in the middle of words ("Wedn esday"). The panel now uses more of a wide screen, the
+   slip gets a sensible width, and words only break when a single word is longer than the whole line. */
+@media (min-width: 1600px) {
+  html body #cc-staff #ccs-sheet:has(.sl-stepper) { width: min(1380px, 76vw) !important; max-width: 100% !important; }
+  html body #cc-staff #ccs-sheet .sl-wrap.is-stepper { max-width: none !important; }
+  html body #cc-staff #ccs-sheet .sl-wrap.is-stepper .sl-stepper { grid-template-columns: minmax(0, 1fr) minmax(360px, 430px) !important; }
+}
+/* The slip preview band is black, as on the paper slip, so the white Corner Café logo shows (a later layer made it pale grey) */
+html body #cc-staff #ccs-sheet .sl-live .sl-band { background: #111 !important; }
+html body #cc-staff #ccs-sheet .sl-live .sl-ll :is(.sl-lk, .sl-lv, .sl-lv small, b, span) { overflow-wrap: break-word !important; word-break: normal !important; hyphens: manual !important; }
+html body #cc-staff #ccs-sheet .cc-f-val { overflow-wrap: break-word !important; word-break: normal !important; }
+html body #cc-staff #ccs-sheet .sl-wrap.is-stepper .sl-dots > li { min-width: 0; }
