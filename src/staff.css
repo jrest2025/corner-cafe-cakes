@@ -1177,3 +1177,5 @@ html.ccs-tablet-mode #ccs-sheet .sl-restart { min-height: 56px; font-size: calc(
 #cc-staff .tb-saved.tb-nophone .tb-ref, #ccs-sheet .tb-saved.tb-nophone .tb-ref { display: block; font-size: 44px; font-weight: 800; letter-spacing: 1px; color: var(--ccs-ink); line-height: 1.1; }
 html.ccs-tablet-mode #ccs-sheet .sl-nomob-pick .ccs-chip { min-height: 64px !important; }
 html.ccs-tablet-mode #ccs-sheet .sl-nomob-link { font-size: calc(19 * var(--u, 1px)) !important; min-height: 52px; }
+/* Stability step 1: a pop-up heading takes focus when it opens; it is not a control, so no focus ring */
+#cc-staff .ccs-sheet-head .ccs-title[tabindex="-1"]:focus{outline:none}

@@ -6,7 +6,27 @@
   var TZ = 'Pacific/Fiji';
   var root = document.getElementById('cc-staff');
   if (!root) return;
-  var sb = window.__ccsMock || window.supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: true, storageKey: 'cc-cakes-staff' } });
+  // Stability step 1 (7 Nov 2026): every database request gets a time limit, so a hung Wi-Fi connection ends in a clear
+  // message instead of "Saving…" forever. Only database calls (/rest/v1/) are limited; photo uploads and emails are not.
+  var NET_LIMIT_MS = 25000;
+  function limitedFetch(url, opts) {
+    var u = String((url && url.url) || url || '');
+    if (u.indexOf('/rest/v1/') < 0 || typeof AbortController === 'undefined') return fetch(url, opts);
+    opts = opts || {};
+    var ctl = new AbortController(), outer = opts.signal, timedOut = false;
+    if (outer) { if (outer.aborted) ctl.abort(); else outer.addEventListener('abort', function () { ctl.abort(); }); }
+    var timer = setTimeout(function () { timedOut = true; ctl.abort(); }, NET_LIMIT_MS);
+    return fetch(url, Object.assign({}, opts, { signal: ctl.signal })).then(function (res) { clearTimeout(timer); return res; }, function (err) {
+      clearTimeout(timer);
+      throw timedOut ? new Error('No answer from the server') : err;
+    });
+  }
+  var sb = window.__ccsMock || window.supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: true, storageKey: 'cc-cakes-staff' }, global: { fetch: limitedFetch } });
+  // True when this device no longer holds a usable sign-in (requests then go out unsigned and the database refuses them)
+  function signInGone() {
+    try { var v = JSON.parse(localStorage.getItem('cc-cakes-staff') || 'null'); return !v || !v.access_token || (v.expires_at && v.expires_at * 1000 < Date.now() - 60000); }
+    catch (e) { return false; }
+  }
 
   // ---------- helpers ----------
   function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -141,9 +161,10 @@
   // Plain-language errors (U9). Technical detail goes to the console only.
   function errKind(e) {
     var m = String((e && (e.message || e.error_description || e.msg)) || e || ''), code = e && (e.code || e.status);
+    if (/no answer from the server/i.test(m)) return 'slow';
     if (!navigator.onLine || /failed to fetch|networkerror|network request failed|load failed|fetch failed|timed? ?out/i.test(m)) return 'offline';
     if (code === 'PGRST301' || code === 401 || /jwt|token is expired|invalid claim|not authenticated|refresh token/i.test(m)) return 'expired';
-    if (code === '42501' || /permission denied|not allowed/i.test(m)) return 'denied';
+    if (code === '42501' || /permission denied|not allowed/i.test(m)) return signInGone() ? 'expired' : 'denied';
     return 'other';
   }
   // A message written for staff (from the server or a form check) is shown as it is (B18)
@@ -831,6 +852,7 @@
   function sheetOpen() {
     if (!(S.sheetHist)) sheetFrom();
     var s = document.getElementById('ccs-sheet'), sh = document.getElementById('ccs-shade'); if (s) { s.classList.add('ccs-open'); sh.classList.add('ccs-open'); }
+    focusIntoSheet();
     if (!S.sheetHist) { S.sheetHist = true; try { history.pushState({ ccs: 'sheet' }, ''); } catch (x) {} }
   }
   // how: 'pop' = the back gesture already removed the entry; 'replace' = a tab change takes the entry over; default = remove our entry
@@ -918,7 +940,25 @@
     var nb = el.querySelector('.ccs-sheet-body'); if (nb) nb.scrollTop = top;
     [].slice.call(el.querySelectorAll('.os-main, .os-detail')).forEach(function (c, k) { if (cols[k] != null) c.scrollTop = cols[k]; });
     pinMainAction(el); wipSync();
-    if (!restoreFocus(focus)) { var f = el.querySelector('[data-autofocus]'); if (f) f.focus(); }
+    if (!restoreFocus(focus)) {
+      var f = el.querySelector('[data-autofocus]');
+      if (f) f.focus();
+      // Stability step 1: when a pop-up opens, focus moves into it (its heading), so keyboards and screen readers
+      // start inside the pop-up instead of on the card behind it. Closing still returns focus to that card.
+      else focusIntoSheet();
+    }
+  }
+  var focusTimer = null;
+  function focusIntoSheet() {
+    // Once the pop-up is visible (a hidden element cannot take focus; add-ons keep its content hidden for a moment
+    // while they finish), and only while focus is still outside it. One attempt every 100 ms for up to 2 seconds.
+    clearTimeout(focusTimer); var tries = 0;
+    (function attempt() {
+      var el = document.getElementById('ccs-sheet'); if (!el || !S.sheet || !el.classList.contains('ccs-open') || el.contains(document.activeElement)) return;
+      var h = el.querySelector('.ccs-title');
+      if (h) { h.setAttribute('tabindex', '-1'); try { h.focus({ preventScroll: true }); } catch (x) {} if (document.activeElement === h) return; }
+      if (++tries < 20) focusTimer = setTimeout(attempt, 100);
+    })();
   }
   // Phones and tablets: when the main button scrolls out of view, the same button stays pinned at the bottom.
   // It presses the real button, so permissions, saving and double-tap protection are unchanged.
@@ -3278,9 +3318,22 @@
       S.busy = false; console.error(e); var k = errKind(e);
       if (k === 'expired') { refreshStep(); return sessionExpired(); }
       D.errField = null;
-      D.err = k === 'offline' ? 'Not saved: no internet connection. Everything you entered is kept. Try again when connected.' : k === 'denied' ? 'Not saved: your login cannot create orders. Ask a manager.' : 'Not saved. Everything you entered is kept. Try again.';
-      refreshStep();
+      D.err = k === 'slow' ? 'No answer from the server, so we can\'t tell if it saved. Everything you entered is kept. Tap Save again: it will not make a second order.' : k === 'offline' ? 'Not saved: no internet connection. Everything you entered is kept. Try again when connected.' : k === 'denied' ? 'Not saved: your login cannot create orders. Ask a manager.' : 'Not saved. Everything you entered is kept. Try again.';
+      refreshStep(); showSaveErr();
     });
+  }
+
+  // Stability step 1: a failed save's message sits below the Save button, out of sight on tablets and phones.
+  // Bring it into view once, so staff see what happened and what to do.
+  function showSaveErr() {
+    setTimeout(function () {
+      var el = document.querySelector('#ccs-sheet .ccs-err'); if (!el) return;
+      var sc = el.parentElement;
+      while (sc && sc.id !== 'ccs-sheet' && !(sc.scrollHeight > sc.clientHeight + 1 && /(auto|scroll)/.test(getComputedStyle(sc).overflowY))) sc = sc.parentElement;
+      var r = el.getBoundingClientRect();
+      if (sc && sc.id !== 'ccs-sheet') { var b = sc.getBoundingClientRect(); if (r.top < b.top || r.bottom > b.bottom - 90) sc.scrollTop = Math.max(0, sc.scrollTop + (r.top - b.top) - b.height * 0.3); }
+      else if (r.top < 0 || r.bottom > window.innerHeight - 90) window.scrollBy(0, r.top - window.innerHeight * 0.3);
+    }, 0);
   }
 
   // ---------- calendar ----------

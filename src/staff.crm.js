@@ -1364,7 +1364,7 @@
     h += sh.fbForm ? fbFormHtml(sh.fbForm) : '<button type="button" class="ccs-btn ccs-ghost fb-add" data-act="fb-new">Record customer feedback</button>';
     if (!d) h += '<p class="ccs-loading">Loading feedback…</p>';
     else if (d.err) h += '<p class="ccs-err" role="alert">' + esc(d.err) + ' <button type="button" class="ccs-link" data-act="fb-reload">Try again</button></p>';
-    else if (!d.notes.length) h += sh.fbForm ? '' : '<p class="ccs-quiet">No feedback recorded for this order yet. ' + FB_KIND_LINE + '</p>';
+    else if (!(d.notes || []).length) h += sh.fbForm ? '' : '<p class="ccs-quiet">No feedback recorded for this order yet. ' + FB_KIND_LINE + '</p>';
     else h += '<div class="fb-list">' + d.notes.map(function (n) { return fbCard(n, { canResolve: d.can_resolve, staff: d.staff || [], where: 'order' }); }).join('') + '</div>';
     return h + '</section>';
   }

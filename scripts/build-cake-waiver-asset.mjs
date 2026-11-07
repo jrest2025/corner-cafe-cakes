@@ -17,7 +17,9 @@ const slipGlobal = 'var SlipPdf = (function () {\n' + slip +
   '\nreturn { buildSlipPdf: buildSlipPdf, slipFileName: slipFileName };\n})();\n';
 const original = read('src/staff.js');
 if (original.split('/*@DASH@*/').length !== 2) throw new Error('Expected exactly one dashboard insertion point');
-const js = original.replace('/*@DASH@*/', slipGlobal + dash);
+// A function replacement inserts the code exactly as written. A plain string would treat $' and $& inside the code as
+// replace commands and produce a broken file (the 30 Oct 2026 "Invalid or unexpected token" release).
+const js = original.replace('/*@DASH@*/', () => slipGlobal + dash);
 const css = ['src/staff.css', 'src/staff.cal.css', 'src/staff.hospitality.css']
   .map(read).join('\n').replace(/font-size:(\d+(?:\.\d+)?)px/g, 'font-size:calc($1*var(--u,1px))');
 const app = "(function(){var s=document.createElement('style');s.id='ccs-style';s.textContent=" +

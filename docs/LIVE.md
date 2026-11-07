@@ -1,3 +1,12 @@
+# Release 7 Nov 2026, 4:45 PM Fiji (approved by Roneel, "deploy") — Interface Stability step 1
+- Database requests get a 25-second time limit; a save with no answer shows "No answer from the server, so we can't tell if it saved. Everything you entered is kept. Tap Save again: it will not make a second order." and the message is brought into view. Retrying is safe (`_create_order` returns the first order for the same idempotency_key).
+- "Permission denied" from a device whose sign-in has run out is handled as an expired sign-in (sign in again, unfinished order kept).
+- Order pop-up Feedback section no longer crashes when the reply has no list. Pop-ups move focus to their heading when they open.
+- scripts/build-cake-waiver-asset.mjs: function replacement, so `$'` in the code cannot corrupt the build.
+- Staff app: Vercel production deployment dpl_12As5Ft4GoiEBydr29UHdbPwUstA from branch release/stability-step1-asset-20261107 (commit 013fe81; same URL staff-app-complimentary-20261030.js; staff-app.5762825fd0.js), built on top of order capture Phase 2. The build of main (5e3294d) matched the live file byte for byte before this change. Checked after release: the served file is identical to the build.
+- Rollback: Vercel rollback to dpl_9sxi89AhadDvLsvuCBvVqb3CN9rn (order capture Phase 2).
+- Add-ons loader, Webflow page and database unchanged. PR #55.
+
 # Release 7 Nov 2026, 4:33 PM Fiji (approved by Roneel, "deploy")
 - New order, Phase 2 order capture: cake photo cards (most ordered first, from the last 180 days; order fixed for each new order; Custom cake is a card), size buttons with servings and price, required flavour, quantity and candle steppers (candles saved as text in the existing wording, no price), money summary (Cake, Delivery, Total, Paid, Balance, "Not saved yet") at the top of the slip. The order, its taker, requirements and taken date save together or not at all.
 - Saved order fields unchanged (same 31 fields as before, plus taker, requirements and taken date, which were already saved by separate calls). No table or column changes.
