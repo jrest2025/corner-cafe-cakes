@@ -1,3 +1,11 @@
+# Release 7 Nov 2026, 4:33 PM Fiji (approved by Roneel, "deploy")
+- New order, Phase 2 order capture: cake photo cards (most ordered first, from the last 180 days; order fixed for each new order; Custom cake is a card), size buttons with servings and price, required flavour, quantity and candle steppers (candles saved as text in the existing wording, no price), money summary (Cake, Delivery, Total, Paid, Balance, "Not saved yet") at the top of the slip. The order, its taker, requirements and taken date save together or not at all.
+- Saved order fields unchanged (same 31 fields as before, plus taker, requirements and taken date, which were already saved by separate calls). No table or column changes.
+- Database: migration order_capture_one_save_20261107 (supabase/sql/order_capture_one_save_20261107.sql): staff_create_order_all(jsonb) and staff_cake_popularity(); authenticated only, anon cannot execute. Undo: drop both functions; the app falls back to the earlier save.
+- Staff app: Vercel production deployment dpl_9sxi89AhadDvLsvuCBvVqb3CN9rn from branch release/order-capture-p2-asset-20261107 (commit cbc7910; same URL staff-app-complimentary-20261030.js). Checked after release: the served file is byte-identical to the release file (md5 e24ffc031ce16ffa796e37984066effa); popularity returns live counts for a manager login; no Vercel runtime errors.
+- Rollback: Vercel rollback to dpl_4pox7NwAxHdX4Zc3Y2sR1Yr7Rmsy.
+- Add-ons loader and Webflow page unchanged.
+
 # Release 7 Nov 2026, 12:49 PM Fiji (approved by Roneel, "deploy")
 - New order: "Who is taking this order?" is back (required, first on the Customer step, names used on the device are one-tap buttons, none picked in advance). Saved on the order with order_set_taken_by before the finish screen; history shows "Order taken by". It had been missing since the 3 Nov release (0 of 7 staff orders from 4 to 6 Nov have a taker); those orders need the taker added by staff.
 - Staff app: Vercel production deployment dpl_4pox7NwAxHdX4Zc3Y2sR1Yr7Rmsy from branch release/order-taker-asset-20261107 (commit 74aa4af; same URL staff-app-complimentary-20261030.js; staff-app.0dcf4523b7.js). The build of main before this change matched the live file byte for byte. Checked after release: the served file has the same fingerprint, and the live staff page shows the question.
