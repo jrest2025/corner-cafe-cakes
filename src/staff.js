@@ -3319,8 +3319,21 @@
       if (k === 'expired') { refreshStep(); return sessionExpired(); }
       D.errField = null;
       D.err = k === 'slow' ? 'No answer from the server, so we can\'t tell if it saved. Everything you entered is kept. Tap Save again: it will not make a second order.' : k === 'offline' ? 'Not saved: no internet connection. Everything you entered is kept. Try again when connected.' : k === 'denied' ? 'Not saved: your login cannot create orders. Ask a manager.' : 'Not saved. Everything you entered is kept. Try again.';
-      refreshStep();
+      refreshStep(); showSaveErr();
     });
+  }
+
+  // Stability step 1: a failed save's message sits below the Save button, out of sight on tablets and phones.
+  // Bring it into view once, so staff see what happened and what to do.
+  function showSaveErr() {
+    setTimeout(function () {
+      var el = document.querySelector('#ccs-sheet .ccs-err'); if (!el) return;
+      var sc = el.parentElement;
+      while (sc && sc.id !== 'ccs-sheet' && !(sc.scrollHeight > sc.clientHeight + 1 && /(auto|scroll)/.test(getComputedStyle(sc).overflowY))) sc = sc.parentElement;
+      var r = el.getBoundingClientRect();
+      if (sc && sc.id !== 'ccs-sheet') { var b = sc.getBoundingClientRect(); if (r.top < b.top || r.bottom > b.bottom - 90) sc.scrollTop = Math.max(0, sc.scrollTop + (r.top - b.top) - b.height * 0.3); }
+      else if (r.top < 0 || r.bottom > window.innerHeight - 90) window.scrollBy(0, r.top - window.innerHeight * 0.3);
+    }, 0);
   }
 
   // ---------- calendar ----------
