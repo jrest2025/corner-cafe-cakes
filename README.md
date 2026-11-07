@@ -1,5 +1,5 @@
 Corner Cafe staff app asset (8 Nov 2026: laptop fit, preview, not live).
-Built with build/build.py from stability/laptop-fit-20261108, commit d664975 (dist/app/staff-app.b1938a6df4.js), on top of
+Built with build/build.py from stability/laptop-fit-20261108, commit e667050 (dist/app/staff-app.b1938a6df4.js), on top of
 the live screen fill release (staff-app.c6495c1e4d.js, the build of main byte for byte), so only the laptop fit differs.
 staff-app-complimentary-20261030.js keeps the URL the live site already loads (site script cake_delivery_waiver_release).
 Database first: supabase/sql/order_capture_one_save_20261107.sql (additive). The app also works without it (earlier save).
