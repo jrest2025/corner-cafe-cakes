@@ -55,3 +55,16 @@ from the same slip layout (`slip_pdf.js`, shared with emails).
 
 Customer lookup by mobile, consent workflow, taker requirement, occasion list, delivery rules and fees, payment rules,
 double-tap key, kitchen slip and emails, order history and audit log.
+
+## Live regression found during this audit (most urgent)
+
+- Since the 3 Nov 2026 10 PM release, the live staff bundle (`staff-app-complimentary-20261030.js` on Vercel) is built
+  from `src/staff.js` only. The 30 Oct bundle it replaced was a larger patched build (it starts with practice mode code)
+  that also carried the order flow bridge `window.__ccsOf` and "Who is taking this order?" (`order_set_taken_by`).
+- `src/staff.js` has neither, so the live app no longer asks who is taking the order. Database check: staff-entered
+  orders with a taker name were 10/10 (28 Oct), 37/37 (2 Nov), 5/6 (3 Nov), then 0/3 (4 Nov), 0/3 (5 Nov), 0/1 (6 Nov).
+- Add-ons that use the bridge do nothing without it: `staff.order-tools.js` (order date and taker tools) and
+  `staff.seasonal.js` (live through loader 88), plus `staff.order-flow.js`, `staff.old-orders.js`, `staff.brief.js`
+  and practice mode if they were relied on.
+- Fix: put the bridge and the taker question into `src/staff.js` itself, so every build carries them; preview, then
+  release on approval. The seven orders without a taker can be filled in by staff.
