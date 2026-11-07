@@ -1,0 +1,31 @@
+/* Laptop fit, layout (8 November 2026). Laptops only (trackpad or mouse, 1100 to 1700px wide): the New order panel uses
+   the width of the screen, its step header is tighter, and the Calendar month fits the screen. Sizes of text and controls
+   are in src/staff.laptop.css (generated). Phones, iPads and big screens are not affected. */
+@media (hover: hover) and (pointer: fine) and (min-width: 1100px) and (max-width: 1700px) {
+  /* New order: wider panel, so the form and the slip both get room and the step names stay on one line */
+  html:not(#lp0) body #cc-staff #ccs-sheet:has(.sl-stepper) { width: min(1400px, calc(100vw - 40px)) !important; max-width: 100% !important; }
+  html:not(#lp0) body #cc-staff #ccs-sheet .sl-wrap.is-stepper { max-width: none !important; }
+  html:not(#lp0) body #cc-staff #ccs-sheet .sl-wrap.is-stepper .sl-stepper { grid-template-columns: minmax(0, 1fr) minmax(320px, 380px) !important; gap: 18px !important; }
+  html:not(#lp0) body #cc-staff #ccs-sheet .sl-wrap.is-stepper .sl-stepmain { padding: 16px 22px 0 !important; }
+  html:not(#lp0) body #cc-staff #ccs-sheet .sl-wrap.is-stepper .sl-stephead { padding-bottom: 10px !important; margin-bottom: 12px !important; gap: 6px !important; }
+  html:not(#lp0) body #cc-staff #ccs-sheet .sl-wrap.is-stepper .sl-steptitle { line-height: 1.2 !important; margin: 0 !important; }
+  html:not(#lp0) body #cc-staff #ccs-sheet .sl-wrap.is-stepper .sl-dots > li { padding-top: 5px !important; padding-bottom: 5px !important; white-space: nowrap !important; }
+  html:not(#lp0) body #cc-staff #ccs-sheet .sl-wrap.is-stepper .sl-stepbody { gap: 10px !important; }
+  html:not(#lp0) body #cc-staff #ccs-sheet .sl-wrap.is-stepper .sl-stepbar { padding-top: 10px !important; padding-bottom: 10px !important; }
+  html:not(#lp0) body #cc-staff #ccs-sheet .sl-live .sl-ll { padding-top: 4px !important; padding-bottom: 4px !important; }
+  html:not(#lp0) body #cc-staff #ccs-sheet .ccs-sheet-head { padding-top: 8px !important; padding-bottom: 8px !important; }
+  /* Small labels sized relative to their (now smaller) parent stay readable */
+  html:not(#lp0) body #cc-staff :is(.ccdd-l, .ccq2-h, .tq-biz small) { font-size: 13px !important; }
+  /* Calendar month: day boxes a little shorter so the whole month fits the screen */
+  html:not(#lp0) body #cc-staff #ccs-main[data-screen="calendar"] .ccs-month :is(.ccs-mcell, .ccs-mday) { min-height: 68px !important; }
+  html:not(#lp0) body #cc-staff #ccs-main[data-screen="calendar"] > :is(.ccs-calbar, .ccs-calfilt) { padding-top: 6px !important; padding-bottom: 6px !important; margin-bottom: 8px !important; }
+  html:not(#lp0) body #cc-staff #ccs-main[data-screen="calendar"] > .ccv-summary { margin-bottom: 8px !important; }
+  html:not(#lp0) body #cc-staff #ccs-main[data-screen="calendar"] > .ccv-summary > .ccv-stat { padding-top: 8px !important; padding-bottom: 8px !important; }
+  html:not(#lp0) body #cc-staff #ccs-main[data-screen="calendar"] > .ccs-head { margin-bottom: 8px !important; }
+}
+/* 12.9-inch iPad Pro held sideways (1366px wide): the order pop-up used the computer's centring (moved up by half its
+   height) while the iPad layout pins it to the top, so it opened almost entirely above the screen. It now stays on screen,
+   full height and centred across. */
+@media (min-width: 1280px) {
+  html.cc-ipad:not(#lp0) body #ccs-sheet.is-review.ccs-open { transform: translateX(-50%) !important; }
+}
