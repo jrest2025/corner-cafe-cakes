@@ -13,14 +13,14 @@
   function dxPeriods() { return DX_PERIODS.map(function (x) { return x[0] === 'all' && !DX.showOld ? ['all', 'Since the launch'] : x; }); }
   function dxState() { if (!DX) DX = { data: null, loading: false, err: null, f: { p: 'all', b: 'p', from: '', to: '', prod: 'all', ch: 'all', st: 'all' }, year: null, psort: 'q', drills: {} }; return DX; }
   function dashLoad(force) {
-    var d = dxState(); if (d.loading) return; if (d.data && !force) { view(); return; }
+    var d = dxState(); if (d.loading) return; if (d.data && !force) { quietView(); return; }
     d.loading = true; d.err = null; view();
     sb.rpc('dashboard_register').then(function (r) {
       d.loading = false;
       if (r.error) throw r.error;
       if (!r.data || !r.data.ok) d.err = (r.data && r.data.message) || 'We couldn\'t load the dashboard. Try again.';
       else { d.data = r.data; dxPrep(); }
-      if (S.tab === 'dash') view();
+      if (S.tab === 'dash') quietView();
     }).catch(function (e) { console.error(e); d.loading = false; if (errKind(e) === 'expired') return sessionExpired(); d.err = 'We couldn\'t load the dashboard. Check the connection and try again.'; if (S.tab === 'dash') view(); });
   }
   function dnum(v) { v = Number(v); return isFinite(v) ? v : 0; }
@@ -725,7 +725,7 @@
   function ltDaysTxt(n) { return n == null ? '' : n === 0 ? 'the same day' : (Math.round(n * 10) / 10) + (n === 1 ? ' day' : ' days') + ' ahead'; }
   function ltDatesLoad() {
     if (DX.odates || DX.odLoading) return; DX.odLoading = true;
-    sb.from('occasion_dates').select('occasion_code,year,starts_on,ends_on,promo_days').order('starts_on').then(function (r) { DX.odLoading = false; DX.odates = r.error ? [] : (r.data || []); if (S.tab === 'dash') view(); }).catch(function () { DX.odLoading = false; DX.odates = []; });
+    sb.from('occasion_dates').select('occasion_code,year,starts_on,ends_on,promo_days').order('starts_on').then(function (r) { DX.odLoading = false; DX.odates = r.error ? [] : (r.data || []); if (S.tab === 'dash') quietView(); }).catch(function () { DX.odLoading = false; DX.odates = []; });
   }
   function dxLeadData(r) {
     var codes = ((DX.data.occasions) || []).map(function (o) { return o.c; });

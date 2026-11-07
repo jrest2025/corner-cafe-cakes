@@ -1196,3 +1196,6 @@ html body #cc-staff #ccs-sheet .sl-live .sl-band { background: #111 !important; 
 html body #cc-staff #ccs-sheet .sl-live .sl-ll :is(.sl-lk, .sl-lv, .sl-lv small, b, span) { overflow-wrap: break-word !important; word-break: normal !important; hyphens: manual !important; }
 html body #cc-staff #ccs-sheet .cc-f-val { overflow-wrap: break-word !important; word-break: normal !important; }
 html body #cc-staff #ccs-sheet .sl-wrap.is-stepper .sl-dots > li { min-width: 0; }
+/* Stability step 4: the spinner shown for one frame while a heavy screen (Analytics, Customers, Calendar, Register) is built */
+#cc-staff #ccs-main .ccs-screen-wait{min-height:40vh}
+#cc-staff #ccs-main .ccs-screen-wait::after{content:"";position:fixed;left:50%;top:50%;width:28px;height:28px;margin:-14px 0 0 -14px;border:3px solid #d0d5dd;border-top-color:#344054;border-radius:50%;animation:ccs-spin .8s linear infinite;z-index:5;pointer-events:none}
