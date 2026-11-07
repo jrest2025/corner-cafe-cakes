@@ -11,8 +11,8 @@ style matching). Each one gets a matching rule for laptops only, one step smalle
   text: 15px -> 14px; 16px and up -> 86% (16 -> 14, 18 -> 15.5, 20 -> 17, 24 -> 20.5, 28 -> 24), never under 14px
   controls 40 to 72px tall -> 80% (44 -> 35, 48 -> 38, 56 -> 45, 64 -> 51), never under 34px
 Laptops only: (hover: hover) and (pointer: fine) and (min-width: 1100px) and (max-width: 1700px), so phones, iPads and big
-screens stay exactly as they are. Each new rule repeats the old selector with one extra condition (:not(.cc-lp0), which every
-element meets) and the old rule's own importance, inside the old rule's own media conditions, so it applies exactly where
+screens stay exactly as they are. Each new rule repeats the old selector with "html" in front (one step more specific) and the old
+rule's own importance, inside the old rule's own media conditions, so it applies exactly where
 the old one did, wins over it, and still loses to the rules that were already beating it. Text under 15px, chart
 drawing (SVG) and the bars of the Cake Pulse chart are not touched.
 """
@@ -42,10 +42,14 @@ def parts(sel):
 
 
 def boost(p):
-    m = re.match(r'^(html|body|:root)((?:[.:#\[][^\s>+~]*)?)(.*)$', p, re.S)
-    if m:
+    # One step more specific than the old selector, and no more: an extra type (html) in front, so the new rule wins
+    # where the old one won and still loses to every rule that was more specific than the old one.
+    if p.startswith(':root'):
+        return 'html' + p
+    if re.match(r'^html\b', p):
+        m = re.match(r'^(html)((?:[.:#\[][^\s>+~]*)?)(.*)$', p, re.S)
         return m.group(1) + m.group(2) + PRE + m.group(3)
-    return PRE + ' ' + p
+    return 'html ' + p
 
 
 def text_px(px):
@@ -67,7 +71,7 @@ for r in H:
         if comp < 15:
             continue
         t = text_px(comp)
-        decl = 'font-size:%s' % (('min(%s,%gpx)' % (val, t)) if re.search(r'vw|vh|clamp|min\(|max\(', val) else '%gpx' % t) + imp
+        decl = 'font-size:%s' % (('min(%s,%gpx)' % (val, t)) if re.search(r'vw|vh|clamp|min\(|max\(|var\(', val) else '%gpx' % t) + imp
     else:
         m = re.match(r'^([\d.]+)px$', val)
         if not m or not (40 <= float(m.group(1)) <= 72):
