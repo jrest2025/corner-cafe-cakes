@@ -296,7 +296,8 @@
     var m = document.getElementById('ccs-main'); if (!m) return;
     m.setAttribute('data-screen', S.tab || '');
     var keepFocus = captureFocus(m);
-    viewInner(m); restoreFocus(keepFocus); saveDraft(); markMore(m); scrKeep(); scrApply();
+    if (viewInner(m) === false) return;
+    restoreFocus(keepFocus); saveDraft(); markMore(m); scrKeep(); scrApply();
   }
   // Tab rows that scroll sideways get a soft fade at the edge that still has more to show
   function moreState(el) { var r = el.scrollWidth - el.clientWidth - el.scrollLeft > 4; el.classList.toggle('has-more', r); }
@@ -322,19 +323,39 @@
   function fitWide() { var w = window.innerWidth, h = window.innerHeight; return (w >= 900 && h >= 560) || (w >= 760 && h >= 900); }
   function viewInner(m) {
     m.dataset.screen = S.tab === 'kitchen' ? 'kitchen-' + kitMode() : S.tab === 'customers' ? 'customers-' + (clState().q.trim().length >= 2 ? 'search' : crmSec()) : S.tab;
-    if (S.tab === 'today') m.innerHTML = todayView();
-    else if (S.tab === 'attn') m.innerHTML = attnView();
-    else if (S.tab === 'handover') m.innerHTML = handoverView(false);
-    else if (S.tab === 'orders') m.innerHTML = ordersView();
-    else if (S.tab === 'new') m.innerHTML = newView();
-    else if (S.tab === 'customers') m.innerHTML = customersView();
+    var h = null;
+    if (S.tab === 'today') h = todayView();
+    else if (S.tab === 'attn') h = attnView();
+    else if (S.tab === 'handover') h = handoverView(false);
+    else if (S.tab === 'orders') h = ordersView();
+    else if (S.tab === 'new') h = newView();
+    else if (S.tab === 'customers') h = customersView();
     else if (S.tab === 'settings') { m.innerHTML = settingsView(); setKeep(m); }
-    else if (S.tab === 'dash') m.innerHTML = dashView();
-    else if (S.tab === 'register') m.innerHTML = regView();
-    else if (S.tab === 'kitchen') m.innerHTML = kitchenView();
-    else if (S.tab === 'calendar') m.innerHTML = calendarView();
+    else if (S.tab === 'dash') h = dashView();
+    else if (S.tab === 'register') h = regView();
+    else if (S.tab === 'kitchen') h = kitchenView();
+    else if (S.tab === 'calendar') h = calendarView();
+    if (h != null) {
+      // Stability step 2: the 30-second background refresh only redraws the screen when something on it changed.
+      // A redraw with nothing new rebuilt the whole screen, made lists jump and dropped keyboard focus.
+      var sig = S.tab + '|' + m.dataset.screen + '|' + h.replace(FRESH_RE, 'Updated');
+      if (S.quiet && m.__ccsSig === sig && !m.querySelector('.is-busy')) { freshKeep(m, h); return false; }
+      m.innerHTML = h; m.__ccsSig = sig;
+    } else m.__ccsSig = null;
     newTop(m);
   }
+  // The "Updated 4:30 PM" line changes on every refresh; it is updated in place instead of redrawing the screen
+  var FRESH_RE = /Updated \d{1,2}:\d{2}\s?[AP]M/g;
+  function freshKeep(m, h) {
+    var now = h.match(FRESH_RE); if (!now) return;
+    var k = 0;
+    [].slice.call(m.querySelectorAll('.ccs-fresh, .ccs-stale')).forEach(function (el) {
+      var w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT), t;
+      while ((t = w.nextNode())) { if (/Updated \d{1,2}:\d{2}\s?[AP]M/.test(t.nodeValue) && now[k]) { t.nodeValue = t.nodeValue.replace(/Updated \d{1,2}:\d{2}\s?[AP]M/, now[k++]); } }
+    });
+  }
+  // Background refreshes call this instead of view(): same screen, but skipped when nothing changed
+  function quietView() { S.quiet = true; try { view(); } finally { S.quiet = false; } }
   function loginView(err) {
     root.innerHTML = '<form class="ccs-login" id="ccs-login"><div class="ccs-brand" style="color:var(--ccs-esp)">Corner Café Cakes</div>' +
       '<h1 class="ccs-title">Staff sign in</h1>' +
@@ -443,7 +464,7 @@
         var after = S.orders.filter(function (o) { return NEEDS.indexOf(o.order_status) > -1; }).length;
         if (silent && after > before) toast('New order waiting for review');
         refreshNav();
-        if (S.tab === 'orders' || S.tab === 'today' || S.tab === 'attn' || S.tab === 'handover') view();
+        if (S.tab === 'orders' || S.tab === 'today' || S.tab === 'attn' || S.tab === 'handover') { if (silent) quietView(); else view(); }
         fbLoad();
       }).catch(function (e) {
         console.error(e);
@@ -1691,7 +1712,7 @@
       if (r.error || !r.data || !r.data.ok) return;
       S.slip.paper = r.data.paper === 'DL' ? 'DL' : 'A5';
       ids.forEach(function (id) { S.slip.rows[id] = (r.data.rows || {})[id] || null; });
-      if (S.tab === 'kitchen' && !S.sheet) view();
+      if (S.tab === 'kitchen' && !S.sheet) quietView();
       if (S.sheet && ids.indexOf(S.sheet.id) > -1) renderSheet();
     }, function () {});
   }
@@ -1726,7 +1747,7 @@
       S.kit.data = r.data; S.kit.loaded = true; S.kit.err = null; S.kit.fails = 0; S.kit.at = Date.now();
       slipLoad((r.data.orders || []).filter(function (x) { return x.brief_version > 0 && x.status === 'confirmed'; }).map(function (x) { return x.id; }));
       if (S.kit.cal && S.kit.cal.orders && S.tab === 'kitchen' && kitMode() === 'cal') kitCalLoad(true);
-      if (S.tab === 'kitchen' || S.tab === 'handover') view();
+      if (S.tab === 'kitchen' || S.tab === 'handover') { if (silent) quietView(); else view(); }
       if (S.sheet && S.sheet.type === 'kitchen') renderSheet();
     }).catch(function (e) {
       console.error(e);
@@ -3402,7 +3423,8 @@
       .order('required_date', { ascending: true }).order('required_time', { ascending: true }).limit(1000)
       .then(withContact).then(function (r) {
         if (seq !== c.seq) return; if (r.error) throw r.error;
-        c.rows = r.data || []; c.range = key; c.loading = false; c.err = false; c.fails = 0; c.at = Date.now(); calRefresh();
+        c.rows = r.data || []; c.range = key; c.loading = false; c.err = false; c.fails = 0; c.at = Date.now();
+        if (silent) { S.quiet = true; try { calRefresh(); } finally { S.quiet = false; } } else calRefresh();
       }).catch(function (e) {
         if (seq !== c.seq) return; console.error(e); c.loading = false;
         if (errKind(e) === 'expired') return sessionExpired();
