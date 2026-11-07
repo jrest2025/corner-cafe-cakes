@@ -1,3 +1,9 @@
+# Release 8 Nov 2026, 4:27 AM Fiji (approved by Roneel, "deploy") — Screen fill
+- Layout-only CSS (src/staff.css): Today Due today cards (cake name no longer cut off, repeated customer line removed); Today week strip day names back on days with orders; Kitchen next card and counts fill the left column on computers; Handover title and banner back at the top; Register rows no longer spread apart; iPad upright logo fits the menu rail; phone Calendar filters stack.
+- Staff app: Vercel production deployment dpl_6JZocS8Puoi4frhrDvL8RBczJe6W from branch release/screen-fill-asset-20261107 (commit 97dcb2f; same URL staff-app-complimentary-20261030.js; staff-app.c6495c1e4d.js). Checked after release: served file identical to the tested build; on the live staff page the week strip shows every day name, Kitchen next card fills its column, Handover title is at the top, Register loads. Due today was empty at release time, so that card fix was checked in the local replica only.
+- Rollback: Vercel rollback to dpl_CeA6GKS8Sk6FHJp9RaA61r8iVugu (interface stability step 4).
+- Add-ons loader, Webflow page and database unchanged. PR #61.
+
 # Release 7 Nov 2026, 8:22 PM Fiji (approved by Roneel, "deploy") — Interface Stability step 4
 - Analytics, Customers, Calendar and Register are drawn one frame after the tap (menu and centred spinner first). Tap to first paint on a slowed iPad: Analytics 1.9 s to 0.14 s, Customers 0.33 s to 0.10-0.18 s, Calendar 0.18 s to 0.06 s.
 - Background data on Customers and Analytics redraws only when it changes the screen (Customers 8 redraws to 5, Analytics 4 to 2).

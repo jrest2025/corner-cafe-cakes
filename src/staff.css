@@ -1199,3 +1199,29 @@ html body #cc-staff #ccs-sheet .sl-wrap.is-stepper .sl-dots > li { min-width: 0;
 /* Stability step 4: the spinner shown for one frame while a heavy screen (Analytics, Customers, Calendar, Register) is built */
 #cc-staff #ccs-main .ccs-screen-wait{min-height:40vh}
 #cc-staff #ccs-main .ccs-screen-wait::after{content:"";position:fixed;left:50%;top:50%;width:28px;height:28px;margin:-14px 0 0 -14px;border:3px solid #d0d5dd;border-top-color:#344054;border-radius:50%;animation:ccs-spin .8s linear infinite;z-index:5;pointer-events:none}
+/* Screen fill (7 Nov 2026). Layout-only fixes so each screen fills its space and nothing is cut off. No logic changes.
+   1. Today, Due today cards on computers: the cake name sat hard against the card edge with its first letter cut off,
+      and the customer name and order number were repeated in a cut-off line under the card. */
+html:not(.cc-ipad) body #cc-staff #ccs-main[data-screen="today"].cc-act-on > .tq-main > .ccs-panel-card:not(.tp-needs) > .ccs-minis > .ccs-mini > .ccs-mini-m > b { grid-row: 2 !important; grid-column: 1 !important; align-self: center !important; min-width: 0 !important; margin: 0 !important; padding: 13px 0 13px 18px !important; white-space: normal !important; overflow: visible !important; }
+html:not(.cc-ipad) body #cc-staff #ccs-main[data-screen="today"].cc-act-on > .tq-main > .ccs-panel-card:not(.tp-needs) > .ccs-minis > .ccs-mini:not(:has(> .ccs-mini-m > .tq-left)) > .ccs-mini-m > b { grid-column: 1 / -1 !important; padding-right: 16px !important; }
+html:not(.cc-ipad) body #cc-staff #ccs-main[data-screen="today"].cc-act-on > .tq-main > .ccs-panel-card:not(.tp-needs) > .ccs-minis > .ccs-mini > .ccs-mini-m > b + span { display: none !important; }
+/* 2. Today, This week strip: days with orders were held at 55px tall, which squeezed the day name ("Mon", "Today") to nothing */
+body #cc-staff :is(#v#v#v#v#v#v#v#v#v, #ccs-main)[data-screen="today"].cc-act-on > .tq-week .tq-days > .ccs-daycell { height: auto !important; min-height: 55px !important; }
+body #cc-staff :is(#v#v#v#v#v#v#v#v#v, #ccs-main)[data-screen="today"].cc-act-on > .tq-week .tq-days > .ccs-daycell > * { flex-shrink: 0 !important; }
+/* 3. Kitchen on computers: the Next priority card and the three counts shrank to their content, leaving an empty hole */
+@media (min-width: 1100px) {
+  html body #cc-staff #ccs-main[data-screen^="kitchen"] .kw-main .kw-top > :is(.kw-next, .kw-counts) { align-self: stretch !important; }
+}
+/* 4. Handover: the screen title and the "waiting for you" banner were pushed to the bottom of the page */
+html body #cc-staff #ccs-main[data-screen="handover"] > :not(.ccs-head):not(.ho-banner) { order: 3; }
+/* 5. Register: when the list is short, its rows were spread out to fill the screen, leaving large gaps */
+html body #cc-staff #ccs-main[data-screen="register"] > .ccs-secbody { align-content: start !important; }
+/* 6. iPad upright: the Corner Café logo was 176px wide inside the 68px menu rail, so it was cut off */
+@media (min-width: 700px) and (max-width: 1023px) {
+  html.cc-ipad:not(#sf0):not(#sf1):not(#sf2) body:not(#sf3) #cc-staff#cc-staff#cc-staff .ccs-app .ccs-side .ccs-brand { width: 62px !important; max-width: none !important; height: 24px !important; min-height: 0 !important; padding: 0 !important; flex: 0 0 auto !important; align-self: center !important; background-size: contain !important; background-position: 50% 50% !important; margin: 4px auto !important; }
+  html.cc-ipad:not(#sf0):not(#sf1):not(#sf2) body:not(#sf3) #cc-staff#cc-staff#cc-staff .ccs-app .ccs-side .ccs-brandrow { padding-left: 0 !important; padding-right: 0 !important; align-items: center !important; }
+}
+/* 7. Calendar on phones: the two filter boxes sat side by side and showed only "A…" and "C…"; they now stack */
+@media (max-width: 759px) {
+  html body #cc-staff #ccs-main .ccs-calfilt { grid-template-columns: minmax(0, 1fr) !important; }
+}
