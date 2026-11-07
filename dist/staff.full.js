@@ -292,8 +292,22 @@
     return false;
   }
   window.addEventListener('beforeunload', function (e) { if (S.me && S.sheet && hasTyping()) { e.preventDefault(); e.returnValue = ''; } });
+  var HEAVY_TABS = ['dash', 'customers', 'calendar', 'register'];
   function view() {
     var m = document.getElementById('ccs-main'); if (!m) return;
+    if (S.deferTab) {
+      var waitTab = S.deferTab; S.deferTab = null;
+      if (waitTab === S.tab) {
+        m.setAttribute('data-screen', S.tab + '-wait'); m.__ccsSig = null; m.classList.remove('cc-act-on');
+        m.innerHTML = '<div class="ccs-screen-wait" role="status" aria-label="Loading"></div>';
+        S.waitFor = waitTab;
+        var go = function () { if (S.waitFor !== waitTab) return; S.waitFor = null; if (S.tab === waitTab) view(); };
+        if (window.requestAnimationFrame) requestAnimationFrame(function () { setTimeout(go, 0); }); else setTimeout(go, 16);
+        return;
+      }
+    }
+    // while a heavy screen waits for its first frame, other redraws of it wait too (that frame draws everything)
+    if (S.waitFor) { if (S.waitFor === S.tab) return; S.waitFor = null; }
     m.setAttribute('data-screen', S.tab || '');
     var keepFocus = captureFocus(m);
     if (viewInner(m) === false) return;
@@ -917,6 +931,9 @@
     var hadSheet = S.sheetHist; scrMark();
     S.scrWant = fromPop && S.scr && S.scr[t] ? { tab: t, pos: S.scr[t], until: Date.now() + 4000 } : null;
     S.tab = t; sheetClose(hadSheet && !fromPop ? 'replace' : 'pop'); if (paused) toast(paused);
+    // Stability step 4: the heavy screens are drawn one frame after the tap, so the menu and a centred spinner show at
+    // once instead of the whole page freezing on the old screen while Analytics or Customers is built.
+    if (HEAVY_TABS.indexOf(t) > -1) S.deferTab = t;
     try { if (!fromPop) { if (hadSheet) history.replaceState({ ccs: 'tab', tab: t }, ''); else history.pushState({ ccs: 'tab', tab: t }, ''); } } catch (x) {}
     shell();
     if (S.tab === 'customers' && !S.cust.loaded) loadCustomers();
@@ -3786,7 +3803,7 @@
     var req;
     if (c.q.trim().length < 2) return clLoad();
     req = sb.rpc('staff_search_customers', { q: c.q });
-    return req.then(function (r) { if (r.error) throw r.error; c.rows = r.data || []; c.count = c.rows.length; c.loaded = true; if (S.tab === 'customers') view(); })
+    return req.then(function (r) { if (r.error) throw r.error; c.rows = r.data || []; c.count = c.rows.length; c.loaded = true; if (S.tab === 'customers') quietView(); })
       .catch(function (e) { var m = readErr(e, 'customers'); if (m == null) return; c.loadErr = m; if (S.tab === 'customers') view(); });
   }
   // ---------- reminders due: guests who agreed to messages, occasion coming up ----------
@@ -3797,7 +3814,7 @@
     S.rem.busy = true;
     sb.rpc('staff_reminders_due').then(function (r) {
       if (r.error) throw r.error; if (!r.data.ok) throw userErr(r.data.message);
-      S.rem.busy = false; S.rem.rows = r.data.rows || []; S.rem.at = Date.now(); S.rem.err = null; if (S.tab === 'customers') view();
+      S.rem.busy = false; S.rem.rows = r.data.rows || []; S.rem.at = Date.now(); S.rem.err = null; if (S.tab === 'customers') quietView();
     }).catch(function (e) { console.error(e); S.rem.busy = false; S.rem.err = 'We couldn\'t load the reminders. Try again.'; if (S.tab === 'customers') view(); });
   }
   function remText(r) {
@@ -4383,14 +4400,14 @@ return { buildSlipPdf: buildSlipPdf, slipFileName: slipFileName };
   function dxPeriods() { return DX_PERIODS.map(function (x) { return x[0] === 'all' && !DX.showOld ? ['all', 'Since the launch'] : x; }); }
   function dxState() { if (!DX) DX = { data: null, loading: false, err: null, f: { p: 'all', b: 'p', from: '', to: '', prod: 'all', ch: 'all', st: 'all' }, year: null, psort: 'q', drills: {} }; return DX; }
   function dashLoad(force) {
-    var d = dxState(); if (d.loading) return; if (d.data && !force) { view(); return; }
+    var d = dxState(); if (d.loading) return; if (d.data && !force) { quietView(); return; }
     d.loading = true; d.err = null; view();
     sb.rpc('dashboard_register').then(function (r) {
       d.loading = false;
       if (r.error) throw r.error;
       if (!r.data || !r.data.ok) d.err = (r.data && r.data.message) || 'We couldn\'t load the dashboard. Try again.';
       else { d.data = r.data; dxPrep(); }
-      if (S.tab === 'dash') view();
+      if (S.tab === 'dash') quietView();
     }).catch(function (e) { console.error(e); d.loading = false; if (errKind(e) === 'expired') return sessionExpired(); d.err = 'We couldn\'t load the dashboard. Check the connection and try again.'; if (S.tab === 'dash') view(); });
   }
   function dnum(v) { v = Number(v); return isFinite(v) ? v : 0; }
@@ -5095,7 +5112,7 @@ return { buildSlipPdf: buildSlipPdf, slipFileName: slipFileName };
   function ltDaysTxt(n) { return n == null ? '' : n === 0 ? 'the same day' : (Math.round(n * 10) / 10) + (n === 1 ? ' day' : ' days') + ' ahead'; }
   function ltDatesLoad() {
     if (DX.odates || DX.odLoading) return; DX.odLoading = true;
-    sb.from('occasion_dates').select('occasion_code,year,starts_on,ends_on,promo_days').order('starts_on').then(function (r) { DX.odLoading = false; DX.odates = r.error ? [] : (r.data || []); if (S.tab === 'dash') view(); }).catch(function () { DX.odLoading = false; DX.odates = []; });
+    sb.from('occasion_dates').select('occasion_code,year,starts_on,ends_on,promo_days').order('starts_on').then(function (r) { DX.odLoading = false; DX.odates = r.error ? [] : (r.data || []); if (S.tab === 'dash') quietView(); }).catch(function () { DX.odLoading = false; DX.odates = []; });
   }
   function dxLeadData(r) {
     var codes = ((DX.data.occasions) || []).map(function (o) { return o.c; });
@@ -6880,20 +6897,20 @@ return { buildSlipPdf: buildSlipPdf, slipFileName: slipFileName };
     return sb.rpc('customer_filter', { p_filter: clFilter(), p_limit: 500 }).then(function (r) {
       if (r.error) throw r.error;
       if (!r.data.ok) { c.rows = []; c.count = 0; c.err = r.data.message; } else { c.rows = r.data.rows || []; c.count = r.data.count; }
-      c.loaded = true; if (S.tab === 'customers') view();
+      c.loaded = true; if (S.tab === 'customers') quietView();
     }).catch(function (e) { var m = readErr(e, 'customers'); if (m == null) return; c.loadErr = m; if (S.tab === 'customers') view(); });
   }
   function clGroupsLoad() {
     var c = clState();
     return sb.rpc('customer_groups_list').then(function (r) {
       if (r.error) throw r.error;
-      if (r.data.ok) { c.groups = r.data.groups || []; c.canGroup = r.data.can_edit; if (S.tab === 'customers') view(); }
+      if (r.data.ok) { c.groups = r.data.groups || []; c.canGroup = r.data.can_edit; if (S.tab === 'customers') quietView(); }
     }).catch(function (e) { console.error(e); });
   }
   function clOptsLoad() {
     var c = clState(); if (c.opts) return;
     c.opts = { occasions: [], cakes: [], loading: true };
-    sb.rpc('customer_filter_options').then(function (r) { if (r.error) throw r.error; if (r.data.ok) { c.opts = r.data; if (S.tab === 'customers') view(); } }).catch(function (e) { c.opts = null; console.error(e); });
+    sb.rpc('customer_filter_options').then(function (r) { if (r.error) throw r.error; if (r.data.ok) { c.opts = r.data; if (S.tab === 'customers') quietView(); } }).catch(function (e) { c.opts = null; console.error(e); });
   }
   // The Show list: quick groups, then saved groups
   function clShowSelect() {
