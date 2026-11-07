@@ -1,3 +1,9 @@
+# Release 7 Nov 2026, 12:49 PM Fiji (approved by Roneel, "deploy")
+- New order: "Who is taking this order?" is back (required, first on the Customer step, names used on the device are one-tap buttons, none picked in advance). Saved on the order with order_set_taken_by before the finish screen; history shows "Order taken by". It had been missing since the 3 Nov release (0 of 7 staff orders from 4 to 6 Nov have a taker); those orders need the taker added by staff.
+- Staff app: Vercel production deployment dpl_4pox7NwAxHdX4Zc3Y2sR1Yr7Rmsy from branch release/order-taker-asset-20261107 (commit 74aa4af; same URL staff-app-complimentary-20261030.js; staff-app.0dcf4523b7.js). The build of main before this change matched the live file byte for byte. Checked after release: the served file has the same fingerprint, and the live staff page shows the question.
+- Rollback: Vercel rollback to dpl_BQUc7PCdS68emsSEjFXk2Chpnw3L.
+- Add-ons loader, Webflow page and database unchanged.
+
 # Release 5 Nov 2026, 6:06 PM Fiji (approved by Roneel, "deploy")
 - Settings home: Copy of customer emails sits under Alerts and communications; Bank details for customer emails has a new Payments group (no more "Other"). PR #53.
 - Add-ons loader: `ccordertoolsloader88` (docs/loader88.js) on the staff page (6aca162870735ac2247de4dd), add-ons from commit 42ae8fe. Only staff.admin.js changed; every other add-on is byte-identical to loader 87's a748f68 and keeps its checksum. Corner Café site published to cornercafefiji.com and www (no other page had changed since 31 Oct).
