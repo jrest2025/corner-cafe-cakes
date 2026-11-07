@@ -298,6 +298,23 @@
     var keepFocus = captureFocus(m);
     if (viewInner(m) === false) return;
     restoreFocus(keepFocus); saveDraft(); markMore(m); scrKeep(); scrApply();
+    todaySettle(m);
+  }
+  // Stability step 3: when Today opens, several add-ons rearrange it for up to a second (Act now, the tablet columns,
+  // the status lines). Staff used to watch every section jump. Today now stays hidden behind a centred spinner until
+  // the screen has stopped changing (0.15 s with no change, 1.5 s at most), then appears in its final place.
+  function todaySettle(m) {
+    if (S.tab !== 'today') { m.__ccsTodayReady = false; return; }
+    if (m.__ccsTodayReady || !S.loaded || m.querySelector(':scope > .ccs-loading')) return;
+    m.__ccsTodayReady = true;
+    if (!('MutationObserver' in window)) return;
+    m.classList.add('cc-settle');
+    var quiet = null, done = false, mo;
+    var show = function () { if (done) return; done = true; clearTimeout(quiet); clearTimeout(cap); if (mo) mo.disconnect(); m.classList.remove('cc-settle'); };
+    var cap = setTimeout(show, 1500);
+    mo = new MutationObserver(function () { clearTimeout(quiet); quiet = setTimeout(show, 150); });
+    mo.observe(m, { childList: true, subtree: true, attributes: true, characterData: true });
+    quiet = setTimeout(show, 150);
   }
   // Tab rows that scroll sideways get a soft fade at the edge that still has more to show
   function moreState(el) { var r = el.scrollWidth - el.clientWidth - el.scrollLeft > 4; el.classList.toggle('has-more', r); }
@@ -341,6 +358,9 @@
       var sig = S.tab + '|' + m.dataset.screen + '|' + h.replace(FRESH_RE, 'Updated');
       if (S.quiet && m.__ccsSig === sig && !m.querySelector('.is-busy')) { freshKeep(m, h); return false; }
       m.innerHTML = h; m.__ccsSig = sig;
+      // Stability step 3: Today's two-column "Act now" layout (class cc-act-on, styled by the site's Today rules) used to
+      // switch on after the screen was already on show, moving every section. It is now on from the first frame.
+      if (S.tab === 'today') m.classList.toggle('cc-act-on', !!m.querySelector(':scope > .tq-warn'));
     } else m.__ccsSig = null;
     newTop(m);
   }
