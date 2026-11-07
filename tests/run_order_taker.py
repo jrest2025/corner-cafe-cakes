@@ -1,5 +1,5 @@
 """Who is taking this order (7 Nov 2026 fix): asked on every New order, required, never picked in advance, shown on the
-slip, saved on the order (order_set_taken_by) before the finish screen. Invented data only.
+slip, saved with the order (staff_create_order_all since Phase 2, order_set_taken_by before). Invented data only.
 Run after building dist/staff.full.js: python3 tests/run_order_taker.py [folder with staff-test.html]"""
 import asyncio, pathlib, sys, json
 from playwright.async_api import async_playwright
@@ -21,7 +21,7 @@ async def fill_customer(pg):
     await pg.fill('#n-phone', '912 0099'); await pg.wait_for_timeout(450); await pg.fill('#n-name', 'Taker Test Guest'); await pg.wait_for_timeout(200)
     await js(pg, '[data-act="sl-opt"][data-v="yes"]'); await js(pg, '[data-act="n-source"][data-v="walk_in"]'); await js(pg, '[data-act="n-taken"][data-v="now"]')
 async def rest_and_save(pg):
-    await js(pg, '[data-act="sl-next"]'); await js(pg, '[data-act="n-cell"][data-v="cheesecake|8"]'); await js(pg, '[data-act="sl-next"]')
+    await js(pg, '[data-act="sl-next"]'); await js(pg, '[data-act="n-cake"][data-v="cheesecake"]'); await js(pg, '[data-act="n-cell"][data-v="cheesecake|8"]'); await js(pg, '[data-act="sl-next"]')
     await js(pg, '[data-act="n-diet"][data-v="no"]'); await js(pg, '[data-act="n-occ"][data-v="Birthday"]'); await js(pg, '[data-act="sl-next"]')
     await js(pg, '[data-act="n-date"][data-v]:not(.ccs-chip-soon)'); await js(pg, '[data-act="sl-next"]')
     acts = await pg.evaluate("[].slice.call(document.querySelectorAll('[data-act=n-time]')).map(function(e){return e.dataset.v})")
@@ -42,8 +42,8 @@ async def main():
         await pg.fill('#n-takenby', 'mere'); await pg.wait_for_timeout(400)
         ok('A: the slip shows who is taking it', 'mere' in (await pg.inner_text('.sl-live')), await pg.inner_text('.sl-live'))
         await rest_and_save(pg)
-        tb = await calls(pg, 'order_set_taken_by'); co = await calls(pg, 'staff_create_order')
-        ok('A: order saved once, then who took it saved on it', len(co) == 1 and len(tb) == 1 and tb[0].get('p_name') == 'mere', json.dumps(tb))
+        al = await calls(pg, 'staff_create_order_all'); tb = await calls(pg, 'order_set_taken_by')
+        ok('A: order and who took it saved together, once', len(al) == 1 and al[0]['p'].get('taken_by_name') == 'mere' and not tb, json.dumps([al, tb])[:300])
         names = await pg.evaluate("localStorage.getItem('ccs-taken-names')")
         ok('A: the name is remembered on this device', names and 'mere' in names, names)
         ok('A: no page errors', not errs, errs); await ctx.close()
@@ -54,8 +54,8 @@ async def main():
         ok('B: Someone else is offered', await pg.query_selector('[data-act="n-takenby-other"]') is not None)
         await js(pg, '[data-act="n-takenby"][data-v="Sunil"]'); await fill_customer(pg)
         await rest_and_save(pg)
-        tb = await calls(pg, 'order_set_taken_by')
-        ok('B: the tapped name is saved', len(tb) == 1 and tb[0].get('p_name') == 'Sunil', json.dumps(tb))
+        al = await calls(pg, 'staff_create_order_all')
+        ok('B: the tapped name is saved', len(al) == 1 and al[0]['p'].get('taken_by_name') == 'Sunil', json.dumps(al)[:300])
         ok('B: no page errors', not errs, errs); await ctx.close()
         # C: phone size: the question and buttons fit, nothing sideways
         ctx, pg, errs = await open_new(b, ['Mere'], (390, 844))
