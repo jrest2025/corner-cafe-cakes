@@ -292,8 +292,22 @@
     return false;
   }
   window.addEventListener('beforeunload', function (e) { if (S.me && S.sheet && hasTyping()) { e.preventDefault(); e.returnValue = ''; } });
+  var HEAVY_TABS = ['dash', 'customers', 'calendar', 'register'];
   function view() {
     var m = document.getElementById('ccs-main'); if (!m) return;
+    if (S.deferTab) {
+      var waitTab = S.deferTab; S.deferTab = null;
+      if (waitTab === S.tab) {
+        m.setAttribute('data-screen', S.tab + '-wait'); m.__ccsSig = null; m.classList.remove('cc-act-on');
+        m.innerHTML = '<div class="ccs-screen-wait" role="status" aria-label="Loading"></div>';
+        S.waitFor = waitTab;
+        var go = function () { if (S.waitFor !== waitTab) return; S.waitFor = null; if (S.tab === waitTab) view(); };
+        if (window.requestAnimationFrame) requestAnimationFrame(function () { setTimeout(go, 0); }); else setTimeout(go, 16);
+        return;
+      }
+    }
+    // while a heavy screen waits for its first frame, other redraws of it wait too (that frame draws everything)
+    if (S.waitFor) { if (S.waitFor === S.tab) return; S.waitFor = null; }
     m.setAttribute('data-screen', S.tab || '');
     var keepFocus = captureFocus(m);
     if (viewInner(m) === false) return;
@@ -917,6 +931,9 @@
     var hadSheet = S.sheetHist; scrMark();
     S.scrWant = fromPop && S.scr && S.scr[t] ? { tab: t, pos: S.scr[t], until: Date.now() + 4000 } : null;
     S.tab = t; sheetClose(hadSheet && !fromPop ? 'replace' : 'pop'); if (paused) toast(paused);
+    // Stability step 4: the heavy screens are drawn one frame after the tap, so the menu and a centred spinner show at
+    // once instead of the whole page freezing on the old screen while Analytics or Customers is built.
+    if (HEAVY_TABS.indexOf(t) > -1) S.deferTab = t;
     try { if (!fromPop) { if (hadSheet) history.replaceState({ ccs: 'tab', tab: t }, ''); else history.pushState({ ccs: 'tab', tab: t }, ''); } } catch (x) {}
     shell();
     if (S.tab === 'customers' && !S.cust.loaded) loadCustomers();
@@ -3786,7 +3803,7 @@
     var req;
     if (c.q.trim().length < 2) return clLoad();
     req = sb.rpc('staff_search_customers', { q: c.q });
-    return req.then(function (r) { if (r.error) throw r.error; c.rows = r.data || []; c.count = c.rows.length; c.loaded = true; if (S.tab === 'customers') view(); })
+    return req.then(function (r) { if (r.error) throw r.error; c.rows = r.data || []; c.count = c.rows.length; c.loaded = true; if (S.tab === 'customers') quietView(); })
       .catch(function (e) { var m = readErr(e, 'customers'); if (m == null) return; c.loadErr = m; if (S.tab === 'customers') view(); });
   }
   // ---------- reminders due: guests who agreed to messages, occasion coming up ----------
@@ -3797,7 +3814,7 @@
     S.rem.busy = true;
     sb.rpc('staff_reminders_due').then(function (r) {
       if (r.error) throw r.error; if (!r.data.ok) throw userErr(r.data.message);
-      S.rem.busy = false; S.rem.rows = r.data.rows || []; S.rem.at = Date.now(); S.rem.err = null; if (S.tab === 'customers') view();
+      S.rem.busy = false; S.rem.rows = r.data.rows || []; S.rem.at = Date.now(); S.rem.err = null; if (S.tab === 'customers') quietView();
     }).catch(function (e) { console.error(e); S.rem.busy = false; S.rem.err = 'We couldn\'t load the reminders. Try again.'; if (S.tab === 'customers') view(); });
   }
   function remText(r) {

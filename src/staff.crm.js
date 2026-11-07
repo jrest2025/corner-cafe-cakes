@@ -394,20 +394,20 @@
     return sb.rpc('customer_filter', { p_filter: clFilter(), p_limit: 500 }).then(function (r) {
       if (r.error) throw r.error;
       if (!r.data.ok) { c.rows = []; c.count = 0; c.err = r.data.message; } else { c.rows = r.data.rows || []; c.count = r.data.count; }
-      c.loaded = true; if (S.tab === 'customers') view();
+      c.loaded = true; if (S.tab === 'customers') quietView();
     }).catch(function (e) { var m = readErr(e, 'customers'); if (m == null) return; c.loadErr = m; if (S.tab === 'customers') view(); });
   }
   function clGroupsLoad() {
     var c = clState();
     return sb.rpc('customer_groups_list').then(function (r) {
       if (r.error) throw r.error;
-      if (r.data.ok) { c.groups = r.data.groups || []; c.canGroup = r.data.can_edit; if (S.tab === 'customers') view(); }
+      if (r.data.ok) { c.groups = r.data.groups || []; c.canGroup = r.data.can_edit; if (S.tab === 'customers') quietView(); }
     }).catch(function (e) { console.error(e); });
   }
   function clOptsLoad() {
     var c = clState(); if (c.opts) return;
     c.opts = { occasions: [], cakes: [], loading: true };
-    sb.rpc('customer_filter_options').then(function (r) { if (r.error) throw r.error; if (r.data.ok) { c.opts = r.data; if (S.tab === 'customers') view(); } }).catch(function (e) { c.opts = null; console.error(e); });
+    sb.rpc('customer_filter_options').then(function (r) { if (r.error) throw r.error; if (r.data.ok) { c.opts = r.data; if (S.tab === 'customers') quietView(); } }).catch(function (e) { c.opts = null; console.error(e); });
   }
   // The Show list: quick groups, then saved groups
   function clShowSelect() {
