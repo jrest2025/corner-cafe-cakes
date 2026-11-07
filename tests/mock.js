@@ -188,6 +188,16 @@
       }
       return Promise.resolve({ data: { ok: false, message: 'Unknown request.' } }); } },
     rpc: function (fn, args) {
+      // Order capture Phase 2: the one-go save. Records the order the same way as staff_create_order, plus what it saved
+      // together. window.__noAll = true behaves like a database without the new function (the app must fall back).
+      if (fn === 'staff_create_order_all') {
+        calls.push(['rpc', fn, args]);
+        if (window.__noAll) return Promise.resolve({ error: { code: 'PGRST202', message: 'Could not find the function public.staff_create_order_all(p) in the schema cache' } });
+        var q = Object.assign({}, args.p), inc = []; if (q.taken_by_name) inc.push('taken_by'); if (q.requirements && q.requirements.length) inc.push('requirements'); if (q.taken_at) inc.push('taken_at');
+        delete q.taken_by_name; delete q.requirements; delete q.requirements_note; delete q.taken_at;
+        return this.rpc('staff_create_order', { p: q }).then(function (r) { if (r && r.data && r.data.ok) r.data.includes = inc; return r; });
+      }
+      if (fn === 'staff_cake_popularity') { calls.push(['rpc', fn, args]); return Promise.resolve({ data: window.__pop || { ok: true, days: 180, cakes: {} } }); }
       if (window.__failR && window.__failR[fn]) { calls.push(['rpc-failed', fn, args]); return Promise.resolve({ error: { message: 'Failed to fetch' } }); }
       if (fn === 'analytics_imports') { window.__upList = window.__upList || []; return Promise.resolve({ data: Object.assign({ ok: true }, { can_upload: true, list: window.__upList }) }); }
       if (fn === 'analytics_import_cleaning') { calls.push(['rpc-up', args.p.rows.length]); var bad = args.p.rows.filter(function (r) { return r.occasion && ['birthday', 'anniversary', "mother's day", 'christmas'].indexOf(r.occasion.toLowerCase()) < 0; });
