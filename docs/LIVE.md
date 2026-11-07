@@ -1,3 +1,10 @@
+# Release 7 Nov 2026, 7:37 PM Fiji (approved by Roneel, "deploy") — New order on wide screens
+- 1600px+ screens: New order panel up to 1380px (76vw), form fills it, slip preview 360 to 430px (was 1040px panel, about 295px slip, values broken mid-word). Below 1600px unchanged.
+- Slip and review-card values break only inside over-long words; review card reads "10:00 AM · Collect from café"; slip preview band black again so the logo shows.
+- Staff app: Vercel production deployment dpl_4gDzXeadmJM6WsUJK1zRAi9LoT4t from branch release/wide-order-form-asset-20261107 (commit f3c9d41; same URL staff-app-complimentary-20261030.js; staff-app.07e11bb359.js). Checked after release: served file identical to the tested build; on Roneel's 2560px screen the live panel is 1380px, the slip 430px, values 182px wide, logo visible.
+- Rollback: Vercel rollback to dpl_FuTJQPqrwmjbPoKCf3VYm5VLvwbM (steps 2 and 3).
+- Add-ons loader, Webflow page and database unchanged. PR #59.
+
 # Release 7 Nov 2026, 7:06 PM Fiji (approved by Roneel, "deploy") — Interface Stability steps 2 and 3
 - Step 2: background refreshes (Orders, Today, Needs attention, Handover, Kitchen, Calendar, kitchen slip status, follow-ups, open feedback) redraw a screen only when something on it changed; otherwise only the "Updated" time changes in place. Real changes still show within 30 seconds.
 - Step 3: Today opens in its final place. The Act now layout (cc-act-on) is on from the first frame, and Today stays hidden behind a centred spinner until the add-ons have finished arranging it (0.15 s quiet, 1.5 s at most). Layout-shift score on opening went from 0.23 to 1.52 down to 0.10 or lower at all six screen sizes (copy of the live page, test data).
