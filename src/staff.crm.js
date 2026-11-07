@@ -332,8 +332,8 @@
     S.fu.loading = true;
     sb.rpc('my_followups', { p_days: 7, p_all: !!S.fu.all }).then(function (r) {
       S.fu.loading = false; if (r.error) throw r.error;
-      S.fu.data = r.data; S.fu.at = Date.now(); S.fu.err = false; if (S.tab === 'today') view();
-    }).catch(function (e) { S.fu.loading = false; S.fu.err = true; S.fu.at = Date.now(); console.error(e); if (S.tab === 'today') view(); });
+      S.fu.data = r.data; S.fu.at = Date.now(); S.fu.err = false; if (S.tab === 'today') quietView();
+    }).catch(function (e) { S.fu.loading = false; S.fu.err = true; S.fu.at = Date.now(); console.error(e); if (S.tab === 'today') quietView(); });
   }
   function fuPanel() {
     if (!canP('cust.followup')) return '';
@@ -1273,7 +1273,7 @@
       F.list = r.data.complaints || []; F.loaded = true; F.canResolve = !!r.data.can_resolve;
       if (sig(F.list) === before) return;
       refreshNav();
-      if (['today', 'attn', 'handover'].indexOf(S.tab) > -1) view();
+      if (['today', 'attn', 'handover'].indexOf(S.tab) > -1) quietView();
       if (S.sheet && S.sheet.type === 'order' && S.sheet.data) renderSheet();
     }).catch(function (e) { console.error(e); });
   }

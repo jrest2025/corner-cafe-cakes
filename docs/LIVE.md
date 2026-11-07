@@ -1,3 +1,10 @@
+# Release 7 Nov 2026, 7:06 PM Fiji (approved by Roneel, "deploy") — Interface Stability steps 2 and 3
+- Step 2: background refreshes (Orders, Today, Needs attention, Handover, Kitchen, Calendar, kitchen slip status, follow-ups, open feedback) redraw a screen only when something on it changed; otherwise only the "Updated" time changes in place. Real changes still show within 30 seconds.
+- Step 3: Today opens in its final place. The Act now layout (cc-act-on) is on from the first frame, and Today stays hidden behind a centred spinner until the add-ons have finished arranging it (0.15 s quiet, 1.5 s at most). Layout-shift score on opening went from 0.23 to 1.52 down to 0.10 or lower at all six screen sizes (copy of the live page, test data).
+- Staff app: Vercel production deployment dpl_FuTJQPqrwmjbPoKCf3VYm5VLvwbM from branch release/stability-step3-asset-20261107 (commit bdf4665; same URL staff-app-complimentary-20261030.js; staff-app.be9bda88b1.js). Checked after release: the served file is identical to the tested build.
+- Rollback: Vercel rollback to dpl_12As5Ft4GoiEBydr29UHdbPwUstA (step 1).
+- Add-ons loader, Webflow page and database unchanged. PR #58 (contains #57).
+
 # Release 7 Nov 2026, 4:45 PM Fiji (approved by Roneel, "deploy") — Interface Stability step 1
 - Database requests get a 25-second time limit; a save with no answer shows "No answer from the server, so we can't tell if it saved. Everything you entered is kept. Tap Save again: it will not make a second order." and the message is brought into view. Retrying is safe (`_create_order` returns the first order for the same idempotency_key).
 - "Permission denied" from a device whose sign-in has run out is handled as an expired sign-in (sign in again, unfinished order kept).
