@@ -1,3 +1,11 @@
+# Release 7 Nov 2026, 8:22 PM Fiji (approved by Roneel, "deploy") — Interface Stability step 4
+- Analytics, Customers, Calendar and Register are drawn one frame after the tap (menu and centred spinner first). Tap to first paint on a slowed iPad: Analytics 1.9 s to 0.14 s, Customers 0.33 s to 0.10-0.18 s, Calendar 0.18 s to 0.06 s.
+- Background data on Customers and Analytics redraws only when it changes the screen (Customers 8 redraws to 5, Analytics 4 to 2).
+- Not yet fixed: about 1.3 s of add-on work on Analytics after the spinner (duplicate cake-lead-time and seasonal-heartbeat loaders on the Webflow page); needs a Webflow page and loader change.
+- Staff app: Vercel production deployment dpl_CeA6GKS8Sk6FHJp9RaA61r8iVugu from branch release/stability-step4-asset-20261107 (commit a37c120; same URL staff-app-complimentary-20261030.js; staff-app.8756dffbcc.js). Checked after release: served file identical to the tested build; on the live staff page Analytics, Customers and Calendar show the spinner then their content, Today unchanged, no page errors.
+- Rollback: Vercel rollback to dpl_4gDzXeadmJM6WsUJK1zRAi9LoT4t (New order on wide screens).
+- Add-ons loader, Webflow page and database unchanged. PR #60.
+
 # Release 7 Nov 2026, 7:37 PM Fiji (approved by Roneel, "deploy") — New order on wide screens
 - 1600px+ screens: New order panel up to 1380px (76vw), form fills it, slip preview 360 to 430px (was 1040px panel, about 295px slip, values broken mid-word). Below 1600px unchanged.
 - Slip and review-card values break only inside over-long words; review card reads "10:00 AM · Collect from café"; slip preview band black again so the logo shows.
