@@ -1,0 +1,3268 @@
+[
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .ccs-nav-item",
+  "val": "calc(16*var(--u,1px))",
+  "media": [],
+  "computed": "16px",
+  "eg": "16px|BUTTON.ccs-nav-item|Today",
+  "where": [
+   "cal-Day",
+   "cal-Week",
+   "cal-Year",
+   "calendar",
+   "customer",
+   "customers",
+   "dash",
+   "dash1",
+   "dash2",
+   "dash3",
+   "dash4",
+   "detail",
+   "detail-More",
+   "detail-Payment",
+   "handover",
+   "kitchen",
+   "marketing",
+   "new1",
+   "new2",
+   "new3",
+   "new4",
+   "new5",
+   "newEnd",
+   "orders",
+   "orders-upcoming",
+   "register",
+   "service",
+   "settings",
+   "today"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": ".ccs-nav-item .ccs-count",
+  "val": "calc(15*var(--u,1px))",
+  "media": [],
+  "computed": "15px",
+  "eg": "15px|SPAN.ccs-count|2",
+  "where": [
+   "cal-Day",
+   "cal-Week",
+   "cal-Year",
+   "calendar",
+   "customer",
+   "customers",
+   "dash",
+   "dash1",
+   "dash2",
+   "dash3",
+   "dash4",
+   "detail",
+   "detail-More",
+   "detail-Payment",
+   "handover",
+   "kitchen",
+   "marketing",
+   "new1",
+   "new2",
+   "new3",
+   "new4",
+   "new5",
+   "newEnd",
+   "orders",
+   "orders-upcoming",
+   "register",
+   "service",
+   "settings",
+   "today"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": ".ccs-who",
+  "val": "calc(16*var(--u,1px))",
+  "media": [],
+  "computed": "16px",
+  "eg": "16px|DIV.ccs-who|TTest ManagerAdminSign out",
+  "where": [
+   "cal-Day",
+   "cal-Week",
+   "cal-Year",
+   "calendar",
+   "customer",
+   "customers",
+   "dash",
+   "dash1",
+   "dash2",
+   "dash3",
+   "dash4",
+   "detail",
+   "detail-More",
+   "detail-Payment",
+   "handover",
+   "kitchen",
+   "marketing",
+   "new1",
+   "new2",
+   "new3",
+   "new4",
+   "new5",
+   "newEnd",
+   "orders",
+   "orders-upcoming",
+   "register",
+   "service",
+   "settings",
+   "today"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .ccs-who .ccs-signout",
+  "val": "calc(16*var(--u,1px))",
+  "media": [],
+  "computed": "16px",
+  "eg": "16px|BUTTON.ccs-signout|Sign out",
+  "where": [
+   "cal-Day",
+   "cal-Week",
+   "cal-Year",
+   "calendar",
+   "customer",
+   "customers",
+   "dash",
+   "dash1",
+   "dash2",
+   "dash3",
+   "dash4",
+   "detail",
+   "detail-More",
+   "detail-Payment",
+   "handover",
+   "kitchen",
+   "marketing",
+   "new1",
+   "new2",
+   "new3",
+   "new4",
+   "new5",
+   "newEnd",
+   "orders",
+   "orders-upcoming",
+   "register",
+   "service",
+   "settings",
+   "today"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .tq-head .ccs-title",
+  "val": "calc(26*var(--u, 1px))!important",
+  "media": [],
+  "computed": "26px",
+  "eg": "26px|H1.ccs-title|Sunday 8 November",
+  "where": [
+   "new1",
+   "new2",
+   "new3",
+   "new4",
+   "new5",
+   "newEnd",
+   "today"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .ccs-fresh",
+  "val": "calc(15*var(--u,1px))",
+  "media": [],
+  "computed": "15px",
+  "eg": "15px|P.ccs-fresh|Updated 5:10 AM \u00b7 Refresh",
+  "where": [
+   "new1",
+   "new2",
+   "new3",
+   "new4",
+   "new5",
+   "newEnd",
+   "today"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .ccs-fresh .ccs-refresh",
+  "val": "inherit",
+  "media": [],
+  "computed": "15px",
+  "eg": "15px|BUTTON.ccs-link ccs-refresh|Refresh",
+  "where": [
+   "new1",
+   "new2",
+   "new3",
+   "new4",
+   "new5",
+   "newEnd",
+   "today"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": ".ccs-btn",
+  "val": "calc(18*var(--u,1px))",
+  "media": [],
+  "computed": "18px",
+  "eg": "18px|BUTTON.ccs-btn tq-new|New order",
+  "where": [
+   "cal-Day",
+   "cal-Week",
+   "cal-Year",
+   "calendar",
+   "customer",
+   "customers",
+   "detail-More",
+   "detail-Payment",
+   "handover",
+   "kitchen",
+   "new1",
+   "new2",
+   "new3",
+   "new4",
+   "new5",
+   "newEnd",
+   "orders",
+   "orders-upcoming",
+   "register",
+   "today"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "body #cc-staff :is(#v#v#v#v#v#v#v#v, #ccs-main)[data-screen=\"today\"].cc-act-on > .tq-warn .cc-act-h h2",
+  "val": "17px !important",
+  "media": [
+   "(min-width: 1100px) and (pointer: fine)"
+  ],
+  "computed": "17px",
+  "eg": "17px|H2.|Act now",
+  "where": [
+   "new1",
+   "new2",
+   "new3",
+   "new4",
+   "new5",
+   "newEnd",
+   "today"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "html:not(#fl0):not(#fl1):not(#fl2) body:not(#fl3) #cc-staff #ccs-main[data-screen=\"today\"].cc-act-on .cc-act-h .cc-act-n",
+  "val": "15px",
+  "media": [],
+  "computed": "15px",
+  "eg": "15px|SPAN.cc-act-n|4 to do",
+  "where": [
+   "new1",
+   "new2",
+   "new3",
+   "new4",
+   "new5",
+   "newEnd",
+   "today"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "body #cc-staff :is(#v#v#v#v#v#v#v#v, #ccs-main)[data-screen=\"today\"].cc-act-on > .tq-stats > .cc-ops-kpi > strong",
+  "val": "25px !important",
+  "media": [
+   "(min-width: 1100px) and (pointer: fine)"
+  ],
+  "computed": "25px",
+  "eg": "25px|STRONG.cc-ops-number|0",
+  "where": [
+   "new1",
+   "new2",
+   "new3",
+   "new4",
+   "new5",
+   "newEnd",
+   "today"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "body #cc-staff :is(#v#v#v#v#v#v#v#v, #ccs-main)[data-screen=\"today\"].cc-act-on > .tq-stats > .tq-stat > b",
+  "val": "25px !important",
+  "media": [
+   "(min-width: 1100px) and (pointer: fine)"
+  ],
+  "computed": "25px",
+  "eg": "25px|B.|2",
+  "where": [
+   "new1",
+   "new2",
+   "new3",
+   "new4",
+   "new5",
+   "newEnd",
+   "today"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .tq-weekh h2, #cc-staff .tq-wh h2",
+  "val": "calc(16*var(--u, 1px))",
+  "media": [],
+  "computed": "16px",
+  "eg": "16px|H2.|This week6 this week",
+  "where": [
+   "new1",
+   "new2",
+   "new3",
+   "new4",
+   "new5",
+   "newEnd",
+   "today"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "html:not(#fl0):not(#fl1):not(#fl2) body:not(#fl3) #cc-staff #ccs-main[data-screen=\"today\"].cc-act-on .tq-weekh .cc-act-wk",
+  "val": "15px",
+  "media": [],
+  "computed": "15px",
+  "eg": "15px|SPAN.cc-act-wk|6 this week",
+  "where": [
+   "new1",
+   "new2",
+   "new3",
+   "new4",
+   "new5",
+   "newEnd",
+   "today"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "body #cc-staff :is(#v#v#v#v#v#v#v#v, #ccs-main)[data-screen=\"today\"].cc-act-on > .tq-week .tq-days > .ccs-daycell b",
+  "val": "20px !important",
+  "media": [
+   "(min-width: 1100px) and (pointer: fine)"
+  ],
+  "computed": "20px",
+  "eg": "20px|B.|8",
+  "where": [
+   "new1",
+   "new2",
+   "new3",
+   "new4",
+   "new5",
+   "newEnd",
+   "today"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "body #cc-staff :is(#v#v#v#v#v#v#v#v, #ccs-main)[data-screen=\"today\"].cc-act-on > .tq-main > .ccs-panel-card:not(.tp-needs) > .ccs-card-head h2",
+  "val": "19px !important",
+  "media": [
+   "(min-width: 1100px) and (pointer: fine)"
+  ],
+  "computed": "19px",
+  "eg": "19px|H2.|Due today (2)",
+  "where": [
+   "new1",
+   "new2",
+   "new3",
+   "new4",
+   "new5",
+   "newEnd",
+   "today"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": ".ccs-hint",
+  "val": "calc(15*var(--u,1px))",
+  "media": [],
+  "computed": "15px",
+  "eg": "15px|SPAN.ccs-hint|0 of 2 handed over",
+  "where": [
+   "cal-Year",
+   "detail",
+   "new1",
+   "new2",
+   "new3",
+   "new4",
+   "new5",
+   "newEnd",
+   "register",
+   "today"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "html:not(.cc-ipad):not(#ep0):not(#ep1):not(#ep2):not(#ep3):not(#ep4):not(#ep5) body #cc-staff #ccs-main[data-screen=\"today\"].cc-act-on > .tq-main > .ccs-panel-card:not(.tp-needs) > .ccs-minis > .ccs-mini > .ccs-prow > .ccs-prow-m > b",
+  "val": "18px !important",
+  "media": [
+   "(min-width: 1100px) and (pointer: fine)"
+  ],
+  "computed": "18px",
+  "eg": "18px|B.|Test Customer B",
+  "where": [
+   "new1",
+   "new2",
+   "new3",
+   "new4",
+   "new5",
+   "newEnd",
+   "today"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "html:not(.cc-ipad):not(#ep0):not(#ep1):not(#ep2):not(#ep3):not(#ep4):not(#ep5) body #cc-staff #ccs-main[data-screen=\"today\"].cc-act-on > .tq-main > .ccs-panel-card:not(.tp-needs) > .ccs-minis > .ccs-mini > .ccs-mini-t",
+  "val": "17px !important",
+  "media": [
+   "(min-width: 1100px) and (pointer: fine)"
+  ],
+  "computed": "17px",
+  "eg": "17px|SPAN.ccs-mini-t|3:00 PM",
+  "where": [
+   "new1",
+   "new2",
+   "new3",
+   "new4",
+   "new5",
+   "newEnd",
+   "today"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": ".ccs-mini-m b, .ccs-mini-m span",
+  "val": "calc(16*var(--u,1px))",
+  "media": [],
+  "computed": "16px",
+  "eg": "16px|B.|Cheesecake, 8 inch",
+  "where": [
+   "handover",
+   "new1",
+   "new2",
+   "new3",
+   "new4",
+   "new5",
+   "newEnd",
+   "today"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": ".ccs-mini-m span",
+  "val": "calc(15*var(--u,1px))",
+  "media": [],
+  "computed": "15px",
+  "eg": "15px|SPAN.ccp-sr|Next:",
+  "where": [
+   "handover",
+   "new1",
+   "new2",
+   "new3",
+   "new4",
+   "new5",
+   "newEnd",
+   "today"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff",
+  "val": "calc(18*var(--u,1px))",
+  "media": [],
+  "computed": "18px",
+  "eg": "18px|DIV.|MenuCorner Caf\u00e9 Marketing & Bu",
+  "where": [
+   "customer",
+   "customers",
+   "dash",
+   "dash1",
+   "dash2",
+   "dash3",
+   "dash4",
+   "detail",
+   "detail-More",
+   "detail-Payment",
+   "handover",
+   "new1",
+   "new2",
+   "new3",
+   "new4",
+   "new5",
+   "newEnd",
+   "register",
+   "today"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .tq-biz b",
+  "val": "calc(18*var(--u, 1px))",
+  "media": [],
+  "computed": "18px",
+  "eg": "18px|B.|$376",
+  "where": [
+   "new1",
+   "new2",
+   "new3",
+   "new4",
+   "new5",
+   "newEnd",
+   "today"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": ".ccs-nav-item",
+  "val": "50px",
+  "media": [],
+  "computed": "50px",
+  "eg": "50px|BUTTON.ccs-nav-item|Today",
+  "where": [
+   "cal-Day",
+   "cal-Year",
+   "calendar",
+   "customer",
+   "customers",
+   "dash",
+   "dash2",
+   "dash3",
+   "dash4",
+   "detail-More",
+   "detail-Payment",
+   "handover",
+   "kitchen",
+   "marketing",
+   "new1",
+   "new2",
+   "new4",
+   "new5",
+   "newEnd",
+   "orders-upcoming",
+   "service",
+   "settings",
+   "today"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": "#cc-staff .ccs-btn.ccs-small, #cc-staff .ccs-calarrow, #cc-staff .ccs-chip, #cc-staff .ccs-signout, #cc-staff .dx-acts .ccs-btn",
+  "val": "44px",
+  "media": [],
+  "computed": "44px",
+  "eg": "44px|BUTTON.ccs-signout|Sign out",
+  "where": [
+   "cal-Day",
+   "cal-Week",
+   "cal-Year",
+   "calendar",
+   "customer",
+   "customers",
+   "dash",
+   "dash1",
+   "dash2",
+   "dash3",
+   "dash4",
+   "detail",
+   "detail-More",
+   "detail-Payment",
+   "handover",
+   "kitchen",
+   "marketing",
+   "new1",
+   "new2",
+   "new3",
+   "new4",
+   "new5",
+   "newEnd",
+   "orders",
+   "orders-upcoming",
+   "register",
+   "service",
+   "settings",
+   "today"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": "#cc-staff .tq-tools .ccs-btn",
+  "val": "46px",
+  "media": [],
+  "computed": "46px",
+  "eg": "46px|BUTTON.ccs-btn tq-new|New order",
+  "where": [
+   "new1",
+   "new2",
+   "new4",
+   "new5",
+   "newEnd",
+   "today"
+  ]
+ },
+ {
+  "prop": "height",
+  "sel": "body #cc-staff :is(#v#v#v#v#v#v#v#v, #ccs-main)[data-screen=\"today\"].cc-act-on > .tq-warn .cc-act-row",
+  "val": "auto !important",
+  "media": [
+   "(min-width: 1100px) and (pointer: fine)"
+  ],
+  "computed": "68.2969px",
+  "eg": "68.2969px|BUTTON.cc-act-row cc-roomy-item|CC-1003 Test Customer A5:00 PM",
+  "where": [
+   "new1",
+   "new2",
+   "new4",
+   "new5",
+   "newEnd",
+   "today"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": "body #cc-staff :is(#v#v#v#v#v#v#v#v, #ccs-main)[data-screen=\"today\"].cc-act-on > .tq-warn .cc-act-row",
+  "val": "48px !important",
+  "media": [
+   "(min-width: 1100px) and (pointer: fine)"
+  ],
+  "computed": "48px",
+  "eg": "48px|BUTTON.cc-act-row cc-roomy-item|CC-1003 Test Customer A5:00 PM",
+  "where": [
+   "new1",
+   "new2",
+   "new4",
+   "new5",
+   "newEnd",
+   "today"
+  ]
+ },
+ {
+  "prop": "height",
+  "sel": "body #cc-staff :is(#v#v#v#v#v#v#v#v, #ccs-main)[data-screen=\"today\"].cc-act-on > .tq-stats > :is(.tq-stat, .cc-ops-kpi)",
+  "val": "auto !important",
+  "media": [
+   "(min-width: 1100px) and (pointer: fine)"
+  ],
+  "computed": "82px",
+  "eg": "82px|BUTTON.cc-ops-kpi cc-ops-urgent|0Urgent actions",
+  "where": [
+   "new1",
+   "new2",
+   "new4",
+   "new5",
+   "newEnd",
+   "today"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": "body #cc-staff :is(#v#v#v#v#v#v#v#v, #ccs-main)[data-screen=\"today\"].cc-act-on > .tq-stats > :is(.tq-stat, .cc-ops-kpi)",
+  "val": "82px !important",
+  "media": [
+   "(min-width: 1100px) and (pointer: fine)"
+  ],
+  "computed": "82px",
+  "eg": "82px|BUTTON.cc-ops-kpi cc-ops-urgent|0Urgent actions",
+  "where": [
+   "new1",
+   "new2",
+   "new4",
+   "new5",
+   "newEnd",
+   "today"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": "#cc-staff .tq-weekh .ccs-link",
+  "val": "0",
+  "media": [],
+  "computed": "0px",
+  "eg": "0px|BUTTON.ccs-link|All upcoming \u2192",
+  "where": [
+   "new1",
+   "new2",
+   "new4",
+   "new5",
+   "newEnd",
+   "today"
+  ]
+ },
+ {
+  "prop": "height",
+  "sel": "body #cc-staff :is(#v#v#v#v#v#v#v#v#v, #ccs-main)[data-screen=\"today\"].cc-act-on > .tq-week .tq-days > .ccs-daycell",
+  "val": "auto!important",
+  "media": [],
+  "computed": "80.8438px",
+  "eg": "80.8438px|BUTTON.ccs-daycell is-today|Today82 cakes",
+  "where": [
+   "new1",
+   "new2",
+   "new4",
+   "new5",
+   "newEnd",
+   "today"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": "body #cc-staff :is(#v#v#v#v#v#v#v#v#v, #ccs-main)[data-screen=\"today\"].cc-act-on > .tq-week .tq-days > .ccs-daycell",
+  "val": "55px!important",
+  "media": [],
+  "computed": "55px",
+  "eg": "55px|BUTTON.ccs-daycell is-today|Today82 cakes",
+  "where": [
+   "new1",
+   "new2",
+   "new4",
+   "new5",
+   "newEnd",
+   "today"
+  ]
+ },
+ {
+  "prop": "height",
+  "sel": "body #cc-staff :is(#v#v#v#v#v#v#v#v, #ccs-main)[data-screen=\"today\"].cc-act-on > .tq-main > .ccs-panel-card:not(.tp-needs) > .ccs-minis > .ccs-mini",
+  "val": "100% !important",
+  "media": [
+   "(min-width: 1100px) and (pointer: fine)"
+  ],
+  "computed": "174.688px",
+  "eg": "174.688px|BUTTON.ccs-mini k-confirmed pf-none cc-roomy-it|3:00 PMTest Customer BCC-10043",
+  "where": [
+   "new1",
+   "new2",
+   "new4",
+   "new5",
+   "newEnd",
+   "today"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": "html:not(.cc-ipad):not(#ep0):not(#ep1):not(#ep2):not(#ep3):not(#ep4):not(#ep5) body #cc-staff #ccs-main[data-screen=\"today\"].cc-act-on > .tq-main > .ccs-panel-card:not(.tp-needs) > .ccs-minis > .ccs-mini",
+  "val": "0px !important",
+  "media": [
+   "(min-width: 1100px) and (pointer: fine)"
+  ],
+  "computed": "0px",
+  "eg": "0px|BUTTON.ccs-mini k-confirmed pf-none cc-roomy-it|3:00 PMTest Customer BCC-10043",
+  "where": [
+   "new1",
+   "new2",
+   "new4",
+   "new5",
+   "newEnd",
+   "today"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff #ccs-main .ccs-head .ccs-title",
+  "val": "calc(24*var(--u,1px))",
+  "media": [
+   "(min-width: 900px) and (min-height: 560px), (min-width: 760px) and (min-height: 900px)"
+  ],
+  "computed": "24px",
+  "eg": "24px|H1.ccs-title ccp-hast|Cake orders",
+  "where": [
+   "cal-Day",
+   "cal-Week",
+   "cal-Year",
+   "calendar",
+   "dash",
+   "dash1",
+   "dash2",
+   "dash3",
+   "dash4",
+   "detail-More",
+   "detail-Payment",
+   "handover",
+   "orders",
+   "orders-upcoming",
+   "register"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .ccs-secbar .ccs-secbtn, #cc-staff .ccs-segs .ccs-chip, #cc-staff .ccs-tabs .ccs-tab",
+  "val": "calc(16*var(--u,1px))",
+  "media": [],
+  "computed": "16px",
+  "eg": "16px|BUTTON.ccs-tab|Waiting on you2",
+  "where": [
+   "cal-Year",
+   "detail",
+   "detail-More",
+   "detail-Payment",
+   "handover",
+   "kitchen",
+   "orders",
+   "orders-upcoming",
+   "register"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .ccs-what b, #cc-staff .ccs-when b",
+  "val": "calc(18*var(--u,1px))",
+  "media": [],
+  "computed": "18px",
+  "eg": "18px|B.|Tue 10 Nov",
+  "where": [
+   "detail-More",
+   "detail-Payment",
+   "orders",
+   "orders-upcoming"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .ccs-day em, #cc-staff .ccs-when span",
+  "val": "calc(16*var(--u,1px))",
+  "media": [],
+  "computed": "16px",
+  "eg": "16px|SPAN.|2:00 PM",
+  "where": [
+   "detail-More",
+   "detail-Payment",
+   "orders",
+   "orders-upcoming"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .ccs-what .ccs-meta",
+  "val": "calc(16*var(--u,1px))",
+  "media": [],
+  "computed": "16px",
+  "eg": "16px|SPAN.ccs-meta|Test Customer A \u00b7 CC-1001 \u00b7 On",
+  "where": [
+   "detail-More",
+   "detail-Payment",
+   "orders",
+   "orders-upcoming"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .ccs-next",
+  "val": "calc(16*var(--u,1px))",
+  "media": [],
+  "computed": "16px",
+  "eg": "16px|SPAN.ccs-next ccp-nx|Next: Check & confirm",
+  "where": [
+   "detail-More",
+   "detail-Payment",
+   "orders",
+   "orders-upcoming"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .ccs-price",
+  "val": "calc(24*var(--u,1px))",
+  "media": [],
+  "computed": "24px",
+  "eg": "24px|SPAN.ccs-price|$68price",
+  "where": [
+   "detail-More",
+   "detail-Payment",
+   "orders",
+   "orders-upcoming"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .ccs-daytot span, #cc-staff .ccs-price small",
+  "val": "calc(15*var(--u,1px))",
+  "media": [],
+  "computed": "15px",
+  "eg": "15px|SMALL.|price",
+  "where": [
+   "detail-More",
+   "detail-Payment",
+   "orders",
+   "orders-upcoming"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff #ccs-main[data-screen=\"kitchen-today\"] .kw-head .ccs-title",
+  "val": "calc(24*var(--u,1px))",
+  "media": [
+   "(min-width: 900px) and (min-height: 560px), (min-width: 760px) and (min-height: 900px)"
+  ],
+  "computed": "24px",
+  "eg": "24px|H1.ccs-title ccp-hast|What's on today?",
+  "where": [
+   "kitchen"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .tp-urg",
+  "val": "calc(15*var(--u,1px))",
+  "media": [],
+  "computed": "15px",
+  "eg": "15px|BUTTON.tp-urg|!1 cake is late or due in the ",
+  "where": [
+   "kitchen"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .kw-ncake",
+  "val": "calc(22*var(--u,1px))",
+  "media": [],
+  "computed": "22px",
+  "eg": "22px|B.kw-ncake|Mudcake, 8 inch",
+  "where": [
+   "kitchen"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .kw-nwhen",
+  "val": "calc(16*var(--u,1px))",
+  "media": [],
+  "computed": "16px",
+  "eg": "16px|SPAN.kw-nwhen|Sat 7 Nov, 2:00 PM \u00b7 Collectio",
+  "where": [
+   "kitchen"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .kw-nmsg",
+  "val": "calc(15*var(--u,1px))",
+  "media": [],
+  "computed": "15px",
+  "eg": "15px|SPAN.kw-nmsg|Writing on the cake: \u201cHappy 30",
+  "where": [
+   "kitchen"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .kw-nacts .ccs-btn",
+  "val": "calc(16*var(--u,1px))",
+  "media": [],
+  "computed": "16px",
+  "eg": "16px|BUTTON.ccs-btn ccs-good kw-nbtn|Baked",
+  "where": [
+   "kitchen"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": ":root:not(#cc-t0) #cc-staff #ccs-main .kw-counts > .kw-count > b",
+  "val": "16px !important",
+  "media": [],
+  "computed": "16px",
+  "eg": "16px|B.|To make today",
+  "where": [
+   "kitchen"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": ":root:not(#cc-t0) #cc-staff #ccs-main .kw-counts > .kw-count > em",
+  "val": "24px !important",
+  "media": [],
+  "computed": "24px",
+  "eg": "24px|EM.|2 cakes",
+  "where": [
+   "kitchen"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .kw-sec h2",
+  "val": "calc(16*var(--u,1px))",
+  "media": [],
+  "computed": "16px",
+  "eg": "16px|H2.|Needs attention 2",
+  "where": [
+   "kitchen"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .kw-count b, #cc-staff .kw-what b, #cc-staff .kw-when b",
+  "val": "calc(15*var(--u,1px))",
+  "media": [],
+  "computed": "15px",
+  "eg": "15px|B.|5:00 PM",
+  "where": [
+   "handover",
+   "kitchen"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .kw-day b",
+  "val": "calc(20*var(--u,1px))",
+  "media": [],
+  "computed": "20px",
+  "eg": "20px|B.|1",
+  "where": [
+   "kitchen"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": "#cc-staff #ccs-main .ccs-head-acts .ccs-btn",
+  "val": "42px",
+  "media": [
+   "(min-width: 900px) and (min-height: 560px), (min-width: 760px) and (min-height: 900px)"
+  ],
+  "computed": "42px",
+  "eg": "42px|BUTTON.ccs-btn ccs-new ccs-newtop|New order",
+  "where": [
+   "cal-Day",
+   "cal-Week",
+   "cal-Year",
+   "calendar",
+   "customer",
+   "customers",
+   "detail-More",
+   "detail-Payment",
+   "kitchen",
+   "orders-upcoming"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": "#cc-staff .ccs-secbar .ccs-secbtn, #cc-staff .ccs-segs .ccs-chip, #cc-staff .ccs-tabs .ccs-tab",
+  "val": "44px",
+  "media": [],
+  "computed": "44px",
+  "eg": "44px|BUTTON.ccs-chip ccp-hasic|Today",
+  "where": [
+   "cal-Year",
+   "customer",
+   "detail",
+   "detail-More",
+   "detail-Payment",
+   "handover",
+   "kitchen",
+   "orders-upcoming",
+   "register"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": "#cc-staff .kw-nacts .ccs-btn",
+  "val": "52px",
+  "media": [],
+  "computed": "52px",
+  "eg": "52px|BUTTON.ccs-btn ccs-good kw-nbtn|Baked",
+  "where": [
+   "kitchen"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": "#cc-staff #ccs-main .kw-main .kw-counts > *",
+  "val": "0",
+  "media": [
+   "(min-width: 900px) and (min-height: 560px), (min-width: 760px) and (min-height: 900px)"
+  ],
+  "computed": "0px",
+  "eg": "0px|BUTTON.kw-count kp-act|To make today2 cakes",
+  "where": [
+   "kitchen"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": "#cc-staff .kw-line",
+  "val": "56px",
+  "media": [],
+  "computed": "56px",
+  "eg": "56px|BUTTON.kw-line|5:00 PMTodayRed Velvet, 8 inch",
+  "where": [
+   "handover",
+   "kitchen"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": "#cc-staff .kw-day",
+  "val": "72px",
+  "media": [],
+  "computed": "72px",
+  "eg": "72px|BUTTON.kw-day|Mon 91cake",
+  "where": [
+   "kitchen"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff #ccs-main[data-screen=\"calendar\"] .ccs-caltitle",
+  "val": "21px",
+  "media": [],
+  "computed": "21px",
+  "eg": "21px|H2.ccs-caltitle|November 2026",
+  "where": [
+   "cal-Day",
+   "cal-Week",
+   "cal-Year",
+   "calendar"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .ccdd-btn",
+  "val": "16px",
+  "media": [],
+  "computed": "16px",
+  "eg": "16px|BUTTON.ccdd-btn|ShowAll active orders",
+  "where": [
+   "cal-Day",
+   "cal-Week",
+   "calendar",
+   "customer",
+   "customers"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff #ccs-main[data-screen=\"calendar\"] .ccv-stat-num",
+  "val": "23px",
+  "media": [],
+  "computed": "23px",
+  "eg": "23px|STRONG.ccv-stat-num|7",
+  "where": [
+   "calendar"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff #ccs-main[data-screen=\"calendar\"] .ccs-month .ccs-mday > b",
+  "val": "19px",
+  "media": [],
+  "computed": "19px",
+  "eg": "19px|B.|26",
+  "where": [
+   "calendar"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": "#cc-staff #ccs-main[data-screen=\"calendar\"] .ccs-calnav [data-act=\"cal-today\"]",
+  "val": "42px",
+  "media": [],
+  "computed": "42px",
+  "eg": "42px|BUTTON.ccs-btn ccs-ghost ccs-small|Today",
+  "where": [
+   "cal-Day",
+   "cal-Week",
+   "cal-Year",
+   "calendar"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": "#cc-staff #ccs-main[data-screen=\"calendar\"] .ccs-calviews .ccs-tab",
+  "val": "42px !important",
+  "media": [],
+  "computed": "42px",
+  "eg": "42px|BUTTON.ccs-tab|Year",
+  "where": [
+   "cal-Day",
+   "cal-Week",
+   "cal-Year",
+   "calendar"
+  ]
+ },
+ {
+  "prop": "height",
+  "sel": ":root:not(#cc-t0) #cc-staff #ccs-main .ccdd-btn:not(#cc-heartbeat *)",
+  "val": "auto!important",
+  "media": [],
+  "computed": "48px",
+  "eg": "48px|BUTTON.ccdd-btn|ShowAll active orders",
+  "where": [
+   "cal-Day",
+   "cal-Week",
+   "calendar",
+   "customer",
+   "customers"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": ":root:not(#cc-t0) #cc-staff #ccs-main .ccdd-btn:not(#cc-heartbeat *)",
+  "val": "48px!important",
+  "media": [],
+  "computed": "48px",
+  "eg": "48px|BUTTON.ccdd-btn|ShowAll active orders",
+  "where": [
+   "cal-Day",
+   "cal-Week",
+   "calendar",
+   "customer",
+   "customers"
+  ]
+ },
+ {
+  "prop": "height",
+  "sel": "#cc-staff #ccs-main[data-screen=\"calendar\"] .ccs-month .ccs-mday",
+  "val": "100%!important",
+  "media": [],
+  "computed": "112px",
+  "eg": "112px|BUTTON.ccs-mday|26",
+  "where": [
+   "calendar"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": "#cc-staff #ccs-main[data-screen=\"calendar\"] .ccs-month .ccs-mday",
+  "val": "112px!important",
+  "media": [],
+  "computed": "112px",
+  "eg": "112px|BUTTON.ccs-mday|26",
+  "where": [
+   "calendar"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff #ccs-main.cdir-v3-ready .ccs-head h1",
+  "val": "clamp(28px,2vw,34px)!important",
+  "media": [],
+  "computed": "30.24px",
+  "eg": "30.24px|H1.ccs-title ccp-hast|Customersi",
+  "where": [
+   "customer",
+   "customers"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff #ccs-main.cdir-v3-ready .ccs-ctool .ccs-btn, #cc-staff #ccs-main.cdir-v3-ready .ccs-ctool .ccs-show select, #cc-staff #ccs-main.cdir-v3-ready [data-act=\"cust-new\"]",
+  "val": "15px!important",
+  "media": [],
+  "computed": "15px",
+  "eg": "15px|BUTTON.ccs-btn ccs-ghost|Add customer",
+  "where": [
+   "customer",
+   "customers"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff #ccs-main .ccp-fu-h h3",
+  "val": "19px",
+  "media": [],
+  "computed": "19px",
+  "eg": "19px|H3.|Follow-ups due",
+  "where": [
+   "customer",
+   "customers"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": ".ccs-link",
+  "val": "calc(16*var(--u,1px))",
+  "media": [],
+  "computed": "18px",
+  "eg": "18px|BUTTON.ccs-link ccp-fu-all|See all",
+  "where": [
+   "customer",
+   "customers",
+   "detail",
+   "detail-More",
+   "detail-Payment",
+   "new1",
+   "register"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": ":root:not(#cc-t0) #cc-staff #ccs-main .cw-summary > .cw-metric > .cw-metric-label",
+  "val": "15px!important",
+  "media": [],
+  "computed": "15px",
+  "eg": "15px|SPAN.cw-metric-label|Customers who ordered2 on file",
+  "where": [
+   "customer",
+   "customers"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": ":root:not(#cc-t0) #cc-staff #ccs-main .cw-summary > .cw-metric > .cw-metric-value",
+  "val": "26px!important",
+  "media": [],
+  "computed": "26px",
+  "eg": "26px|STRONG.cw-metric-value|382",
+  "where": [
+   "customer",
+   "customers"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff #ccs-main.cdir-v3-ready .cdir-person-copy > b",
+  "val": "17px!important",
+  "media": [],
+  "computed": "17px",
+  "eg": "17px|B.|Test Customer A",
+  "where": [
+   "customer",
+   "customers"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff #ccs-main.cdir-v3-ready .ccs-table tbody tr td",
+  "val": "15px!important",
+  "media": [],
+  "computed": "15px",
+  "eg": "15px|TD.ccs-nowrap cdir-phone-cell|912 0001",
+  "where": [
+   "customer",
+   "customers"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .ccs-amhead span, #cc-staff .ccs-quiet-no",
+  "val": "calc(16*var(--u,1px))",
+  "media": [],
+  "computed": "16px",
+  "eg": "16px|SPAN.ccs-quiet-no|No",
+  "where": [
+   "customer",
+   "customers"
+  ]
+ },
+ {
+  "prop": "height",
+  "sel": "#ccs-main .ccp-i",
+  "val": "44px",
+  "media": [],
+  "computed": "44px",
+  "eg": "44px|BUTTON.ccp-i|i",
+  "where": [
+   "customer",
+   "customers"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": "#cc-staff #ccs-main.cdir-v3-ready .cdir-search-field input",
+  "val": "48px",
+  "media": [],
+  "computed": "48px",
+  "eg": "48px|INPUT.ccs-input ccs-search|",
+  "where": [
+   "customer",
+   "customers"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": "#cc-staff #ccs-main.cdir-v3-ready .ccs-ctool .ccs-btn, #cc-staff #ccs-main.cdir-v3-ready .ccs-ctool .ccs-show select, #cc-staff #ccs-main.cdir-v3-ready [data-act=\"cust-new\"]",
+  "val": "45px",
+  "media": [],
+  "computed": "45px",
+  "eg": "45px|BUTTON.ccs-btn ccs-ghost|Add customer",
+  "where": [
+   "customer",
+   "customers"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": "html:not(#fl0):not(#fl1):not(#fl2) body:not(#fl3) #cc-staff #ccs-main[data-screen^=\"customers\"] > .ccs-toolbar > .ccp-rem.ccp-flow-rem",
+  "val": "48px!important",
+  "media": [],
+  "computed": "48px",
+  "eg": "48px|BUTTON.ccs-btn ccs-ghost ccp-rem ccp-flow-rem|1 reminder1",
+  "where": [
+   "customer",
+   "customers"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": "#cc-staff #ccs-main.cdir-v3-ready[data-screen=\"customers-all\"] .ccs-toolbar > .crm-bar .ccs-secbtn",
+  "val": "41px!important",
+  "media": [
+   "(min-width: 1080px)"
+  ],
+  "computed": "41px",
+  "eg": "41px|BUTTON.ccs-secbtn ccp-hasic|Customers",
+  "where": [
+   "customer",
+   "customers"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": "#cc-staff #ccs-main .ccp-fu-all",
+  "val": "44px",
+  "media": [],
+  "computed": "44px",
+  "eg": "44px|BUTTON.ccs-link ccp-fu-all|See all",
+  "where": [
+   "customer",
+   "customers"
+  ]
+ },
+ {
+  "prop": "height",
+  "sel": "#cc-staff #ccs-main.cw-directory .cw-summary .cw-metric",
+  "val": "auto !important",
+  "media": [
+   "screen"
+  ],
+  "computed": "80.9844px",
+  "eg": "80.9844px|BUTTON.cw-metric crm-kpi|Customers who ordered2 on file",
+  "where": [
+   "customer",
+   "customers"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": ":root:not(#cc-t0) #cc-staff #ccs-main .cw-summary > .cw-metric",
+  "val": "0!important",
+  "media": [],
+  "computed": "0px",
+  "eg": "0px|BUTTON.cw-metric crm-kpi|Customers who ordered2 on file",
+  "where": [
+   "customer",
+   "customers"
+  ]
+ },
+ {
+  "prop": "height",
+  "sel": "#cc-staff #ccs-main.cdir-v3-ready .cdir-open-profile",
+  "val": "29px",
+  "media": [],
+  "computed": "40px",
+  "eg": "40px|BUTTON.cdir-open-profile|",
+  "where": [
+   "customer",
+   "customers"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": "#cc-staff #ccs-main.cdir-v3-ready .cdir-open-profile",
+  "val": "40px!important",
+  "media": [],
+  "computed": "40px",
+  "eg": "40px|BUTTON.cdir-open-profile|",
+  "where": [
+   "customer",
+   "customers"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": "#cc-staff #ccs-main.cdir-v3-ready .cdir-page-btn",
+  "val": "40px",
+  "media": [],
+  "computed": "40px",
+  "eg": "40px|BUTTON.cdir-page-btn cdir-page-prev|Previous",
+  "where": [
+   "customer",
+   "customers"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .ho-sec h2",
+  "val": "calc(17*var(--u,1px))",
+  "media": [],
+  "computed": "17px",
+  "eg": "17px|H2.|Handover notes",
+  "where": [
+   "handover"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .ho-text",
+  "val": "calc(16*var(--u,1px))",
+  "media": [],
+  "computed": "16px",
+  "eg": "16px|P.ho-text|CC-1004 is boxed in the fridge",
+  "where": [
+   "handover"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": ".ccs-label",
+  "val": "calc(15*var(--u,1px))",
+  "media": [],
+  "computed": "15px",
+  "eg": "15px|LABEL.ccs-label|Write a handover note for the ",
+  "where": [
+   "cal-Year",
+   "handover",
+   "new4",
+   "register"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": ".ccs-mini-t",
+  "val": "calc(16*var(--u,1px))",
+  "media": [],
+  "computed": "16px",
+  "eg": "16px|SPAN.ccs-mini-t|3:00 PM",
+  "where": [
+   "handover"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .ccs-pay",
+  "val": "calc(15*var(--u,1px))",
+  "media": [],
+  "computed": "15px",
+  "eg": "15px|SPAN.ccs-pay p-part|Part paid",
+  "where": [
+   "detail-More",
+   "detail-Payment",
+   "handover"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .at-jump b",
+  "val": "calc(24*var(--u,1px))",
+  "media": [],
+  "computed": "24px",
+  "eg": "24px|B.|1",
+  "where": [
+   "handover"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .cw-resume h2, #cc-staff .cw-t b, #cc-staff .ho-person b",
+  "val": "calc(15*var(--u,1px))",
+  "media": [],
+  "computed": "15px",
+  "eg": "15px|B.|Baker One",
+  "where": [
+   "handover",
+   "new4",
+   "new5",
+   "newEnd"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": "#cc-staff .ccs-btn",
+  "val": "48px",
+  "media": [],
+  "computed": "48px",
+  "eg": "48px|BUTTON.ccs-btn|Read and taken over",
+  "where": [
+   "cal-Day",
+   "cal-Year",
+   "handover",
+   "register"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": "#cc-staff .ho-write textarea",
+  "val": "90px",
+  "media": [],
+  "computed": "90px",
+  "eg": "90px|TEXTAREA.ccs-input|",
+  "where": [
+   "handover"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": "#cc-staff .at-jump",
+  "val": "64px",
+  "media": [],
+  "computed": "64px",
+  "eg": "64px|BUTTON.at-jump is-amber|1Due today, kitchen not finish",
+  "where": [
+   "handover"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .ccs-kpi-l",
+  "val": "calc(15*var(--u,1px))",
+  "media": [],
+  "computed": "15px",
+  "eg": "15px|SPAN.ccs-kpi-l|Orders counted",
+  "where": [
+   "register"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .dx-kpis-s .ccs-kpi-n",
+  "val": "calc(24*var(--u,1px))",
+  "media": [],
+  "computed": "24px",
+  "eg": "24px|B.ccs-kpi-n|577",
+  "where": [
+   "register"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .ccs-pager b",
+  "val": "calc(16*var(--u,1px))",
+  "media": [],
+  "computed": "16px",
+  "eg": "16px|B.|1 of 3",
+  "where": [
+   "register"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .ccs-btn.ccs-small",
+  "val": "calc(16*var(--u,1px))",
+  "media": [],
+  "computed": "16px",
+  "eg": "16px|BUTTON.ccs-btn ccs-ghost ccs-small|Previous",
+  "where": [
+   "register"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": ".ccs-big",
+  "val": "calc(20*var(--u,1px))",
+  "media": [],
+  "computed": "20px",
+  "eg": "20px|B.ccs-big|H-0310 \u00b7 Test Guest One",
+  "where": [
+   "detail",
+   "register"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .rg-flags",
+  "val": "calc(16*var(--u,1px))",
+  "media": [],
+  "computed": "16px",
+  "eg": "16px|UL.rg-flags|Same phone, pickup date, cake ",
+  "where": [
+   "register"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": "#cc-staff .ccs-link",
+  "val": "48px",
+  "media": [],
+  "computed": "48px",
+  "eg": "48px|BUTTON.ccs-link|Full record",
+  "where": [
+   "detail",
+   "register"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#ccs-main[data-screen=\"settings\"] .ccs-head .ccs-title",
+  "val": "calc(24*var(--u, 1px)) !important",
+  "media": [
+   "(min-width: 760px)"
+  ],
+  "computed": "24px",
+  "eg": "24px|H1.ccs-title ccp-hast|Settings",
+  "where": [
+   "marketing",
+   "service",
+   "settings"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": ":root:not(#cca0) #cc-staff #ccs-main.cca-on .cca-mi",
+  "val": "16px",
+  "media": [
+   "(min-width: 1100px)"
+  ],
+  "computed": "16px",
+  "eg": "16px|BUTTON.cca-mi cca-mov|Overview",
+  "where": [
+   "marketing",
+   "service",
+   "settings"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "html:not(#ccd0) body:not(#ccd1) #cc-staff .cca-menu .cca-mh",
+  "val": "15px!important",
+  "media": [],
+  "computed": "15px",
+  "eg": "15px|P.cca-mh|Ordering and availability",
+  "where": [
+   "marketing",
+   "service",
+   "settings"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#ccs-main[data-screen=\"settings\"], #ccs-main[data-screen=\"settings\"] .oc-n b",
+  "val": "calc(15*var(--u, 1px))",
+  "media": [
+   "(min-width: 760px)"
+  ],
+  "computed": "15px",
+  "eg": "15px|MAIN.ccs-main cca-on cca-home-on|SettingsChanges apply to the w",
+  "where": [
+   "marketing",
+   "service",
+   "settings"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": ":root:not(#cca0) #cc-staff #ccs-main.cca-on .cca-chip",
+  "val": "15px",
+  "media": [],
+  "computed": "15px",
+  "eg": "15px|BUTTON.cca-chip|Backup \u00b7 Not set up",
+  "where": [
+   "marketing",
+   "service",
+   "settings"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": ":root:not(#cca0) #cc-staff #ccs-main.cca-on .cca-ch h2",
+  "val": "18px",
+  "media": [],
+  "computed": "18px",
+  "eg": "18px|H2.|Ordering and availability",
+  "where": [
+   "marketing",
+   "service",
+   "settings"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": ":root:not(#cca0) #cc-staff #ccs-main.cca-on .cca-fact dt",
+  "val": "15px",
+  "media": [],
+  "computed": "15px",
+  "eg": "15px|DT.|Website orders",
+  "where": [
+   "marketing",
+   "service",
+   "settings"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": ":root:not(#cca0) #cc-staff #ccs-main.cca-on .cca-fact dd",
+  "val": "15px",
+  "media": [],
+  "computed": "15px",
+  "eg": "15px|DD.|2 days standard \u00b7 5 days custo",
+  "where": [
+   "marketing",
+   "service",
+   "settings"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": ":root:not(#cca0) #cc-staff #ccs-main.cca-on .cca-rt",
+  "val": "16px",
+  "media": [],
+  "computed": "16px",
+  "eg": "16px|SPAN.cca-rt|Online orders",
+  "where": [
+   "marketing",
+   "service",
+   "settings"
+  ]
+ },
+ {
+  "prop": "height",
+  "sel": ":root:not(#cca0) #cc-staff #ccs-main.cca-on .cca-search input",
+  "val": "100%",
+  "media": [],
+  "computed": "42px",
+  "eg": "42px|INPUT.|",
+  "where": [
+   "marketing",
+   "service",
+   "settings"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": ":root:not(#cca0) #cc-staff #ccs-main.cca-on .cca-search input",
+  "val": "0!important",
+  "media": [],
+  "computed": "0px",
+  "eg": "0px|INPUT.|",
+  "where": [
+   "marketing",
+   "service",
+   "settings"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": ":root:not(#cca0) #cc-staff #ccs-main.cca-on .cca-mi",
+  "val": "44px",
+  "media": [
+   "(min-width: 1100px)"
+  ],
+  "computed": "44px",
+  "eg": "44px|BUTTON.cca-mi cca-mov|Overview",
+  "where": [
+   "marketing",
+   "service",
+   "settings"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": ":root:not(#cca0) #cc-staff #ccs-main.cca-on .cca-row",
+  "val": "48px",
+  "media": [],
+  "computed": "48px",
+  "eg": "48px|BUTTON.cca-row|Online orders",
+  "where": [
+   "marketing",
+   "service",
+   "settings"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .ccs-day",
+  "val": "calc(15*var(--u,1px))",
+  "media": [],
+  "computed": "15px",
+  "eg": "15px|P.ccs-day|Today2 orders \u00b7 2 cakes",
+  "where": [
+   "detail-More",
+   "detail-Payment",
+   "orders-upcoming"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": "#cc-staff .ccs-input, #cc-staff .ccs-search, #cc-staff select.ccs-input",
+  "val": "48px",
+  "media": [],
+  "computed": "48px",
+  "eg": "48px|INPUT.ccs-input ccs-search|",
+  "where": [
+   "dash",
+   "dash1",
+   "dash2",
+   "detail-More",
+   "detail-Payment",
+   "orders-upcoming"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": ".ccs-card",
+  "val": "76px",
+  "media": [],
+  "computed": "76px",
+  "eg": "76px|BUTTON.ccs-card k-confirmed pf-none|Sun 8 Nov3:00 PMTest Customer ",
+  "where": [
+   "detail-More",
+   "detail-Payment",
+   "orders-upcoming"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#ccs-sheet .os-tph b",
+  "val": "calc(26*var(--u, 1px))",
+  "media": [
+   "(min-width: 760px)"
+  ],
+  "computed": "26px",
+  "eg": "26px|B.|Test Customer B",
+  "where": [
+   "detail",
+   "detail-More",
+   "detail-Payment"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#ccs-sheet .os-tph small",
+  "val": "calc(16*var(--u, 1px))",
+  "media": [
+   "(min-width: 760px)"
+  ],
+  "computed": "16px",
+  "eg": "16px|SMALL.|CC-1004 \u00b7 Cheesecake, 8 inch",
+  "where": [
+   "detail",
+   "detail-More",
+   "detail-Payment"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": ".ccs-x",
+  "val": "calc(24*var(--u,1px))",
+  "media": [],
+  "computed": "18px",
+  "eg": "18px|BUTTON.ccs-x|\u00d7",
+  "where": [
+   "customer",
+   "detail",
+   "detail-More",
+   "detail-Payment",
+   "new1",
+   "new2",
+   "new3",
+   "new4",
+   "new5",
+   "newEnd"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .ccs-ostrip b",
+  "val": "calc(16*var(--u,1px))",
+  "media": [],
+  "computed": "16px",
+  "eg": "16px|B.|Sun 8 Nov, 3:00 PM",
+  "where": [
+   "detail",
+   "detail-More",
+   "detail-Payment"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .ccs-sheet-body .ccs-actions-row .ccs-btn",
+  "val": "calc(16*var(--u,1px))",
+  "media": [],
+  "computed": "16px",
+  "eg": "16px|BUTTON.ccs-btn ccs-good|Order completed",
+  "where": [
+   "customer",
+   "detail",
+   "detail-More",
+   "detail-Payment"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": ".ccs-kv",
+  "val": "calc(16*var(--u,1px))",
+  "media": [],
+  "computed": "16px",
+  "eg": "16px|DL.ccs-kv|FinishCustom designDesignWhite",
+  "where": [
+   "detail"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .ccs-box h3, #cc-staff .ccs-col h2",
+  "val": "calc(16*var(--u,1px))",
+  "media": [],
+  "computed": "16px",
+  "eg": "16px|H3.|Cake design references",
+  "where": [
+   "detail",
+   "detail-More",
+   "detail-Payment"
+  ]
+ },
+ {
+  "prop": "height",
+  "sel": ".ccs-x",
+  "val": "48px",
+  "media": [],
+  "computed": "48px",
+  "eg": "48px|BUTTON.ccs-x|\u00d7",
+  "where": [
+   "customer",
+   "detail",
+   "detail-More",
+   "detail-Payment",
+   "new1",
+   "new2",
+   "new3",
+   "new4",
+   "new5",
+   "newEnd"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": "#ccs-sheet .ccs-ostrip .os-callrow a",
+  "val": "44px",
+  "media": [
+   "(min-width: 760px)"
+  ],
+  "computed": "44px",
+  "eg": "44px|A.ccs-btn ccs-ghost ccp-call|912 0002",
+  "where": [
+   "detail",
+   "detail-More",
+   "detail-Payment"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": "#ccs-sheet .ccs-actions > .ccs-actions-row:not(.ccs-more-row) > .ccs-btn:not(.ccs-ghost)",
+  "val": "52px",
+  "media": [
+   "(min-width: 760px)"
+  ],
+  "computed": "52px",
+  "eg": "52px|BUTTON.ccs-btn ccs-good|Order completed",
+  "where": [
+   "detail",
+   "detail-More",
+   "detail-Payment"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": "#ccs-sheet .ccs-actions > .ccs-actions-row:not(.ccs-more-row) > .ccs-btn",
+  "val": "46px",
+  "media": [
+   "(min-width: 760px)"
+  ],
+  "computed": "46px",
+  "eg": "46px|BUTTON.ccs-btn ccs-ghost ccp-hasic|Print slip",
+  "where": [
+   "detail",
+   "detail-More",
+   "detail-Payment"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": "#cc-staff .ccs-more-row .ccs-link",
+  "val": "44px",
+  "media": [],
+  "computed": "44px",
+  "eg": "44px|BUTTON.ccs-link|+ Add note",
+  "where": [
+   "detail",
+   "detail-More",
+   "detail-Payment"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": "#cc-staff #ccs-sheet .ccp-more-b",
+  "val": "48px",
+  "media": [],
+  "computed": "48px",
+  "eg": "48px|BUTTON.ccp-more-b|More options",
+  "where": [
+   "detail",
+   "detail-More",
+   "detail-Payment"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": ".ccs-money b",
+  "val": "calc(18*var(--u,1px))",
+  "media": [],
+  "computed": "18px",
+  "eg": "18px|B.|$120",
+  "where": [
+   "detail-More",
+   "detail-Payment"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": ".ccs-history",
+  "val": "calc(16*var(--u,1px))",
+  "media": [],
+  "computed": "16px",
+  "eg": "16px|DIV.ccs-history|8 Nov, 5:09 AM$120 full by EFT",
+  "where": [
+   "detail-More",
+   "detail-Payment"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": ":root:not(#cc-t0) #cc-staff #ccs-sheet .ccp-more-l > .ccp-mitem",
+  "val": "52px!important",
+  "media": [],
+  "computed": "52px",
+  "eg": "52px|BUTTON.ccs-btn ccs-ghost fb-cta-btn ccp-mitem|Customer feedback",
+  "where": [
+   "detail-More"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#ccs-sheet.rm-profile .rm-avatar",
+  "val": "18px",
+  "media": [],
+  "computed": "18px",
+  "eg": "18px|SPAN.rm-avatar|TC",
+  "where": [
+   "customer"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#ccs-sheet.rm-profile .rm-identity .ccs-title",
+  "val": "clamp(23px,2.5vw,30px)",
+  "media": [],
+  "computed": "30px",
+  "eg": "30px|H2.ccs-title|Test Customer A",
+  "where": [
+   "customer"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#ccs-sheet.rm-profile #cp-overview > h3",
+  "val": "17px",
+  "media": [],
+  "computed": "17px",
+  "eg": "17px|H3.|Guest details",
+  "where": [
+   "customer"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": ":root:not(#cc-t0) #cc-staff #ccs-sheet .rm-metric.ccp-rmk .rm-metric-value",
+  "val": "26px!important",
+  "media": [],
+  "computed": "26px",
+  "eg": "26px|STRONG.rm-metric-value|4",
+  "where": [
+   "customer"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#ccs-sheet.rm-profile .rm-group-title",
+  "val": "15px",
+  "media": [],
+  "computed": "15px",
+  "eg": "15px|H4.rm-group-title|Contact",
+  "where": [
+   "customer"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": "#cc-staff .ccs-sheet-body .ccs-actions-row .ccs-btn",
+  "val": "48px",
+  "media": [],
+  "computed": "48px",
+  "eg": "48px|BUTTON.ccs-btn ccs-new|New order for this customer",
+  "where": [
+   "customer"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .ccs-whead b",
+  "val": "calc(16*var(--u,1px))",
+  "media": [],
+  "computed": "16px",
+  "eg": "16px|B.|Mon 2",
+  "where": [
+   "cal-Week"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .ccs-wadd",
+  "val": "inherit",
+  "media": [],
+  "computed": "18px",
+  "eg": "18px|BUTTON.ccs-wadd|+",
+  "where": [
+   "cal-Week"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .ccs-cev:not(.is-full) .ccs-cev-t",
+  "val": "calc(15*var(--u,1px))",
+  "media": [],
+  "computed": "15px",
+  "eg": "15px|SPAN.ccs-cev-t|3:00 PM",
+  "where": [
+   "cal-Week"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .ccs-cev:not(.is-full) .ccs-cev-n",
+  "val": "calc(15*var(--u,1px))",
+  "media": [],
+  "computed": "15px",
+  "eg": "15px|SPAN.ccs-cev-n|Test Customer B",
+  "where": [
+   "cal-Week"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": "#cc-staff .ccs-whead",
+  "val": "52px",
+  "media": [],
+  "computed": "52px",
+  "eg": "52px|BUTTON.ccs-whead|Mon 21 \u00b7 1 cake",
+  "where": [
+   "cal-Week"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": "#cc-staff .ccs-cev",
+  "val": "30px",
+  "media": [],
+  "computed": "30px",
+  "eg": "30px|BUTTON.ccs-cev k-done|3:00 PMTest Customer B",
+  "where": [
+   "cal-Week"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff #ccs-main[data-screen=\"calendar\"] .ccs-daytot b",
+  "val": "25px",
+  "media": [],
+  "computed": "25px",
+  "eg": "25px|B.|2",
+  "where": [
+   "cal-Day"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .ccs-dslot-t",
+  "val": "calc(16*var(--u,1px))",
+  "media": [],
+  "computed": "16px",
+  "eg": "16px|SPAN.ccs-dslot-t|9:00 AM",
+  "where": [
+   "cal-Day"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .ccs-dadd",
+  "val": "calc(16*var(--u,1px))",
+  "media": [],
+  "computed": "16px",
+  "eg": "16px|BUTTON.ccs-wadd ccs-dadd|New order at 9:00 AM",
+  "where": [
+   "cal-Day"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .ccs-cev.is-full",
+  "val": "calc(16*var(--u,1px))",
+  "media": [],
+  "computed": "16px",
+  "eg": "16px|BUTTON.ccs-cev k-confirmed is-full|3:00 PMTest Customer BCheeseca",
+  "where": [
+   "cal-Day"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .ccs-cev.is-full .ccs-cev-c",
+  "val": "calc(16*var(--u,1px))",
+  "media": [],
+  "computed": "16px",
+  "eg": "16px|SPAN.ccs-cev-c|Cheesecake, 8 inch",
+  "where": [
+   "cal-Day"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": "#cc-staff .ccs-dadd",
+  "val": "44px",
+  "media": [],
+  "computed": "44px",
+  "eg": "44px|BUTTON.ccs-wadd ccs-dadd|New order at 9:00 AM",
+  "where": [
+   "cal-Day"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": "#cc-staff .ccs-cev.is-full",
+  "val": "56px",
+  "media": [],
+  "computed": "56px",
+  "eg": "56px|BUTTON.ccs-cev k-confirmed is-full|3:00 PMTest Customer BCheeseca",
+  "where": [
+   "cal-Day"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .ccs-ylegend",
+  "val": "calc(15*var(--u,1px))",
+  "media": [],
+  "computed": "15px",
+  "eg": "15px|DIV.ccs-ylegend|FewerMoreShaded by orders per ",
+  "where": [
+   "cal-Year"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .ccs-ymhead span",
+  "val": "calc(15*var(--u,1px))",
+  "media": [],
+  "computed": "15px",
+  "eg": "15px|SPAN.|7 orders",
+  "where": [
+   "cal-Year"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff #ccs-main[data-screen=\"calendar\"] .ccs-calside:has(.ccs-dayp) .ccs-dayp-title",
+  "val": "21px",
+  "media": [],
+  "computed": "21px",
+  "eg": "21px|H2.ccs-dayp-title|Sunday 8 November 2026",
+  "where": [
+   "cal-Year"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff #ccs-main[data-screen=\"calendar\"] .ccs-calside:has(.ccs-dayp) .ccs-daytot b",
+  "val": "27px",
+  "media": [],
+  "computed": "27px",
+  "eg": "27px|B.|2",
+  "where": [
+   "cal-Year"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .cq-t",
+  "val": "calc(15*var(--u, 1px))",
+  "media": [],
+  "computed": "15px",
+  "eg": "15px|SPAN.cq-t|3:00 PM",
+  "where": [
+   "cal-Year"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .cq-m b, #cc-staff .oc-n b",
+  "val": "calc(16*var(--u, 1px))",
+  "media": [],
+  "computed": "16px",
+  "eg": "16px|B.|Test Customer B",
+  "where": [
+   "cal-Year"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": "#cc-staff .cq-row",
+  "val": "58px",
+  "media": [],
+  "computed": "58px",
+  "eg": "58px|BUTTON.cq-row pf-none|3:00 PMTest Customer BCC-1004 ",
+  "where": [
+   "cal-Year"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": "#cc-staff #ccs-main[data-screen=\"calendar\"] .ccs-calside:has(.ccs-dayp) [data-act=\"cal-openday\"]",
+  "val": "40px",
+  "media": [],
+  "computed": "40px",
+  "eg": "40px|BUTTON.ccs-link|Open the day by time",
+  "where": [
+   "cal-Year"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .hb-v2-head h2",
+  "val": "22px",
+  "media": [],
+  "computed": "22px",
+  "eg": "22px|H2.|Cake Pulse",
+  "where": [
+   "dash",
+   "dash1",
+   "dash2",
+   "dash3"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff #cc-insights .cci-head h3",
+  "val": "17px",
+  "media": [],
+  "computed": "17px",
+  "eg": "17px|H3.|Today\u2019s insights",
+  "where": [
+   "dash",
+   "dash1",
+   "dash2",
+   "dash3"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff #cc-insights .cci-big",
+  "val": "24px",
+  "media": [],
+  "computed": "24px",
+  "eg": "24px|STRONG.cci-big|1",
+  "where": [
+   "dash",
+   "dash1",
+   "dash2",
+   "dash3"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff #cc-insights .cci-line",
+  "val": "15px",
+  "media": [],
+  "computed": "15px",
+  "eg": "15px|P.cci-line|1 order due by tomorrow is not",
+  "where": [
+   "dash",
+   "dash1",
+   "dash2",
+   "dash3"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff #cc-cake-lead-time h3",
+  "val": "20px !important",
+  "media": [],
+  "computed": "20px",
+  "eg": "20px|H3.|Cakes by pickup day",
+  "where": [
+   "dash",
+   "dash1",
+   "dash2"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff #cc-cake-lead-time .cclt-today b",
+  "val": "24px",
+  "media": [],
+  "computed": "24px",
+  "eg": "24px|B.|3",
+  "where": [
+   "dash",
+   "dash1",
+   "dash2"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff #cc-cake-lead-time .cclt-habit > p",
+  "val": "16px",
+  "media": [],
+  "computed": "16px",
+  "eg": "16px|P.|Most cakes are booked 0 to 3 d",
+  "where": [
+   "dash",
+   "dash1",
+   "dash2"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff #cc-cake-lead-time .cclt-key b",
+  "val": "20px",
+  "media": [],
+  "computed": "20px",
+  "eg": "20px|B.|0%",
+  "where": [
+   "dash",
+   "dash1",
+   "dash2"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff #cc-cake-lead-time .cclt-detail h4",
+  "val": "17px",
+  "media": [],
+  "computed": "17px",
+  "eg": "17px|H4.|Sun, 8 Nov 2026 today",
+  "where": [
+   "dash",
+   "dash1",
+   "dash2"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff #cc-cake-lead-time .cclt-detail > p",
+  "val": "inherit!important",
+  "media": [],
+  "computed": "15px",
+  "eg": "15px|P.cclt-big|3 cakes for pickup \u00b7 2 orders",
+  "where": [
+   "dash",
+   "dash1",
+   "dash2"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff #cc-cake-lead-time .cclt-big b",
+  "val": "24px",
+  "media": [],
+  "computed": "24px",
+  "eg": "24px|B.|3",
+  "where": [
+   "dash",
+   "dash1",
+   "dash2"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff #cc-cake-lead-time",
+  "val": "15px",
+  "media": [],
+  "computed": "15px",
+  "eg": "15px|SECTION.cclt|Cakes by pickup dayOrders take",
+  "where": [
+   "dash",
+   "dash1",
+   "dash2"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff #cc-seasonal-demand-staging h3",
+  "val": "17px",
+  "media": [],
+  "computed": "17px",
+  "eg": "17px|H3.|Seasonal booking buildup",
+  "where": [
+   "dash",
+   "dash1",
+   "dash2"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .hb-v2-daystats strong",
+  "val": "19px",
+  "media": [],
+  "computed": "19px",
+  "eg": "19px|STRONG.|$0",
+  "where": [
+   "dash",
+   "dash1",
+   "dash2"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": "#cc-staff #cc-insights .cci-more",
+  "val": "42px",
+  "media": [],
+  "computed": "42px",
+  "eg": "42px|BUTTON.cci-more|Show all 11",
+  "where": [
+   "dash",
+   "dash1",
+   "dash2"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": "#cc-staff #cc-insights .cci-go",
+  "val": "42px",
+  "media": [],
+  "computed": "42px",
+  "eg": "42px|BUTTON.cci-go|Open Orders",
+  "where": [
+   "dash",
+   "dash1",
+   "dash2"
+  ]
+ },
+ {
+  "prop": "height",
+  "sel": "#ccs-main .ccf-i",
+  "val": "44px",
+  "media": [],
+  "computed": "44px",
+  "eg": "44px|BUTTON.ccf-i|i",
+  "where": [
+   "dash",
+   "dash1",
+   "dash2"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": "#cc-staff #cc-cake-lead-time .cclt-ranges button",
+  "val": "40px",
+  "media": [],
+  "computed": "40px",
+  "eg": "40px|BUTTON.|Last 30 days",
+  "where": [
+   "dash",
+   "dash1",
+   "dash2"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .an-mod",
+  "val": "calc(16*var(--u,1px))",
+  "media": [],
+  "computed": "16px",
+  "eg": "16px|BUTTON.an-mod|Data",
+  "where": [
+   "dash4"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": ":root:not(#cc-a0) #cc-staff #ccs-main .ans-empty .ans-line",
+  "val": "17px",
+  "media": [],
+  "computed": "17px",
+  "eg": "17px|P.ans-line|No campaign spend recorded yet",
+  "where": [
+   "dash4"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": "#cc-staff .an-mod",
+  "val": "48px",
+  "media": [],
+  "computed": "48px",
+  "eg": "48px|BUTTON.an-mod|Data",
+  "where": [
+   "dash4"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": "#cc-staff .aw-button, #cc-staff .aw-size",
+  "val": "40px",
+  "media": [],
+  "computed": "40px",
+  "eg": "40px|BUTTON.aw-button|Download data template",
+  "where": [
+   "dash4"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .ccs-dash-head .ccs-title, #cc-staff .ccs-title",
+  "val": "calc(24*var(--u,1px))",
+  "media": [],
+  "computed": "24px",
+  "eg": "24px|H2.ccs-title|New order",
+  "where": [
+   "new1",
+   "new2",
+   "new3",
+   "new4",
+   "new5",
+   "newEnd"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .sl-wrap.is-stepper .sl-steptitle",
+  "val": "clamp(22px, 2.1vw, 28px) !important",
+  "media": [
+   "screen"
+  ],
+  "computed": "28px",
+  "eg": "28px|H2.sl-steptitle|Customer",
+  "where": [
+   "new1",
+   "new2",
+   "new3",
+   "new4",
+   "new5",
+   "newEnd"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .sl-k",
+  "val": "calc(18*var(--u,1px))",
+  "media": [],
+  "computed": "18px",
+  "eg": "18px|SPAN.sl-k|Who's taking this order? Requi",
+  "where": [
+   "new1",
+   "new2",
+   "new3",
+   "new5",
+   "newEnd"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .sl-nomob-link",
+  "val": "calc(16*var(--u,1px))",
+  "media": [],
+  "computed": "16px",
+  "eg": "16px|BUTTON.ccs-link sl-nomob-link|No mobile?",
+  "where": [
+   "new1"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .sl-wrap .ccs-check",
+  "val": "calc(18*var(--u,1px))",
+  "media": [],
+  "computed": "18px",
+  "eg": "18px|LABEL.ccs-check|They use WhatsApp on this numb",
+  "where": [
+   "new1"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .sl-wrap.is-stepper .sl-stepbody .ccs-chips > .ccs-chip:not(.ccs-datecell)",
+  "val": "16px !important",
+  "media": [
+   "screen"
+  ],
+  "computed": "16px",
+  "eg": "16px|BUTTON.ccs-chip|Yes",
+  "where": [
+   "new1",
+   "new3",
+   "new4",
+   "new5",
+   "newEnd"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .sl-stepper .ccs-chip",
+  "val": "calc(18*var(--u,1px))",
+  "media": [],
+  "computed": "18px",
+  "eg": "18px|BUTTON.ccs-chip|Walk-in",
+  "where": [
+   "new1"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .sl-wrap .ccs-hint",
+  "val": "calc(16*var(--u,1px))",
+  "media": [],
+  "computed": "16px",
+  "eg": "16px|P.ccs-hint|Choose the actual day the cust",
+  "where": [
+   "new1",
+   "new3",
+   "new4"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .sl-stepbar .ccs-btn, #cc-staff .sl-stepper .ccs-btn",
+  "val": "calc(20*var(--u,1px))",
+  "media": [],
+  "computed": "20px",
+  "eg": "20px|BUTTON.ccs-btn|Next: CakeNext",
+  "where": [
+   "new1",
+   "new2",
+   "new3",
+   "new4",
+   "new5",
+   "newEnd"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .sl-mrow",
+  "val": "calc(15*var(--u,1px))",
+  "media": [],
+  "computed": "15px",
+  "eg": "15px|DIV.sl-mrow|Cake\u2013",
+  "where": [
+   "new1",
+   "new2",
+   "new3",
+   "new4",
+   "new5",
+   "newEnd"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .sl-mrow.is-total",
+  "val": "calc(17*var(--u,1px))",
+  "media": [],
+  "computed": "17px",
+  "eg": "17px|DIV.sl-mrow is-total|Total\u2013",
+  "where": [
+   "new1",
+   "new2",
+   "new3",
+   "new4",
+   "new5",
+   "newEnd"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .sl-mrow.is-total b",
+  "val": "calc(19*var(--u,1px))",
+  "media": [],
+  "computed": "19px",
+  "eg": "19px|B.|\u2013",
+  "where": [
+   "new1",
+   "new2",
+   "new3",
+   "new4",
+   "new5",
+   "newEnd"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .sl-lk",
+  "val": "calc(16*var(--u,1px))",
+  "media": [],
+  "computed": "16px",
+  "eg": "16px|SPAN.sl-lk|Guest Name",
+  "where": [
+   "new1",
+   "new2",
+   "new3",
+   "new4",
+   "new5",
+   "newEnd"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .sl-live",
+  "val": "calc(16*var(--u,1px))",
+  "media": [
+   "(min-width: 760px)"
+  ],
+  "computed": "16px",
+  "eg": "16px|ASIDE.sl-live|Cake\u2013Total\u2013\u25cf Not saved yetGues",
+  "where": [
+   "new1",
+   "new2",
+   "new3",
+   "new4",
+   "new5",
+   "newEnd"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": "#cc-staff .sl-stepper .ccs-input",
+  "val": "60px",
+  "media": [],
+  "computed": "60px",
+  "eg": "60px|INPUT.ccs-input|",
+  "where": [
+   "new1",
+   "new3"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": "#cc-staff .sl-nomob-link",
+  "val": "44px",
+  "media": [],
+  "computed": "44px",
+  "eg": "44px|BUTTON.ccs-link sl-nomob-link|No mobile?",
+  "where": [
+   "new1"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": "#cc-staff .sl-wrap.is-stepper .sl-stepbody .ccs-chips > .ccs-chip:not(.ccs-datecell)",
+  "val": "49px",
+  "media": [
+   "screen"
+  ],
+  "computed": "49px",
+  "eg": "49px|BUTTON.ccs-chip|Yes",
+  "where": [
+   "new1",
+   "new3",
+   "new4",
+   "new5",
+   "newEnd"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": "#cc-staff .sl-stepper .ccs-chip",
+  "val": "56px",
+  "media": [],
+  "computed": "56px",
+  "eg": "56px|BUTTON.ccs-chip|Walk-in",
+  "where": [
+   "new1"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": "#cc-staff .sl-heardopen",
+  "val": "48px",
+  "media": [],
+  "computed": "48px",
+  "eg": "48px|BUTTON.ccs-link sl-heardopen|How did they hear about us? (o",
+  "where": [
+   "new1"
+  ]
+ },
+ {
+  "prop": "height",
+  "sel": "#cc-staff .sl-stepbar .ccs-btn",
+  "val": "auto!important",
+  "media": [
+   "screen"
+  ],
+  "computed": "64px",
+  "eg": "64px|BUTTON.ccs-btn|Next: CakeNext",
+  "where": [
+   "new1",
+   "new2",
+   "new3",
+   "new4",
+   "new5",
+   "newEnd"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": "#cc-staff .sl-stepper .sl-stepbar .ccs-btn",
+  "val": "64px",
+  "media": [],
+  "computed": "64px",
+  "eg": "64px|BUTTON.ccs-btn|Next: CakeNext",
+  "where": [
+   "new1",
+   "new2",
+   "new3",
+   "new4",
+   "new5",
+   "newEnd"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .sl-cake-name",
+  "val": "calc(17*var(--u,1px))",
+  "media": [],
+  "computed": "17px",
+  "eg": "17px|SPAN.sl-cake-name|Cheesecake",
+  "where": [
+   "new2"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .sl-cake-from",
+  "val": "calc(15*var(--u,1px))",
+  "media": [],
+  "computed": "15px",
+  "eg": "15px|SPAN.sl-cake-from|From $54",
+  "where": [
+   "new2"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .sl-cake-plus",
+  "val": "calc(44*var(--u,1px))",
+  "media": [],
+  "computed": "44px",
+  "eg": "44px|SPAN.sl-cake-img sl-cake-plus|+",
+  "where": [
+   "new2"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .sl-stepbar .sl-restart, #ccs-sheet .sl-stepbar .sl-restart",
+  "val": "calc(15*var(--u, 1px))",
+  "media": [],
+  "computed": "15px",
+  "eg": "15px|BUTTON.ccs-link sl-restart|Start over",
+  "where": [
+   "new2",
+   "new3",
+   "new4",
+   "new5",
+   "newEnd"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .sl-chg",
+  "val": "calc(15*var(--u,1px))",
+  "media": [],
+  "computed": "15px",
+  "eg": "15px|BUTTON.ccs-link sl-chg|Change",
+  "where": [
+   "new2",
+   "new3",
+   "new4",
+   "new5",
+   "newEnd"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .sl-lv small",
+  "val": "calc(15*var(--u,1px))",
+  "media": [],
+  "computed": "15px",
+  "eg": "15px|SMALL.|No offers or reminders",
+  "where": [
+   "new2",
+   "new3",
+   "new4",
+   "new5",
+   "newEnd"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": "#cc-staff .sl-cake",
+  "val": "56px",
+  "media": [],
+  "computed": "56px",
+  "eg": "56px|BUTTON.sl-cake|CheesecakeFrom $54",
+  "where": [
+   "new2"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": "#cc-staff .sl-stepbar .sl-restart, #ccs-sheet .sl-stepbar .sl-restart",
+  "val": "44px",
+  "media": [],
+  "computed": "44px",
+  "eg": "44px|BUTTON.ccs-link sl-restart|Start over",
+  "where": [
+   "new2",
+   "new3",
+   "new4",
+   "new5",
+   "newEnd"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": "#cc-staff .sl-stepper .sl-chg",
+  "val": "48px",
+  "media": [],
+  "computed": "48px",
+  "eg": "48px|BUTTON.ccs-link sl-chg|Change",
+  "where": [
+   "new2",
+   "new3",
+   "new4",
+   "new5",
+   "newEnd"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .ccs-datecell b",
+  "val": "calc(20*var(--u,1px))",
+  "media": [],
+  "computed": "20px",
+  "eg": "20px|B.|10",
+  "where": [
+   "new4"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": "#cc-staff .cw-acts .ccs-btn",
+  "val": "40px",
+  "media": [],
+  "computed": "40px",
+  "eg": "40px|BUTTON.ccs-btn|Continue",
+  "where": [
+   "new4",
+   "new5",
+   "newEnd"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": "#cc-staff .sl-stepper .ccs-chip.ccs-datecell",
+  "val": "66px",
+  "media": [],
+  "computed": "66px",
+  "eg": "66px|BUTTON.ccs-chip ccs-datecell|Tue10Nov",
+  "where": [
+   "new4"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .cc-f-review h3",
+  "val": "18px",
+  "media": [
+   "screen"
+  ],
+  "computed": "18px",
+  "eg": "18px|H3.|Read it back to the customer",
+  "where": [
+   "new5",
+   "newEnd"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .cc-f-val",
+  "val": "15px",
+  "media": [
+   "screen"
+  ],
+  "computed": "15px",
+  "eg": "15px|STRONG.cc-f-val|Slow Save Test",
+  "where": [
+   "new5",
+   "newEnd"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .sl-wrap",
+  "val": "calc(18*var(--u,1px))",
+  "media": [],
+  "computed": "18px",
+  "eg": "18px|DIV.sl-wrap is-stepper|Step 5 of 5Finish orderView sl",
+  "where": [
+   "new5",
+   "newEnd"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .sl-wrap .ccs-total b",
+  "val": "calc(28*var(--u,1px))",
+  "media": [],
+  "computed": "28px",
+  "eg": "28px|B.|$95",
+  "where": [
+   "new5",
+   "newEnd"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .cc-f-status",
+  "val": "19px",
+  "media": [
+   "screen"
+  ],
+  "computed": "19px",
+  "eg": "19px|STRONG.cc-f-status|Tap what they paid today",
+  "where": [
+   "new5",
+   "newEnd"
+  ]
+ },
+ {
+  "prop": "font-size",
+  "sel": "#cc-staff .cc-f-agreement h3",
+  "val": "16px",
+  "media": [
+   "screen"
+  ],
+  "computed": "16px",
+  "eg": "16px|H3.|Has the customer agreed to the",
+  "where": [
+   "newEnd"
+  ]
+ },
+ {
+  "prop": "min-height",
+  "sel": "#cc-staff .cc-f-option",
+  "val": "56px",
+  "media": [
+   "screen"
+  ],
+  "computed": "56px",
+  "eg": "56px|BUTTON.cc-f-option|Yes, customer agreed",
+  "where": [
+   "newEnd"
+  ]
+ }
+]
