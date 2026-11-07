@@ -3091,7 +3091,7 @@
       '<div class="sl-sub"><span class="sl-k">How did they hear about us? <em class="sl-req">Optional</em></span><div class="ccs-chips">' + HEARD.map(function (x) { return '<button type="button" class="ccs-chip" data-act="sl-heard" data-v="' + x[0] + '" aria-pressed="' + (D.heard === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div></div>' + slActions(2);
     h += slLine('Contact', 2, ct, ctEd, { req: true, id: 'sl-st-2' });
     // Stage 4: pickup
-    var wv = D.date && D.time ? esc(nice(D.date, true)) + ', ' + esc(t12(D.time)) + '<small>' + (dl ? 'Delivery to ' + esc(zName()) + (D.address ? ', ' + esc(D.address) : '') : 'Collect from café') + (tooSoon() ? ' · Short notice, approved by ' + esc(D.rushBy) : '') + '</small>' : '';
+    var wv = D.date && D.time ? esc(nice(D.date, true)) + ', ' + esc(t12(D.time)) + '<small><span class="sl-sep" hidden> · </span>' + (dl ? 'Delivery to ' + esc(zName()) + (D.address ? ', ' + esc(D.address) : '') : 'Collect from café') + (tooSoon() ? ' · Short notice, approved by ' + esc(D.rushBy) : '') + '</small>' : '';
     h += slLine(dl ? 'Delivery Date' : 'Pickup Date', 3, wv, stepWhen(true) + slActions(3), { req: true, id: 'sl-st-3', filled: !!(D.fromCal && D.date && D.time) });
     // Cake lines, filled from stage 1
     h += slLine('Type of cake', 0, p ? esc(D.variant || p.name) + (D.finish === 'custom' ? '<small>Custom design</small>' : '') : '', null, { filled: true });
@@ -3195,7 +3195,7 @@
     var nm = D.customer ? esc(D.customer.full_name) : esc(D.name.trim());
     var ct = D.customer ? esc(D.customer.phone || '') + (D.optIn === true || D.optIn === false ? '<small>' + (D.optIn ? 'Agreed to offers and reminders' : 'No offers or reminders') + '</small>' : D.custConsent && D.custConsent.ok ? '<small>Agreed to cake offers and reminders</small>' : '') : D.noMob === 'none' ? 'No phone<small>' + (D.email.trim() ? 'Email ' + esc(D.email.trim()) : 'They quote the order number at collection') + '</small>' : esc(D.phone.trim()) + (D.noMob === 'other' && D.phone.trim() ? '<small>Not a mobile</small>' : '');
     if (ct && !D.customer && D.noMob !== 'none' && (D.optIn === true || D.optIn === false)) ct += '<small>' + (D.optIn ? 'Agreed to offers and reminders' : 'No offers or reminders') + '</small>';
-    var wv = D.date && D.time ? esc(nice(D.date, true)) + ', ' + esc(t12(D.time)) + '<small>' + (dl ? 'Delivery to ' + esc(zName()) + (D.address ? ', ' + esc(D.address) : '') : 'Collect from café') + (tooSoon() ? ' · Short notice, approved by ' + esc(D.rushBy) : '') + '</small>' : '';
+    var wv = D.date && D.time ? esc(nice(D.date, true)) + ', ' + esc(t12(D.time)) + '<small><span class="sl-sep" hidden> · </span>' + (dl ? 'Delivery to ' + esc(zName()) + (D.address ? ', ' + esc(D.address) : '') : 'Collect from café') + (tooSoon() ? ' · Short notice, approved by ' + esc(D.rushBy) : '') + '</small>' : '';
     var dv = D.diet === 'no' ? 'No dietary needs' : D.diet === 'unsure' ? 'Not sure yet: check with the customer' : D.diet === 'yes' ? esc([].concat(D.diets, D.dietNote ? [D.dietNote] : []).join(', ') || 'Yes') : '';
     var rv = [D.occasion ? esc(occSend()) + (D.occFor ? ' for ' + esc(D.occFor) : '') : '', esc(D.notes)].filter(Boolean).join(' · ');
     var live = '<aside class="sl-live" aria-label="The order slip so far"><div class="sl-band"><div class="sl-logo">' + SLIP_LOGO + '</div></div>' + slMoney() +
